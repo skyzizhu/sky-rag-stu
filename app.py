@@ -288,7 +288,8 @@ def show_answer_sources(result) -> None:
                 st.markdown(
                     "上面展示的是**问答流水线**（提问 → … → 后处理），每次提问都会走一遍。\n\n"
                     "另一条是**入库流水线**：解析 → 清洗 → 切片 → 向量化 → 入库，"
-                    "只在上传文档或运行 `python ingest.py` 时执行。\n\n"
+                    "只在上传文档或运行 `python ingest.py` 时执行（V3 起为增量式："
+                    "内容没变的文件自动跳过，LLM 自动补全主题/标签）。\n\n"
                     "问答时检索到的知识卡片，就是入库流水线在当初切好、存好的。"
                     "两条流水线在「向量数据库」汇合：入库负责存，问答负责查。")
             for idx, node in enumerate(result.trace, start=1):
