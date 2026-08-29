@@ -32,7 +32,8 @@ from src.manage import (  # noqa: E402
 )
 from src.metadata import DOMAINS, DOMAIN_LABELS  # noqa: E402
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
-from src.pipeline import answer_question, answer_stream, ingest_files  # noqa: E402
+from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
+from src.sessions import list_sessions, load_session, new_session_id, save_session  # noqa: E402
 from src.vector_store import VectorStoreError, get_vector_store  # noqa: E402
 
 st.set_page_config(page_title="Sky Personal RAG", page_icon="🧠", layout="wide")
@@ -52,6 +53,26 @@ st.session_state.setdefault("domain_choice", "全部")
 st.session_state.setdefault("scope_choice", "仅 active")
 st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
+st.session_state.setdefault("session_id", new_session_id())
+
+# 载入历史会话（侧边栏点击后在此处理）
+if "__load_session" in st.session_state:
+    load_target = st.session_state.pop("__load_session")
+    data = load_session(load_target)
+    if data:
+        messages = []
+        for m in data.get(messages, []):
+            entry = {"role": m["role"], "content": m["content"]}
+            res = m.get("result")
+            if res:
+                res.pop("retrieved", None)
+                entry["result"] = QAResult(**{
+                    k: v for k, v in res.items()
+                    if k in {f.name for f in QAResult.__dataclass_fields__.values()}
+                })
+            messages.append(entry)
+        st.session_state.messages = messages
+        st.session_state.session_id = load_target
 st.session_state.setdefault("hybrid_search", cfg.hybrid_search)
 st.session_state.setdefault("rerank", cfg.rerank_enabled)
 
@@ -343,6 +364,15 @@ def page_chat():
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
+    if st.session_state.messages:
+        c1, c2 = st.columns([4, 1])
+        with c2:
+            def _new_session_cb():
+                st.session_state["session_id"] = new_session_id()
+                st.session_state.messages = []
+            if c2.button("🆕 开启新会话", width="stretch", on_click=_new_session_cb):
+                pass
+
     for message in st.session_state.messages:
         with st.chat_message(message["role"], avatar="🙋" if message["role"] == "user" else "🧠"):
             if message["role"] == "user":
@@ -379,6 +409,7 @@ def page_chat():
                 st.session_state.messages.append(
                     {"role": "assistant", "content": result.answer or full_text or "", "result": result}
                 )
+                save_session(st.session_state["session_id"], st.session_state.messages)
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
                 st.error(str(exc))
                 st.session_state.messages.append({"role": "assistant", "content": f"（出错：{exc}）"})
@@ -748,13 +779,31 @@ pg = st.navigation({
 pg.run()
 
 with st.sidebar:
+    st.markdown("🕘 **历史会话**")
+    sessions = list_sessions(10)
+
+    def _load_session_cb(session_id: str):
+        st.session_state["__load_session"] = session_id
+
+    if sessions:
+        for s in sessions:
+            title_short = s["title"][:16]
+            time_short = s["updated_at"][5:16]
+            if st.button(f"{title_short}　{time_short}", width="stretch",
+                         key=f"hs_{s["session_id"]}",
+                         on_click=_load_session_cb, args=(s["session_id"],)):
+                pass
+    else:
+        st.caption("暂无历史会话")
+
     ok_all = all(ok for ok, _ in system_status().values())
-    status_line = "🟢 系统状态：正常" if ok_all else "🟡 系统状态：有待处理项"
+    status_emoji = "🟢" if ok_all else "🟡"
+    status_text = "正常" if ok_all else "有待处理项"
     st.markdown(
         f"""
         <div class="status-block">
           <div style="border-top:1px solid #E4E9F2;padding:10px 2px 2px;
-                      font-size:.8rem;color:#64748B;">{status_line}</div>
+                      font-size:.8rem;color:#64748B;">{status_emoji} 系统状态：{status_text}</div>
         </div>
         """,
         unsafe_allow_html=True,
