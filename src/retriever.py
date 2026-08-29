@@ -24,6 +24,16 @@ from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
 
 
+def _fmt_filters(filters: dict) -> str:
+    parts = []
+    for key, value in filters.items():
+        if isinstance(value, dict) and ("from" in value or "to" in value):
+            parts.append(f"{key}: {value.get('from') or '…'} ~ {value.get('to') or '…'}（时间范围）")
+        else:
+            parts.append(f"{key}: {value}")
+    return "；".join(parts) or "（无）"
+
+
 @dataclass
 class RetrievedItem:
     """一条召回结果：相关度分数 + 卡片原文 + 档案 + 命中通道。"""
@@ -101,7 +111,7 @@ class Retriever:
                      "标签、章节、页码、版本、状态（active/archive）等"),
                     ("Metadata Filter 是什么", "检索前按档案字段过滤，缩小检索范围——"
                      "本阶段默认强制 status=active，所以归档（archive）知识不参与回答"),
-                    ("本次使用的过滤条件", str(used_filters)),
+                    ("本次使用的过滤条件", _fmt_filters(used_filters)),
                 ],
             ))
 

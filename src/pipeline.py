@@ -328,7 +328,8 @@ def answer_stream(
         parsed = (f"intent: {qu.intent or '-'}\n"
                   f"vector_query（改写后检索语句）: {qu.vector_query}\n"
                   f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '-'}\n"
-                  f"filters（推断的过滤条件）: {qu.filters or '{}'}")
+                  f"filters（推断的过滤条件）: {qu.filters or '{}'}\n"
+                  f"time_range（解析的时间范围）: {qu.time_range or '-'}")
         if qu.ok and qu.error:
             parsed += f"\n校验提示: {qu.error}"
         trace.append(make_node(
