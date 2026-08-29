@@ -10,7 +10,7 @@ from __future__ import annotations
 import time
 from functools import lru_cache
 
-from openai import APIConnectionError, AuthenticationError, NotFoundError, OpenAI, RateLimitError
+from openai import APIConnectionError, APIStatusError, AuthenticationError, NotFoundError, OpenAI, RateLimitError
 
 from src.config import AppConfig, get_config
 
@@ -43,6 +43,11 @@ class LLMClient:
             return LLMError("找不到配置的模型名。请检查 .env 里的 LLM_MODEL 是否是该服务商的模型名。")
         if isinstance(exc, RateLimitError):
             return LLMError("触发服务商限流（余额不足或请求太频繁），请稍后重试或检查账户余额。")
+        status = getattr(exc, "status_code", None)
+        if status == 402:
+            return LLMError("账户余额不足（402）。请充值后重试，或更换 .env 里的 LLM 服务商。")
+        if status and 400 <= status < 500:
+            return LLMError(f"大模型服务返回客户端错误（{status}）。请检查 .env 里的配置项是否正确。")
         return LLMError(f"大模型调用失败：{type(exc).__name__}: {exc}")
 
     def _create(self, messages: list[dict], stream: bool = False):

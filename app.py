@@ -794,18 +794,16 @@ with st.sidebar:
     with st.expander("🕘 历史会话", expanded=False):
         sessions = list_sessions(10)
 
-        def _load_session_cb(session_id: str):
-            st.session_state["__load_session"] = session_id
-
         if sessions:
-            for s in sessions:
+            for i, s in enumerate(sessions):
                 title_short = s["title"][:22]
                 time_short = s["updated_at"][5:16]
-                st.markdown(
-                    f'<a class="session-item" href="/?load={s["session_id"]}">'
-                    f'{title_short}<span class="si-time">　{time_short}</span></a>',
-                    unsafe_allow_html=True,
-                )
+                def _load_cb(session_id=s["session_id"]):
+                    st.session_state["__load_session"] = session_id
+                if st.button(f"📄 {title_short}", width="stretch",
+                             key=f"hs_{s['session_id']}", on_click=_load_cb):
+                    pass
+                st.caption(f"🕒 {time_short} · {s['count']} 条消息")
         else:
             st.caption("暂无历史会话")
 
