@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 
 from src.config import AppConfig, get_config
+from src.metadata import document_id_for
 from src.pipeline import ingest_files
 from src.vector_store import get_vector_store
 
@@ -90,6 +91,62 @@ def restore(archived_relative_path: str) -> dict:
         raise ManageError(f"恢复后重新入库失败：{summary.failed_files}")
     return {"message": f"已恢复：{archived_relative_path} → {target.relative_to(knowledge_dir).as_posix()}",
             "summary": summary}
+
+
+def update_metadata(relative_path: str, updates: dict) -> dict:
+    """编辑文档档案：把可编辑字段写入该文档的全部知识卡片，并记入台账覆盖设置。
+
+    可编辑字段：title / category / topic / tags / version / status。
+    覆盖设置存入入库台账，重新入库时依然生效；磁盘文件不做改动。
+    """
+    path, _, cfg = _resolve(relative_path)
+    allowed = {"title", "category", "topic", "tags", "version", "status"}
+    clean: dict = {}
+    for key, value in (updates or {}).items():
+        if key not in allowed or value in (None, "", "all"):
+            continue
+        if key in ("topic", "tags"):
+            value = [v.strip() for v in (value if isinstance(value, list) else [value]) if str(v).strip()]
+            if not value:
+                continue
+        else:
+            value = str(value).strip()
+            if not value:
+                continue
+        clean[key] = value
+
+    document_id = document_id_for(relative_path)
+    store = get_vector_store()
+    if store.collection_exists():
+        from qdrant_client import models
+        store.client.set_payload(
+            collection_name=cfg.qdrant_collection,
+            payload=clean,
+            points=models.FilterSelector(
+                filter=models.Filter(
+                    must=[models.FieldCondition(
+                        key="document_id", match=models.MatchValue(value=document_id)
+                    )]
+                )
+            ),
+            wait=True,
+        )
+
+    # 覆盖设置记入台账：重新入库时由 pipeline 优先应用（优先级高于 Front Matter 与目录）
+    from src import index_state as istate
+
+    state = istate.load_state()
+    entry = state.setdefault(relative_path, {})
+    overrides = entry.get("overrides", {})
+    for key, value in clean.items():
+        if value:
+            overrides[key] = value
+        else:
+            overrides.pop(key, None)
+    entry["overrides"] = overrides
+    entry["document_id"] = document_id
+    istate.save_state(state)
+    return {"message": f"已更新档案：{relative_path}（{len(clean)} 个字段）"}
 
 
 def remove_from_index(relative_path: str) -> dict:

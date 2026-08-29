@@ -549,6 +549,24 @@ def page_manage():
                 except ManageError as exc:
                     st.error(str(exc))
 
+    # 档案编辑（V3.4）
+    with st.expander("✏️ 编辑档案"):
+        e1, e2 = st.columns(2)
+        new_title = e1.text_input("标题", value=d["source"] and (d.get("source") or ""), key="ed_title")
+        new_category = e2.text_input("分类 Category", value=d["category"], key="ed_cat")
+        new_topic = st.text_input("主题 Topic（逗号分隔）", value=", ".join(d["topic"]), key="ed_topic")
+        new_version = st.text_input("版本 Version", value=d["version"], key="ed_ver")
+        if st.button("💾 保存档案修改", type="primary"):
+            updates = {"title": new_title, "category": new_category,
+                       "topic": [t.strip() for t in new_topic.split(",") if t.strip()],
+                       "version": new_version}
+            try:
+                info = __import__("src.manage", fromlist=["update_metadata"]).update_metadata(d["path"], updates)
+                st.toast(info["message"], icon="✅")
+                st.rerun()
+            except ManageError as exc:
+                st.error(str(exc))
+
     payloads = store.chunks_by_document(d["document_id"])
     st.markdown(f"**🧩 知识卡片（{len(payloads)} 张）**")
     for payload in payloads:

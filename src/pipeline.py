@@ -173,6 +173,11 @@ def ingest_files(
             parsed.metadata["tags"] = tagged["tags"]
             if tagged["topic"] or tagged["tags"]:
                 print(f"   🤖 自动标签 [{rel}]: topic={parsed.metadata['topic']} tags={parsed.metadata['tags']}")
+        # V3.4 档案编辑：台账里的覆盖设置优先级最高（高于 Front Matter 与目录推断）
+        overrides = state.get(rel, {}).get("overrides", {})
+        for key, value in overrides.items():
+            if key in ("title", "category", "topic", "tags", "version", "status") and value:
+                parsed.metadata[key] = value
         docs.append(parsed)
     summary.ok_files = len(docs)
     print(f"   成功 {len(docs)} 个，失败 {len(summary.failed_files)} 个")
