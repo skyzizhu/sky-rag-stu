@@ -1,0 +1,9 @@
+{
+  "top_k": 5,
+  "domain_choice": "全部",
+  "scope_choice": "仅 active",
+  "debug_mode": true,
+  "query_understanding": true,
+  "hybrid_search": true,
+  "rerank": true
+}
