@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import html
 import sys
 from pathlib import Path
 
@@ -18,6 +19,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from src.app_settings import SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
 from src.config import get_config  # noqa: E402
 from src.embedding import EmbeddingClient, EmbeddingError  # noqa: E402
 from src.llm import LLMError  # noqa: E402
@@ -52,6 +54,13 @@ st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
 st.session_state.setdefault("hybrid_search", cfg.hybrid_search)
 st.session_state.setdefault("rerank", cfg.rerank_enabled)
+
+# 用户保存过的检索设置优先于 .env 默认值（每个浏览器会话只加载一次）
+if "app_settings_loaded" not in st.session_state:
+    for key, value in load_app_settings().items():
+        if key in st.session_state:
+            st.session_state[key] = value
+    st.session_state["app_settings_loaded"] = True
 
 # ---------------------------------------------------------------- 全局样式
 CSS = """
@@ -101,10 +110,27 @@ html, body, [class*="css"], .stApp {font-family: -apple-system, "PingFang SC", "
 .stTextInput input, .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea {
   border-radius: 10px !important;}
 
-/* 聊天气泡 */
+/* 聊天气泡：回答靠左，用户消息为右侧蓝色气泡 */
 [data-testid="stChatMessage"] {border-radius: 16px; border: 1px solid #ECF1F8;
   background: #FBFCFE; padding: 6px 10px; margin-bottom: 4px;}
-[data-testid="stChatInput"] textarea {border-radius: 14px !important;}
+[data-testid="stChatMessage"]:has(.user-bubble) {
+  flex-direction: row-reverse; background: transparent; border: none;
+  margin-left: 10%; padding: 2px;}
+.user-bubble {background: linear-gradient(135deg, #2563EB, #4F46E5); color: #fff;
+  padding: 10px 16px; border-radius: 18px 18px 4px 18px; font-size: .95rem;
+  line-height: 1.6; box-shadow: 0 3px 10px rgba(37, 99, 235, .25);}
+
+/* 输入框：胶囊悬浮在底部（无背景板，居中） */
+[data-testid="stBottom"], [data-testid="stBottom"] > div {
+  background: transparent !important; border: none !important; box-shadow: none !important;}
+[data-testid="stBottom"] {position: fixed !important; bottom: 8px !important;
+  left: 50% !important; transform: translateX(-50%); width: min(900px, 94vw) !important;
+  z-index: 200;}
+[data-testid="stChatInput"] {border-radius: 999px !important;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, .16) !important;
+  border: 1px solid #E2E8F0 !important; background: #fff !important;}
+[data-testid="stChatInput"] textarea {border-radius: 999px !important; background: transparent !important;}
+.block-container {padding-bottom: 8.5rem !important;}
 
 /* 折叠面板 / 表格 / 指标卡 */
 [data-testid="stExpander"] {border-radius: 12px; border: 1px solid #E8EDF5; background: #FFFFFF;}
@@ -113,15 +139,15 @@ html, body, [class*="css"], .stApp {font-family: -apple-system, "PingFang SC", "
   border: 1px solid #E8EDF5; border-radius: 14px; padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, .04);}
 
-/* 首页横幅 */
+/* 首页横幅（紧凑版） */
 .hero {background: linear-gradient(135deg, #172554 0%, #1D4ED8 55%, #4F46E5 100%);
-  border-radius: 20px; padding: 30px 34px; color: #fff; margin-bottom: 14px;
-  box-shadow: 0 10px 30px rgba(29, 78, 216, .25);}
-.hero h1 {margin: 0 0 6px; font-size: 1.65rem; font-weight: 800; letter-spacing: .5px;}
-.hero p {margin: 0 0 14px; opacity: .88; font-size: .95rem;}
+  border-radius: 16px; padding: 16px 22px; color: #fff; margin-bottom: 10px;
+  box-shadow: 0 6px 18px rgba(29, 78, 216, .22);}
+.hero h1 {margin: 0 0 3px; font-size: 1.22rem; font-weight: 800; letter-spacing: .3px;}
+.hero p {margin: 0 0 8px; opacity: .85; font-size: .82rem;}
 .hero .pill {display: inline-block; background: rgba(255,255,255,.14);
   border: 1px solid rgba(255,255,255,.25); border-radius: 999px;
-  padding: 3px 14px; font-size: .8rem; margin-right: 8px;}
+  padding: 2px 10px; font-size: .72rem; margin-right: 6px;}
 
 /* 标签胶囊 */
 .tag {display: inline-block; background: #EEF2FF; color: #3730A3; border-radius: 999px;
@@ -164,6 +190,14 @@ def get_services():
 
 services = get_services()
 store = services["store"]
+
+
+def _sync_setting(canonical_key: str, widget_key: str):
+    """控件变化时：同步到规范 session 键（供其他页面读取）+ 持久化到配置文件。"""
+    def _sync():
+        st.session_state[canonical_key] = st.session_state[widget_key]
+        save_app_settings({k: st.session_state[k] for k in SETTINGS_KEYS})
+    return _sync
 
 
 def domain_label(domain: str) -> str:
@@ -303,14 +337,19 @@ def page_chat():
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"], avatar="🙋" if message["role"] == "user" else "🧠"):
-            st.markdown(message["content"])
-            if message.get("result") is not None:
-                show_answer_sources(message["result"])
+            if message["role"] == "user":
+                st.markdown(f'<div class="user-bubble">{html.escape(message["content"])}</div>',
+                            unsafe_allow_html=True)
+            else:
+                st.markdown(message["content"])
+                if message.get("result") is not None:
+                    show_answer_sources(message["result"])
 
     def _process_question(question: str) -> None:
         st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user", avatar="🙋"):
-            st.markdown(question)
+            st.markdown(f'<div class="user-bubble">{html.escape(question)}</div>',
+                        unsafe_allow_html=True)
 
         with st.chat_message("assistant", avatar="🧠"):
             if not cfg.llm_api_key:
@@ -524,21 +563,43 @@ def page_manage():
 def page_retrieval_settings():
     st.markdown('<div class="section-title">🔍 检索设置</div>', unsafe_allow_html=True)
     st.caption("这里的设置对「知识库问答」页即时生效")
-    st.slider("每次召回知识条数（Top K）", 1, 10, key="top_k")
-    st.selectbox("限定知识领域", ["全部"] + [domain_label(d) for d in DOMAINS], key="domain_choice")
-    st.radio("检索范围", ["仅 active", "包含归档", "仅归档"], key="scope_choice",
+
+    domain_labels = ["全部"] + [domain_label(d) for d in DOMAINS]
+    scopes = ["仅 active", "包含归档", "仅归档"]
+
+    # 显式传入当前生效值（value=），保证第一次打开就显示正确数据；变化时同步回 session
+    st.slider("每次召回知识条数（Top K）", 1, 10,
+              value=st.session_state["top_k"], key="set_top_k",
+              on_change=_sync_setting("top_k", "set_top_k"))
+    st.selectbox("限定知识领域", domain_labels,
+                 index=domain_labels.index(st.session_state["domain_choice"]),
+                 key="set_domain", on_change=_sync_setting("domain_choice", "set_domain"))
+    st.radio("检索范围", scopes,
+             index=scopes.index(st.session_state["scope_choice"]),
+             key="set_scope", on_change=_sync_setting("scope_choice", "set_scope"),
              horizontal=True,
              help="归档（archive）内容默认不参与回答，除非你明确要求")
-    st.toggle("🧠 Query 理解 / 改写（V2）", key="query_understanding",
+
+    st.divider()
+    st.markdown('<div class="section-title">🧠 检索增强开关（V2）</div>', unsafe_allow_html=True)
+    st.toggle("🧠 Query 理解 / 改写",
+              value=st.session_state["query_understanding"], key="set_qu",
+              on_change=_sync_setting("query_understanding", "set_qu"),
               help="先用大模型把口语化提问改写成检索友好查询，并自动推断过滤条件（领域/归档等）。"
                    "开启后每次问答多用一次 LLM 调用")
-    st.toggle("🔀 混合检索（V2）", key="hybrid_search",
+    st.toggle("🔀 混合检索",
+              value=st.session_state["hybrid_search"], key="set_hybrid",
+              on_change=_sync_setting("hybrid_search", "set_hybrid"),
               help="向量通道 + BM25 关键词通道两路召回，RRF 融合排序；"
-                   "专有名词、编号、缩写类问题更准")
-    st.toggle("🏆 Rerank 精排（V2）", key="rerank",
+                   "专有名词、编号、缩写类问题更准。本机计算，不多花 API 钱")
+    st.toggle("🏆 Rerank 精排",
+              value=st.session_state["rerank"], key="set_rerank",
+              on_change=_sync_setting("rerank", "set_rerank"),
               help="召回扩宽到 10 条候选，大模型逐条阅读打相关度分后精选 Top K；"
                    "开启后每次问答多用一次 LLM 调用")
-    st.toggle("🛠 调试模式（问答页展示节点时间线与检索明细）", key="debug_mode")
+    st.toggle("🛠 调试模式（问答页展示节点时间线与检索明细）",
+              value=st.session_state["debug_mode"], key="set_debug",
+              on_change=_sync_setting("debug_mode", "set_debug"))
 
 
 # ---------------------------------------------------------------- 页面 5：维护操作
