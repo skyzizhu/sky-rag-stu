@@ -1,0 +1,24 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# 本地私密配置（含 API Key，绝不能开源）
+.env
+
+# 本地运行数据（向量库数据、评测报告、日志）
+storage/
+
+# 本地下载的工具（Qdrant 二进制等）
+tools/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Qdrant 首次运行的标记文件
+.qdrant-initialized

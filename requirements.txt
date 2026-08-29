@@ -1,0 +1,11 @@
+streamlit>=1.36
+openai>=1.40
+ollama>=0.3
+qdrant-client>=1.10
+pypdf>=4.0
+python-docx>=1.1
+beautifulsoup4>=4.12
+striprtf>=0.0.26
+python-dotenv>=1.0
+requests>=2.31
+pyyaml>=6.0

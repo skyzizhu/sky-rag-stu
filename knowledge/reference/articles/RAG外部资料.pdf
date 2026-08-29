@@ -1,0 +1,98 @@
+%PDF-1.4
+1 0 obj
+<< /Length 537 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+16 TL
+(External Reading Collection - Personal Knowledge Base) Tj T*
+() Tj T*
+(External Reading: Retrieval-Augmented Generation - Page 1) Tj T*
+() Tj T*
+(Retrieval-Augmented Generation \(RAG\) combines a retrieval module) Tj T*
+(with a text generation model. The retrieval module searches an) Tj T*
+(external knowledge base for passages relevant to the user query.) Tj T*
+() Tj T*
+(Key benefit: answers are grounded in source documents, which) Tj T*
+(reduces hallucination and enables citation of sources.) Tj T*
+ET
+endstream
+endobj
+2 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 1 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+3 0 obj
+<< /Length 639 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+16 TL
+(External Reading Collection - Personal Knowledge Base) Tj T*
+() Tj T*
+(External Reading: Retrieval-Augmented Generation - Page 2) Tj T*
+() Tj T*
+(A vector database stores text embeddings and supports fast) Tj T*
+(similarity search. Popular choices include Qdrant, Milvus and) Tj T*
+(Weaviate. Qdrant supports payload filtering, which allows the) Tj T*
+(system to restrict search results by metadata fields such as) Tj T*
+(domain, category, topic and status.) Tj T*
+() Tj T*
+(Chunking strategy matters: chunks that are too small lose) Tj T*
+(context, while chunks that are too large dilute relevance.) Tj T*
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 3 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 512 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+16 TL
+(External Reading Collection - Personal Knowledge Base) Tj T*
+() Tj T*
+(External Reading: Retrieval-Augmented Generation - Page 3) Tj T*
+() Tj T*
+(Recommended default parameters for a personal knowledge base:) Tj T*
+(chunk size 500 to 800 characters, overlap 80 to 150 characters,) Tj T*
+(and top-k between 3 and 5. Always evaluate retrieval quality) Tj T*
+(with a question set before tuning any further.) Tj T*
+() Tj T*
+(Source: external articles collected in August 2026.) Tj T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+7 0 obj
+<< /Type /Catalog /Pages 8 0 R >>
+endobj
+8 0 obj
+<< /Type /Pages /Kids [2 0 R 4 0 R 6 0 R] /Count 3 >>
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000597 00000 n 
+0000000723 00000 n 
+0000001413 00000 n 
+0000001539 00000 n 
+0000002102 00000 n 
+0000002228 00000 n 
+0000002277 00000 n 
+0000002346 00000 n 
+trailer
+<< /Size 10 /Root 7 0 R >>
+startxref
+2416
+%%EOF

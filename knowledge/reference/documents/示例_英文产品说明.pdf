@@ -1,0 +1,92 @@
+%PDF-1.4
+1 0 obj
+<< /Length 393 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+16 TL
+(SkyNotes Product Spec - Internal Use Only) Tj T*
+() Tj T*
+(SkyNotes Release Notes - Page 1) Tj T*
+() Tj T*
+(Feature A: Markdown export was shipped in March 2026.) Tj T*
+(Feature A supports tables, code blocks and footnotes.) Tj T*
+() Tj T*
+(Feature B: Tag management entered beta in May 2026.) Tj T*
+(Each note can carry up to 20 tags in the beta build.) Tj T*
+ET
+endstream
+endobj
+2 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 1 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+3 0 obj
+<< /Length 399 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+16 TL
+(SkyNotes Product Spec - Internal Use Only) Tj T*
+() Tj T*
+(SkyNotes Release Notes - Page 2) Tj T*
+() Tj T*
+(Feature C: Offline mode is planned for Q4 2026.) Tj T*
+(Offline mode will cache the most recent 500 notes per device.) Tj T*
+() Tj T*
+(Team note: all release dates in this document follow the) Tj T*
+(roadmap approved on 2026-01-15 and may be adjusted.) Tj T*
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 3 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 330 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+16 TL
+(SkyNotes Product Spec - Internal Use Only) Tj T*
+() Tj T*
+(SkyNotes Release Notes - Page 3) Tj T*
+() Tj T*
+(Feature D: AI summaries rolled out to all users in July 2026.) Tj T*
+(Summaries are limited to 3 bullet points per note.) Tj T*
+() Tj T*
+(Contact: knowledge-team@skynotes.example.com) Tj T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+7 0 obj
+<< /Type /Catalog /Pages 8 0 R >>
+endobj
+8 0 obj
+<< /Type /Pages /Kids [2 0 R 4 0 R 6 0 R] /Count 3 >>
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000453 00000 n 
+0000000579 00000 n 
+0000001029 00000 n 
+0000001155 00000 n 
+0000001536 00000 n 
+0000001662 00000 n 
+0000001711 00000 n 
+0000001780 00000 n 
+trailer
+<< /Size 10 /Root 7 0 R >>
+startxref
+1850
+%%EOF
