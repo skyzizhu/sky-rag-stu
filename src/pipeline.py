@@ -26,6 +26,8 @@ from src.llm import LLMClient, get_llm_client
 from src.metadata import build_document_metadata
 from src.parser import ParsedDocument, parse_file
 from src.prompt import build_messages
+from src.query_understanding import understand_query
+from src.reranker import rerank as rerank_items
 from src.retriever import RetrievedItem, effective_filters, get_retriever
 from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
@@ -176,15 +178,21 @@ def answer_stream(
     top_k: int | None = None,
     use_llm: bool = True,
     filters: dict | None = None,
+    use_query_understanding: bool = True,
+    use_hybrid: bool = True,
+    use_rerank: bool = True,
     config: AppConfig | None = None,
 ):
     """流式问答：检索同步完成，回答逐段产出。返回 (完整结果记录, 文本块生成器)。
 
     生成器迭代结束后，result.answer / result.elapsed / result.trace 才是完整值。
-    filters 例：{"domain": "learning"}、{"status": "archive"}。
-    默认强制 status=active；显式传 status 以传入值为准。
+    filters 例：{"domain": "learning"}、{"status": "archive"}（界面手动设置，优先级最高）。
+    use_query_understanding=True 时先用 LLM 改写提问并推断过滤条件（V2.1）。
+    use_hybrid=True 时并行执行 BM25 关键词检索并用 RRF 融合（V2.3/V2.4）。
+    use_rerank=True 时召回扩宽到 RERANK_RECALL_K 条，LLM 打分精排后取 Top K（V2.5）。
     """
     cfg = config or get_config()
+    top_k = top_k or cfg.top_k
     retriever = get_retriever()
     trace: list = []
     result = QAResult(question=question, answer=None, retrieved=[], context="",
@@ -228,23 +236,122 @@ def answer_stream(
         ],
     ))
 
-    # 节点 ②：Query 理解 / 改写（V1 直通，规划 V2 启用）
-    trace.append(make_node(
-        "🧠", "Query 理解 / 改写", time_str=now_str(), status="直通（规划 V2 启用）",
-        summary="完整 RAG 会先用 LLM 把口语化提问改写成更适合检索的查询（如补全指代、提取关键词）；"
-                "V1 阶段此节点未启用，原始问题直接向下传递",
-        items=[
-            ("输入", question),
-            ("输出", "与输入相同（未改写）"),
-            ("改写 Prompt", "本阶段未启用，因此没有产生改写用的系统/用户 Prompt；"
-             "该节点在 V2 启用后，这里会展示它的系统 Prompt 和用户 Prompt 全文"),
-        ],
-    ))
+    # 节点 ②：Query 理解 / 改写（V2：一次 LLM 调用完成改写 + 关键词 + 过滤条件推断）
+    search_query = question
+    qu_filters: dict = {}
+    qu = None
+    if use_query_understanding and use_llm:
+        qu_start = now_str()
+        llm = get_llm_client()
+        try:
+            catalog = sorted({d["category"] for d in get_vector_store().list_documents()})
+        except Exception:
+            catalog = []
+        qu = understand_query(question, llm=llm, config=cfg, categories=catalog)
+        search_query = qu.vector_query or question
+        qu_filters = dict(qu.filters)
+        parsed = (f"intent: {qu.intent or '-'}\n"
+                  f"vector_query（改写后检索语句）: {qu.vector_query}\n"
+                  f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '-'}\n"
+                  f"filters（推断的过滤条件）: {qu.filters or '{}'}")
+        if qu.ok and qu.error:
+            parsed += f"\n校验提示: {qu.error}"
+        trace.append(make_node(
+            "🧠", "Query 理解 / 改写", time_str=qu_start, elapsed=qu.elapsed,
+            status="已执行" if qu.ok else "回退（解析失败，使用原始问题检索）",
+            summary="用一次 LLM 调用，把口语化提问改写成检索友好的查询语句，"
+                    "同时推断过滤条件（领域/分类/状态等）；失败自动回退为原始问题",
+            items=[
+                ("改写 System Prompt", qu.system_prompt),
+                ("改写 User Prompt", qu.user_prompt),
+                ("LLM 原始输出", qu.raw_output or qu.error),
+                ("解析结果", parsed),
+            ],
+        ))
+    else:
+        reason = "仅检索模式" if not use_llm else "未启用（可在 检索设置 或 .env QUERY_UNDERSTANDING 开启）"
+        trace.append(make_node(
+            "🧠", "Query 理解 / 改写", time_str=now_str(), status=f"直通（{reason}）",
+            summary="原始问题直接进入向量化，未做改写与条件推断",
+            items=[("输入 / 输出", question)],
+        ))
 
     # 节点 ③④⑤⑥：Query Embedding → Metadata Filter → 数据库检索 → 召回 Chunk
+    # 过滤条件优先级：界面手动设置 > Query 理解推断 > 默认 status=active
+    # Rerank 开启时先宽召回（默认 10 条候选），精排后再取 Top K
+    use_rerank_now = use_rerank and use_llm
+    recall_k = max(top_k, cfg.rerank_recall_k) if use_rerank_now else top_k
+    merged_filters = {**qu_filters, **(filters or {})}
+    result.filters = effective_filters(merged_filters)
     t0 = time.time()
-    result.retrieved = retriever.retrieve(question, top_k=top_k, filters=filters, trace=trace)
+    result.retrieved = retriever.retrieve(
+        search_query, top_k=recall_k, filters=merged_filters, trace=trace,
+        keyword_query=(qu.keyword_query if qu and qu.ok else None),
+        use_hybrid=use_hybrid,
+    )
+
+    # 渐进式放宽（检索容错）：LLM 推断的过滤条件猜错时可能把正确答案挡在门外——
+    # 如果「带推断条件」检索为 0 条，自动去掉推断条件（保留手动设置）重试一次。
+    if not result.retrieved and qu_filters and not filters:
+        relax_start = now_str()
+        t_relax = time.time()
+        manual_filters = filters or {}
+        result.retrieved = retriever.retrieve(
+            search_query, top_k=top_k, filters=manual_filters, trace=None,
+            keyword_query=(qu.keyword_query if qu and qu.ok else None),
+            use_hybrid=use_hybrid,
+        )
+        result.filters = effective_filters(manual_filters)
+        trace.append(make_node(
+            "🔄", "过滤放宽重试", time_str=relax_start, elapsed=time.time() - t_relax,
+            status="已触发",
+            summary="带推断过滤条件的检索召回了 0 条——推断的条件可能过严，把正确答案挡在了门外。"
+                    "自动去掉 LLM 推断的条件（保留手动设置）重试了一次；"
+                    "这是检索系统的常见容错策略：宁可范围大一点，也不能漏掉答案",
+            items=[
+                ("首检条件（0 条召回）", str(effective_filters({**qu_filters, **(filters or {})}))),
+                ("放宽后条件", str(result.filters)),
+                ("重试结果", f"召回 {len(result.retrieved)} 条"),
+            ],
+        ))
     result.elapsed["retrieval"] = time.time() - t0
+    # 节点 ⑦：Rerank 精排（V2.5：LLM 逐条打分，宽召回精选）
+    if use_rerank_now and result.retrieved:
+        rr_start = now_str()
+        t_rr = time.time()
+        outcome = rerank_items(question, result.retrieved, top_k=top_k,
+                               llm=get_llm_client(), config=cfg)
+        rr_elapsed = time.time() - t_rr
+        result.retrieved = outcome.items[:top_k]
+        trace.append(make_node(
+            "🏆", "Rerank（精排）", time_str=rr_start,
+            elapsed=rr_elapsed,
+            status="已执行" if outcome.ok else f"回退（粗排顺序：{outcome.error[:50]}）",
+            summary=f"召回先扩宽到 {recall_k} 条候选，LLM 逐条阅读并按相关度打 0~10 分，"
+                    f"按分精排后取 Top {top_k}——粗排只看文字和指纹，精排才理解内容",
+            items=[
+                ("精排方式（共 1 种启用）", "✅ 启用：LLM 重排 —— 用已配置的大模型逐条阅读候选内容，"
+                 "按相关度打 0~10 分\n"
+                 "○ 未启用：专用重排模型（bge-reranker / Cohere Rerank 等）——"
+                 "专为此任务训练、打分更稳定更快，可在 src/reranker.py 中替换接入"),
+                ("方式 1 · LLM 重排的结果", "\n".join(
+                    f"{cid}  {source}  {score:.0f} 分" for cid, source, score in outcome.scores
+                ) or "（无候选）"),
+                ("排序前后对比", "粗排: " + " → ".join(outcome.before_order)
+                 + "\n精排 Top K: " + " → ".join(outcome.after_order)),
+                ("方式 1 · 给 LLM 的 System Prompt", outcome.system_prompt),
+                ("方式 1 · 给 LLM 的 User Prompt", outcome.user_prompt),
+                ("LLM 原始输出", outcome.raw_output or outcome.error),
+            ],
+        ))
+    elif not use_rerank:
+        trace.append(make_node(
+            "🏆", "Rerank（精排）", time_str=now_str(),
+            status="未启用（可在 检索设置 或 .env RERANK_ENABLED 开启）",
+            summary="候选卡片按粗排顺序（向量相似度 / RRF 融合）直接使用",
+            items=[("说明", "开启后：召回先扩宽（默认 10 条候选），LLM 逐条打分精排，再取 Top K 进入回答")],
+        ))
+
     result.sources = [
         {
             "rank": item.rank,
@@ -258,6 +365,7 @@ def answer_stream(
             "topic": item.metadata.get("topic") or [],
             "version": item.metadata.get("version"),
             "status": item.metadata.get("status"),
+            "channels": item.channels,
             "text": item.text,
         }
         for item in result.retrieved
@@ -279,19 +387,6 @@ def answer_stream(
              "剩余卡片按相关度依次放入，直到达到资料字数上限"),
             ("被丢弃的卡片", "\n".join(drop_lines) if drop_lines else "（没有需要丢弃的卡片）"),
             ("输出", f"采用 {len(used)} 条，丢弃 {len(dropped)} 条"),
-        ],
-    ))
-
-    # 节点 ⑧：Rerank（V1 直通，规划 V2 启用）
-    trace.append(make_node(
-        "🏆", "Rerank（精排）", time_str=now_str(), status="直通（规划 V2 启用）",
-        summary="完整 RAG 会用重排模型对召回卡片逐条精细打分再排序；"
-                "V1 未启用，直接沿用向量相似度排序",
-        items=[
-            ("当前排序规则", "按向量相似度分数从高到低（无独立重排模型）"),
-            ("排序结果", "\n".join(
-                f"[{s['rank']}] {s['source']}  score={s['score']:.4f}" for s in result.sources
-            ) or "（无）"),
         ],
     ))
 
@@ -363,11 +458,17 @@ def answer_question(
     top_k: int | None = None,
     use_llm: bool = True,
     filters: dict | None = None,
+    use_query_understanding: bool = True,
+    use_hybrid: bool = True,
+    use_rerank: bool = True,
     config: AppConfig | None = None,
 ) -> QAResult:
     """完整问答链路（一次性返回完整答案）。use_llm=False 时只做检索（不花钱）。"""
-    result, deltas = answer_stream(question, top_k=top_k, use_llm=use_llm,
-                                   filters=filters, config=config)
+    result, deltas = answer_stream(
+        question, top_k=top_k, use_llm=use_llm, filters=filters,
+        use_query_understanding=use_query_understanding,
+        use_hybrid=use_hybrid, use_rerank=use_rerank, config=config,
+    )
     for _ in deltas:  # 消费生成器，把答案收集完整
         pass
     return result

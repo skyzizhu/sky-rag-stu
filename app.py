@@ -49,6 +49,9 @@ st.session_state.setdefault("top_k", cfg.top_k)
 st.session_state.setdefault("domain_choice", "全部")
 st.session_state.setdefault("scope_choice", "仅 active")
 st.session_state.setdefault("debug_mode", True)
+st.session_state.setdefault("query_understanding", cfg.query_understanding)
+st.session_state.setdefault("hybrid_search", cfg.hybrid_search)
+st.session_state.setdefault("rerank", cfg.rerank_enabled)
 
 # ---------------------------------------------------------------- 全局样式
 CSS = """
@@ -133,6 +136,18 @@ html, body, [class*="css"], .stApp {font-family: -apple-system, "PingFang SC", "
 
 .section-title {font-size: 1.05rem; font-weight: 800; color: #0F172A; margin: 4px 0 10px;}
 hr {border: none; border-top: 1px solid #EEF2F7;}
+
+/* 调试面板：整体小一号字 */
+[data-testid="stExpander"]:has(.debug-marker) p,
+[data-testid="stExpander"]:has(.debug-marker) li,
+[data-testid="stExpander"]:has(.debug-marker) summary div div,
+[data-testid="stExpander"]:has(.debug-marker) [data-testid="stMarkdownContainer"] {
+  font-size: .8rem !important;}
+.dbg-label {font-size: .76rem; font-weight: 700; color: #64748B; margin: 10px 0 2px;}
+pre.dbg {font-size: .72rem !important; line-height: 1.55; white-space: pre-wrap;
+  word-break: break-word; background: #F8FAFC; border: 1px solid #EEF2F7;
+  border-radius: 8px; padding: 8px 10px; margin: 2px 0 6px; color: #334155;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -225,6 +240,7 @@ def show_answer_sources(result) -> None:
 
     if st.session_state.get("debug_mode"):
         with st.expander("🛠 调试信息 · RAG 节点时间线（每个节点在什么时候做了什么）"):
+            st.markdown('<span class="debug-marker"></span>', unsafe_allow_html=True)
             st.caption("按执行顺序展示一次问答经过的每个节点：发生时间、耗时、做了什么、输入与输出。"
                        "标注「直通」的节点是完整 RAG 有、但当前版本未启用的环节。")
             with st.expander("📚 学习提示：两条流水线的关系"):
@@ -244,15 +260,17 @@ def show_answer_sources(result) -> None:
                     st.markdown(f"**做了什么**　{node['summary']}")
                     for label, value in node.get("items", []):
                         text = str(value)
-                        st.markdown(f"**{label}**")
+                        st.markdown(f'<div class="dbg-label">{label}</div>', unsafe_allow_html=True)
                         if text:
-                            st.text(text if len(text) <= 6000 else text[:6000] + "……")
+                            shown = text if len(text) <= 6000 else text[:6000] + "……"
+                            st.markdown(f'<pre class="dbg">{shown}</pre>', unsafe_allow_html=True)
                         else:
                             st.caption("（空）")
             if result.sources:
                 st.markdown("**📎 召回 Chunk 逐条明细表**")
                 st.dataframe(
-                    [{"排名": s["rank"], "分数": round(s["score"], 4), "Source": s["source"],
+                    [{"排名": s["rank"], "分数": round(s["score"], 4), "通道": s.get("channels", "向量"),
+                      "Source": s["source"],
                       "Domain": s.get("domain"), "Category": s.get("category"),
                       "Topic": ", ".join(s.get("topic") or []), "章节": s.get("section") or "",
                       "页码": s.get("page") or "", "Version": s.get("version"), "Status": s.get("status")}
@@ -301,8 +319,14 @@ def page_chat():
                 return
             try:
                 with st.spinner("🔍 正在检索知识库……"):
-                    result, deltas = answer_stream(question, top_k=st.session_state["top_k"],
-                                                   filters=build_filters())
+                    result, deltas = answer_stream(
+                        question,
+                        top_k=st.session_state["top_k"],
+                        filters=build_filters(),
+                        use_query_understanding=st.session_state["query_understanding"],
+                        use_hybrid=st.session_state["hybrid_search"],
+                        use_rerank=st.session_state["rerank"],
+                    )
                 full_text = st.write_stream(deltas)
                 show_answer_sources(result)
                 st.session_state.messages.append(
@@ -505,7 +529,16 @@ def page_retrieval_settings():
     st.radio("检索范围", ["仅 active", "包含归档", "仅归档"], key="scope_choice",
              horizontal=True,
              help="归档（archive）内容默认不参与回答，除非你明确要求")
-    st.toggle("🛠 调试模式（问答页展示检索明细与过滤条件）", key="debug_mode")
+    st.toggle("🧠 Query 理解 / 改写（V2）", key="query_understanding",
+              help="先用大模型把口语化提问改写成检索友好查询，并自动推断过滤条件（领域/归档等）。"
+                   "开启后每次问答多用一次 LLM 调用")
+    st.toggle("🔀 混合检索（V2）", key="hybrid_search",
+              help="向量通道 + BM25 关键词通道两路召回，RRF 融合排序；"
+                   "专有名词、编号、缩写类问题更准")
+    st.toggle("🏆 Rerank 精排（V2）", key="rerank",
+              help="召回扩宽到 10 条候选，大模型逐条阅读打相关度分后精选 Top K；"
+                   "开启后每次问答多用一次 LLM 调用")
+    st.toggle("🛠 调试模式（问答页展示节点时间线与检索明细）", key="debug_mode")
 
 
 # ---------------------------------------------------------------- 页面 5：维护操作

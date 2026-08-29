@@ -73,6 +73,16 @@ class AppConfig:
     top_k: int = field(default_factory=lambda: _env_int("TOP_K", 5))
     context_max_chars: int = field(default_factory=lambda: _env_int("CONTEXT_MAX_CHARS", 6000))
 
+    # V2：Query 理解 / 改写（每次问答多用一次 LLM 调用，把口语化提问改写成检索友好查询）
+    query_understanding: bool = field(default_factory=lambda: _env_bool("QUERY_UNDERSTANDING", True))
+
+    # V2：混合检索（向量通道 + BM25 关键词通道，RRF 融合排序）
+    hybrid_search: bool = field(default_factory=lambda: _env_bool("HYBRID_SEARCH", True))
+
+    # V2：Rerank 精排（LLM 对候选逐条相关度打分；先宽召回 RERANK_RECALL_K 条，精排后取 Top K）
+    rerank_enabled: bool = field(default_factory=lambda: _env_bool("RERANK_ENABLED", True))
+    rerank_recall_k: int = field(default_factory=lambda: _env_int("RERANK_RECALL_K", 10))
+
     # 其他
     knowledge_dir: Path = field(
         default_factory=lambda: (PROJECT_ROOT / _env("KNOWLEDGE_DIR", "knowledge")).resolve()

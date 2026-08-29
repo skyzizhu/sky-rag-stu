@@ -72,8 +72,10 @@ class LLMClient:
         """流式发送对话：逐段产出答案文本（界面里实现「逐字出答案」）。
 
         返回一个生成器；迭代过程中出现的 API 异常同样翻译成人话后抛出。
+        个别情况下服务端流式返回为空内容，此时自动回退到一次性调用重试一次。
         """
         start = time.time()
+        produced = False
         try:
             stream = self._create(messages, stream=True)
             for chunk in stream:
@@ -81,7 +83,12 @@ class LLMClient:
                     continue
                 delta = chunk.choices[0].delta.content
                 if delta:
+                    produced = True
                     yield delta
+            if not produced:  # 流式没有产出任何内容：一次性重试
+                answer, _ = self.chat(messages)
+                if answer:
+                    yield answer
         except Exception as exc:
             raise self._translate_error(exc) from exc
         finally:

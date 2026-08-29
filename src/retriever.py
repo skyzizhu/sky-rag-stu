@@ -19,18 +19,20 @@ from functools import lru_cache
 
 from src.config import AppConfig, get_config
 from src.embedding import EmbeddingClient, get_embedding_client
+from src.keyword_search import bm25_search
 from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
 
 
 @dataclass
 class RetrievedItem:
-    """一条召回结果：相关度分数 + 卡片原文 + 档案。"""
+    """一条召回结果：相关度分数 + 卡片原文 + 档案 + 命中通道。"""
 
     rank: int
     score: float
     text: str
     metadata: dict
+    channels: str = "向量"  # 命中通道：向量 / 关键词 / 向量 + 关键词（混合检索时）
 
 
 def effective_filters(filters: dict | None) -> dict:
@@ -61,9 +63,13 @@ class Retriever:
         self.store = store or get_vector_store()
 
     def retrieve(self, query: str, top_k: int | None = None,
-                 filters: dict | None = None, trace: list | None = None) -> list[RetrievedItem]:
+                 filters: dict | None = None, trace: list | None = None,
+                 keyword_query: list[str] | None = None,
+                 use_hybrid: bool = False) -> list[RetrievedItem]:
         """检索：问题 → 问题向量 → 默认过滤 + Metadata 过滤 → 最相近的 top_k 张卡片。
 
+        use_hybrid=True（V2.4 混合检索）：并行执行 BM25 关键词检索通道，
+        用 RRF 融合两路排名。keyword_query 是 Query 理解产出的关键词列表。
         trace 传入列表时，节点时间线（向量化 / 过滤 / 检索 / 召回）会逐节点写入。
         """
         top_k = top_k or self.cfg.top_k
@@ -99,14 +105,14 @@ class Retriever:
                 ],
             ))
 
-        # —— 节点：数据库检索 ——
+        # —— 节点：数据库检索（向量通道）——
         search_start = now_str()
         t1 = time.time()
         hits = self.store.search(query_vector, top_k=top_k, filters=used_filters)
         search_elapsed = time.time() - t1
         if trace is not None:
             trace.append(make_node(
-                "🗄", "数据库检索", time_str=search_start, elapsed=search_elapsed,
+                "🗄", "数据库检索（向量通道）", time_str=search_start, elapsed=search_elapsed,
                 summary=f"拿问题指纹到 Qdrant（{self.cfg.qdrant_url}）里做相似度检索",
                 items=[
                     ("输入", f"{len(query_vector)} 维问题向量 + 过滤条件 {used_filters}"),
@@ -114,11 +120,55 @@ class Retriever:
                 ],
             ))
 
-        items = [
+        items: list[RetrievedItem] = [
             RetrievedItem(rank=i + 1, score=hit["score"], text=hit["payload"].get("text", ""),
                           metadata={k: v for k, v in hit["payload"].items() if k != "text"})
             for i, hit in enumerate(hits)
         ]
+
+        # —— 节点：BM25 关键词检索 + 混合融合（V2.3 / V2.4）——
+        if use_hybrid:
+            bm25_query = " ".join(keyword_query) if keyword_query else query
+            kw_source = "来自 Query 理解 / 改写的关键词" if keyword_query else "原始问题"
+            bm25_start = now_str()
+            t2 = time.time()
+            bm25_hits = bm25_search(bm25_query, top_k=top_k, filters=used_filters,
+                                    config=self.cfg)
+            bm25_elapsed = time.time() - t2
+            keyword_items = [
+                RetrievedItem(rank=i + 1, score=hit["score"], text=hit["payload"].get("text", ""),
+                              metadata={k: v for k, v in hit["payload"].items() if k != "text"},
+                              channels="关键词")
+                for i, hit in enumerate(bm25_hits)
+            ]
+            if trace is not None:
+                lines = [f"[{i.rank}] {i.metadata.get('source')}  BM25分={i.score:.2f}  {i.metadata.get('section') or '-'}"
+                         for i in keyword_items]
+                trace.append(make_node(
+                    "🔑", "BM25 关键词检索", time_str=bm25_start, elapsed=bm25_elapsed,
+                    summary="关键词通道：jieba 分词后按 BM25 算法打分（词是否命中 / 是否稀有），"
+                            "擅长专有名词、编号、缩写这类需要精确匹配的词——正好补向量检索的盲区",
+                    items=[
+                        ("检索词", f"{bm25_query}　（{kw_source}）"),
+                        ("输入", f"过滤范围内全部卡片的分词全文（分词器：jieba）"),
+                        ("输出", f"{len(keyword_items)} 条命中（BM25 分数只用于排序，与向量相似度分不可直接比较）"),
+                        ("命中清单", "\n".join(lines) or "（无命中）"),
+                    ],
+                ))
+
+            fuse_start = now_str()
+            items, fuse_lines = _rrf_fuse(items, keyword_items, top_k)
+            if trace is not None:
+                trace.append(make_node(
+                    "🔀", "混合检索融合（RRF）", time_str=fuse_start,
+                    summary="把向量通道和关键词通道的排名合并：每张卡片的融合分 = Σ 1/(60 + 该通道名次)，"
+                            "两路都命中的卡片天然排得更靠前",
+                    items=[
+                        ("融合公式", "RRF：融合分 = Σ 1/(60 + 通道内名次)"),
+                        ("融合明细", "\n".join(fuse_lines) or "（无）"),
+                        ("输出", f"融合后 Top {len(items)} 条，每条标注来源通道"),
+                    ],
+                ))
 
         # —— 节点：召回 Chunk ——
         if trace is not None:
@@ -151,6 +201,40 @@ class Retriever:
         if self.cfg.debug:
             print(f"    检索耗时 {time.time() - t0:.2f} 秒，召回 {len(hits)} 条，过滤条件：{used_filters}")
         return items
+
+
+def _rrf_fuse(vector_items: list[RetrievedItem], keyword_items: list[RetrievedItem],
+              top_k: int, k: int = 60) -> tuple[list[RetrievedItem], list[str]]:
+    """RRF（Reciprocal Rank Fusion）融合两路召回。
+
+    每张卡片的融合分 = Σ 1/(k + 该通道内的名次)，两路都命中天然得分更高。
+    返回 (融合后的 Top K, 供调试展示的逐条明细行)。
+    """
+    fused: dict[str, dict] = {}
+    entries: dict[str, RetrievedItem] = {}
+    for channel, items in (("向量", vector_items), ("关键词", keyword_items)):
+        for rank, item in enumerate(items, start=1):
+            key = item.metadata.get("chunk_id") or f"{item.metadata.get('source')}::{item.text[:32]}"
+            entry = fused.setdefault(key, {"score": 0.0, "向量": None, "关键词": None})
+            entry["score"] += 1 / (k + rank)
+            entry[channel] = entry[channel] or rank
+            entries.setdefault(key, item)
+
+    ranked = sorted(fused.items(), key=lambda kv: -kv[1]["score"])[:top_k]
+    out: list[RetrievedItem] = []
+    detail_lines: list[str] = []
+    for final_rank, (key, entry) in enumerate(ranked, start=1):
+        item = entries[key]
+        channels = [c for c in ("向量", "关键词") if entry[c]]
+        item.channels = " + ".join(channels)
+        item.rank = final_rank
+        out.append(item)
+        detail_lines.append(
+            f"[{final_rank}] {item.metadata.get('source')}  "
+            f"向量排名={entry['向量'] or '-'}  关键词排名={entry['关键词'] or '-'}  "
+            f"RRF分={entry['score']:.4f}  通道={item.channels}"
+        )
+    return out, detail_lines
 
 
 def format_results(items: list[RetrievedItem]) -> str:

@@ -226,6 +226,25 @@ class VectorStore:
                 break
         return sorted(docs.values(), key=lambda d: d["path"])
 
+    def get_all_cards(self, filters: dict | None = None, limit: int = 5000) -> list[dict]:
+        """拉取（可按 Metadata 过滤的）全部卡片：[{"id", "payload"}, ...]。供 BM25 通道建索引用。"""
+        if not self.collection_exists():
+            return []
+        cards: list[dict] = []
+        offset = None
+        while len(cards) < limit:
+            points, offset = self.client.scroll(
+                collection_name=self.cfg.qdrant_collection,
+                scroll_filter=self.build_filter(filters),
+                limit=min(256, limit - len(cards)),
+                offset=offset,
+                with_payload=True,
+            )
+            cards.extend({"id": point.id, "payload": point.payload or {}} for point in points)
+            if offset is None:
+                break
+        return cards
+
     def chunks_by_document(self, document_id: str, limit: int = 50) -> list[dict]:
         """查看某篇文档的所有卡片（Knowledge 页面展开用）。"""
         if not self.collection_exists():
