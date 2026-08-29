@@ -33,28 +33,31 @@ def citation_label(item: RetrievedItem, number: int) -> str:
 
 def build_context(
     items: list[RetrievedItem], config: AppConfig | None = None
-) -> tuple[str, list[RetrievedItem], int]:
+) -> tuple[str, list[RetrievedItem], list[dict]]:
     """组装最终发给大模型的资料文本。
 
-    返回：(资料全文, 实际用到的资料, 因超长被丢弃的条数)
+    返回：(资料全文, 实际用到的资料, 被丢弃卡片的明细列表)
+    丢弃明细：[{"rank", "source", "reason"}, ...]，reason 为 内容重复 / 超出字数上限。
     """
     cfg = config or get_config()
 
     used: list[RetrievedItem] = []
     seen_texts: set[str] = set()
     blocks: list[str] = []
-    dropped = 0
+    dropped: list[dict] = []
     total_chars = 0
 
     for item in items:  # 已按分数从高到低
         normalized = "".join(item.text.split())  # 忽略空白差异后判重
         if normalized in seen_texts:
-            dropped += 1
+            dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
+                            "reason": "内容重复（与更高相关度的卡片相同），只保留第一条"})
             continue
         number = len(used) + 1
         block = f"{citation_label(item, number)}\n{item.text}"
         if total_chars + len(block) > cfg.context_max_chars and blocks:
-            dropped += 1
+            dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
+                            "reason": f"放入后会超出资料字数上限（{cfg.context_max_chars} 字）"})
             continue
         seen_texts.add(normalized)
         used.append(item)
@@ -73,7 +76,7 @@ if __name__ == "__main__":
     print(f"问题：{question}\n")
     items = get_retriever().retrieve(question)
     context, used, dropped = build_context(items)
-    print(f"召回 {len(items)} 条，实际采用 {len(used)} 条，丢弃 {dropped} 条（重复或超长）\n")
+    print(f"召回 {len(items)} 条，实际采用 {len(used)} 条，丢弃 {len(dropped)} 条（重复或超长）\n")
     print("=" * 60)
     print(context)
     sys.exit(0)

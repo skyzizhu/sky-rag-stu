@@ -2,11 +2,11 @@
 
 启动方式：在项目根目录运行  streamlit run app.py
 
-布局：左侧是菜单（知识库问答 / 上传文档 / 知识管理台 / 设置与状态），右侧是对应页面。
-    💬 知识库问答：首页横幅 + 建议问题 + 流式回答 + 卡片式来源
-    📤 上传文档：按领域目录入库，逐文件结果
-    🗂 知识管理台：统计 / 筛选 / 归档·恢复·移除·重新入库
-    ⚙️ 设置与状态：系统状态、检索设置、参数总览、维护操作
+布局：左侧是菜单（顶部为 Logo 与 Slogan），右侧是对应页面。菜单分两组：
+    知识库：💬 知识库问答（横幅 + 建议问题 + 流式回答 + 来源卡片）
+            📤 上传文档（按领域目录入库，逐文件结果）
+            🗂 知识库管理（统计 / 筛选 / 归档·恢复·移除·重新入库）
+    设置：🔍 检索设置 · 🧹 维护操作 · 📊 系统状态 · 🧾 参数总览
 """
 
 from __future__ import annotations
@@ -48,14 +48,14 @@ SUGGESTED_QUESTIONS = [
 st.session_state.setdefault("top_k", cfg.top_k)
 st.session_state.setdefault("domain_choice", "全部")
 st.session_state.setdefault("scope_choice", "仅 active")
-st.session_state.setdefault("debug_mode", False)
+st.session_state.setdefault("debug_mode", True)
 
 # ---------------------------------------------------------------- 全局样式
 CSS = """
 <style>
-/* 隐藏 Streamlit 自带装饰，页面更干净 */
-#MainMenu, footer, [data-testid="stStatusWidget"], [data-testid="stToolbar"],
-header[data-testid="stHeader"] [data-testid="stToolbar"] {visibility: hidden; height: 0;}
+/* 隐藏 Streamlit 自带装饰（注意：stToolbar 里有展开侧边栏的按钮，不能藏） */
+#MainMenu, footer, [data-testid="stStatusWidget"] {display: none !important;}
+[data-testid="stAppDeployButton"] {display: none !important;}
 header[data-testid="stHeader"] {background: transparent;}
 .block-container {padding-top: 1.1rem; padding-bottom: 3.5rem; max-width: 1240px;}
 
@@ -68,6 +68,16 @@ html, body, [class*="css"], .stApp {font-family: -apple-system, "PingFang SC", "
   border-right: 1px solid #E8EDF5; min-width: 230px;}
 [data-testid="stSidebar"] .block-container {padding-top: 1.3rem;}
 [data-testid="stSidebar"] hr {margin: 6px 0;}
+
+/* 品牌区固定在导航上方（已验证有效）；系统状态用绝对定位钉在最底部 */
+[data-testid="stSidebarContent"] {display: flex !important; flex-direction: column !important;}
+[data-testid="stSidebarUserContent"] {display: contents !important;}
+[data-testid="stSidebarHeader"] {order: -2 !important;}
+[data-testid="stSidebarUserContent"] > * {order: -1 !important;}
+[data-testid="stSidebar"] {position: relative !important;}
+[data-testid="stSidebarUserContent"] div:not(.status-block) {position: static !important;}
+.status-block {position: absolute !important; left: 18px !important; right: 18px !important;
+  bottom: 12px !important;}
 
 /* 侧边导航菜单项 */
 [data-testid="stSidebar"] [role="radiogroup"] label {
@@ -214,13 +224,33 @@ def show_answer_sources(result) -> None:
             st.write("")
 
     if st.session_state.get("debug_mode"):
-        with st.expander("🛠 调试信息（为什么召回这些知识？）"):
-            st.markdown("**本次查询**")
-            st.code(result.question, language=None)
-            st.markdown("**实际使用的 Metadata Filter**")
-            st.code(result.filters or "{}", language="json")
-            st.markdown(f"**召回 Top {len(result.sources)} 明细**")
+        with st.expander("🛠 调试信息 · RAG 节点时间线（每个节点在什么时候做了什么）"):
+            st.caption("按执行顺序展示一次问答经过的每个节点：发生时间、耗时、做了什么、输入与输出。"
+                       "标注「直通」的节点是完整 RAG 有、但当前版本未启用的环节。")
+            with st.expander("📚 学习提示：两条流水线的关系"):
+                st.markdown(
+                    "上面展示的是**问答流水线**（提问 → … → 后处理），每次提问都会走一遍。\n\n"
+                    "另一条是**入库流水线**：解析 → 清洗 → 切片 → 向量化 → 入库，"
+                    "只在上传文档或运行 `python ingest.py` 时执行。\n\n"
+                    "问答时检索到的知识卡片，就是入库流水线在当初切好、存好的。"
+                    "两条流水线在「向量数据库」汇合：入库负责存，问答负责查。")
+            for idx, node in enumerate(result.trace, start=1):
+                head = f"{node['icon']} 节点 {idx}｜{node['name']}　·　{node['time']}"
+                if node.get("elapsed"):
+                    head += f"　·　耗时 {node['elapsed']:.2f}s"
+                with st.expander(head):
+                    if node.get("status") != "已执行":
+                        st.info(f"节点状态：{node['status']}")
+                    st.markdown(f"**做了什么**　{node['summary']}")
+                    for label, value in node.get("items", []):
+                        text = str(value)
+                        st.markdown(f"**{label}**")
+                        if text:
+                            st.text(text if len(text) <= 6000 else text[:6000] + "……")
+                        else:
+                            st.caption("（空）")
             if result.sources:
+                st.markdown("**📎 召回 Chunk 逐条明细表**")
                 st.dataframe(
                     [{"排名": s["rank"], "分数": round(s["score"], 4), "Source": s["source"],
                       "Domain": s.get("domain"), "Category": s.get("category"),
@@ -229,10 +259,6 @@ def show_answer_sources(result) -> None:
                      for s in result.sources],
                     width="stretch", hide_index=True,
                 )
-            st.markdown("**最终发给大模型的资料（Context）**")
-            st.text(result.context[:2600] + ("……" if len(result.context) > 2600 else ""))
-            st.markdown("**各环节耗时**")
-            st.write({key: f"{value:.2f} 秒" for key, value in result.elapsed.items()})
 
 
 # ---------------------------------------------------------------- 页面 1：知识库问答
@@ -270,7 +296,7 @@ def page_chat():
 
         with st.chat_message("assistant", avatar="🧠"):
             if not cfg.llm_api_key:
-                st.error("还没有配置 LLM API Key：请到「⚙️ 设置与状态」查看指引，填好 .env 后刷新页面。")
+                st.error("还没有配置 LLM API Key：请到「设置 → 系统状态」查看指引，填好 .env 后刷新页面。")
                 st.session_state.messages.append({"role": "assistant", "content": "（未配置 LLM API Key）"})
                 return
             try:
@@ -470,18 +496,8 @@ def page_manage():
                         unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------------- 页面 4：设置与状态
-def page_settings():
-    st.markdown('<div class="section-title">⚙️ 系统状态</div>', unsafe_allow_html=True)
-    for name, (ok, note) in system_status().items():
-        dot = "🟢" if ok else "🔴"
-        st.markdown(f"{dot} **{name}**　<span style='color:#64748B'>{note}</span>",
-                    unsafe_allow_html=True)
-    if st.button("🔄 重新检测"):
-        st.cache_data.clear()
-        st.rerun()
-
-    st.divider()
+# ---------------------------------------------------------------- 页面 4：检索设置
+def page_retrieval_settings():
     st.markdown('<div class="section-title">🔍 检索设置</div>', unsafe_allow_html=True)
     st.caption("这里的设置对「知识库问答」页即时生效")
     st.slider("每次召回知识条数（Top K）", 1, 10, key="top_k")
@@ -491,7 +507,41 @@ def page_settings():
              help="归档（archive）内容默认不参与回答，除非你明确要求")
     st.toggle("🛠 调试模式（问答页展示检索明细与过滤条件）", key="debug_mode")
 
-    st.divider()
+
+# ---------------------------------------------------------------- 页面 5：维护操作
+def page_maintenance():
+    st.markdown('<div class="section-title">🧹 维护操作</div>', unsafe_allow_html=True)
+    st.caption("批量操作，谨慎使用；日常的单文件管理请去「🗂 知识库管理」")
+    confirm_rebuild = st.checkbox("我确认要清空并重建全库", key="confirm_rebuild")
+    c1, c2 = st.columns(2)
+    if c1.button("🔄 清空并重建知识库", disabled=not confirm_rebuild,
+                 width="stretch", type="primary"):
+        with st.spinner("重建中……"):
+            summary = ingest_files(rebuild=True)
+        if summary.ok_files:
+            st.success(f"重建完成：{summary.ok_files} 个文件 → {summary.total_chunks} 张卡片")
+        else:
+            st.error("重建失败，请看终端日志。")
+    if c2.button("🗑 仅清空向量库", width="stretch"):
+        store.clear()
+        st.success("已清空。重新入库即可恢复。")
+
+
+# ---------------------------------------------------------------- 页面 6：系统状态
+def page_system_status():
+    st.markdown('<div class="section-title">📊 系统状态</div>', unsafe_allow_html=True)
+    for name, (ok, note) in system_status().items():
+        dot = "🟢" if ok else "🔴"
+        st.markdown(f"{dot} **{name}**　<span style='color:#64748B'>{note}</span>",
+                    unsafe_allow_html=True)
+    if st.button("🔄 重新检测"):
+        st.cache_data.clear()
+        st.rerun()
+    st.caption("三盏灯的含义：向量化模型（本机 Ollama）· 向量数据库（本机 Qdrant）· 大模型（云端 API Key）")
+
+
+# ---------------------------------------------------------------- 页面 7：参数总览
+def page_params_overview():
     st.markdown('<div class="section-title">🧾 当前参数总览</div>', unsafe_allow_html=True)
     st.dataframe(
         [{"参数": k, "当前值": str(v), "说明": note} for k, v, note in [
@@ -508,50 +558,55 @@ def page_settings():
     )
     st.caption("切片等入库参数在 .env 中修改，改完需重新入库生效。")
 
-    st.divider()
-    with st.expander("🧹 维护操作（批量，谨慎使用）"):
-        confirm_rebuild = st.checkbox("我确认要清空并重建全库", key="confirm_rebuild")
-        c1, c2 = st.columns(2)
-        if c1.button("🔄 清空并重建知识库", disabled=not confirm_rebuild,
-                     width="stretch", type="primary"):
-            with st.spinner("重建中……"):
-                summary = ingest_files(rebuild=True)
-            if summary.ok_files:
-                st.success(f"重建完成：{summary.ok_files} 个文件 → {summary.total_chunks} 张卡片")
-            else:
-                st.error("重建失败，请看终端日志。")
-        if c2.button("🗑 仅清空向量库", width="stretch"):
-            store.clear()
-            st.success("已清空。重新入库即可恢复。")
-
 
 # ---------------------------------------------------------------- 布局组装：左侧菜单 + 右侧页面
-pg = st.navigation([
-    st.Page(page_chat, title="知识库问答", icon="💬", url_path="chat", default=True),
-    st.Page(page_upload, title="上传文档", icon="📤", url_path="upload"),
-    st.Page(page_manage, title="知识管理台", icon="🗂", url_path="manage"),
-    st.Page(page_settings, title="设置与状态", icon="⚙️", url_path="settings"),
-])
-
+# 品牌区（Logo + Slogan）通过 CSS order 固定在导航上方；
+# 系统状态通过 order + margin-top:auto 固定在侧边栏最底部。
 with st.sidebar:
     st.markdown(
         """
-        <div style="margin: 2px 0 10px;">
-          <div style="font-size:1.3rem;font-weight:800;color:#172554;">🧠 Sky Personal RAG</div>
-          <div style="font-size:.8rem;color:#64748B;margin-top:2px;">个人知识库 · 检索增强问答</div>
+        <div class="brand-block">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:42px;height:42px;border-radius:12px;flex:none;
+                        background:linear-gradient(135deg,#2563EB,#4F46E5);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:1.35rem;box-shadow:0 4px 14px rgba(37,99,235,.35);">🧠</div>
+            <div>
+              <div style="font-size:1.12rem;font-weight:800;color:#172554;line-height:1.2;">Sky Personal RAG</div>
+              <div style="font-size:.76rem;color:#64748B;margin-top:3px;">个人知识库 · 检索增强问答</div>
+            </div>
+          </div>
+          <div style="font-size:.78rem;color:#94A3B8;margin-top:10px;"></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
+pg = st.navigation({
+    "知识库": [
+        st.Page(page_chat, title="知识库问答", icon="💬", url_path="chat", default=True),
+        st.Page(page_upload, title="上传文档", icon="📤", url_path="upload"),
+        st.Page(page_manage, title="知识库管理", icon="🗂", url_path="manage"),
+    ],
+    "设置": [
+        st.Page(page_retrieval_settings, title="检索设置", icon="🔍", url_path="settings-retrieval"),
+        st.Page(page_maintenance, title="维护操作", icon="🧹", url_path="settings-maintenance"),
+        st.Page(page_system_status, title="系统状态", icon="📊", url_path="settings-status"),
+        st.Page(page_params_overview, title="参数总览", icon="🧾", url_path="settings-params"),
+    ],
+})
+
 pg.run()
 
 with st.sidebar:
-    st.divider()
     ok_all = all(ok for ok, _ in system_status().values())
+    status_line = "🟢 系统状态：正常" if ok_all else "🟡 系统状态：有待处理项"
     st.markdown(
-        f"<span style='font-size:.82rem;color:#64748B'>"
-        f"{'🟢' if ok_all else '🟡'} 系统状态：{'正常' if ok_all else '有待处理项'}"
-        f"</span>",
+        f"""
+        <div class="status-block">
+          <div style="border-top:1px solid #E4E9F2;padding:10px 2px 2px;
+                      font-size:.8rem;color:#64748B;">{status_line}</div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
