@@ -45,13 +45,14 @@ def save_state(state: dict) -> None:
 
 
 def update_entry(state: dict, relative_path: str, document_id: str,
-                 chunks: int, file_hash_value: str) -> None:
+                 chunks: int, file_hash_value: str, version: str = "1.0") -> None:
     from datetime import datetime
 
     state[relative_path] = {
         "hash": file_hash_value,
         "document_id": document_id,
         "chunks": chunks,
+        "version": version,
         "indexed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 

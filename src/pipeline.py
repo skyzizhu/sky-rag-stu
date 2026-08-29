@@ -125,6 +125,7 @@ def ingest_files(
             summary.cleaned_files.append(rel)
     if summary.cleaned_files:
         print(f"   🧹 已同步清理 {len(summary.cleaned_files)} 个已删除文件的向量数据")
+        istate.save_state(state)  # 清理结果立即落盘（该路径可能提前返回）
     if summary.skipped_files:
         print(f"   ⏭️ {len(summary.skipped_files)} 个文件内容未变化，跳过（省时省钱）")
         for rel in summary.skipped_files:
@@ -138,6 +139,7 @@ def ingest_files(
     # ② 解析 + 生成统一 Metadata（目录推断 → Front Matter 覆盖 → 系统兜底）
     print("② 解析文件 → 统一文本 + Metadata")
     docs: list[ParsedDocument] = []
+    llm = get_llm_client() if cfg.auto_tag else None
     for path in files:
         try:
             parsed = parse_file(path)
@@ -146,11 +148,11 @@ def ingest_files(
             continue
         # 相对路径决定 domain / category / topic；knowledge 目录外的文件按根目录规则处理
         try:
-            relative_path = path.resolve().relative_to(cfg.knowledge_dir.resolve()).as_posix()
+            rel = path.resolve().relative_to(cfg.knowledge_dir.resolve()).as_posix()
         except ValueError:
-            relative_path = path.name
+            rel = path.name
         parsed.metadata = build_document_metadata(
-            relative_path=relative_path,
+            relative_path=rel,
             source=path.name,
             file_type=parsed.metadata["file_type"],
             title_hint=parsed.metadata["title"],
@@ -158,6 +160,19 @@ def ingest_files(
             updated_at=parsed.metadata["updated_at"],
             front_matter=parsed.front_matter,
         )
+        # V3.2 版本管理：内容有变化的文件版本号自动 +0.1（Front Matter 手动指定优先）
+        prev_version = state.get(rel, {}).get("version")
+        if prev_version and "version" not in (parsed.front_matter or {}):
+            from src.metadata import bump_version
+            parsed.metadata["version"] = bump_version(prev_version)
+        # V3.3 自动打标签：topic/tags 皆空时由 LLM 补全（失败静默跳过，不阻断入库）
+        if cfg.auto_tag and llm and not parsed.metadata["topic"] and not parsed.metadata["tags"]:
+            from src.auto_tagger import auto_tag
+            tagged = auto_tag(parsed.text[:800], llm=llm, config=cfg)
+            parsed.metadata["topic"] = tagged["topic"]
+            parsed.metadata["tags"] = tagged["tags"]
+            if tagged["topic"] or tagged["tags"]:
+                print(f"   🤖 自动标签 [{rel}]: topic={parsed.metadata['topic']} tags={parsed.metadata['tags']}")
         docs.append(parsed)
     summary.ok_files = len(docs)
     print(f"   成功 {len(docs)} 个，失败 {len(summary.failed_files)} 个")
@@ -209,9 +224,10 @@ def ingest_files(
         print("⑥ 重建模式：先清空向量库")
         vector_store.clear()
     else:
-        # 增量更新语义：本次入库的文档先删掉旧卡片再写入，文件变短也不会留残余
-        document_ids = list({doc.metadata["document_id"] for doc in cleaned_docs})
-        vector_store.delete_documents(document_ids)
+        # V3.2 版本管理：内容有变化的文件，旧版本整体转 expired 留作历史（新版本随后写入）
+        for doc in cleaned_docs:
+            if doc.metadata["path"] in summary.updated_files:
+                vector_store.expire_document(doc.metadata["document_id"])
     print("⑥ 存入 Qdrant 向量库")
     vector_store.ensure_collection(summary.vector_dimension)
     stored = vector_store.upsert_chunks(chunks, vectors)

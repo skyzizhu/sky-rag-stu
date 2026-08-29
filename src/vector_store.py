@@ -192,11 +192,26 @@ class VectorStore:
         return [point.payload or {} for point in points]
 
     # ---------- 知识文件盘点（Knowledge 页面数据源） ----------
+    def expire_document(self, document_id: str) -> None:
+        """把某文档的全部卡片标记为 status=expired（旧版本留作历史，不再参与默认检索）。"""
+        self.client.set_payload(
+            collection_name=self.cfg.qdrant_collection,
+            payload={"status": "expired"},
+            points_selector=models.FilterSelector(
+                filter=models.Filter(
+                    must=[models.FieldCondition(
+                        key="document_id", match=models.MatchValue(value=document_id)
+                    )]
+                )
+            ),
+            wait=True,
+        )
+
     def list_documents(self) -> list[dict]:
         """按 document_id 盘点所有入库文件：路径、分类、状态、卡片数。"""
         if not self.collection_exists():
             return []
-        docs: dict[str, dict] = {}
+        docs: dict[tuple, dict] = {}
         offset = None
         while True:
             points, offset = self.client.scroll(
@@ -208,20 +223,22 @@ class VectorStore:
             )
             for point in points:
                 payload = point.payload or {}
-                doc_id = payload.get("document_id") or "(未知)"
-                if doc_id not in docs:
-                    docs[doc_id] = {
-                        "document_id": doc_id,
+                key = (payload.get("document_id") or "(未知)",
+                       payload.get("version") or "?",
+                       payload.get("status") or "?")
+                if key not in docs:
+                    docs[key] = {
+                        "document_id": key[0],
                         "source": payload.get("source") or "?",
                         "path": payload.get("path") or "?",
                         "domain": payload.get("domain") or "?",
                         "category": payload.get("category") or "?",
                         "topic": payload.get("topic") or [],
-                        "version": payload.get("version") or "?",
-                        "status": payload.get("status") or "?",
+                        "version": key[1],
+                        "status": key[2],
                         "chunks": 0,
                     }
-                docs[doc_id]["chunks"] += 1
+                docs[key]["chunks"] += 1
             if offset is None:
                 break
         return sorted(docs.values(), key=lambda d: d["path"])

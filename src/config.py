@@ -86,6 +86,9 @@ class AppConfig:
     # V2.6：上下文组装的来源多样性（同一文档最多进入回答的卡片数）
     context_max_per_doc: int = field(default_factory=lambda: _env_int("CONTEXT_MAX_PER_DOC", 3))
 
+    # V3.3：入库时 LLM 自动补全 topic/tags（每个新入库/有变化的文件多用一次 LLM 调用）
+    auto_tag: bool = field(default_factory=lambda: _env_bool("AUTO_TAG", True))
+
     # 其他
     knowledge_dir: Path = field(
         default_factory=lambda: (PROJECT_ROOT / _env("KNOWLEDGE_DIR", "knowledge")).resolve()

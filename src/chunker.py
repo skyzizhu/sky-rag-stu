@@ -180,11 +180,12 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
                     continue
                 page = str(page_start) if page_start else None
                 metadata = dict(doc.metadata)
-                metadata["chunk_id"] = chunk_id_for(document_id, len(chunks))
+                version = str(doc.metadata.get("version") or "1.0")  # 版本进编号，新旧版本共存
+                metadata["chunk_id"] = f"{document_id}_v{version}_{len(chunks):04d}"
                 metadata["section"] = section_leaf
                 metadata["section_path"] = section_path
                 metadata["page"] = page
-                point_id = str(uuid.uuid5(_CHUNK_NAMESPACE, f"{document_id}::{len(chunks)}"))
+                point_id = str(uuid.uuid5(_CHUNK_NAMESPACE, f"{document_id}::{version}::{len(chunks)}"))
                 chunks.append(Chunk(chunk_id=metadata["chunk_id"], point_id=point_id,
                                     text=piece, index=len(chunks), metadata=metadata))
     return chunks

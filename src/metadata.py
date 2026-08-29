@@ -32,7 +32,15 @@ DOMAIN_LABELS = {
     "archive": "归档",
 }
 
-STATUSES = ["active", "archive"]
+STATUSES = ["active", "archive", "expired"]
+
+
+def bump_version(version: str) -> str:
+    """内容变化时版本号自动 +0.1（1.0 → 1.1 → 1.2 …）。解析失败回退 1.1。"""
+    try:
+        return f"{float(version) + 0.1:.1f}"
+    except (TypeError, ValueError):
+        return "1.1"
 
 # 已知「目录名 → Topic 展示名」对照；不在表里的目录名原样作为 topic
 TOPIC_NAME_MAP = {
