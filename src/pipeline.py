@@ -311,6 +311,10 @@ def answer_stream(
         ],
     ))
 
+    # 列举/盘点类提问自动扩大召回深度
+    enumeration = any(w in question for w in ("有哪些", "列出", "都有什么", "列举", "全部"))
+    recall_k = top_k * 2 if enumeration else top_k
+
     # 节点 ②：Query 理解 / 改写（V2：一次 LLM 调用完成改写 + 关键词 + 过滤条件推断）
     search_query = question
     qu_filters: dict = {}
@@ -325,6 +329,8 @@ def answer_stream(
         qu = understand_query(question, llm=llm, config=cfg, categories=catalog)
         search_query = qu.vector_query or question
         qu_filters = dict(qu.filters)
+        # 列举/盘点类提问自动扩大召回深度，保证"有哪些"类问题能覆盖完整列表
+        enumeration = any(w in question for w in ("有哪些", "列出", "都有什么", "列举", "全部"))
         parsed = (f"intent: {qu.intent or '-'}\n"
                   f"vector_query（改写后检索语句）: {qu.vector_query}\n"
                   f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '-'}\n"
@@ -356,7 +362,7 @@ def answer_stream(
     # 过滤条件优先级：界面手动设置 > Query 理解推断 > 默认 status=active
     # Rerank 开启时先宽召回（默认 10 条候选），精排后再取 Top K
     use_rerank_now = use_rerank and use_llm
-    recall_k = max(top_k, cfg.rerank_recall_k) if use_rerank_now else top_k
+    recall_k = max(recall_k, cfg.rerank_recall_k) if use_rerank_now else recall_k
     merged_filters = {**qu_filters, **(filters or {})}
     if qu and qu.ok and qu.time_range:
         merged_filters["updated_at"] = qu.time_range  # V3.2 时间感知：按文档时间过滤

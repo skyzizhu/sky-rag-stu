@@ -189,7 +189,7 @@ class Retriever:
                     line += f"  第{i.metadata['page']}页"
                 lines.append(line)
             trace.append(make_node(
-                "📄", "召回 Chunk", time_str=now_str(),
+                "📄", "融合后召回结果", time_str=now_str(),
                 summary="数据库返回的原始知识卡片（Top K，按相似度降序）；逐条明细表见本节点下方",
                 items=[("召回清单", "\n".join(lines) or "（无结果）")],
             ))
