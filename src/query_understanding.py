@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import time
+from datetime import datetime
 from dataclasses import dataclass, field
 
 from src.config import AppConfig, get_config
@@ -45,9 +47,13 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
 3. 只有用户明确要找「旧版 / 归档 / 历史 / 已废弃」内容时才输出 "status": "archive"，否则不要输出 status。
 4. 用户明确点名某个文件时才输出 "source"。
 5. 改写必须忠实于原问题语义，禁止添加原问题中没有的实体或条件。
-6. 过滤条件推断要保守：宁可少推断（范围大一点只是多检索几条），也不要过度推断（猜错了会漏掉正确答案）。"""
+6. 过滤条件推断要保守：宁可少推断（范围大一点只是多检索几条），也不要过度推断（猜错了会漏掉正确答案）。
+7. 用户消息里会给出「当前时间」。当问题包含相对时间（如"最近的""上个月""今年"）或明确时间范围时，
+   输出 "time_range" 字段：{"from": "YYYY-MM-DD", "to": "YYYY-MM-DD"}；"最近"默认指最近 90 天；
+   无法解析出时间范围时省略该字段。"""
 
-QU_USER_PROMPT_TEMPLATE = """【知识库领域枚举】work / learning / life / reference / archive
+QU_USER_PROMPT_TEMPLATE = """【当前时间】{current_time}
+【知识库领域枚举】work / learning / life / reference / archive
 【知识库现有分类】{categories}
 【用户原始问题】{question}
 
@@ -62,6 +68,7 @@ class QueryUnderstanding:
     intent: str = ""
     vector_query: str = ""          # 改写后的检索语句（失败时回退为原始问题）
     keyword_query: list[str] = field(default_factory=list)
+    time_range: dict = field(default_factory=dict)  # {"from": "YYYY-MM-DD", "to": "YYYY-MM-DD"}
     filters: dict = field(default_factory=dict)
     system_prompt: str = QU_SYSTEM_PROMPT
     user_prompt: str = ""
@@ -128,7 +135,11 @@ def understand_query(
     qu = QueryUnderstanding(original=question, vector_query=question)
 
     category_text = "、".join(sorted(set(categories or []))) or "（未知）"
-    qu.user_prompt = QU_USER_PROMPT_TEMPLATE.format(categories=category_text, question=question)
+    qu.user_prompt = QU_USER_PROMPT_TEMPLATE.format(
+        categories=category_text,
+        question=question,
+        current_time=datetime.now().strftime("%Y-%m-%d %H:%M %A"),
+    )
     messages = [
         {"role": "system", "content": qu.system_prompt},
         {"role": "user", "content": qu.user_prompt},
@@ -150,6 +161,13 @@ def understand_query(
             keyword_query = [keyword_query]
         if isinstance(keyword_query, list):
             qu.keyword_query = [str(k).strip() for k in keyword_query if str(k).strip()][:8]
+
+        tr = data.get("time_range")
+        if isinstance(tr, dict):
+            date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+            frm, to = str(tr.get("from", "")).strip(), str(tr.get("to", "")).strip()
+            if date_re.match(frm) and date_re.match(to):
+                qu.time_range = {"from": frm, "to": to}
 
         qu.filters, warnings = _valid_filters(data.get("filters") or {})
         if warnings:

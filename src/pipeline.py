@@ -357,6 +357,8 @@ def answer_stream(
     use_rerank_now = use_rerank and use_llm
     recall_k = max(top_k, cfg.rerank_recall_k) if use_rerank_now else top_k
     merged_filters = {**qu_filters, **(filters or {})}
+    if qu and qu.ok and qu.time_range:
+        merged_filters["updated_at"] = qu.time_range  # V3.2 时间感知：按文档时间过滤
     result.filters = effective_filters(merged_filters)
     t0 = time.time()
     result.retrieved = retriever.retrieve(
@@ -437,6 +439,10 @@ def answer_stream(
     )
     result.retrieved = used
     result.context = context
+    if "updated_at" in result.filters:  # 时间过滤已生效，告知大模型无需再纠结时间
+        tr = result.filters["updated_at"]
+        context = f"【时间说明】以下资料均已按时间范围筛选：{tr['from']} ~ {tr['to']}。\n\n" + context
+        result.context = context
     merge_elapsed = time.time() - t1
     result.elapsed["retrieval"] = time.time() - t0
     result.sources = [

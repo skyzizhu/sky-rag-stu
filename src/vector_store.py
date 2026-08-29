@@ -24,6 +24,8 @@ INDEXED_FIELDS = [
     "document_id", "source", "domain", "category",
     "topic", "tags", "status", "version", "file_type",
 ]
+# 时间字段：建立 datetime 索引，支持范围过滤（如"最近三个月的笔记"）
+INDEXED_DATETIME_FIELDS = ["created_at", "updated_at"]
 
 
 class VectorStoreError(Exception):
@@ -68,6 +70,13 @@ class VectorStore:
                 collection_name=self.cfg.qdrant_collection,
                 field_name=field,
                 field_schema=models.PayloadSchemaType.KEYWORD,
+                wait=True,
+            )
+        for field in INDEXED_DATETIME_FIELDS:
+            self.client.create_payload_index(
+                collection_name=self.cfg.qdrant_collection,
+                field_name=field,
+                field_schema=models.PayloadSchemaType.DATETIME,
                 wait=True,
             )
 
@@ -143,10 +152,29 @@ class VectorStore:
 
     @staticmethod
     def build_filter(filters: dict | None) -> models.Filter | None:
-        """把 {字段: 值} 转成 Qdrant 过滤器。值可以是字符串或字符串列表（任一匹配）。"""
+        """把 {字段: 值} 转成 Qdrant 过滤器。
+
+        - 字符串值 → 精确/任一匹配；列表值 → 任一匹配；
+        - time_range 形如 {"from": "2026-06-01", "to": "2026-08-29"} → 时间范围过滤；
+          key 必须是 datetime 字段（created_at / updated_at）。
+        """
         conditions = []
         for key, value in (filters or {}).items():
             if value is None:
+                continue
+            if key in INDEXED_DATETIME_FIELDS and isinstance(value, dict):
+                date_from, date_to = value.get("from"), value.get("to")
+                if not date_from and not date_to:
+                    continue
+                if date_to and len(date_to) == 10:  # 纯日期补全到当天末尾
+                    date_to = date_to + "T23:59:59"
+                conditions.append(models.FieldCondition(
+                    key=key,
+                    range=models.DatetimeRange(
+                        gte=date_from or None,
+                        lte=date_to or None,
+                    ),
+                ))
                 continue
             values = [value] if isinstance(value, str) else [str(v) for v in value]
             if not values:

@@ -717,6 +717,17 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
+# ---------------------------------------------------------------- 页面 8：学习笔记
+def page_learning():
+    st.markdown('<div class="section-title">📖 RAG 实现全解</div>', unsafe_allow_html=True)
+    st.caption("写给产品经理的节点级学习笔记：每个节点的技术、作用、目标与上下游衔接，基于本项目真实实现。")
+    md_path = Path(__file__).parent / "realize.md"
+    if md_path.exists():
+        st.markdown(md_path.read_text(encoding="utf-8"))
+    else:
+        st.info("学习笔记文件 realize.md 不存在。")
+
+
 pg = st.navigation({
     "知识库": [
         st.Page(page_chat, title="知识库问答", icon="💬", url_path="chat", default=True),
@@ -728,6 +739,9 @@ pg = st.navigation({
         st.Page(page_maintenance, title="维护操作", icon="🧹", url_path="settings-maintenance"),
         st.Page(page_system_status, title="系统状态", icon="📊", url_path="settings-status"),
         st.Page(page_params_overview, title="参数总览", icon="🧾", url_path="settings-params"),
+    ],
+    "学习": [
+        st.Page(page_learning, title="RAG 实现全解", icon="📖", url_path="learn"),
     ],
 })
 
