@@ -55,23 +55,29 @@ st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
 st.session_state.setdefault("session_id", new_session_id())
 
-# 载入历史会话（侧边栏点击后在此处理）
-if "__load_session" in st.session_state:
-    load_target = st.session_state.pop("__load_session")
+# 载入历史会话（侧边栏列表点击后在此处理；支持 URL 参数 ?load=会话ID）
+load_target = st.session_state.pop("__load_session", None)
+try:
+    if not load_target and "load" in st.query_params:
+        load_target = st.query_params["load"]
+        del st.query_params["load"]
+except Exception:
+    pass
+if load_target:
     data = load_session(load_target)
     if data:
-        messages = []
-        for m in data.get(messages, []):
+        loaded_messages = []
+        for m in data.get("messages", []):
             entry = {"role": m["role"], "content": m["content"]}
             res = m.get("result")
             if res:
-                res.pop("retrieved", None)
+                res["retrieved"] = []  # 历史消息不再需要原始召回对象列表
                 entry["result"] = QAResult(**{
                     k: v for k, v in res.items()
                     if k in {f.name for f in QAResult.__dataclass_fields__.values()}
                 })
-            messages.append(entry)
-        st.session_state.messages = messages
+            loaded_messages.append(entry)
+        st.session_state.messages = loaded_messages
         st.session_state.session_id = load_target
 st.session_state.setdefault("hybrid_search", cfg.hybrid_search)
 st.session_state.setdefault("rerank", cfg.rerank_enabled)
@@ -191,7 +197,13 @@ hr {border: none; border-top: 1px solid #EEF2F7;}
 [data-testid="stExpander"]:has(.debug-marker) [data-testid="stMarkdownContainer"] {
   font-size: .8rem !important;}
 .dbg-label {font-size: .76rem; font-weight: 700; color: #64748B; margin: 10px 0 2px;}
-pre.dbg {font-size: .72rem !important; line-height: 1.55; white-space: pre-wrap;
+
+/* 侧边栏历史会话条目：样式与导航菜单一致 */
+.session-item {display: block; text-decoration: none !important; color: #475569 !important;
+  padding: 3px 10px; border-radius: 8px; font-size: .8rem; font-weight: 600;
+  transition: all .14s ease;}
+.session-item:hover {background: #E8EEFB; color: #1D4ED8 !important;}
+.session-item .si-time {font-size: .68rem; color: #94A3B8; font-weight: 400;}pre.dbg {font-size: .72rem !important; line-height: 1.55; white-space: pre-wrap;
   word-break: break-word; background: #F8FAFC; border: 1px solid #EEF2F7;
   border-radius: 8px; padding: 8px 10px; margin: 2px 0 6px; color: #334155;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
@@ -779,22 +791,23 @@ pg = st.navigation({
 pg.run()
 
 with st.sidebar:
-    st.markdown("🕘 **历史会话**")
-    sessions = list_sessions(10)
+    with st.expander("🕘 历史会话", expanded=False):
+        sessions = list_sessions(10)
 
-    def _load_session_cb(session_id: str):
-        st.session_state["__load_session"] = session_id
+        def _load_session_cb(session_id: str):
+            st.session_state["__load_session"] = session_id
 
-    if sessions:
-        for s in sessions:
-            title_short = s["title"][:16]
-            time_short = s["updated_at"][5:16]
-            if st.button(f"{title_short}　{time_short}", width="stretch",
-                         key=f"hs_{s["session_id"]}",
-                         on_click=_load_session_cb, args=(s["session_id"],)):
-                pass
-    else:
-        st.caption("暂无历史会话")
+        if sessions:
+            for s in sessions:
+                title_short = s["title"][:22]
+                time_short = s["updated_at"][5:16]
+                st.markdown(
+                    f'<a class="session-item" href="/?load={s["session_id"]}">'
+                    f'{title_short}<span class="si-time">　{time_short}</span></a>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.caption("暂无历史会话")
 
     ok_all = all(ok for ok, _ in system_status().values())
     status_emoji = "🟢" if ok_all else "🟡"
