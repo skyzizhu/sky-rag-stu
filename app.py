@@ -32,7 +32,7 @@ from src.manage import (  # noqa: E402
 )
 from src.metadata import DOMAINS, DOMAIN_LABELS  # noqa: E402
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
-from src.pipeline import answer_stream, ingest_files  # noqa: E402
+from src.pipeline import answer_question, answer_stream, ingest_files  # noqa: E402
 from src.vector_store import VectorStoreError, get_vector_store  # noqa: E402
 
 st.set_page_config(page_title="Sky Personal RAG", page_icon="🧠", layout="wide")
@@ -272,6 +272,13 @@ def show_answer_sources(result) -> None:
                         f"{'……' if len(item['text']) > 400 else ''}</div>", unsafe_allow_html=True)
             st.write("")
 
+        # V3.5 一键复制
+        st.code("【回答】\n" + (result.answer or ""), language=None)
+        st.code("【来源清单】\n" + "\n".join(
+            f"[{s['rank']}] {s['source']}（相关度 {s['score']:.3f}）"
+            + (f" 章节: {s['section']}" if s.get("section") else "")
+            for s in result.sources), language=None)
+
     if st.session_state.get("debug_mode"):
         with st.expander("🛠 调试信息 · RAG 节点时间线（每个节点在什么时候做了什么）"):
             st.markdown('<span class="debug-marker"></span>', unsafe_allow_html=True)
@@ -456,6 +463,20 @@ def page_upload():
 def page_manage():
     st.markdown('<div class="section-title">🗂 知识管理台</div>', unsafe_allow_html=True)
     st.caption("选中任意一行，即可查看详情并执行：重新入库 / 归档 / 恢复 / 移除")
+
+    # V3.6 跨文档知识总结
+    with st.expander("📝 知识总结（跨文档综合）"):
+        sum_topic = st.text_input("总结主题", placeholder="例如：RAG、智能客服、卡片笔记法", key="sum_topic")
+        if st.button("📝 生成总结", disabled=not sum_topic.strip(), type="primary"):
+            with st.spinner("综合多个文档生成知识总结……"):
+                result = answer_question(
+                    f"请综合知识库中与「{sum_topic.strip()}」相关的全部内容，"
+                    "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
+                    top_k=10,
+                )
+            st.markdown(result.answer or "（没有生成内容）")
+            if result.sources:
+                st.caption("📚 参考来源：" + "、".join(sorted({s["source"] for s in result.sources})))
 
     try:
         documents = store.list_documents()
