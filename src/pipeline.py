@@ -315,6 +315,11 @@ def answer_stream(
     enumeration = any(w in question for w in ("有哪些", "列出", "都有什么", "列举", "全部"))
     recall_k = top_k * 2 if enumeration else top_k
 
+    # 列举/盘点类提问自动扩大召回深度和上下文条数上限
+    enumeration = any(w in question for w in ("有哪些", "列出", "都有什么", "列举", "全部"))
+    recall_k = top_k * 2 if enumeration else top_k
+    ctx_max_items = top_k * 2 if enumeration else top_k
+
     # 节点 ②：Query 理解 / 改写（V2：一次 LLM 调用完成改写 + 关键词 + 过滤条件推断）
     search_query = question
     qu_filters: dict = {}
@@ -442,7 +447,7 @@ def answer_stream(
     merge_start = now_str()
     t1 = time.time()
     context, used, dropped, merge_notes = build_context(
-        result.retrieved, cfg, max_items=top_k
+        result.retrieved, cfg, max_items=ctx_max_items
     )
     result.retrieved = used
     result.context = context
