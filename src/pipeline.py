@@ -23,7 +23,7 @@ from src.config import AppConfig, get_config
 from src.context import build_context
 from src.embedding import EmbeddingClient, get_embedding_client
 from src.llm import LLMClient, get_llm_client
-from src.metadata import build_document_metadata
+from src.metadata import build_document_metadata, document_id_for
 from src.parser import ParsedDocument, parse_file
 from src.prompt import build_messages
 from src.query_understanding import understand_query
@@ -45,6 +45,10 @@ class IngestSummary:
     elapsed_seconds: float = 0.0
     rebuilt: bool = False
     file_rows: list[dict] = field(default_factory=list)  # 每个文件的入库结果明细
+    new_files: list[str] = field(default_factory=list)      # V3.1 新增入库
+    updated_files: list[str] = field(default_factory=list)  # V3.1 内容有变化，重新入库
+    skipped_files: list[str] = field(default_factory=list)  # V3.1 指纹未变，跳过
+    cleaned_files: list[str] = field(default_factory=list)  # V3.1 文件已删除，向量同步清理
 
 
 @dataclass
@@ -90,6 +94,46 @@ def ingest_files(
         print(f"⚠️ 没有找到可入库的文件（知识目录：{cfg.knowledge_dir}）")
         return summary
     print(f"① 找到 {len(files)} 个待入库文件")
+
+    # ①.5 增量判断（V3.1）：内容指纹没变的文件跳过；台账里有但文件已删除的，向量同步清理
+    from src import index_state as istate
+
+    state = {} if rebuild else istate.load_state()
+    paths_to_process: list[Path] = []
+    processed: list[tuple[Path, str, str]] = []  # (路径, 相对路径, 哈希)
+    explicit = bool(paths)
+    for path in files:
+        rel = path.name
+        try:
+            rel = path.resolve().relative_to(cfg.knowledge_dir.resolve()).as_posix()
+        except ValueError:
+            pass
+        current_hash = istate.file_hash(path)
+        if not explicit:
+            if state.get(rel, {}).get("hash") == current_hash:
+                summary.skipped_files.append(rel)
+                continue
+            (summary.updated_files if rel in state else summary.new_files).append(rel)
+        processed.append((path, rel, current_hash))
+        paths_to_process.append(path)
+
+    for rel in list(state.keys()):
+        if not (cfg.knowledge_dir / rel).exists():
+            document_id = state[rel].get("document_id") or document_id_for(rel)
+            vector_store.delete_documents([document_id])
+            istate.remove_entry(state, rel)
+            summary.cleaned_files.append(rel)
+    if summary.cleaned_files:
+        print(f"   🧹 已同步清理 {len(summary.cleaned_files)} 个已删除文件的向量数据")
+    if summary.skipped_files:
+        print(f"   ⏭️ {len(summary.skipped_files)} 个文件内容未变化，跳过（省时省钱）")
+        for rel in summary.skipped_files:
+            print(f"      ⏭️ {rel}")
+    files = paths_to_process
+    summary.total_files = len(files)
+    if not files:
+        print("✅ 增量入库完成：没有需要处理的文件")
+        return summary
 
     # ② 解析 + 生成统一 Metadata（目录推断 → Front Matter 覆盖 → 系统兜底）
     print("② 解析文件 → 统一文本 + Metadata")
@@ -143,6 +187,16 @@ def ingest_files(
     print(f"   共切出 {len(chunks)} 张知识卡片")
     if not chunks:
         return summary
+
+    # ⑦ 更新入库台账（V3.1）：记录每个文件的指纹与卡片数，作为下次增量的对比依据
+    for path, rel, file_hash_value in processed:
+        doc_id = next(
+            (c.metadata["document_id"] for c in chunks if c.metadata["path"] == rel),
+            document_id_for(rel),
+        )
+        chunk_count = sum(1 for c in chunks if c.metadata["path"] == rel)
+        istate.update_entry(state, rel, doc_id, chunk_count, file_hash_value)
+    istate.save_state(state)
 
     # ⑤ 向量化
     print(f"⑤ 向量化（模型：{cfg.embedding_model}）")
