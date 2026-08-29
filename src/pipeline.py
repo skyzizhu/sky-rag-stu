@@ -322,7 +322,8 @@ def answer_stream(
         outcome = rerank_items(question, result.retrieved, top_k=top_k,
                                llm=get_llm_client(), config=cfg)
         rr_elapsed = time.time() - t_rr
-        result.retrieved = outcome.items[:top_k]
+        # 不在这里截断：全部打分候选交给上下文组装，由「多样性 + Top K」规则统一精选
+        result.retrieved = outcome.items
         trace.append(make_node(
             "🏆", "Rerank（精排）", time_str=rr_start,
             elapsed=rr_elapsed,
@@ -352,6 +353,17 @@ def answer_stream(
             items=[("说明", "开启后：召回先扩宽（默认 10 条候选），LLM 逐条打分精排，再取 Top K 进入回答")],
         ))
 
+    # 节点 ⑧ 合并 / 去重 + 节点 ⑨ 上下文组装（V2.6：文档多样性 + 相邻补全）
+    # 精排后不再截断候选池，由组装规则在全部候选中选出最终进入回答的 Top K
+    merge_start = now_str()
+    t1 = time.time()
+    context, used, dropped, merge_notes = build_context(
+        result.retrieved, cfg, max_items=top_k
+    )
+    result.retrieved = used
+    result.context = context
+    merge_elapsed = time.time() - t1
+    result.elapsed["retrieval"] = time.time() - t0
     result.sources = [
         {
             "rank": item.rank,
@@ -368,23 +380,17 @@ def answer_stream(
             "channels": item.channels,
             "text": item.text,
         }
-        for item in result.retrieved
+        for item in used
     ]
-
-    # 节点 ⑦：合并 / 去重
-    merge_start = now_str()
-    t1 = time.time()
-    context, used, dropped = build_context(result.retrieved, cfg)
-    merge_elapsed = time.time() - t1
-    result.context = context
     drop_lines = [f"[{d['rank']}] {d['source']} —— {d['reason']}" for d in dropped]
     trace.append(make_node(
         "🧩", "合并 / 去重", time_str=merge_start, elapsed=merge_elapsed,
-        summary="对召回结果做合并与去重：内容相同的卡片只留相关度最高的一条，"
-                "放不下资料上限的卡片丢弃（V1 中本步骤在上下文组装时一并完成）",
+        summary="对召回结果做合并与去重：内容相同的卡片只留相关度最高的一条；"
+                "同一文档最多采用 3 条（保持来源多样）；达到 Top K 上限后停止选取",
         items=[
             ("去重 / 合并逻辑", "忽略空白差异后比较卡片全文，重复的只保留第一条；"
-             "剩余卡片按相关度依次放入，直到达到资料字数上限"),
+             "剩余卡片按相关度依次放入，直到达到条数或字数上限"),
+            ("多样性限制", f"同一文档最多采用 {cfg.context_max_per_doc} 条"),
             ("被丢弃的卡片", "\n".join(drop_lines) if drop_lines else "（没有需要丢弃的卡片）"),
             ("输出", f"采用 {len(used)} 条，丢弃 {len(dropped)} 条"),
         ],
@@ -393,10 +399,12 @@ def answer_stream(
     # 节点 ⑨：上下文组装
     trace.append(make_node(
         "📦", "上下文组装", time_str=now_str(),
-        summary="把采用的卡片拼成一份带编号和出处的「资料附页」，随问题一起发给大模型",
+        summary="把采用的卡片拼成一份带编号和出处的「资料附页」，随问题一起发给大模型；"
+                "同文档相邻卡片自动拼接，恢复被切片切断的上下文",
         items=[
             ("组装规则", f"相关度降序编号 [1][2]…；每条标注来源/领域/章节/页码；"
              f"总字数上限 {cfg.context_max_chars} 字"),
+            ("相邻补全", "\n".join(merge_notes) if merge_notes else "（没有可拼接的相邻卡片）"),
             ("输出（最终 Context）", context),
             ("规模", f"共 {len(used)} 条资料，合计 {len(context)} 字（上限 {cfg.context_max_chars} 字）"),
         ],

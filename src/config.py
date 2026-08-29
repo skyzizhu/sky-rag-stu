@@ -83,6 +83,9 @@ class AppConfig:
     rerank_enabled: bool = field(default_factory=lambda: _env_bool("RERANK_ENABLED", True))
     rerank_recall_k: int = field(default_factory=lambda: _env_int("RERANK_RECALL_K", 10))
 
+    # V2.6：上下文组装的来源多样性（同一文档最多进入回答的卡片数）
+    context_max_per_doc: int = field(default_factory=lambda: _env_int("CONTEXT_MAX_PER_DOC", 3))
+
     # 其他
     knowledge_dir: Path = field(
         default_factory=lambda: (PROJECT_ROOT / _env("KNOWLEDGE_DIR", "knowledge")).resolve()
