@@ -275,9 +275,10 @@ def answer_stream(
     use_query_understanding: bool = True,
     use_hybrid: bool = True,
     use_rerank: bool = True,
+    history: list[dict] | None = None,
     config: AppConfig | None = None,
 ):
-    """流式问答：检索同步完成，回答逐段产出。返回 (完整结果记录, 文本块生成器)。
+    """流式问答：history 传入最近对话实现多轮（解析代词+上下文），不增加 LLM 调用。
 
     生成器迭代结束后，result.answer / result.elapsed / result.trace 才是完整值。
     filters 例：{"domain": "learning"}、{"status": "archive"}（界面手动设置，优先级最高）。
@@ -326,16 +327,28 @@ def answer_stream(
         items=[("输入（用户问题）", question)],
     ))
 
-    # 节点：会话记忆 / 多轮对话（V1 直通）
-    trace.append(make_node(
-        "💬", "会话记忆 / 多轮对话", time_str=now_str(), status="直通（多轮能力规划在后续版本）",
-        summary="完整 RAG 在多轮对话时会带着历史消息理解当前问题（比如'它多少钱？'要结合上一轮"
-                "才知道'它'是谁）；V1 每次问答相互独立，不带历史记忆",
-        items=[
-            ("输入", f"当前问题 1 条（历史消息 0 条）"),
-            ("输出", "与输入相同（未结合历史）"),
-        ],
-    ))
+    # 节点：会话记忆 / 多轮对话（V3：结合历史解析代词 + 上下文生成）
+    recent_history = [m for m in (history or []) if m.get("role") in ("user", "assistant") and m.get("content")][-6:]
+    if recent_history:
+        trace.append(make_node(
+            "💬", "会话记忆 / 多轮对话", time_str=now_str(), status="已执行",
+            summary="检测到对话历史，本轮结合最近对话理解当前问题：Query 理解时解析代词"
+                    "（'它多少钱'→'Qdrant 的价格'），生成时带上历史上下文",
+            items=[
+                ("输入", f"当前问题 1 条 + 历史消息 {len(recent_history)} 条（最近 {len(recent_history) // 2} 轮）"),
+                ("历史摘要", "\n".join(
+                    f"{'用户' if m['role'] == 'user' else '助手'}：{m['content'][:80]}……"
+                    for m in recent_history[-4:]
+                )),
+                ("输出", "历史传入 Query 理解（代词消解）+ LLM 生成（上下文连贯），不增加 LLM 调用"),
+            ],
+        ))
+    else:
+        trace.append(make_node(
+            "💬", "会话记忆 / 多轮对话", time_str=now_str(), status="本轮无历史（首轮提问）",
+            summary="当前是新会话的第一轮提问，没有历史可结合。多轮时系统会自动带上最近对话",
+            items=[("说明", "传入历史后：Query 理解解析代词 + LLM 上下文连贯")],
+        ))
 
     # 列举/盘点类提问自动扩大召回深度
     enumeration = any(w in question for w in ("有哪些", "列出", "都有什么", "列举", "全部"))
@@ -357,7 +370,7 @@ def answer_stream(
             catalog = sorted({d["category"] for d in get_vector_store().list_documents()})
         except Exception:
             catalog = []
-        qu = understand_query(question, llm=llm, config=cfg, categories=catalog)
+        qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history)
         search_query = qu.vector_query or question
         qu_filters = dict(qu.filters)
         # 列举/盘点类提问自动扩大召回深度，保证"有哪些"类问题能覆盖完整列表
@@ -534,7 +547,7 @@ def answer_stream(
 
     # 节点 ⑩：Prompt
     t2 = time.time()
-    messages = build_messages(context, question)
+    messages = build_messages(context, question, history=history)
     llm = get_llm_client()
     trace.append(make_node(
         "📝", "Prompt", time_str=now_str(), elapsed=time.time() - t2,

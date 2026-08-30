@@ -408,6 +408,12 @@ def page_chat():
                 return
             try:
                 with st.spinner("🔍 正在检索知识库……"):
+                    # 传入历史消息实现多轮对话（Query 理解解析代词 + LLM 上下文连贯）
+                    chat_history = [
+                        {"role": m["role"], "content": m["content"]}
+                        for m in st.session_state.messages
+                        if m.get("role") in ("user", "assistant") and m.get("content")
+                    ][-6:]  # 最近 3 轮
                     result, deltas = answer_stream(
                         question,
                         top_k=st.session_state["top_k"],
@@ -415,6 +421,7 @@ def page_chat():
                         use_query_understanding=st.session_state["query_understanding"],
                         use_hybrid=st.session_state["hybrid_search"],
                         use_rerank=st.session_state["rerank"],
+                        history=chat_history,
                     )
                 full_text = st.write_stream(deltas)
                 show_answer_sources(result)

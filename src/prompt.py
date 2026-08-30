@@ -31,9 +31,22 @@ def build_user_prompt(context: str, question: str) -> str:
     return USER_PROMPT_TEMPLATE.format(context=context, question=question)
 
 
-def build_messages(context: str, question: str) -> list[dict]:
-    """组装成大模型接口需要的消息格式。"""
-    return [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": build_user_prompt(context, question)},
-    ]
+def build_messages(context: str, question: str, history: list[dict] | None = None) -> list[dict]:
+    """组装成大模型接口需要的消息格式。
+
+    history: 最近几轮对话 [{"role": "user"/"assistant", "content": "..."}]，
+    传入后 LLM 能结合上下文理解代词（多轮对话），不增加调用次数。
+    消息顺序：System → 历史对话 → 当前问题（资料 + 提问）。
+    """
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    # 历史对话：最近 6 条（3 轮），只保留 role 和 content（去掉检索结果等内部对象）
+    if history:
+        for m in history[-6:]:
+            if m.get("role") in ("user", "assistant") and m.get("content"):
+                content = m["content"]
+                # 历史回答截断到 500 字，防止上下文膨胀
+                if m["role"] == "assistant" and len(content) > 500:
+                    content = content[:500] + "……"
+                messages.append({"role": m["role"], "content": content})
+    messages.append({"role": "user", "content": build_user_prompt(context, question)})
+    return messages

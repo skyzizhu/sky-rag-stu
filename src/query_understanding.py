@@ -55,9 +55,14 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
 QU_USER_PROMPT_TEMPLATE = """【当前时间】{current_time}
 【知识库领域枚举】work / learning / life / reference / archive
 【知识库现有分类】{categories}
-【用户原始问题】{question}
+{history_section}【用户原始问题】{question}
 
 请按系统要求输出 JSON。"""
+
+HISTORY_SECTION_TEMPLATE = """【最近对话历史】
+{history}
+
+"""
 
 
 @dataclass
@@ -128,17 +133,29 @@ def understand_query(
     llm: LLMClient | None = None,
     config: AppConfig | None = None,
     categories: list[str] | None = None,
+    history: list[dict] | None = None,
 ) -> QueryUnderstanding:
-    """执行 Query 理解/改写。任何失败都会回退为原始问题，不会抛出异常。"""
+    """执行 Query 理解/改写。任何失败都会回退为原始问题，不会抛出异常。
+
+    history: [{"role": "user"/"assistant", "content": "..."}] 最近对话，
+    帮助 LLM 解析代词（"它多少钱"→"Qdrant 的价格"），不增加 LLM 调用次数。
+    """
     cfg = config or get_config()
     llm = llm or LLMClient(cfg)
     qu = QueryUnderstanding(original=question, vector_query=question)
 
     category_text = "、".join(sorted(set(categories or []))) or "（未知）"
+    history_section = ""
+    if history:
+        recent = history[-6:]  # 最近 3 轮（6 条消息）足够解析大多数代词
+        lines = [f"{'用户' if m['role'] == 'user' else '助手'}：{m['content'][:100]}" for m in recent]
+        history_section = HISTORY_SECTION_TEMPLATE.format(history="\n".join(lines))
+
     qu.user_prompt = QU_USER_PROMPT_TEMPLATE.format(
         categories=category_text,
         question=question,
         current_time=datetime.now().strftime("%Y-%m-%d %H:%M %A"),
+        history_section=history_section,
     )
     messages = [
         {"role": "system", "content": qu.system_prompt},
