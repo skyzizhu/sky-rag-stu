@@ -732,7 +732,7 @@ def page_params_overview():
             ("切片长度 CHUNK_SIZE", cfg.chunk_size, "每张知识卡片的目标字数"),
             ("切片重叠 CHUNK_OVERLAP", cfg.chunk_overlap, "相邻卡片重复字数，防语义切断"),
             ("召回条数 TOP_K", st.session_state["top_k"], "每次提问召回的知识卡片数"),
-            ("资料上限 CONTEXT_MAX_TOKENS", cfg.context_max_chars, "发给大模型的资料 token 上限"),
+            ("资料上限 CONTEXT_MAX_TOKENS", cfg.context_max_tokens, "发给大模型的资料 token 上限"),
             ("回答发散度 TEMPERATURE", cfg.llm_temperature, "知识库场景建议小值"),
             ("上下文单文档上限", cfg.context_max_per_doc, "同一文档最多进入回答的卡片数，保持来源多样"),
             ("向量化模型", cfg.embedding_model, "本地 Ollama 运行；更换需重建知识库"),
