@@ -617,13 +617,15 @@ def answer_question(
     use_query_understanding: bool = True,
     use_hybrid: bool = True,
     use_rerank: bool = True,
+    history: list[dict] | None = None,
     config: AppConfig | None = None,
 ) -> QAResult:
     """完整问答链路（一次性返回完整答案）。use_llm=False 时只做检索（不花钱）。"""
     result, deltas = answer_stream(
         question, top_k=top_k, use_llm=use_llm, filters=filters,
         use_query_understanding=use_query_understanding,
-        use_hybrid=use_hybrid, use_rerank=use_rerank, config=config,
+        use_hybrid=use_hybrid, use_rerank=use_rerank,
+        history=history, config=config,
     )
     for _ in deltas:  # 消费生成器，把答案收集完整
         pass
