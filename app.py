@@ -696,6 +696,8 @@ def page_retrieval_settings():
 def page_maintenance():
     st.markdown('<div class="section-title">🧹 维护操作</div>', unsafe_allow_html=True)
     st.caption("批量操作，谨慎使用；日常的单文件管理请去「🗂 知识库管理」")
+
+    st.markdown("**知识库维护**")
     confirm_rebuild = st.checkbox("我确认要清空并重建全库", key="confirm_rebuild")
     c1, c2 = st.columns(2)
     if c1.button("🔄 清空并重建知识库", disabled=not confirm_rebuild,
@@ -709,6 +711,22 @@ def page_maintenance():
     if c2.button("🗑 仅清空向量库", width="stretch"):
         store.clear()
         st.success("已清空。重新入库即可恢复。")
+
+    st.divider()
+
+    st.markdown("**缓存管理**")
+    from src.pipeline import _qa_cache, clear_qa_cache
+    from src.keyword_search import _bm25_cache, invalidate_cache
+
+    cache_col1, cache_col2 = st.columns(2)
+    cache_col1.metric("⚡ Q→A 问答缓存", f"{len(_qa_cache)} 条")
+    cache_col2.metric("🔑 BM25 索引缓存", f"{len(_bm25_cache)} 组")
+
+    if st.button("🧹 清空全部缓存", width="stretch", type="primary"):
+        clear_qa_cache()
+        invalidate_cache()
+        st.success("已清空问答缓存和 BM25 索引缓存。下次提问会重新计算。")
+        st.rerun()
 
 
 # ---------------------------------------------------------------- 页面 6：系统状态
