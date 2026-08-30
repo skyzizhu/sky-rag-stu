@@ -138,6 +138,9 @@ class Retriever:
 
         # —— 节点：BM25 关键词检索 + 混合融合（V2.3 / V2.4）——
         if use_hybrid:
+            from src.keyword_search import _get_cached_index
+            _cached = _get_cached_index(self.store, used_filters)
+            cache_status = "缓存命中（直接复用索引）" if _cached else "首次构建（已缓存，下次复用）"
             bm25_query = " ".join(keyword_query) if keyword_query else query
             kw_source = "来自 Query 理解 / 改写的关键词" if keyword_query else "原始问题"
             bm25_start = now_str()
@@ -160,6 +163,7 @@ class Retriever:
                             "擅长专有名词、编号、缩写这类需要精确匹配的词——正好补向量检索的盲区",
                     items=[
                         ("检索词", f"{bm25_query}　（{kw_source}）"),
+                        ("索引缓存", cache_status),
                         ("输入", f"过滤范围内全部卡片的分词全文（分词器：jieba）"),
                         ("输出", f"{len(keyword_items)} 条命中（BM25 分数只用于排序，与向量相似度分不可直接比较）"),
                         ("命中清单", "\n".join(lines) or "（无命中）"),

@@ -293,7 +293,19 @@ def answer_stream(
     cache_key = _cache_key(question, top_k, filters or {}, use_query_understanding, use_hybrid, use_rerank)
     if cache_key in _qa_cache:
         import copy
-        return copy.deepcopy(_qa_cache[cache_key]), iter([])
+        cached = copy.deepcopy(_qa_cache[cache_key])
+        # 缓存命中：加一条时间线节点说明（不重跑流水线）
+        cached.trace.append(make_node(
+            "⚡", "Q→A 缓存命中", time_str=now_str(), status="已命中",
+            summary="同一问题 + 同一检索配置，直接返回上次结果——"
+                    "不重跑 Query 理解 / 检索 / Rerank / LLM 生成（0 次 API 调用，0 秒）",
+            items=[
+                ("缓存条件", f"问题：{question[:50]}……"),
+                ("上次耗时", f"{cached.elapsed.get('total', 0):.2f} 秒"),
+                ("本次耗时", "≈0 秒（直接返回缓存）"),
+            ],
+        ))
+        return cached, iter([])
 
     retriever = get_retriever()
     trace: list = []
