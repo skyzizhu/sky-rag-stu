@@ -68,15 +68,16 @@ def _merge_adjacent_texts(texts: list[str]) -> str:
 
 
 def build_context(
-    items: list[RetrievedItem], config: AppConfig | None = None, max_items: int | None = None
+    items: list[RetrievedItem], config: AppConfig | None = None,
+    max_items: int | None = None, max_per_doc: int | None = None
 ) -> tuple[str, list[RetrievedItem], list[dict], list[str]]:
     """组装最终发给大模型的资料文本（V2.6：多样性 + 相邻补全）。
 
     选取规则：按相关度降序遍历候选——
       ① 内容与已选卡片完全相同的跳过（去重）；
-      ② 同一文档最多采用 CONTEXT_MAX_PER_DOC 条（保持来源多样）；
+      ② 同一文档最多采用 max_per_doc 条（保持来源多样；列举类提问可放开）；
       ③ 达到采用条数上限（默认 Top K）后停止；
-      ④ 单条放入会超出字数上限的跳过。
+      ④ 单条放入会超出 token 上限的跳过。
 
     相邻补全：同文档、卡片序号连续的已选卡片自动拼接（Overlap 去重），
     让被切片切断的上下文恢复完整。
@@ -85,7 +86,7 @@ def build_context(
     """
     cfg = config or get_config()
     max_items = max_items or cfg.top_k
-    max_per_doc = max(1, cfg.context_max_per_doc)
+    max_per_doc = max_per_doc if max_per_doc is not None else cfg.context_max_per_doc
 
     # —— 第一轮：按规则选取 ——
     used: list[RetrievedItem] = []

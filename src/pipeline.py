@@ -362,14 +362,15 @@ def answer_stream(
             items=[("说明", "传入历史后：Query 理解解析代词 + LLM 上下文连贯")],
         ))
 
-    # 列举/盘点类提问自动扩大召回深度
-    enumeration = any(w in question for w in ("有哪些", "列出", "都有什么", "列举", "全部"))
-    recall_k = top_k * 2 if enumeration else top_k
-
-    # 列举/盘点类提问自动扩大召回深度和上下文条数上限
-    enumeration = any(w in question for w in ("有哪些", "列出", "都有什么", "列举", "全部"))
+    # 列举/盘点类提问：自动扩大召回深度 + 上下文容量 + 放开单文档上限
+    enumeration = any(w in question for w in (
+        "有哪些", "列出", "都有什么", "列举", "全部",
+        "那些", "哪些", "都有", "所有", "什么功能", "什么工具",
+        "功能列表", "几个", "多少个", "多少种",
+    ))
     recall_k = top_k * 2 if enumeration else top_k
     ctx_max_items = top_k * 2 if enumeration else top_k
+    ctx_max_per_doc = 999 if enumeration else None
 
     # 节点 ②：Query 理解 / 改写（V2：一次 LLM 调用完成改写 + 关键词 + 过滤条件推断）
     search_query = question
@@ -385,8 +386,6 @@ def answer_stream(
         qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history)
         search_query = qu.vector_query or question
         qu_filters = dict(qu.filters)
-        # 列举/盘点类提问自动扩大召回深度，保证"有哪些"类问题能覆盖完整列表
-        enumeration = any(w in question for w in ("有哪些", "列出", "都有什么", "列举", "全部"))
         parsed = (f"intent: {qu.intent or '-'}\n"
                   f"vector_query（改写后检索语句）: {qu.vector_query}\n"
                   f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '-'}\n"
@@ -498,7 +497,7 @@ def answer_stream(
     merge_start = now_str()
     t1 = time.time()
     context, used, dropped, merge_notes = build_context(
-        result.retrieved, cfg, max_items=ctx_max_items
+        result.retrieved, cfg, max_items=ctx_max_items, max_per_doc=ctx_max_per_doc
     )
     result.retrieved = used
     result.context = context
