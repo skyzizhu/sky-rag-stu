@@ -71,7 +71,8 @@ class AppConfig:
 
     # 检索与回答
     top_k: int = field(default_factory=lambda: _env_int("TOP_K", 5))
-    context_max_chars: int = field(default_factory=lambda: _env_int("CONTEXT_MAX_CHARS", 6000))
+    # 资料附页的 token 上限（估算值：中文 ≈ 0.8 token/字，英文 ≈ 1/3.5 token/字符）
+    context_max_tokens: int = field(default_factory=lambda: _env_int("CONTEXT_MAX_TOKENS", 4000))
 
     # V2：Query 理解 / 改写（每次问答多用一次 LLM 调用，把口语化提问改写成检索友好查询）
     query_understanding: bool = field(default_factory=lambda: _env_bool("QUERY_UNDERSTANDING", True))

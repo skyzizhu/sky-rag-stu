@@ -28,6 +28,29 @@ def _clean_line(line: str) -> str:
     return (leading + body).rstrip()
 
 
+def _merge_short_fragments(text: str, min_length: int = 15) -> str:
+    """HTML 剪藏优化：把过短的碎片段（< min_length 字）拼进相邻段落。
+
+    网页解析后常产生大量单行碎片段（菜单文字、按钮标签、分隔符残留），
+    不合并会导致切片时碎片段自成一卡、语义断裂。
+    """
+    lines = text.split("\n")
+    merged: list[str] = []
+    buffer = ""
+    for line in lines:
+        stripped = line.strip()
+        if len(stripped) < min_length and stripped:
+            buffer += (" " if buffer else "") + stripped
+            continue
+        if buffer:
+            merged.append(buffer)
+            buffer = ""
+        merged.append(line)
+    if buffer:
+        merged.append(buffer)
+    return "\n".join(merged)
+
+
 def clean_text(text: str) -> str:
     """清理整篇正文：逐行清洗后，把连续多个空行压成一个空行。"""
     lines = [_clean_line(line) for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
@@ -89,8 +112,10 @@ def _drop_repeated_page_lines(pages: list[tuple[int, list[str]]]) -> tuple[list[
 
 
 def clean_document(doc: ParsedDocument) -> ParsedDocument:
-    """清洗整个文档：普通清理 + 如果是 PDF 再加页眉页脚清理。"""
+    """清洗整个文档：普通清理 + 碎片合并 + PDF 页眉页脚清理。"""
     text = clean_text(doc.text)
+    if doc.metadata.get("file_type") in ("html", "htm"):
+        text = _merge_short_fragments(text)
     removed: list[str] = []
     if doc.metadata.get("file_type") == "pdf":
         pages = _split_pdf_pages(text)

@@ -20,7 +20,7 @@ from pathlib import Path
 
 from src.chunker import clean_and_chunk
 from src.config import AppConfig, get_config
-from src.context import build_context
+from src.context import build_context, estimate_tokens
 from src.embedding import EmbeddingClient, get_embedding_client
 from src.llm import LLMClient, get_llm_client
 from src.metadata import build_document_metadata, document_id_for
@@ -236,6 +236,10 @@ def ingest_files(
     print("⑥ 存入 Qdrant 向量库")
     vector_store.ensure_collection(summary.vector_dimension)
     stored = vector_store.upsert_chunks(chunks, vectors)
+    # 入库后清空 BM25 缓存和 Q→A 缓存
+    from src.keyword_search import invalidate_cache
+    invalidate_cache()
+    clear_qa_cache()
     print(f"   已写入 {stored} 张卡片")
 
     summary.elapsed_seconds = time.time() - start
@@ -245,6 +249,21 @@ def ingest_files(
         print(f"   {row['path']:<40} domain={row['domain']:<10} category={row['category']:<12} "
               f"status={row['status']:<8} 卡片数={row['chunks']}")
     return summary
+
+
+# ---------------------------------------------------------------- Q→A 缓存
+# 简单内存缓存：同一问题 + 同一配置 → 直接返回上次结果（不重跑流水线）
+_qa_cache: dict[str, QAResult] = {}
+_QA_CACHE_MAX = 50  # 最多缓存 50 条问答
+
+
+def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool, rerank: bool) -> str:
+    return f"{question.strip().lower()}|k={top_k}|f={sorted((filters or {}).items())}|qu={qu}|hy={hybrid}|rr={rerank}"
+
+
+def clear_qa_cache() -> None:
+    """入库/删除知识后调用，清空问答缓存。"""
+    _qa_cache.clear()
 
 
 # ---------------------------------------------------------------- 问答
@@ -268,6 +287,13 @@ def answer_stream(
     """
     cfg = config or get_config()
     top_k = top_k or cfg.top_k
+
+    # Q→A 缓存：同一问题+同一配置直接返回上次结果
+    cache_key = _cache_key(question, top_k, filters or {}, use_query_understanding, use_hybrid, use_rerank)
+    if cache_key in _qa_cache:
+        import copy
+        return copy.deepcopy(_qa_cache[cache_key]), iter([])
+
     retriever = get_retriever()
     trace: list = []
     result = QAResult(question=question, answer=None, retrieved=[], context="",
@@ -496,10 +522,10 @@ def answer_stream(
                 "同文档相邻卡片自动拼接，恢复被切片切断的上下文",
         items=[
             ("组装规则", f"相关度降序编号 [1][2]…；每条标注来源/领域/章节/页码；"
-             f"总字数上限 {cfg.context_max_chars} 字"),
+             f"token 上限 {cfg.context_max_tokens} 字"),
             ("相邻补全", "\n".join(merge_notes) if merge_notes else "（没有可拼接的相邻卡片）"),
             ("输出（最终 Context）", context),
-            ("规模", f"共 {len(used)} 条资料，合计 {len(context)} 字（上限 {cfg.context_max_chars} 字）"),
+            ("规模", f"共 {len(used)} 条资料，合计 {estimate_tokens(context)} tokens（上限约 {cfg.context_max_tokens} tokens）"),
         ],
     ))
 
@@ -550,6 +576,10 @@ def answer_stream(
                      f"总耗时 {result.elapsed.get('total', 0):.2f} 秒"),
                 ],
             ))
+            # 写入 Q→A 缓存（最多保留 50 条）
+            if len(_qa_cache) >= _QA_CACHE_MAX:
+                _qa_cache.pop(next(iter(_qa_cache)))
+            _qa_cache[cache_key] = result
 
     return result, _generate()
 

@@ -12,9 +12,25 @@ from __future__ import annotations
 
 import re
 import sys
+import unicodedata
 
 from src.config import AppConfig, get_config
 from src.retriever import RetrievedItem
+
+
+def estimate_tokens(text: str) -> int:
+    """估算文本的 token 数。
+
+    经验规则（近似 LLM tokenizer 行为）：
+    - 中文字符 ≈ 0.6~1 token（取 0.8）
+    - 英文单词 ≈ 1~1.3 token（按 4 字符 ≈ 1 token 估算）
+    - 数字/符号 ≈ 每 2 个字符 1 token
+    """
+    if not text:
+        return 0
+    cjk = sum(1 for ch in text if unicodedata.east_asian_width(ch) in ("F", "W"))
+    rest = len(text) - cjk
+    return int(cjk * 0.8 + rest / 3.5)
 
 
 def citation_label(item: RetrievedItem, number: int) -> str:
@@ -77,7 +93,7 @@ def build_context(
     per_doc: dict[str, int] = {}
     dropped: list[dict] = []
     blocks: list[str] = []
-    total_chars = 0
+    context_so_far = ""  # 已放入的资料全文（用于 token 估算）
 
     for item in items:
         normalized = "".join(item.text.split())
@@ -96,14 +112,15 @@ def build_context(
             continue
         number = len(used) + 1
         block = f"{citation_label(item, number)}\n{item.text}"
-        if total_chars + len(block) > cfg.context_max_chars and blocks:
+        # Token 估算替代纯字符数：中英文混合时更接近模型实际容量
+        if estimate_tokens(context_so_far + block) > cfg.context_max_tokens and context_so_far:
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
-                            "reason": f"放入后会超出资料字数上限（{cfg.context_max_chars} 字）"})
+                            "reason": f"放入后会超出资料 token 上限（约 {cfg.context_max_tokens} tokens）"})
             continue
         seen_texts.add(normalized)
         used.append(item)
         blocks.append(block)
-        total_chars += len(block)
+        context_so_far += block
         per_doc[doc_id] = per_doc.get(doc_id, 0) + 1
 
     # —— 第二轮：相邻补全 ——
