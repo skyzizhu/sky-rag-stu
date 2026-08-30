@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 from functools import lru_cache
 
@@ -50,6 +51,17 @@ class LLMClient:
             return LLMError(f"大模型服务返回客户端错误（{status}）。请检查 .env 里的配置项是否正确。")
         return LLMError(f"大模型调用失败：{type(exc).__name__}: {exc}")
 
+    @staticmethod
+    def _clean_think_tags(text: str) -> str:
+        """去除 Ollama 推理模型（qwen3 等）输出的 <think>...</think> 标签。"""
+        if not text:
+            return text
+        cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+        # 流式输出时 <think> 可能未闭合：去掉开头的 <think> 及其后的推理内容
+        if "<think>" in cleaned and "</think>" not in cleaned:
+            cleaned = cleaned.split("<think>")[-1].strip()
+        return cleaned or text
+
     def _create(self, messages: list[dict], stream: bool = False):
         return self.client.chat.completions.create(
             model=self.cfg.llm_model,
@@ -68,7 +80,7 @@ class LLMClient:
             raise self._translate_error(exc) from exc
 
         elapsed = time.time() - start
-        answer = (response.choices[0].message.content or "").strip()
+        answer = self._clean_think_tags(response.choices[0].message.content or "")
         if self.cfg.debug:
             print(f"    LLM 调用完成：{self.cfg.llm_model}，耗时 {elapsed:.1f} 秒")
         return answer, elapsed
@@ -88,8 +100,10 @@ class LLMClient:
                     continue
                 delta = chunk.choices[0].delta.content
                 if delta:
-                    produced = True
-                    yield delta
+                    clean = self._clean_think_tags(delta)
+                    if clean:
+                        produced = True
+                        yield clean
             if not produced:  # 流式没有产出任何内容：一次性重试
                 answer, _ = self.chat(messages)
                 if answer:

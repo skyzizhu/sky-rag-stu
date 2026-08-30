@@ -99,20 +99,26 @@ class AppConfig:
 
     def validate_llm(self) -> None:
         """用到云端大模型前检查配置是否齐全，缺什么直接说清楚。"""
+        is_local = "localhost" in self.llm_base_url or "127.0.0.1" in self.llm_base_url
         missing = [
             name
             for name, value in (
-                ("LLM_API_KEY", self.llm_api_key),
                 ("LLM_BASE_URL", self.llm_base_url),
                 ("LLM_MODEL", self.llm_model),
             )
             if not value
         ]
+        # 本地 Ollama 不需要 API Key（自动填占位符）
+        if not is_local and not self.llm_api_key:
+            missing.append("LLM_API_KEY")
         if missing:
+            hint = "（本地 Ollama 无需 API Key）" if is_local else ""
             raise ConfigError(
-                "LLM 配置不完整，缺少：" + "、".join(missing)
-                + "。请打开项目根目录的 .env 文件，把这几项填好后再试。"
+                "LLM 配置不完整，缺少：" + "、".join(missing) + f"{hint}。"
+                "请打开项目根目录的 .env 文件，把这几项填好后再试。"
             )
+        if is_local and not self.llm_api_key:
+            self.llm_api_key = "ollama-local"  # Ollama 不校验 Key，但 OpenAI 客户端需要一个
 
 
 def get_config() -> AppConfig:

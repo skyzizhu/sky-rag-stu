@@ -251,7 +251,14 @@ def system_status() -> dict[str, tuple[bool, str]]:
         status["向量数据库"] = (True, f"{count} 张卡片")
     except Exception as exc:
         status["向量数据库"] = (False, str(exc)[:40])
-    status["大模型"] = (bool(cfg.llm_api_key), cfg.llm_model if cfg.llm_api_key else "未配置 Key")
+    is_local_llm = "localhost" in cfg.llm_base_url or "127.0.0.1" in cfg.llm_base_url
+    llm_ok = bool(cfg.llm_api_key) or is_local_llm
+    llm_note = cfg.llm_model if llm_ok else "未配置"
+    if llm_ok and is_local_llm:
+        llm_note = f"🖥 {cfg.llm_model}（本地 Ollama）"
+    elif llm_ok:
+        llm_note = f"☁️ {cfg.llm_model}（云端）"
+    status["大模型"] = (llm_ok, llm_note)
     return status
 
 
@@ -754,7 +761,7 @@ def page_params_overview():
             ("回答发散度 TEMPERATURE", cfg.llm_temperature, "知识库场景建议小值"),
             ("上下文单文档上限", cfg.context_max_per_doc, "同一文档最多进入回答的卡片数，保持来源多样"),
             ("向量化模型", cfg.embedding_model, "本地 Ollama 运行；更换需重建知识库"),
-            ("大模型", cfg.llm_model or "未配置", "云端生成回答；OpenAI 兼容接口"),
+            ("大模型", cfg.llm_model or "未配置", "生成回答；支持云端 API 或本地 Ollama（OpenAI 兼容接口）"),
             ("向量集合", cfg.qdrant_collection, "全部知识共居一库"),
         ]],
         width="stretch", hide_index=True,
