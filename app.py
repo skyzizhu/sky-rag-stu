@@ -3,7 +3,7 @@
 启动方式：在项目根目录运行  streamlit run app.py
 
 布局：左侧是菜单（顶部为 Logo 与 Slogan），右侧是对应页面。菜单分两组：
-    知识库：💬 知识库问答（横幅 + 建议问题 + 流式回答 + 来源卡片）
+    知识库：💬 知识库问答（横幅 + 流式回答 + 来源卡片）
             📤 上传文档（按领域目录入库，逐文件结果）
             🗂 知识库管理（统计 / 筛选 / 归档·恢复·移除·重新入库）
     设置：🔍 检索设置 · 🧹 维护操作 · 📊 系统状态 · 🧾 参数总览
@@ -12,8 +12,10 @@
 from __future__ import annotations
 
 import html
+import re
 import sys
 from pathlib import Path
+from pathlib import PurePosixPath
 
 import streamlit as st
 
@@ -33,19 +35,13 @@ from src.manage import (  # noqa: E402
 from src.metadata import DOMAINS, DOMAIN_LABELS  # noqa: E402
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
-from src.sessions import list_sessions, load_session, new_session_id, save_session  # noqa: E402
+from src.sessions import SESSIONS_DIR, list_sessions, load_session, new_session_id, save_session  # noqa: E402
 from src.vector_store import VectorStoreError, get_vector_store  # noqa: E402
 
 st.set_page_config(page_title="Sky Personal RAG", page_icon="🧠", layout="wide")
 cfg = get_config()
 
 SUPPORTED_UPLOAD_TYPES = [ext.lstrip(".") for ext in sorted(SUPPORTED_EXTENSIONS) if ext != ".htm"]
-SUGGESTED_QUESTIONS = [
-    "RAG 里的 Metadata 有什么用？",
-    "chunk_size 初始设多少？为什么需要 overlap？",
-    "智能客服项目的效果怎么样？",
-    "Agent 的三大组件是什么？",
-]
 
 # 跨页面共享的设置项：在「设置与状态」里改，问答页即时生效
 st.session_state.setdefault("top_k", cfg.top_k)
@@ -55,6 +51,33 @@ st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
 st.session_state.setdefault("session_id", new_session_id())
 st.session_state.setdefault("theme", "system")  # system / light / dark
+
+
+@st.dialog("确认删除历史会话", width="small")
+def confirm_session_delete() -> None:
+    """在真正删除前要求用户二次确认。"""
+    request = st.session_state.get("delete_session_request")
+    if not request:
+        return
+
+    st.write(f"确定要删除历史会话「{request['title']}」吗？")
+    st.caption("删除后无法恢复，但不会影响已经导入的知识库文件。")
+    cancel_col, confirm_col = st.columns(2)
+    if cancel_col.button("取消", use_container_width=True):
+        st.session_state.pop("delete_session_request", None)
+        st.rerun()
+    if confirm_col.button(
+        "确认删除",
+        type="primary",
+        icon=":material/delete:",
+        use_container_width=True,
+    ):
+        sid = request["session_id"]
+        session_file = SESSIONS_DIR / sid[:10] / f"{sid}.json"
+        if session_file.exists():
+            session_file.unlink()
+        st.session_state.pop("delete_session_request", None)
+        st.rerun()
 
 # 载入历史会话（侧边栏列表点击后在此处理；支持 URL 参数 ?load=会话ID）
 load_target = st.session_state.pop("__load_session", None)
@@ -93,20 +116,22 @@ if "app_settings_loaded" not in st.session_state:
 # ---------------------------------------------------------------- 全局样式
 CSS = """
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 /* ==================== 主题变量系统 ==================== */
 :root {
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F5F7FB;
-  --bg-card: rgba(148,163,184,.03);
-  --bg-sidebar: linear-gradient(180deg, #F8FAFF, #F2F5FA);
-  --text-primary: #1E293B;
-  --text-secondary: #64748B;
+  --bg-primary: #F7F8FC;
+  --bg-secondary: #FFFFFF;
+  --bg-card: rgba(255,255,255,.82);
+  --bg-sidebar: linear-gradient(180deg, #F9FAFF 0%, #F2F4FA 100%);
+  --text-primary: #182033;
+  --text-secondary: #606B85;
   --text-muted: #94A3B8;
-  --border-subtle: rgba(148,163,184,.1);
-  --border-hover: rgba(99,102,241,.2);
-  --accent: #6366F1;
-  --accent-light: rgba(99,102,241,.06);
-  --accent-text: #818CF8;
+  --border-subtle: rgba(93,105,135,.13);
+  --border-hover: rgba(79,70,229,.28);
+  --accent: #5145E5;
+  --accent-light: rgba(81,69,229,.08);
+  --accent-text: #5145E5;
+  --shadow-card: 0 12px 36px rgba(30,41,75,.07);
 }
 @media (prefers-color-scheme: dark) {
   :root:not(.theme-light) {
@@ -122,6 +147,7 @@ CSS = """
     --accent: #818CF8;
     --accent-light: rgba(99,102,241,.08);
     --accent-text: #A5B4FC;
+    --shadow-card: 0 16px 44px rgba(0,0,0,.24);
   }
 }
 :root.theme-dark {
@@ -137,33 +163,61 @@ CSS = """
   --accent: #818CF8;
   --accent-light: rgba(99,102,241,.08);
   --accent-text: #A5B4FC;
+  --shadow-card: 0 16px 44px rgba(0,0,0,.24);
 }
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 #MainMenu, footer, [data-testid="stStatusWidget"] {display: none !important;}
 [data-testid="stAppDeployButton"] {display: none !important;}
 header[data-testid="stHeader"] {background: transparent !important;}
-html, body, .stApp, .stMarkdown, p, span, div, button, input, textarea {
-  font-family: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif !important;}
-.material-icons, [class*='material-icons'] {font-family: 'Material Icons' !important;}
+html, body, .stApp, .stMarkdown, input, textarea {
+  font-family: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;}
+/* Streamlit 用图标字体的英文连字生成图标。不可对所有 span/div 强制正文字体。 */
+[data-testid="stIconMaterial"] {
+  font-family: "Material Symbols Rounded" !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  direction: ltr !important;
+  -webkit-font-feature-settings: "liga" !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-feature-settings: "liga" !important;
+}
 .stApp {background: var(--bg-primary) !important; color: var(--text-primary) !important;}
-.block-container {padding-top: 1.2rem !important; padding-bottom: 10rem !important; max-width: 1280px !important;}
+[data-testid="stMain"], [data-testid="stMain"] .block-container,
+[data-testid="stChatMessage"], [data-testid="stChatMessage"] [data-testid="stExpander"] {
+  overflow-anchor:none !important;}
+.block-container {padding-top: 1.6rem !important; padding-bottom: 9rem !important; max-width: 1240px !important;}
 [data-testid="stSidebar"] {background: var(--bg-sidebar) !important;
-  border-right: 1px solid rgba(148,163,184,.08) !important; min-width: 250px !important;}
-[data-testid="stSidebar"] .block-container {padding-top: 1.2rem !important;}
+  border-right: 1px solid var(--border-subtle) !important; min-width: 272px !important;}
+[data-testid="stSidebar"] .block-container {padding: 1.25rem 1rem 1rem !important;}
+[data-testid="stSidebarContent"] {display:flex !important;flex-direction:column !important;position:relative !important;}
+[data-testid="stSidebarHeader"] {position:absolute !important;top:18px !important;right:9px !important;
+  z-index:20 !important;width:auto !important;height:auto !important;padding:0 !important;}
+[data-testid="stSidebarUserContent"] {display:contents !important;}
+[data-testid="stSidebarUserContent"] > *,
+[data-testid="stSidebarUserContent"] > * > [data-testid="stVerticalBlock"] {display:contents !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_brand) {order:1 !important;}
+[data-testid="stSidebarNav"] {order:2 !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_footer) {order:3 !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label {border-radius: 10px; padding: 4px 12px;
   margin: 1px 0; transition: all .2s; font-weight: 500; font-size: .82rem; color: var(--text-secondary) !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {background: rgba(99,102,241,.08); color: #C7D2FE !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
   background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(139,92,246,.1));
   color: #818CF8 !important; border-left: 2px solid #818CF8;}
-.brand-block {padding: 4px 0 14px; border-bottom: 1px solid rgba(148,163,184,.06);}
+.brand-block {padding: 4px 42px 17px 3px; margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle);}
+.brand-name {font-size:1.05rem;font-weight:800;color:var(--text-primary);line-height:1.2;letter-spacing:-.02em;}
+.brand-slogan {font-size:.72rem;color:var(--text-secondary);margin-top:4px;}
 [data-testid="stExpander"] {border-radius: 12px !important;
-  border: 1px solid rgba(148,163,184,.08) !important; background: transparent !important;}
+  border: 1px solid var(--border-subtle) !important; background: var(--bg-card) !important;}
 .stButton > button {border-radius: 10px; border: 1px solid rgba(148,163,184,.12);
   font-weight: 500; font-size: .82rem; transition: all .2s;
-  background: rgba(148,163,184,.04); color: #CBD5E1;}
+  background: var(--bg-card); color: var(--text-primary);}
 .stButton > button:hover {border-color: rgba(129,140,248,.3); color: #A5B4FC;
-  background: rgba(99,102,241,.06); transform: translateY(-1px);}
+  background: var(--accent-light); transform: translateY(-1px);}
 .stButton > button[kind="primary"] {background: linear-gradient(135deg, #6366F1, #8B5CF6) !important;
   color: #fff !important; border: none; font-weight: 600; box-shadow: 0 4px 16px rgba(99,102,241,.25);}
 .stButton > button[kind="primary"]:hover {filter: brightness(1.1); transform: translateY(-1px);}
@@ -179,26 +233,37 @@ div[data-baseweb="radio"] label {color: var(--text-secondary) !important;}
   background: transparent; border: none; margin-left: 8%; padding: 2px;}
 .user-bubble {background: linear-gradient(135deg, #6366F1, #8B5CF6); color: #fff;
   padding: 10px 18px; border-radius: 20px 20px 6px 20px; font-size: .9rem; line-height: 1.6;
-  box-shadow: 0 4px 16px rgba(99,102,241,.2);}
+  box-shadow: 0 4px 16px rgba(99,102,241,.2);display:inline-block;width:fit-content;
+  max-width:min(78%,680px);white-space:pre-wrap;overflow-wrap:anywhere;text-align:left;}
+[data-testid="stChatMessage"]:has(.user-bubble) [data-testid="stMarkdownContainer"] {
+  display:flex !important;justify-content:flex-end !important;align-items:flex-start !important;width:100% !important;}
+[data-testid="stChatMessage"]:has(.user-bubble) [data-testid="stMarkdown"] {width:100% !important;}
 [data-testid="stBottom"], [data-testid="stBottom"] > div {background: transparent !important;
   border: none !important; box-shadow: none !important;}
 [data-testid="stBottom"] {position: fixed !important; bottom: 10px !important;
   left: 50% !important; transform: translateX(-50%); width: min(920px, 94vw) !important; z-index: 200;}
+.st-key-chat_composer {position:fixed !important;bottom:10px !important;left:50% !important;
+  transform:translateX(-50%) !important;width:min(920px,94vw) !important;z-index:200 !important;}
+body:has([data-testid="stSidebar"][aria-expanded="true"]) .st-key-chat_composer {
+  left:calc(50% + 150px) !important;width:min(920px,calc(100vw - 340px)) !important;}
+.st-key-chat_composer [data-testid="stChatInput"] {width:100% !important;}
 [data-testid="stChatInput"] {border-radius: 24px !important;
   border: 1px solid rgba(148,163,184,.12) !important; background: var(--bg-secondary) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,.4) !important;}
+  box-shadow: 0 12px 36px rgba(30,41,75,.16) !important;}
 [data-testid="stChatInput"] textarea {border-radius: 24px !important;
   background: transparent !important; color: var(--text-primary) !important;}
-.hero {background: linear-gradient(135deg, #1E1B4B, #312E81 40%, #4338CA);
-  border-radius: 20px; padding: 28px 32px; color: #E0E7FF; margin-bottom: 14px;
-  border: 1px solid rgba(129,140,248,.15);}
-.hero h1 {margin: 0 0 4px; font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em;}
-.hero p {margin: 0 0 12px; opacity: .7; font-size: .82rem;}
+.hero {position:relative;overflow:hidden;background:linear-gradient(125deg,#17163A 0%,#302B78 48%,#5046E5 100%);
+  border-radius: 24px; padding: 32px 36px; color: #EEF2FF; margin-bottom: 18px;
+  border: 1px solid rgba(129,140,248,.22);box-shadow:0 20px 50px rgba(49,46,129,.2);}
+.hero:after {content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-80px;top:-150px;
+  background:rgba(255,255,255,.1);filter:blur(2px);}
+.hero h1 {margin: 0 0 7px; font-size: 1.55rem; font-weight: 800; letter-spacing: -.025em;}
+.hero p {margin: 0 0 16px; opacity: .72; font-size: .84rem;}
 .hero .pill {display: inline-block; background: rgba(99,102,241,.15);
   border: 1px solid rgba(129,140,248,.2); border-radius: 999px;
   padding: 3px 12px; font-size: .7rem; margin-right: 6px; color: #A5B4FC;}
-[data-testid="stMetric"] {background: rgba(148,163,184,.03);
-  border: 1px solid rgba(148,163,184,.08); border-radius: 16px; padding: 16px 18px;}
+[data-testid="stMetric"] {background: var(--bg-card);
+  border: 1px solid var(--border-subtle); border-radius: 16px; padding: 16px 18px;box-shadow:var(--shadow-card);}
 [data-testid="stMetric"]:hover {border-color: rgba(129,140,248,.15);}
 [data-testid="stMetric"] label {color: #94A3B8 !important; font-size: .75rem !important;}
 [data-testid="stMetric"] [data-testid="stMetricValue"] {color: var(--text-primary) !important;}
@@ -229,12 +294,11 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
 @keyframes fadeInUp {from {opacity: 0; transform: translateY(8px);} to {opacity: 1; transform: translateY(0);}}
 [data-testid="stChatMessage"] {animation: fadeInUp .3s ease-out;}
 [data-testid="stMetric"] {animation: fadeInUp .4s ease-out;}
-.status-block {position: absolute !important; left: 16px !important; right: 16px !important;
-  bottom: 12px !important;}
-[data-testid="stSidebarUserContent"] div:not(.status-block) {position: static !important;}
-[data-testid="stSidebarUserContent"] {display: contents !important;}
-[data-testid="stSidebarHeader"] {order: -2 !important;}
-[data-testid="stSidebarUserContent"] > * {order: -1 !important;}
+.sidebar-status {margin-top:12px;padding:11px 12px;border:1px solid var(--border-subtle);
+  border-radius:12px;background:var(--bg-card);font-size:.75rem;color:var(--text-secondary);}
+.sidebar-status-row {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.sidebar-status strong {color:var(--text-primary);font-size:.76rem;}
+.sidebar-status-note {margin-top:5px;color:var(--text-muted);font-size:.67rem;line-height:1.4;}
 
 /* ==================== 精致化交互 ==================== */
 /* 按钮过渡 */
@@ -250,12 +314,79 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 [data-testid="stSidebar"] .stButton > button:hover {
   background: var(--accent-light) !important; color: var(--accent-text) !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] {position:static !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button {
+  position:absolute !important;inset:0 !important;width:100% !important;height:100% !important;
+  min-height:100% !important;border-radius:9px !important;padding:7px 40px 22px 10px !important;
+  font-size:.72rem !important;font-weight:500 !important;line-height:1.35 !important;
+  justify-content:flex-start !important;align-items:flex-start !important;z-index:1 !important;
+  background:transparent !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button:hover {
+  background:transparent !important;transform:none !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button > div,
+[data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button > div > span,
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stMarkdownContainer"] {
+  width:100% !important;text-align:left !important;justify-content:flex-start !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stMarkdownContainer"] p {
+  width:100% !important;text-align:left !important;}
+[data-testid="stSidebar"] [class*="st-key-del_"] .stButton > button {
+  width:28px !important;height:28px !important;min-height:28px !important;text-align:center !important;
+  padding:0 !important;border-radius:8px !important;color:var(--text-muted) !important;
+  position:relative !important;z-index:3 !important;}
+[data-testid="stSidebar"] [class*="st-key-del_"] {
+  position:absolute !important;top:6px !important;right:6px !important;width:28px !important;
+  z-index:4 !important;}
+[data-testid="stSidebar"] [class*="st-key-del_"] [data-testid="stMarkdownContainer"] {display:none !important;}
+[data-testid="stSidebar"] [class*="st-key-del_"] .stButton > button > div,
+[data-testid="stSidebar"] [class*="st-key-del_"] .stButton > button > div > span {
+  width:100% !important;display:flex !important;align-items:center !important;justify-content:center !important;}
+[data-testid="stSidebar"] [class*="st-key-del_"] .stButton > button [data-testid="stIconMaterial"] {
+  font-size:17px !important;}
+[data-testid="stSidebar"] [class*="st-key-del_"] .stButton > button:hover {
+  color:#EF4444 !important;background:rgba(239,68,68,.08) !important;}
+[data-testid="stSidebar"] [class*="st-key-session_item_"] {
+  background:rgba(148,163,184,.055);border-radius:9px;padding:0 !important;margin:0 !important;
+  min-height:50px !important;gap:0 !important;position:relative !important;cursor:pointer;
+  transition:background .16s ease,transform .16s ease;}
+[data-testid="stSidebar"] [class*="st-key-session_item_"] > div,
+[data-testid="stSidebar"] [class*="st-key-session_item_"] [data-testid="stHorizontalBlock"] {
+  gap:0 !important;min-height:0 !important;}
+[data-testid="stSidebar"] [class*="st-key-session_item_"] > [data-testid="stElementContainer"] {
+  position:absolute !important;left:10px !important;bottom:6px !important;width:auto !important;
+  z-index:2 !important;pointer-events:none !important;}
+[data-testid="stSidebar"] [class*="st-key-session_item_"] [data-testid="stCaptionContainer"] {
+  color:var(--text-muted) !important;font-size:.62rem !important;line-height:1.2 !important;
+  position:static !important;padding:0 !important;margin:0 !important;letter-spacing:.01em;}
+[data-testid="stSidebar"] [class*="st-key-session_item_"] [data-testid="stCaptionContainer"] p {
+  margin:0 !important;}
+[data-testid="stSidebar"] [class*="st-key-session_item_"]:hover {
+  background:var(--accent-light);transform:translateX(1px);}
+
+/* 历史会话：无外框，标题在前、折叠箭头在后 */
+.st-key-sidebar_footer [data-testid="stExpander"] {
+  border:none !important;background:transparent !important;border-radius:0 !important;box-shadow:none !important;}
+.st-key-sidebar_footer [data-testid="stExpander"] > details {
+  border:none !important;background:transparent !important;border-radius:0 !important;box-shadow:none !important;}
+.st-key-sidebar_footer [data-testid="stExpander"] > details > summary {
+  padding:8px 2px !important;border:none !important;border-radius:0 !important;box-shadow:none !important;}
+.st-key-sidebar_footer [data-testid="stExpander"] > details > summary:focus,
+.st-key-sidebar_footer [data-testid="stExpander"] > details > summary:focus-visible {
+  outline:none !important;box-shadow:none !important;}
+.st-key-sidebar_footer [data-testid="stExpanderDetails"] > [data-testid="stVerticalBlock"] {
+  gap:4px !important;}
+.st-key-sidebar_footer [data-testid="stExpander"] > details > summary > span {
+  display:flex !important;align-items:center !important;width:100% !important;}
+.st-key-sidebar_footer [data-testid="stExpander"] > details > summary > span > div {
+  order:1 !important;}
+.st-key-sidebar_footer [data-testid="stExpander"] > details > summary > span > span:has([data-testid="stIconMaterial"]) {
+  order:2 !important;margin-left:auto !important;}
+.st-key-sidebar_footer [data-testid="stExpanderDetails"] {padding:2px 0 6px !important;}
 
 /* 文件上传区域 */
 [data-testid="stFileUploaderDropzone"] {
   border: 2px dashed var(--border-subtle) !important;
-  border-radius: 16px !important; padding: 2rem 1rem !important;
-  background: var(--bg-card) !important; transition: all .2s !important;}
+  border-radius: 18px !important; padding: 2.5rem 1rem !important;
+  background: var(--bg-card) !important; transition: all .2s !important;box-shadow:var(--shadow-card);}
 [data-testid="stFileUploaderDropzone"]:hover {
   border-color: var(--accent) !important; background: var(--accent-light) !important;}
 [data-testid="stFileUploaderDropzone"] button {
@@ -285,6 +416,8 @@ hr {margin: 1rem 0 !important;}
 [data-testid="stChatMessage"] {border: 1px solid var(--border-subtle) !important;
   transition: border-color .2s !important;}
 [data-testid="stChatMessage"]:hover {border-color: var(--border-hover) !important;}
+[data-testid="stChatMessage"]:has(.user-bubble) {
+  background:transparent !important;border:none !important;box-shadow:none !important;}
 
 /* Tab 按钮 */
 .stTabs [data-baseweb="tab-list"] {gap: 0 !important;}
@@ -321,13 +454,15 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
 [data-testid="stMetric"] label {color: var(--text-secondary) !important;
   font-weight: 500 !important; opacity: 1 !important;}
 
-/* ==================== Material Icons 修复 ==================== */
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
-.material-icons, .material-icons-round,
-[data-testid] > svg, button svg, [role="button"] svg {
-  font-family: 'Material Icons Round', 'Material Icons', sans-serif !important;}
 [data-testid="stFileUploaderDropzone"] button {
   font-family: 'Inter', sans-serif !important;}
+@media (max-width: 760px) {
+  .hero {padding:24px 22px;border-radius:19px;}
+  .hero h1 {font-size:1.25rem;}
+  .block-container {padding-top:1rem !important;}
+  body:has([data-testid="stSidebar"][aria-expanded="true"]) .st-key-chat_composer,
+  .st-key-chat_composer {left:50% !important;width:94vw !important;}
+}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -348,12 +483,12 @@ if _theme == "dark":
                 "color:#E2E8F0!important;border-color:rgba(148,163,184,.1)!important;}"
                 "</style>", unsafe_allow_html=True)
 elif _theme == "light":
-    st.markdown("<style>:root{--bg-primary:#FFFFFF!important;--bg-secondary:#F5F7FB!important;"
+    st.markdown("<style>:root{--bg-primary:#F7F8FC!important;--bg-secondary:#FFFFFF!important;"
                 "--bg-sidebar:linear-gradient(180deg,#F8FAFF,#F2F5FA)!important;"
-                "--text-primary:#1E293B!important;--text-secondary:#64748B!important;"
+                "--text-primary:#182033!important;--text-secondary:#606B85!important;"
                 "--text-muted:#94A3B8!important;--border-subtle:rgba(148,163,184,.1)!important;"
-                "--accent:#6366F1!important;--accent-text:#818CF8!important;}"
-                ".stApp{background:#FFFFFF!important;color:#1E293B!important;}"
+                "--accent:#5145E5!important;--accent-text:#5145E5!important;}"
+                ".stApp{background:#F7F8FC!important;color:#182033!important;}"
                 "[data-testid='stSidebar']{background:linear-gradient(180deg,#F8FAFF,#F2F5FA)!important;}"
                 "[data-testid='stChatInput']{background:#FFFFFF!important;}"
                 "[data-testid='stChatInput'] textarea{color:#1E293B!important;}"
@@ -386,6 +521,42 @@ def _sync_setting(canonical_key: str, widget_key: str):
 def domain_label(domain: str) -> str:
     label = DOMAIN_LABELS.get(domain, "")
     return f"{domain} · {label}" if label else domain
+
+
+def _safe_upload_parts(filename: str) -> tuple[str, ...]:
+    """把浏览器返回的相对路径限制在知识库目录内，阻断路径穿越。"""
+    raw_parts = PurePosixPath(filename.replace("\\", "/")).parts
+    parts = tuple(part for part in raw_parts if part not in ("", ".", "/"))
+    if not parts or any(part == ".." or "\x00" in part for part in parts):
+        raise ValueError(f"不安全的上传路径：{filename}")
+    return parts
+
+
+def _clean_directory_name(name: str) -> str:
+    """生成稳定、可读且不会越出目标目录的顶层文件夹名。"""
+    cleaned = re.sub(r"[\\/:*?\"<>|\x00-\x1f]+", "-", name).strip(" .-")
+    return cleaned or "uploaded-directory"
+
+
+def _directory_upload_roots(uploads) -> list[str]:
+    roots: list[str] = []
+    for upload in uploads or []:
+        parts = _safe_upload_parts(upload.name)
+        root = _clean_directory_name(parts[0]) if len(parts) > 1 else "uploaded-directory"
+        if root not in roots:
+            roots.append(root)
+    return roots
+
+
+def _available_directory(parent: Path, preferred_name: str) -> Path:
+    """已有同名目录时创建副本目录，避免静默覆盖用户知识文件。"""
+    candidate = parent / preferred_name
+    if not candidate.exists():
+        return candidate
+    index = 2
+    while (parent / f"{preferred_name}-{index}").exists():
+        index += 1
+    return parent / f"{preferred_name}-{index}"
 
 
 @st.cache_data(ttl=5)
@@ -524,12 +695,6 @@ def page_chat():
         unsafe_allow_html=True,
     )
 
-    chip_cols = st.columns(len(SUGGESTED_QUESTIONS))
-    for col, suggestion in zip(chip_cols, SUGGESTED_QUESTIONS):
-        with col:
-            if st.button(suggestion, width="stretch", key=f"chip_{suggestion}"):
-                st.session_state["ask_now"] = suggestion
-
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -597,19 +762,18 @@ def page_chat():
             except Exception as exc:
                 st.error(f"发生意外错误：{type(exc).__name__}: {exc}")
 
-    pending = st.session_state.pop("ask_now", None)
-    if pending:
-        _process_question(pending)
-
-    question = st.chat_input("输入你的问题……")
+    # 嵌套在普通容器中，避免 Streamlit 的底部聊天容器在 Expander 展开时强制滚到底部。
+    # CSS 仍将该容器固定在页面底部，交互与原聊天输入框一致。
+    with st.container(key="chat_composer"):
+        question = st.chat_input("输入你的问题……", key="chat_question")
     if question:
         _process_question(question)
 
 
 # ---------------------------------------------------------------- 页面 2：上传文档
 def page_upload():
-    st.markdown('<div class="section-title">📤 把文档放进知识库</div>', unsafe_allow_html=True)
-    st.caption(f"支持 {', '.join('.' + t for t in SUPPORTED_UPLOAD_TYPES)} · 目录结构即分类")
+    st.markdown('<div class="section-title">导入知识</div>', unsafe_allow_html=True)
+    st.caption(f"支持 {', '.join('.' + t for t in SUPPORTED_UPLOAD_TYPES)} · 文件会复制到领域目录后再入库")
 
     tab_files, tab_dir = st.tabs(["📄 上传文件", "📁 导入目录"])
 
@@ -629,31 +793,51 @@ def page_upload():
             _do_upload(uploads, upload_domain, upload_category)
 
     with tab_dir:
-        st.info("💡 输入你电脑上存放知识文件的文件夹路径，系统会扫描其中的文档并导入。"
-                "子目录结构会自动保留。", icon="💡")
-        dir_path = st.text_input(
-            "📁 目录路径",
-            placeholder="例如：~/Documents/我的笔记",
-            help="支持 ~ 展开为用户目录；也可粘贴完整路径如 /Users/xxx/Documents/notes")
-        col_d1, col_d2 = st.columns(2)
-        with col_d1:
-            dir_domain = st.selectbox("导入到领域", DOMAINS,
-                                      format_func=domain_label, index=DOMAINS.index("learning"))
-        with col_d2:
-            dir_category = st.text_input("子分类（留空用目录名）", value="",
-                                         help="留空时自动使用源目录名作为子分类")
-        # 常用路径快捷按钮
-        st.caption("**快捷路径**（点击填入）")
-        quick_paths = ["~/Documents", "~/Desktop", "~/Downloads"]
-        qp_cols = st.columns(len(quick_paths))
-        for i, qp in enumerate(quick_paths):
-            if qp_cols[i].button(qp.replace("~", "🏠 "), key=f"qp_{i}",
-                                 use_container_width=True):
-                st.session_state["dir_path_input"] = qp
-                st.rerun()
-        if st.button("🚀 开始导入", disabled=not dir_path.strip(),
-                     use_container_width=True, type="primary"):
-            _do_dir_import(dir_path.strip(), dir_domain, dir_category)
+        st.markdown("**整个目录导入**")
+        st.caption("拖入一个文件夹，或点击下方区域选择目录。系统会保留目录名和全部子目录层级。")
+        dir_domain = st.selectbox(
+            "导入到领域",
+            DOMAINS,
+            format_func=domain_label,
+            index=DOMAINS.index("learning"),
+            key="directory_domain",
+        )
+        directory_uploads = st.file_uploader(
+            "拖拽目录到此处，或点击选择目录",
+            accept_multiple_files="directory",
+            key="directory_uploader",
+            help="目录会完整复制；其中受支持的文档会自动入库，隐藏文件会忽略。",
+        )
+        if directory_uploads:
+            try:
+                roots = _directory_upload_roots(directory_uploads)
+                total_kb = sum(upload.size for upload in directory_uploads) / 1024
+                root_text = "、".join(roots)
+                supported_count = sum(
+                    1 for upload in directory_uploads
+                    if PurePosixPath(upload.name.replace("\\", "/")).suffix.lower()
+                    in SUPPORTED_EXTENSIONS
+                )
+                st.success(
+                    f"已选择 {len(directory_uploads)} 个文件 · {total_kb:.1f} KB · "
+                    f"其中 {supported_count} 个文档可入库"
+                )
+                st.caption(f"将复制到：`knowledge/{dir_domain}/` 下的子目录 **{root_text}**")
+            except ValueError as exc:
+                roots = []
+                st.error(str(exc))
+        else:
+            roots = []
+            st.info("选择后可在这里确认文件数量和目标目录。", icon="📁")
+
+        if st.button(
+            "复制目录并开始入库",
+            disabled=not directory_uploads or not roots,
+            use_container_width=True,
+            type="primary",
+            key="import_directory",
+        ):
+            _do_directory_upload(directory_uploads, dir_domain)
 
 
 def _do_upload(uploads, upload_domain, upload_category):
@@ -670,31 +854,50 @@ def _do_upload(uploads, upload_domain, upload_category):
     _show_ingest_result(summary)
 
 
-def _do_dir_import(dir_path, dir_domain, dir_category):
-    from pathlib import Path as P
-    src = P(dir_path).expanduser().resolve()
-    if not src.is_dir():
-        st.error(f"目录不存在：{src}")
+def _do_directory_upload(uploads, dir_domain):
+    """把浏览器选中的目录完整复制为领域目录的子目录，然后增量入库。"""
+    domain_dir = cfg.knowledge_dir / dir_domain
+    domain_dir.mkdir(parents=True, exist_ok=True)
+
+    grouped: dict[str, list[tuple[tuple[str, ...], object]]] = {}
+    try:
+        for upload in uploads:
+            parts = _safe_upload_parts(upload.name)
+            if any(part.startswith(".") for part in parts):
+                continue
+            root = _clean_directory_name(parts[0]) if len(parts) > 1 else "uploaded-directory"
+            relative_parts = parts[1:] if len(parts) > 1 else parts
+            grouped.setdefault(root, []).append((relative_parts, upload))
+    except ValueError as exc:
+        st.error(str(exc))
         return
-    exts = {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf"}
-    files = [f for f in src.rglob("*") if f.is_file() and f.suffix.lower() in exts
-             and not f.name.startswith(".")]
-    if not files:
-        st.warning(f"目录中没有支持的文件（{', '.join(exts)}）")
+
+    saved: list[Path] = []
+    copied_roots: list[str] = []
+    for root_name, entries in grouped.items():
+        target_root = _available_directory(domain_dir, root_name)
+        copied_roots.append(target_root.name)
+        for relative_parts, upload in entries:
+            destination = target_root.joinpath(*relative_parts)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(upload.getvalue())
+            saved.append(destination)
+
+    if not saved:
+        st.warning("所选目录中没有可导入的文档。")
         return
-    st.info(f"找到 {len(files)} 个知识文件，开始导入到 {dir_domain}……")
-    subdir = (dir_category.strip().lower() or src.name.lower().replace(" ", "_"))
-    target_base = cfg.knowledge_dir / dir_domain / subdir
-    target_base.mkdir(parents=True, exist_ok=True)
-    saved = []
-    for f in files:
-        rel = f.relative_to(src)
-        dest = target_base / rel
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(f.read_bytes())
-        saved.append(dest)
-    with st.spinner(f"导入 {len(saved)} 个文件中……"):
-        summary = ingest_files(paths=saved)
+
+    ingest_paths = [path for path in saved if path.suffix.lower() in SUPPORTED_EXTENSIONS]
+    if not ingest_paths:
+        st.warning(f"目录已完整复制，但其中没有支持入库的文档（{', '.join(sorted(SUPPORTED_EXTENSIONS))}）。")
+        return
+
+    st.info(
+        f"已复制 {len(saved)} 个文件到 {dir_domain}/{'、'.join(copied_roots)}，"
+        f"正在为其中 {len(ingest_paths)} 个文档入库……"
+    )
+    with st.spinner("解析 → 清洗 → 切片 → 向量化 → 入库……"):
+        summary = ingest_files(paths=ingest_paths)
     _show_ingest_result(summary)
 
 
@@ -741,7 +944,16 @@ def page_manage():
 
     # V3.6 跨文档知识总结
     with st.expander("📝 知识总结（跨文档综合）"):
-        sum_topic = st.text_input("总结主题", placeholder="例如：RAG、智能客服、卡片笔记法", key="sum_topic")
+        st.caption(
+            "输入一个想了解的主题，系统会跨多个知识文件检索相关片段，"
+            "生成“核心要点 + 对应出处”的综合摘要；不会新建或修改知识文件。"
+        )
+        sum_topic = st.text_input(
+            "总结主题",
+            placeholder="例如：RAG、智能客服、卡片笔记法",
+            key="sum_topic",
+            help="它相当于指定一份跨文档摘要的中心问题，而不是修改文件的主题标签。",
+        )
         if st.button("📝 生成总结", disabled=not sum_topic.strip(), type="primary"):
             with st.spinner("综合多个文档生成知识总结……"):
                 result = answer_question(
@@ -790,17 +1002,65 @@ def page_manage():
         st.info("没有符合筛选条件的文件。")
         return
 
-    rows = [{"文件": d["source"], "路径": d["path"],
+    # 列表头部多选工具栏。多选只改变当前选择，不直接触发归档/删除等操作。
+    selection_key = "manage_selected_documents"
+    visible_ids = {d["document_id"] for d in filtered}
+    selected_ids = set(st.session_state.get(selection_key, [])) & visible_ids
+
+    def _select_visible_documents(ids=tuple(sorted(visible_ids))):
+        st.session_state[selection_key] = list(ids)
+
+    def _clear_visible_documents():
+        st.session_state[selection_key] = []
+
+    list_head, select_col, clear_col = st.columns([5, 1.35, 1.2], vertical_alignment="center")
+    list_head.markdown(f"**文件列表**　<span style='color:var(--text-muted);font-size:.78rem'>"
+                       f"{len(filtered)} 个结果 · 已选 {len(selected_ids)} 个</span>",
+                       unsafe_allow_html=True)
+    select_col.button(
+        "全选当前结果",
+        width="stretch",
+        key="manage_select_all",
+        disabled=not filtered or len(selected_ids) == len(visible_ids),
+        on_click=_select_visible_documents,
+    )
+    clear_col.button(
+        "清空选择",
+        width="stretch",
+        key="manage_clear_selection",
+        disabled=not selected_ids,
+        on_click=_clear_visible_documents,
+    )
+
+    rows = [{"_id": d["document_id"], "选择": d["document_id"] in selected_ids,
+             "文件": d["source"], "路径": d["path"],
              "Domain": d["domain"], "Category": d["category"],
              "Topic": ", ".join(d["topic"]) or "-", "Version": d["version"],
              "Status": d["status"], "卡片数": d["chunks"]} for d in filtered]
-    selection = st.dataframe(rows, width="stretch", hide_index=True,
-                             on_select="rerun", selection_mode="single-row")
-    selected_rows = list(selection.selection.rows) if selection.selection else []
-    if not selected_rows:
+    edited = st.data_editor(
+        rows,
+        width="stretch",
+        hide_index=True,
+        key="manage_document_table",
+        column_config={
+            "_id": None,
+            "选择": st.column_config.CheckboxColumn("选择", help="勾选一个或多个知识文件"),
+        },
+        disabled=["文件", "路径", "Domain", "Category", "Topic", "Version", "Status", "卡片数"],
+    )
+    records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
+    selected_ids = {row["_id"] for row in records if row.get("选择")}
+    st.session_state[selection_key] = sorted(selected_ids)
+
+    if not selected_ids:
         return
 
-    d = filtered[selected_rows[0]]
+    if len(selected_ids) > 1:
+        st.info(f"已选择 {len(selected_ids)} 个文件。为避免误操作，档案详情和单文件操作仅在只选中一项时显示。")
+        return
+
+    selected_id = next(iter(selected_ids))
+    d = next(item for item in filtered if item["document_id"] == selected_id)
     st.divider()
 
     head_l, head_r = st.columns([2.2, 1])
@@ -1004,24 +1264,24 @@ def page_params_overview():
 # 品牌区（Logo + Slogan）通过 CSS order 固定在导航上方；
 # 系统状态通过 order + margin-top:auto 固定在侧边栏最底部。
 with st.sidebar:
-    st.markdown(
-        """
-        <div class="brand-block">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:42px;height:42px;border-radius:12px;flex:none;
-                        background:linear-gradient(135deg,#2563EB,#4F46E5);
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:1.35rem;box-shadow:0 4px 14px rgba(37,99,235,.35);">🧠</div>
-            <div>
-              <div style="font-size:1.12rem;font-weight:800;color:#172554;line-height:1.2;">Sky Personal RAG</div>
-              <div style="font-size:.76rem;color:#64748B;margin-top:3px;">个人知识库 · 检索增强问答</div>
+    with st.container(key="sidebar_brand"):
+        st.markdown(
+            """
+            <div class="brand-block">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:42px;height:42px;border-radius:12px;flex:none;
+                            background:linear-gradient(135deg,#2563EB,#4F46E5);
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:1.35rem;box-shadow:0 4px 14px rgba(37,99,235,.35);">🧠</div>
+                <div>
+                  <div class="brand-name">Sky Personal RAG</div>
+                  <div class="brand-slogan">个人知识库 · 检索增强问答</div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div style="font-size:.78rem;color:#94A3B8;margin-top:10px;"></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
 
 # ---------------------------------------------------------------- 页面 8：学习笔记
 def page_learning():
@@ -1054,43 +1314,59 @@ pg = st.navigation({
 pg.run()
 
 with st.sidebar:
-    with st.expander("🕘 历史会话", expanded=False):
-        sessions = list_sessions(8)
-        if sessions:
-            for idx, s in enumerate(sessions):
-                sc1, sc2 = st.columns([10, 1])
-                with sc1:
-                    def _load_cb(sid=s["session_id"]):
-                        st.session_state["__load_session"] = sid
-                    if st.button(s["title"][:28], key=f"hs_{s['session_id']}",
-                                 on_click=_load_cb, use_container_width=True):
-                        pass
-                with sc2:
-                    from src.sessions import SESSIONS_DIR
-                    def _del_cb(sid=s["session_id"]):
-                        f = SESSIONS_DIR / sid[:10] / f"{sid}.json"
-                        if f.exists():
-                            f.unlink()
-                    st.button("×", key=f"del_{s['session_id']}", on_click=_del_cb,
-                              help="删除", use_container_width=True)
+    with st.container(key="sidebar_footer"):
+        sessions = list_sessions(10)
+        with st.expander(f"🕘 历史会话 · {len(sessions)}", expanded=False):
+            if sessions:
+                for s in sessions:
+                    with st.container(key=f"session_item_{s['session_id']}"):
+                        sc1, sc2 = st.columns([8.5, 1], vertical_alignment="center")
+                        with sc1:
+                            def _load_cb(sid=s["session_id"]):
+                                st.session_state["__load_session"] = sid
+                            title = s["title"].strip() or "未命名会话"
+                            if st.button(title[:24], key=f"hs_{s['session_id']}",
+                                         on_click=_load_cb, use_container_width=True):
+                                pass
+                        with sc2:
+                            def _request_del_cb(sid=s["session_id"], session_title=title):
+                                st.session_state["delete_session_request"] = {
+                                    "session_id": sid,
+                                    "title": session_title,
+                                }
+                            st.button(
+                                "删除",
+                                key=f"del_{s['session_id']}",
+                                on_click=_request_del_cb,
+                                help=f"删除会话：{title}",
+                                icon=":material/delete:",
+                                type="tertiary",
+                            )
+                        updated = s["updated_at"]
+                        when = updated[5:16] if len(updated) >= 16 else updated
+                        st.caption(f"{when}　·　{s['count']} 条消息")
+            else:
                 st.markdown(
-                    f'<div style="font-size:.68rem;color:var(--text-muted);margin:-8px 0 4px 12px;">'
-                    f'{s["updated_at"][5:16]} · {s["count"]} 条</div>',
-                    unsafe_allow_html=True)
-        else:
-            st.markdown(
-                '<div style="font-size:.72rem;color:var(--text-muted);padding:8px 0;">'
-                '暂无历史会话<br/>提问后自动保存</div>', unsafe_allow_html=True)
+                    '<div style="text-align:center;font-size:.72rem;color:var(--text-muted);padding:18px 6px;line-height:1.7;">'
+                    '还没有历史会话<br/>完成第一次问答后会自动保存在这里</div>', unsafe_allow_html=True)
 
-    ok_all = all(ok for ok, _ in system_status().values())
-    status_emoji = "🟢" if ok_all else "🟡"
-    status_text = "正常" if ok_all else "有待处理项"
-    st.markdown(
-        f"""
-        <div class="status-block">
-          <div style="border-top:1px solid #E4E9F2;padding:10px 2px 2px;
-                      font-size:.8rem;color:#64748B;">{status_emoji} 系统状态：{status_text}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        ok_all = all(ok for ok, _ in system_status().values())
+        status_emoji = "🟢" if ok_all else "🟡"
+        status_text = "正常" if ok_all else "有待处理项"
+        status_detail = " · ".join(
+            f"{name}{'✓' if ok else '!'}" for name, (ok, _) in system_status().items()
+        )
+        st.markdown(
+            f"""
+            <div class="sidebar-status">
+              <div class="sidebar-status-row">
+                <strong>{status_emoji} 系统状态</strong><span>{status_text}</span>
+              </div>
+              <div class="sidebar-status-note">{status_detail}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+if st.session_state.get("delete_session_request"):
+    confirm_session_delete()
