@@ -303,6 +303,31 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
 
 /* Success/Error 消息 */
 [data-testid="stAlert"] {font-size: .82rem !important;}
+
+/* ==================== 标题与标签颜色修复 ==================== */
+.section-title {color: var(--text-primary) !important; opacity: 1 !important;}
+.stMarkdown p strong, .stMarkdown p b {color: var(--text-primary) !important;}
+.stRadio label p, .stSelectbox label p, .stTextInput label p,
+.stToggle label p, .stSlider label p {
+  color: var(--text-primary) !important; font-weight: 500 !important;}
+.stRadio label p span, .stSelectbox > label > span {color: var(--text-primary) !important;}
+[data-testid="stExpander"] summary div div {
+  color: var(--text-primary) !important; font-weight: 600 !important;}
+[data-testid="stExpander"] summary svg {fill: var(--text-secondary) !important;}
+.stTabs [data-baseweb="tab"] {color: var(--text-primary) !important;}
+.caption, .stMarkdown p:has(.stCaption) {color: var(--text-secondary) !important;}
+[data-testid="stCaptionContainer"] {color: var(--text-secondary) !important;}
+.stAlert {color: var(--text-primary) !important;}
+[data-testid="stMetric"] label {color: var(--text-secondary) !important;
+  font-weight: 500 !important; opacity: 1 !important;}
+
+/* ==================== Material Icons 修复 ==================== */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
+.material-icons, .material-icons-round,
+[data-testid] > svg, button svg, [role="button"] svg {
+  font-family: 'Material Icons Round', 'Material Icons', sans-serif !important;}
+[data-testid="stFileUploaderDropzone"] button {
+  font-family: 'Inter', sans-serif !important;}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -604,17 +629,30 @@ def page_upload():
             _do_upload(uploads, upload_domain, upload_category)
 
     with tab_dir:
-        st.caption("输入本机目录路径，将整个目录的知识文件导入知识库（子目录结构自动保留）")
-        dir_path = st.text_input("目录路径", placeholder="/Users/你的用户名/Documents/我的笔记",
-                                 help="支持绝对路径")
+        st.info("💡 输入你电脑上存放知识文件的文件夹路径，系统会扫描其中的文档并导入。"
+                "子目录结构会自动保留。", icon="💡")
+        dir_path = st.text_input(
+            "📁 目录路径",
+            placeholder="例如：~/Documents/我的笔记",
+            help="支持 ~ 展开为用户目录；也可粘贴完整路径如 /Users/xxx/Documents/notes")
         col_d1, col_d2 = st.columns(2)
         with col_d1:
             dir_domain = st.selectbox("导入到领域", DOMAINS,
                                       format_func=domain_label, index=DOMAINS.index("learning"))
         with col_d2:
-            dir_category = st.text_input("子分类（留空则保留原目录名）", value="")
-        if st.button("📁 扫描并导入", disabled=not dir_path.strip(), use_container_width=True,
-                     type="primary"):
+            dir_category = st.text_input("子分类（留空用目录名）", value="",
+                                         help="留空时自动使用源目录名作为子分类")
+        # 常用路径快捷按钮
+        st.caption("**快捷路径**（点击填入）")
+        quick_paths = ["~/Documents", "~/Desktop", "~/Downloads"]
+        qp_cols = st.columns(len(quick_paths))
+        for i, qp in enumerate(quick_paths):
+            if qp_cols[i].button(qp.replace("~", "🏠 "), key=f"qp_{i}",
+                                 use_container_width=True):
+                st.session_state["dir_path_input"] = qp
+                st.rerun()
+        if st.button("🚀 开始导入", disabled=not dir_path.strip(),
+                     use_container_width=True, type="primary"):
             _do_dir_import(dir_path.strip(), dir_domain, dir_category)
 
 
@@ -1016,33 +1054,33 @@ pg = st.navigation({
 pg.run()
 
 with st.sidebar:
-    st.markdown('<div style="font-size:.78rem;font-weight:600;color:var(--text-secondary);margin:8px 0 6px;letter-spacing:.02em;">🕘 历史会话</div>', unsafe_allow_html=True)
-    sessions = list_sessions(8)
-    if sessions:
-        for idx, s in enumerate(sessions):
-            sc1, sc2 = st.columns([10, 1])
-            with sc1:
-                def _load_cb(sid=s["session_id"]):
-                    st.session_state["__load_session"] = sid
-                if st.button(s["title"][:28], key=f"hs_{s['session_id']}",
-                             on_click=_load_cb, use_container_width=True):
-                    pass
-            with sc2:
-                from src.sessions import SESSIONS_DIR
-                def _del_cb(sid=s["session_id"]):
-                    f = SESSIONS_DIR / sid[:10] / f"{sid}.json"
-                    if f.exists():
-                        f.unlink()
-                st.button("×", key=f"del_{s['session_id']}", on_click=_del_cb,
-                          help="删除", use_container_width=True)
+    with st.expander("🕘 历史会话", expanded=False):
+        sessions = list_sessions(8)
+        if sessions:
+            for idx, s in enumerate(sessions):
+                sc1, sc2 = st.columns([10, 1])
+                with sc1:
+                    def _load_cb(sid=s["session_id"]):
+                        st.session_state["__load_session"] = sid
+                    if st.button(s["title"][:28], key=f"hs_{s['session_id']}",
+                                 on_click=_load_cb, use_container_width=True):
+                        pass
+                with sc2:
+                    from src.sessions import SESSIONS_DIR
+                    def _del_cb(sid=s["session_id"]):
+                        f = SESSIONS_DIR / sid[:10] / f"{sid}.json"
+                        if f.exists():
+                            f.unlink()
+                    st.button("×", key=f"del_{s['session_id']}", on_click=_del_cb,
+                              help="删除", use_container_width=True)
+                st.markdown(
+                    f'<div style="font-size:.68rem;color:var(--text-muted);margin:-8px 0 4px 12px;">'
+                    f'{s["updated_at"][5:16]} · {s["count"]} 条</div>',
+                    unsafe_allow_html=True)
+        else:
             st.markdown(
-                f'<div style="font-size:.68rem;color:var(--text-muted);margin:-8px 0 4px 12px;">'
-                f'{s["updated_at"][5:16]} · {s["count"]} 条</div>',
-                unsafe_allow_html=True)
-    else:
-        st.markdown(
-            '<div style="font-size:.72rem;color:var(--text-muted);padding:8px 0;">'
-            '暂无历史会话<br/>提问后自动保存</div>', unsafe_allow_html=True)
+                '<div style="font-size:.72rem;color:var(--text-muted);padding:8px 0;">'
+                '暂无历史会话<br/>提问后自动保存</div>', unsafe_allow_html=True)
 
     ok_all = all(ok for ok, _ in system_status().values())
     status_emoji = "🟢" if ok_all else "🟡"
