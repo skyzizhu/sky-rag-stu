@@ -92,121 +92,102 @@ if "app_settings_loaded" not in st.session_state:
 # ---------------------------------------------------------------- 全局样式
 CSS = """
 <style>
-/* 隐藏 Streamlit 自带装饰（注意：stToolbar 里有展开侧边栏的按钮，不能藏） */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 #MainMenu, footer, [data-testid="stStatusWidget"] {display: none !important;}
 [data-testid="stAppDeployButton"] {display: none !important;}
-header[data-testid="stHeader"] {background: transparent;}
-.block-container {padding-top: 1.1rem; padding-bottom: 3.5rem; max-width: 1240px;}
-
-/* 全局字体 */
-html, body, [class*="css"], .stApp {font-family: -apple-system, "PingFang SC", "Hiragino Sans GB",
-  "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; color: #1E293B;}
-
-/* 侧边栏：菜单质感 */
-[data-testid="stSidebar"] {background: linear-gradient(180deg, #F8FAFF 0%, #F2F5FA 100%);
-  border-right: 1px solid #E8EDF5; min-width: 230px;}
-[data-testid="stSidebar"] .block-container {padding-top: 1.3rem;}
-[data-testid="stSidebar"] hr {margin: 6px 0;}
-
-/* 品牌区固定在导航上方（已验证有效）；系统状态用绝对定位钉在最底部 */
-[data-testid="stSidebarContent"] {display: flex !important; flex-direction: column !important;}
+header[data-testid="stHeader"] {background: transparent !important;}
+html, body, .stApp, .stMarkdown, p, span, div, button, input, textarea {
+  font-family: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif !important;}
+.stApp {background: #0B0F1A !important; color: #E2E8F0 !important;}
+.block-container {padding-top: 1.2rem !important; padding-bottom: 10rem !important; max-width: 1280px !important;}
+[data-testid="stSidebar"] {background: linear-gradient(180deg, #0F1523, #0B1018) !important;
+  border-right: 1px solid rgba(148,163,184,.08) !important; min-width: 250px !important;}
+[data-testid="stSidebar"] .block-container {padding-top: 1.2rem !important;}
+[data-testid="stSidebar"] [role="radiogroup"] label {border-radius: 10px; padding: 4px 12px;
+  margin: 1px 0; transition: all .2s; font-weight: 500; font-size: .82rem; color: #94A3B8 !important;}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover {background: rgba(99,102,241,.08); color: #C7D2FE !important;}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
+  background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(139,92,246,.1));
+  color: #818CF8 !important; border-left: 2px solid #818CF8;}
+.brand-block {padding: 4px 0 14px; border-bottom: 1px solid rgba(148,163,184,.06);}
+[data-testid="stExpander"] {border-radius: 12px !important;
+  border: 1px solid rgba(148,163,184,.08) !important; background: transparent !important;}
+.stButton > button {border-radius: 10px; border: 1px solid rgba(148,163,184,.12);
+  font-weight: 500; font-size: .82rem; transition: all .2s;
+  background: rgba(148,163,184,.04); color: #CBD5E1;}
+.stButton > button:hover {border-color: rgba(129,140,248,.3); color: #A5B4FC;
+  background: rgba(99,102,241,.06); transform: translateY(-1px);}
+.stButton > button[kind="primary"] {background: linear-gradient(135deg, #6366F1, #8B5CF6) !important;
+  color: #fff !important; border: none; font-weight: 600; box-shadow: 0 4px 16px rgba(99,102,241,.25);}
+.stButton > button[kind="primary"]:hover {filter: brightness(1.1); transform: translateY(-1px);}
+.stTextInput input, .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea {
+  border-radius: 10px !important; border-color: rgba(148,163,184,.1) !important;
+  background: rgba(148,163,184,.03) !important; color: #E2E8F0 !important; font-size: .85rem !important;}
+.stTextInput input:focus, .stTextArea textarea:focus {
+  border-color: #818CF8 !important; box-shadow: 0 0 0 3px rgba(99,102,241,.1) !important;}
+div[data-baseweb="radio"] label {color: #94A3B8 !important;}
+[data-testid="stChatMessage"] {border-radius: 16px; border: 1px solid rgba(148,163,184,.06);
+  background: rgba(148,163,184,.02); padding: 8px 14px; margin-bottom: 6px;}
+[data-testid="stChatMessage"]:has(.user-bubble) {flex-direction: row-reverse;
+  background: transparent; border: none; margin-left: 8%; padding: 2px;}
+.user-bubble {background: linear-gradient(135deg, #6366F1, #8B5CF6); color: #fff;
+  padding: 10px 18px; border-radius: 20px 20px 6px 20px; font-size: .9rem; line-height: 1.6;
+  box-shadow: 0 4px 16px rgba(99,102,241,.2);}
+[data-testid="stBottom"], [data-testid="stBottom"] > div {background: transparent !important;
+  border: none !important; box-shadow: none !important;}
+[data-testid="stBottom"] {position: fixed !important; bottom: 10px !important;
+  left: 50% !important; transform: translateX(-50%); width: min(920px, 94vw) !important; z-index: 200;}
+[data-testid="stChatInput"] {border-radius: 24px !important;
+  border: 1px solid rgba(148,163,184,.12) !important; background: #111827 !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4) !important;}
+[data-testid="stChatInput"] textarea {border-radius: 24px !important;
+  background: transparent !important; color: #E2E8F0 !important;}
+.hero {background: linear-gradient(135deg, #1E1B4B, #312E81 40%, #4338CA);
+  border-radius: 20px; padding: 28px 32px; color: #E0E7FF; margin-bottom: 14px;
+  border: 1px solid rgba(129,140,248,.15);}
+.hero h1 {margin: 0 0 4px; font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em;}
+.hero p {margin: 0 0 12px; opacity: .7; font-size: .82rem;}
+.hero .pill {display: inline-block; background: rgba(99,102,241,.15);
+  border: 1px solid rgba(129,140,248,.2); border-radius: 999px;
+  padding: 3px 12px; font-size: .7rem; margin-right: 6px; color: #A5B4FC;}
+[data-testid="stMetric"] {background: rgba(148,163,184,.03);
+  border: 1px solid rgba(148,163,184,.08); border-radius: 16px; padding: 16px 18px;}
+[data-testid="stMetric"]:hover {border-color: rgba(129,140,248,.15);}
+[data-testid="stMetric"] label {color: #94A3B8 !important; font-size: .75rem !important;}
+[data-testid="stMetric"] [data-testid="stMetricValue"] {color: #E2E8F0 !important;}
+[data-testid="stDataFrame"] {border-radius: 14px !important; overflow: hidden;
+  border: 1px solid rgba(148,163,184,.08) !important;}
+.tag {display: inline-block; border-radius: 999px; padding: 2px 10px;
+  font-size: .72rem; font-weight: 500; margin-right: 5px;}
+.tag.blue {background: rgba(99,102,241,.12); color: #A5B4FC; border: 1px solid rgba(99,102,241,.15);}
+.tag.green {background: rgba(16,185,129,.1); color: #6EE7B7; border: 1px solid rgba(16,185,129,.12);}
+.tag.amber {background: rgba(245,158,11,.1); color: #FCD34D; border: 1px solid rgba(245,158,11,.12);}
+.chunk-quote {background: rgba(148,163,184,.03); border-left: 2px solid #6366F1;
+  border-radius: 0 12px 12px 0; padding: 10px 14px; color: #94A3B8;
+  font-size: .85rem; line-height: 1.7; margin: 4px 0 2px;}
+[data-testid="stExpander"]:has(.debug-marker) p,
+[data-testid="stExpander"]:has(.debug-marker) summary div div {font-size: .78rem !important; color: #64748B !important;}
+.dbg-label {font-size: .72rem; font-weight: 600; color: #475569; margin: 10px 0 2px;
+  text-transform: uppercase; letter-spacing: .03em;}
+pre.dbg {font-size: .72rem !important; line-height: 1.6; white-space: pre-wrap;
+  word-break: break-word; background: rgba(11,15,26,.8);
+  border: 1px solid rgba(148,163,184,.06); border-radius: 10px;
+  padding: 8px 12px; margin: 2px 0 6px; color: #94A3B8;
+  font-family: 'SF Mono', ui-monospace, monospace;}
+.section-title {font-size: 1.1rem; font-weight: 700; color: #F1F5F9; margin: 4px 0 12px;}
+hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
+::-webkit-scrollbar {width: 6px; height: 6px;}
+::-webkit-scrollbar-track {background: transparent;}
+::-webkit-scrollbar-thumb {background: rgba(148,163,184,.15); border-radius: 3px;}
+@keyframes fadeInUp {from {opacity: 0; transform: translateY(8px);} to {opacity: 1; transform: translateY(0);}}
+[data-testid="stChatMessage"] {animation: fadeInUp .3s ease-out;}
+[data-testid="stMetric"] {animation: fadeInUp .4s ease-out;}
+.status-block {position: absolute !important; left: 16px !important; right: 16px !important;
+  bottom: 12px !important;}
+[data-testid="stSidebarUserContent"] div:not(.status-block) {position: static !important;}
 [data-testid="stSidebarUserContent"] {display: contents !important;}
 [data-testid="stSidebarHeader"] {order: -2 !important;}
 [data-testid="stSidebarUserContent"] > * {order: -1 !important;}
-[data-testid="stSidebar"] {position: relative !important;}
-[data-testid="stSidebarUserContent"] div:not(.status-block) {position: static !important;}
-.status-block {position: absolute !important; left: 18px !important; right: 18px !important;
-  bottom: 12px !important;}
-
-/* 侧边导航菜单项 */
-[data-testid="stSidebar"] [role="radiogroup"] label {
-  border-radius: 10px; padding: 2px 10px; transition: all .14s ease;
-  font-weight: 600; color: #475569;}
-[data-testid="stSidebar"] [role="radiogroup"] label:hover {background: #E8EEFB; color: #1D4ED8;}
-
-/* 按钮 */
-.stButton > button {border-radius: 10px; border: 1px solid #E2E8F0; font-weight: 600;
-  transition: all .16s ease; background: #FFFFFF; color: #334155;}
-.stButton > button:hover {border-color: #2563EB; color: #2563EB;
-  box-shadow: 0 3px 12px rgba(37, 99, 235, .16); transform: translateY(-1px);}
-.stButton > button[kind="primary"] {background: linear-gradient(135deg, #2563EB, #4F46E5);
-  color: #fff; border: none; box-shadow: 0 4px 14px rgba(37, 99, 235, .28);}
-.stButton > button[kind="primary"]:hover {filter: brightness(1.06); color: #fff;}
-
-/* 输入控件 */
-.stTextInput input, .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea {
-  border-radius: 10px !important;}
-
-/* 聊天气泡：回答靠左，用户消息为右侧蓝色气泡 */
-[data-testid="stChatMessage"] {border-radius: 16px; border: 1px solid #ECF1F8;
-  background: #FBFCFE; padding: 6px 10px; margin-bottom: 4px;}
-[data-testid="stChatMessage"]:has(.user-bubble) {
-  flex-direction: row-reverse; background: transparent; border: none;
-  margin-left: 10%; padding: 2px;}
-.user-bubble {background: linear-gradient(135deg, #2563EB, #4F46E5); color: #fff;
-  padding: 10px 16px; border-radius: 18px 18px 4px 18px; font-size: .95rem;
-  line-height: 1.6; box-shadow: 0 3px 10px rgba(37, 99, 235, .25);}
-
-/* 输入框：胶囊悬浮在底部（无背景板，居中） */
-[data-testid="stBottom"], [data-testid="stBottom"] > div {
-  background: transparent !important; border: none !important; box-shadow: none !important;}
-[data-testid="stBottom"] {position: fixed !important; bottom: 8px !important;
-  left: 50% !important; transform: translateX(-50%); width: min(900px, 94vw) !important;
-  z-index: 200;}
-[data-testid="stChatInput"] {border-radius: 999px !important;
-  box-shadow: 0 6px 24px rgba(15, 23, 42, .16) !important;
-  border: 1px solid #E2E8F0 !important; background: #fff !important;}
-[data-testid="stChatInput"] textarea {border-radius: 999px !important; background: transparent !important;}
-.block-container {padding-bottom: 8.5rem !important;}
-
-/* 折叠面板 / 表格 / 指标卡 */
-[data-testid="stExpander"] {border-radius: 12px; border: 1px solid #E8EDF5; background: #FFFFFF;}
-[data-testid="stDataFrame"] {border-radius: 12px; overflow: hidden;}
-[data-testid="stMetric"] {background: linear-gradient(180deg, #F8FAFF, #FFFFFF);
-  border: 1px solid #E8EDF5; border-radius: 14px; padding: 14px 16px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, .04);}
-
-/* 首页横幅（紧凑版） */
-.hero {background: linear-gradient(135deg, #172554 0%, #1D4ED8 55%, #4F46E5 100%);
-  border-radius: 16px; padding: 16px 22px; color: #fff; margin-bottom: 10px;
-  box-shadow: 0 6px 18px rgba(29, 78, 216, .22);}
-.hero h1 {margin: 0 0 3px; font-size: 1.22rem; font-weight: 800; letter-spacing: .3px;}
-.hero p {margin: 0 0 8px; opacity: .85; font-size: .82rem;}
-.hero .pill {display: inline-block; background: rgba(255,255,255,.14);
-  border: 1px solid rgba(255,255,255,.25); border-radius: 999px;
-  padding: 2px 10px; font-size: .72rem; margin-right: 6px;}
-
-/* 标签胶囊 */
-.tag {display: inline-block; background: #EEF2FF; color: #3730A3; border-radius: 999px;
-  padding: 2px 11px; font-size: .78rem; font-weight: 600; margin-right: 6px;}
-.tag.green {background: #ECFDF5; color: #047857;}
-.tag.amber {background: #FFFBEB; color: #B45309;}
-.tag.blue {background: #EFF6FF; color: #1D4ED8;}
-
-/* 引用卡片 */
-.chunk-quote {background: #F8FAFC; border-left: 3px solid #2563EB; border-radius: 0 12px 12px 0;
-  padding: 12px 16px; color: #334155; font-size: .92rem; line-height: 1.65; margin: 6px 0 2px;}
-
-.section-title {font-size: 1.05rem; font-weight: 800; color: #0F172A; margin: 4px 0 10px;}
-hr {border: none; border-top: 1px solid #EEF2F7;}
-
-/* 调试面板：整体小一号字 */
-[data-testid="stExpander"]:has(.debug-marker) p,
-[data-testid="stExpander"]:has(.debug-marker) li,
-[data-testid="stExpander"]:has(.debug-marker) summary div div,
-[data-testid="stExpander"]:has(.debug-marker) [data-testid="stMarkdownContainer"] {
-  font-size: .8rem !important;}
-.dbg-label {font-size: .76rem; font-weight: 700; color: #64748B; margin: 10px 0 2px;}
-
-/* 侧边栏历史会话条目：样式与导航菜单一致 */
-.session-item {display: block; text-decoration: none !important; color: #475569 !important;
-  padding: 3px 10px; border-radius: 8px; font-size: .8rem; font-weight: 600;
-  transition: all .14s ease;}
-.session-item:hover {background: #E8EEFB; color: #1D4ED8 !important;}
-.session-item .si-time {font-size: .68rem; color: #94A3B8; font-weight: 400;}pre.dbg {font-size: .72rem !important; line-height: 1.55; white-space: pre-wrap;
-  word-break: break-word; background: #F8FAFC; border: 1px solid #EEF2F7;
-  border-radius: 8px; padding: 8px 10px; margin: 2px 0 6px; color: #334155;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
