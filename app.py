@@ -235,6 +235,74 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
 [data-testid="stSidebarUserContent"] {display: contents !important;}
 [data-testid="stSidebarHeader"] {order: -2 !important;}
 [data-testid="stSidebarUserContent"] > * {order: -1 !important;}
+
+/* ==================== 精致化交互 ==================== */
+/* 按钮过渡 */
+.stButton > button {transition: all .15s cubic-bezier(.4,0,.2,1) !important;}
+.stButton > button:active {transform: scale(.97) !important;}
+
+/* 会话列表按钮 */
+[data-testid="stSidebar"] .stButton > button {
+  font-size: .76rem !important; font-weight: 500 !important;
+  text-align: left !important; padding: 4px 10px !important;
+  border: none !important; background: transparent !important;
+  color: var(--text-secondary) !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+[data-testid="stSidebar"] .stButton > button:hover {
+  background: var(--accent-light) !important; color: var(--accent-text) !important;}
+
+/* 文件上传区域 */
+[data-testid="stFileUploaderDropzone"] {
+  border: 2px dashed var(--border-subtle) !important;
+  border-radius: 16px !important; padding: 2rem 1rem !important;
+  background: var(--bg-card) !important; transition: all .2s !important;}
+[data-testid="stFileUploaderDropzone"]:hover {
+  border-color: var(--accent) !important; background: var(--accent-light) !important;}
+[data-testid="stFileUploaderDropzone"] button {
+  background: var(--accent) !important; color: white !important;
+  border-radius: 8px !important; border: none !important; font-weight: 600 !important;}
+
+/* Expander 精致化 */
+[data-testid="stExpander"] {transition: all .2s !important;}
+[data-testid="stExpander"]:hover {border-color: var(--border-hover) !important;}
+[data-testid="stExpander"] summary {font-size: .82rem !important; font-weight: 500 !important;}
+
+/* DataFrame 悬停行 */
+[data-testid="stDataFrame"] [data-row]:hover {
+  background: var(--accent-light) !important;}
+
+/* Toast 通知 */
+[data-testid="stToast"] {border-radius: 12px !important;
+  border: 1px solid var(--border-hover) !important;}
+
+/* 分隔线 */
+hr {margin: 1rem 0 !important;}
+
+/* 空状态提示 */
+[data-testid="stAlert"] {border-radius: 12px !important;}
+
+/* Chat 消息入场 */
+[data-testid="stChatMessage"] {border: 1px solid var(--border-subtle) !important;
+  transition: border-color .2s !important;}
+[data-testid="stChatMessage"]:hover {border-color: var(--border-hover) !important;}
+
+/* Tab 按钮 */
+.stTabs [data-baseweb="tab-list"] {gap: 0 !important;}
+.stTabs [data-baseweb="tab"] {
+  border-radius: 10px 10px 0 0 !important; font-size: .82rem !important;
+  padding: 8px 16px !important; color: var(--text-secondary) !important;}
+.stTabs [aria-selected="true"] {color: var(--accent-text) !important;
+  border-bottom: 2px solid var(--accent) !important;}
+
+/* Metric 数值字体 */
+[data-testid="stMetricValue"] {font-weight: 700 !important; letter-spacing: -.02em !important;}
+
+/* Select 下拉框 */
+div[data-baseweb="select"] > div {border-radius: 10px !important;
+  font-size: .82rem !important;}
+
+/* Success/Error 消息 */
+[data-testid="stAlert"] {font-size: .82rem !important;}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -516,46 +584,95 @@ def page_chat():
 # ---------------------------------------------------------------- 页面 2：上传文档
 def page_upload():
     st.markdown('<div class="section-title">📤 把文档放进知识库</div>', unsafe_allow_html=True)
-    st.caption(f"支持格式：{', '.join('.' + t for t in SUPPORTED_UPLOAD_TYPES)}"
-               f"　·　文件会存入 knowledge/<领域>/<分类>/ 目录，放对目录 = 自动打好分类")
+    st.caption(f"支持 {', '.join('.' + t for t in SUPPORTED_UPLOAD_TYPES)} · 目录结构即分类")
 
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        upload_domain = st.selectbox("存放到哪个领域", DOMAINS,
-                                     format_func=domain_label, index=DOMAINS.index("learning"))
-    with col2:
-        upload_category = st.text_input("子分类（可留空，自动转小写）", value="",
-                                        help="例如 projects、ai、books；留空为 general")
+    tab_files, tab_dir = st.tabs(["📄 上传文件", "📁 导入目录"])
 
-    uploads = st.file_uploader("选择一个或多个文件（支持拖拽）",
-                               type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
-    if uploads:
-        st.caption(f"已选择 {len(uploads)} 个文件，共 {sum(u.size for u in uploads) / 1024:.0f} KB")
-    if st.button("📦 开始入库", disabled=not uploads, width="stretch", type="primary"):
-        cfg.knowledge_dir.mkdir(exist_ok=True)
-        target_dir = cfg.knowledge_dir / upload_domain / (upload_category.strip().lower() or "general")
-        target_dir.mkdir(parents=True, exist_ok=True)
-        saved_paths = []
-        for upload in uploads:
-            target = target_dir / upload.name
-            target.write_bytes(upload.getvalue())
-            saved_paths.append(target)
-        with st.spinner("解析 → 元数据 → 清洗 → 切片 → 向量化 → 入库……"):
-            summary = ingest_files(paths=saved_paths)
-        if summary.ok_files:
-            st.success(f"🎉 入库完成：{summary.ok_files}/{summary.total_files} 个文件 · "
-                       f"{summary.total_chunks} 张知识卡片 · 向量维度 {summary.vector_dimension} · "
-                       f"耗时 {summary.elapsed_seconds:.1f} 秒")
-        else:
-            st.error("全部文件入库失败，详情见终端日志。")
-        if summary.file_rows:
-            st.dataframe(
-                [{"路径": r["path"], "Domain": r["domain"], "Category": r["category"],
-                  "Status": r["status"], "卡片数": r["chunks"]} for r in summary.file_rows],
-                width="stretch", hide_index=True,
-            )
-        for failure in summary.failed_files:
-            st.warning(failure)
+    with tab_files:
+        col1, col2 = st.columns(2)
+        with col1:
+            upload_domain = st.selectbox("领域", DOMAINS,
+                                         format_func=domain_label, index=DOMAINS.index("learning"))
+        with col2:
+            upload_category = st.text_input("子分类（留空为 general）", value="",
+                                            help="自动转小写，如 projects、ai")
+        uploads = st.file_uploader("拖拽文件到此处，或点击选择",
+                                   type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
+        if uploads:
+            st.caption(f"✓ 已选择 {len(uploads)} 个文件 · {sum(u.size for u in uploads) / 1024:.0f} KB")
+        if st.button("📦 开始入库", disabled=not uploads, use_container_width=True, type="primary"):
+            _do_upload(uploads, upload_domain, upload_category)
+
+    with tab_dir:
+        st.caption("输入本机目录路径，将整个目录的知识文件导入知识库（子目录结构自动保留）")
+        dir_path = st.text_input("目录路径", placeholder="/Users/你的用户名/Documents/我的笔记",
+                                 help="支持绝对路径")
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            dir_domain = st.selectbox("导入到领域", DOMAINS,
+                                      format_func=domain_label, index=DOMAINS.index("learning"))
+        with col_d2:
+            dir_category = st.text_input("子分类（留空则保留原目录名）", value="")
+        if st.button("📁 扫描并导入", disabled=not dir_path.strip(), use_container_width=True,
+                     type="primary"):
+            _do_dir_import(dir_path.strip(), dir_domain, dir_category)
+
+
+def _do_upload(uploads, upload_domain, upload_category):
+    cfg.knowledge_dir.mkdir(exist_ok=True)
+    target_dir = cfg.knowledge_dir / upload_domain / (upload_category.strip().lower() or "general")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    saved_paths = []
+    for upload in uploads:
+        target = target_dir / upload.name
+        target.write_bytes(upload.getvalue())
+        saved_paths.append(target)
+    with st.spinner("解析 → 清洗 → 切片 → 向量化 → 入库……"):
+        summary = ingest_files(paths=saved_paths)
+    _show_ingest_result(summary)
+
+
+def _do_dir_import(dir_path, dir_domain, dir_category):
+    from pathlib import Path as P
+    src = P(dir_path).expanduser().resolve()
+    if not src.is_dir():
+        st.error(f"目录不存在：{src}")
+        return
+    exts = {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf"}
+    files = [f for f in src.rglob("*") if f.is_file() and f.suffix.lower() in exts
+             and not f.name.startswith(".")]
+    if not files:
+        st.warning(f"目录中没有支持的文件（{', '.join(exts)}）")
+        return
+    st.info(f"找到 {len(files)} 个知识文件，开始导入到 {dir_domain}……")
+    subdir = (dir_category.strip().lower() or src.name.lower().replace(" ", "_"))
+    target_base = cfg.knowledge_dir / dir_domain / subdir
+    target_base.mkdir(parents=True, exist_ok=True)
+    saved = []
+    for f in files:
+        rel = f.relative_to(src)
+        dest = target_base / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(f.read_bytes())
+        saved.append(dest)
+    with st.spinner(f"导入 {len(saved)} 个文件中……"):
+        summary = ingest_files(paths=saved)
+    _show_ingest_result(summary)
+
+
+def _show_ingest_result(summary):
+    if summary.ok_files:
+        st.success(f"🎉 成功 {summary.ok_files}/{summary.total_files} · "
+                   f"{summary.total_chunks} 张卡片 · {summary.elapsed_seconds:.1f}s")
+    else:
+        st.error("入库失败，请看终端日志。")
+    if summary.file_rows:
+        st.dataframe(
+            [{"路径": r["path"], "领域": r["domain"], "分类": r["category"],
+              "状态": r["status"], "卡片": r["chunks"]} for r in summary.file_rows],
+            use_container_width=True, hide_index=True)
+    for f in summary.failed_files:
+        st.warning(f)
 
     st.divider()
     st.markdown('<div class="section-title">📁 knowledge/ 目录现状</div>', unsafe_allow_html=True)
@@ -899,28 +1016,33 @@ pg = st.navigation({
 pg.run()
 
 with st.sidebar:
-    with st.expander("🕘 历史会话", expanded=False):
-        sessions = list_sessions(10)
-
-        if sessions:
-            from src.sessions import SESSIONS_DIR
-            for s in sessions:
-                title = s["title"][:24]
-                time_str = s["updated_at"][5:16]
-                row1, row2 = st.columns([5, 1])
+    st.markdown('<div style="font-size:.78rem;font-weight:600;color:var(--text-secondary);margin:8px 0 6px;letter-spacing:.02em;">🕘 历史会话</div>', unsafe_allow_html=True)
+    sessions = list_sessions(8)
+    if sessions:
+        for idx, s in enumerate(sessions):
+            sc1, sc2 = st.columns([10, 1])
+            with sc1:
                 def _load_cb(sid=s["session_id"]):
                     st.session_state["__load_session"] = sid
-                row1.button(f"💬 {title}", width="stretch",
-                            key=f"hs_{s['session_id']}", on_click=_load_cb)
+                if st.button(s["title"][:28], key=f"hs_{s['session_id']}",
+                             on_click=_load_cb, use_container_width=True):
+                    pass
+            with sc2:
+                from src.sessions import SESSIONS_DIR
                 def _del_cb(sid=s["session_id"]):
                     f = SESSIONS_DIR / sid[:10] / f"{sid}.json"
                     if f.exists():
                         f.unlink()
-                row2.button("🗑", key=f"del_{s['session_id']}", on_click=_del_cb,
-                            help="删除此会话")
-                st.caption(f"🕒 {time_str} · {s['count']} 条", help=f"ID: {s['session_id']}")
-        else:
-            st.caption("暂无历史会话")
+                st.button("×", key=f"del_{s['session_id']}", on_click=_del_cb,
+                          help="删除", use_container_width=True)
+            st.markdown(
+                f'<div style="font-size:.68rem;color:var(--text-muted);margin:-8px 0 4px 12px;">'
+                f'{s["updated_at"][5:16]} · {s["count"]} 条</div>',
+                unsafe_allow_html=True)
+    else:
+        st.markdown(
+            '<div style="font-size:.72rem;color:var(--text-muted);padding:8px 0;">'
+            '暂无历史会话<br/>提问后自动保存</div>', unsafe_allow_html=True)
 
     ok_all = all(ok for ok, _ in system_status().values())
     status_emoji = "🟢" if ok_all else "🟡"
