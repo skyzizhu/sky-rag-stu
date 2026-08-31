@@ -7,3 +7,7 @@ textColor = "#1E293B"
 
 [browser]
 gatherUsageStats = false
+
+[client]
+# 面向使用者展示页面，隐藏本地开发专用的 Rerun / Clear cache 入口及其快捷键。
+toolbarMode = "viewer"

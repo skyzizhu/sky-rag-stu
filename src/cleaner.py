@@ -39,6 +39,13 @@ def _merge_short_fragments(text: str, min_length: int = 15) -> str:
     buffer = ""
     for line in lines:
         stripped = line.strip()
+        is_structural = bool(re.match(r"^(?:#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s|```|\|)", stripped))
+        if not stripped or is_structural:
+            if buffer:
+                merged.append(buffer)
+                buffer = ""
+            merged.append(line)
+            continue
         if len(stripped) < min_length and stripped:
             buffer += (" " if buffer else "") + stripped
             continue

@@ -109,16 +109,97 @@ def _read_rtf(path: Path) -> tuple[str, str, dict]:
 
 
 def _read_html(path: Path) -> tuple[str, str, dict]:
-    """HTML：去掉脚本/样式等「包装」，只留正文；标题取 <title> 或第一个 <h1>。"""
-    soup = BeautifulSoup(path.read_text(encoding="utf-8", errors="replace"), "html.parser")
-    for tag in soup(["script", "style", "noscript"]):
+    """HTML：提取正文区域，并尽量保留标题、列表、表格、引用与代码结构。"""
+    # 直接交给 BeautifulSoup 读取字节，可依据 BOM / meta charset 识别旧中文网页编码。
+    soup = BeautifulSoup(path.read_bytes(), "html.parser")
+    for tag in soup([
+        "script", "style", "noscript", "template", "svg", "canvas", "iframe",
+        "button", "input", "select", "textarea",
+    ]):
         tag.decompose()
-    title = ""
-    if soup.title and soup.title.get_text(strip=True):
-        title = soup.title.get_text(strip=True)
-    elif soup.h1:
-        title = soup.h1.get_text(strip=True)
-    return soup.get_text("\n"), title, {}
+
+    h1 = soup.find("h1")
+    page_title = soup.title.get_text(" ", strip=True) if soup.title else ""
+    title = h1.get_text(" ", strip=True) if h1 else page_title
+
+    body = soup.body or soup
+    candidates = body.select("article, main, [role='main']")
+    root = max(candidates, key=lambda node: len(node.get_text(" ", strip=True)), default=body)
+    body_length = len(body.get_text(" ", strip=True))
+    root_length = len(root.get_text(" ", strip=True))
+    # 很短的 main/article 可能只是推荐卡片，不应覆盖真正的 body 正文。
+    if root is not body and root_length < 120 and root_length < body_length * 0.35:
+        root = body
+
+    noise_tags = ["nav", "footer", "aside", "form", "dialog"]
+    if root is body:
+        noise_tags.append("header")
+    for tag in root.find_all(noise_tags):
+        tag.decompose()
+    for tag in root.select("[hidden], [aria-hidden='true']"):
+        tag.decompose()
+
+    # 先转换会包含其他标签的结构，再处理普通块级元素。
+    for table in list(root.find_all("table")):
+        rows = []
+        for row in table.find_all("tr"):
+            cells = [
+                re.sub(r"\s+", " ", cell.get_text(" ", strip=True)).replace("|", "\\|")
+                for cell in row.find_all(["th", "td"])
+            ]
+            if cells:
+                rows.append(cells)
+        if rows:
+            width = max(len(row) for row in rows)
+            rows = [row + [""] * (width - len(row)) for row in rows]
+            table_lines = ["| " + " | ".join(row) + " |" for row in rows]
+            table_lines.insert(1, "| " + " | ".join(["---"] * width) + " |")
+            table.replace_with("\n\n" + "\n".join(table_lines) + "\n\n")
+        else:
+            table.decompose()
+
+    for pre in list(root.find_all("pre")):
+        code = pre.get_text("\n", strip=False).strip("\n")
+        pre.replace_with(f"\n\n```\n{code}\n```\n\n")
+    for code in list(root.find_all("code")):
+        code.replace_with(f"`{code.get_text('', strip=True)}`")
+
+    for image in list(root.find_all("img")):
+        alt = re.sub(r"\s+", " ", image.get("alt", "")).strip()
+        image.replace_with(f"[图片：{alt}]" if alt else "")
+    for anchor in list(root.find_all("a")):
+        label = re.sub(r"\s+", " ", anchor.get_text(" ", strip=True))
+        href = (anchor.get("href") or "").strip()
+        if label and href.startswith(("http://", "https://")):
+            anchor.replace_with(f"[{label}]({href})")
+        else:
+            anchor.replace_with(label)
+
+    for list_tag in reversed(root.find_all(["ol", "ul"])):
+        lines = []
+        for index, item in enumerate(list_tag.find_all("li", recursive=False), start=1):
+            item_text = re.sub(r"\s+", " ", item.get_text(" ", strip=True))
+            if item_text:
+                marker = f"{index}." if list_tag.name == "ol" else "-"
+                lines.append(f"{marker} {item_text}")
+        list_tag.replace_with("\n\n" + "\n".join(lines) + "\n\n")
+
+    for quote in list(root.find_all("blockquote")):
+        lines = [line.strip() for line in quote.get_text("\n").splitlines() if line.strip()]
+        quote.replace_with("\n\n" + "\n".join(f"> {line}" for line in lines) + "\n\n")
+    for heading in list(root.find_all(re.compile(r"^h[1-6]$"))):
+        level = int(heading.name[1])
+        heading.replace_with(f"\n\n{'#' * level} {heading.get_text(' ', strip=True)}\n\n")
+    for br in list(root.find_all("br")):
+        br.replace_with("\n")
+    for block in root.find_all(["p", "div", "section", "article", "main", "header", "address", "figure", "figcaption", "dl", "dt", "dd"]):
+        block.insert_before("\n\n")
+        block.insert_after("\n\n")
+
+    text = root.get_text("", strip=False)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return text, title, {}
 
 
 def _read_docx(path: Path) -> tuple[str, str, dict]:

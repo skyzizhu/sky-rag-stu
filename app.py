@@ -15,21 +15,27 @@ import html
 import re
 import sys
 from pathlib import Path
-from pathlib import PurePosixPath
 
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.app_settings import SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
+from src.answer_format import format_answer_markdown  # noqa: E402
 from src.config import get_config  # noqa: E402
+from src.chat_scroll import scroll_chat_to_latest  # noqa: E402
+from src.directory_uploader import (  # noqa: E402
+    decode_directory_batch,
+    decode_native_directory_uploads,
+    directory_drop_uploader,
+)
 from src.embedding import EmbeddingClient, EmbeddingError  # noqa: E402
 from src.llm import LLMError  # noqa: E402
 from src.manage import (  # noqa: E402
     ManageError,
     archive as archive_file,
     reingest as reingest_file,
-    remove_from_index,
+    remove_documents,
     restore as restore_file,
 )
 from src.metadata import DOMAINS, DOMAIN_LABELS  # noqa: E402
@@ -76,7 +82,54 @@ def confirm_session_delete() -> None:
         session_file = SESSIONS_DIR / sid[:10] / f"{sid}.json"
         if session_file.exists():
             session_file.unlink()
+        # 删除后会话数量变化会让 Expander 以新组件重建；下一次渲染强制保持展开。
+        st.session_state["keep_history_expanded_once"] = True
         st.session_state.pop("delete_session_request", None)
+        st.rerun()
+
+
+@st.dialog("确认移除知识文件", width="small")
+def confirm_manage_remove() -> None:
+    """确认批量移除向量数据，以及可选的磁盘文件删除。"""
+    request = st.session_state.get("manage_remove_request")
+    if not request:
+        return
+
+    count = len(request["paths"])
+    delete_files = request["delete_files"]
+    if delete_files:
+        st.error(f"将从向量知识库移除 {count} 个文件，并永久删除对应磁盘文件。")
+        st.caption("删除后无法恢复；如果所属二级目录中已没有其他文件，该目录也会被清理。")
+        confirm_label = "确认并删除文件"
+    else:
+        st.info(f"将从向量知识库移除 {count} 个文件，磁盘文件会保留。")
+        st.caption("之后可通过“重新入库”恢复这些知识。")
+        confirm_label = "确认移除知识"
+
+    with st.expander(f"查看将处理的 {count} 个文件"):
+        for name in request["names"]:
+            st.write(f"• {name}")
+
+    cancel_col, confirm_col = st.columns(2)
+    if cancel_col.button("取消", width="stretch", key="manage_remove_cancel"):
+        st.session_state.pop("manage_remove_request", None)
+        st.rerun()
+    if confirm_col.button(
+        confirm_label,
+        type="primary",
+        icon=":material/delete_forever:" if delete_files else ":material/delete_sweep:",
+        width="stretch",
+        key="manage_remove_confirm",
+    ):
+        try:
+            info = remove_documents(request["paths"], delete_files=delete_files)
+        except (ManageError, VectorStoreError) as exc:
+            st.error(str(exc))
+            return
+        st.session_state["manage_action_notice"] = info["message"]
+        st.session_state["manage_selected_documents"] = []
+        st.session_state["manage_table_revision"] = st.session_state.get("manage_table_revision", 0) + 1
+        st.session_state.pop("manage_remove_request", None)
         st.rerun()
 
 # 载入历史会话（侧边栏列表点击后在此处理；支持 URL 参数 ?load=会话ID）
@@ -103,6 +156,7 @@ if load_target:
             loaded_messages.append(entry)
         st.session_state.messages = loaded_messages
         st.session_state.session_id = load_target
+        st.session_state["scroll_loaded_session_once"] = True
 st.session_state.setdefault("hybrid_search", cfg.hybrid_search)
 st.session_state.setdefault("rerank", cfg.rerank_enabled)
 
@@ -221,6 +275,10 @@ html, body, .stApp, .stMarkdown, input, textarea {
 .stButton > button[kind="primary"] {background: linear-gradient(135deg, #6366F1, #8B5CF6) !important;
   color: #fff !important; border: none; font-weight: 600; box-shadow: 0 4px 16px rgba(99,102,241,.25);}
 .stButton > button[kind="primary"]:hover {filter: brightness(1.1); transform: translateY(-1px);}
+.st-key-manage_remove_disk .stButton button {
+  color:#DC2626 !important;border-color:rgba(220,38,38,.25) !important;background:rgba(220,38,38,.055) !important;}
+.st-key-manage_remove_disk .stButton button:hover {
+  color:#B91C1C !important;border-color:rgba(220,38,38,.42) !important;background:rgba(220,38,38,.1) !important;}
 .stTextInput input, .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea {
   border-radius: 10px !important; border-color: rgba(148,163,184,.1) !important;
   background: rgba(148,163,184,.03) !important; color: var(--text-primary) !important; font-size: .85rem !important;}
@@ -246,22 +304,46 @@ div[data-baseweb="radio"] label {color: var(--text-secondary) !important;}
   transform:translateX(-50%) !important;width:min(920px,94vw) !important;z-index:200 !important;}
 body:has([data-testid="stSidebar"][aria-expanded="true"]) .st-key-chat_composer {
   left:calc(50% + 150px) !important;width:min(920px,calc(100vw - 340px)) !important;}
+.st-key-chat_composer,
+.st-key-chat_composer > div,
+.st-key-chat_composer [data-testid="stVerticalBlock"],
+.st-key-chat_composer [data-testid="stElementContainer"] {
+  background:transparent !important;box-shadow:none !important;}
 .st-key-chat_composer [data-testid="stChatInput"] {width:100% !important;}
-[data-testid="stChatInput"] {border-radius: 24px !important;
-  border: 1px solid rgba(148,163,184,.12) !important; background: var(--bg-secondary) !important;
-  box-shadow: 0 12px 36px rgba(30,41,75,.16) !important;}
-[data-testid="stChatInput"] textarea {border-radius: 24px !important;
-  background: transparent !important; color: var(--text-primary) !important;}
+[data-testid="stChatInput"] {border-radius:16px !important;overflow:hidden !important;
+  min-height:48px !important;border:1px solid rgba(99,102,241,.48) !important;
+  background: var(--bg-secondary) !important;
+  box-shadow:0 5px 18px rgba(30,41,75,.11) !important;
+  transition:border-color .18s ease,box-shadow .18s ease !important;}
+[data-testid="stChatInput"] > div {
+  min-height:46px !important;padding:5px 10px !important;}
+[data-testid="stChatInput"]:hover {
+  border-color:rgba(99,102,241,.7) !important;
+  box-shadow:0 6px 20px rgba(30,41,75,.13) !important;}
+[data-testid="stChatInput"]:focus-within {
+  border-color:var(--accent) !important;
+  box-shadow:0 6px 22px rgba(49,46,129,.15) !important;}
+[data-testid="stChatInput"] textarea {border-radius:16px !important;
+  min-height:36px !important;padding:7px 6px !important;background:transparent !important;
+  color:var(--text-primary) !important;font-size:.9rem !important;line-height:1.35 !important;}
+[data-testid="stChatInput"] textarea::placeholder {
+  color:var(--text-secondary) !important;opacity:.82 !important;}
+[data-testid="stChatInputSubmitButton"] {
+  width:34px !important;height:34px !important;margin-right:6px !important;border-radius:50% !important;
+  color:#FFFFFF !important;background:linear-gradient(135deg,#6366F1,#7C3AED) !important;
+  box-shadow:0 3px 10px rgba(99,102,241,.24) !important;}
+[data-testid="stChatInputSubmitButton"]:hover {
+  filter:brightness(1.08);transform:translateY(-1px);}
 .hero {position:relative;overflow:hidden;background:linear-gradient(125deg,#17163A 0%,#302B78 48%,#5046E5 100%);
-  border-radius: 24px; padding: 32px 36px; color: #EEF2FF; margin-bottom: 18px;
-  border: 1px solid rgba(129,140,248,.22);box-shadow:0 20px 50px rgba(49,46,129,.2);}
-.hero:after {content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-80px;top:-150px;
+  border-radius:18px;padding:18px 24px;color:#EEF2FF;margin-bottom:12px;
+  border:1px solid rgba(129,140,248,.2);box-shadow:0 12px 32px rgba(49,46,129,.16);}
+.hero:after {content:"";position:absolute;width:190px;height:190px;border-radius:50%;right:-55px;top:-120px;
   background:rgba(255,255,255,.1);filter:blur(2px);}
-.hero h1 {margin: 0 0 7px; font-size: 1.55rem; font-weight: 800; letter-spacing: -.025em;}
-.hero p {margin: 0 0 16px; opacity: .72; font-size: .84rem;}
+.hero h1 {margin:0 0 4px;padding:0 !important;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.hero p {margin:0 0 9px;opacity:.72;font-size:.78rem;}
 .hero .pill {display: inline-block; background: rgba(99,102,241,.15);
   border: 1px solid rgba(129,140,248,.2); border-radius: 999px;
-  padding: 3px 12px; font-size: .7rem; margin-right: 6px; color: #A5B4FC;}
+  padding:2px 9px;font-size:.66rem;margin-right:5px;color:#A5B4FC;}
 [data-testid="stMetric"] {background: var(--bg-card);
   border: 1px solid var(--border-subtle); border-radius: 16px; padding: 16px 18px;box-shadow:var(--shadow-card);}
 [data-testid="stMetric"]:hover {border-color: rgba(129,140,248,.15);}
@@ -315,20 +397,37 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
 [data-testid="stSidebar"] .stButton > button:hover {
   background: var(--accent-light) !important; color: var(--accent-text) !important;}
 [data-testid="stSidebar"] [class*="st-key-hs_"] {position:static !important;}
-[data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button {
+[data-testid="stSidebar"] [class*="st-key-hs_"] > [data-testid="stElementContainer"] {
+  position:static !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] {position:static !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button,
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] a {
   position:absolute !important;inset:0 !important;width:100% !important;height:100% !important;
   min-height:100% !important;border-radius:9px !important;padding:7px 40px 22px 10px !important;
-  font-size:.72rem !important;font-weight:500 !important;line-height:1.35 !important;
-  justify-content:flex-start !important;align-items:flex-start !important;z-index:1 !important;
-  background:transparent !important;}
-[data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button:hover {
+  display:flex !important;gap:0 !important;font-size:.64rem !important;font-weight:500 !important;line-height:1.35 !important;
+  justify-content:flex-start !important;align-items:flex-start !important;text-align:left !important;z-index:1 !important;
+  color:var(--text-secondary) !important;background:transparent !important;text-decoration:none !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button:hover,
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] a:hover {
   background:transparent !important;transform:none !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] [data-testid="stIconEmoji"] {
+  display:none !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] a > span:first-child:not(:last-child) {
+  display:none !important;width:0 !important;min-width:0 !important;margin:0 !important;padding:0 !important;}
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] a > span:last-child {
+  display:block !important;flex:1 1 auto !important;width:100% !important;min-width:0 !important;
+  margin:0 !important;padding:0 !important;text-align:left !important;}
 [data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button > div,
 [data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button > div > span,
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] a > div,
+[data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] a > div > span,
 [data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stMarkdownContainer"] {
   width:100% !important;text-align:left !important;justify-content:flex-start !important;}
 [data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stMarkdownContainer"] p {
-  width:100% !important;text-align:left !important;}
+  display:block !important;width:100% !important;margin:0 !important;padding:0 !important;
+  color:var(--text-secondary) !important;font-size:.64rem !important;font-weight:500 !important;
+  line-height:1.35 !important;text-align:left !important;white-space:nowrap !important;
+  overflow:hidden !important;text-overflow:ellipsis !important;}
 [data-testid="stSidebar"] [class*="st-key-del_"] .stButton > button {
   width:28px !important;height:28px !important;min-height:28px !important;text-align:center !important;
   padding:0 !important;border-radius:8px !important;color:var(--text-muted) !important;
@@ -351,7 +450,7 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
 [data-testid="stSidebar"] [class*="st-key-session_item_"] > div,
 [data-testid="stSidebar"] [class*="st-key-session_item_"] [data-testid="stHorizontalBlock"] {
   gap:0 !important;min-height:0 !important;}
-[data-testid="stSidebar"] [class*="st-key-session_item_"] > [data-testid="stElementContainer"] {
+[data-testid="stSidebar"] [class*="st-key-session_item_"] > [data-testid="stElementContainer"]:has([data-testid="stCaptionContainer"]) {
   position:absolute !important;left:10px !important;bottom:6px !important;width:auto !important;
   z-index:2 !important;pointer-events:none !important;}
 [data-testid="stSidebar"] [class*="st-key-session_item_"] [data-testid="stCaptionContainer"] {
@@ -457,8 +556,8 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
 [data-testid="stFileUploaderDropzone"] button {
   font-family: 'Inter', sans-serif !important;}
 @media (max-width: 760px) {
-  .hero {padding:24px 22px;border-radius:19px;}
-  .hero h1 {font-size:1.25rem;}
+  .hero {padding:15px 17px;border-radius:15px;}
+  .hero h1 {font-size:1.1rem;}
   .block-container {padding-top:1rem !important;}
   body:has([data-testid="stSidebar"][aria-expanded="true"]) .st-key-chat_composer,
   .st-key-chat_composer {left:50% !important;width:94vw !important;}
@@ -523,29 +622,12 @@ def domain_label(domain: str) -> str:
     return f"{domain} · {label}" if label else domain
 
 
-def _safe_upload_parts(filename: str) -> tuple[str, ...]:
-    """把浏览器返回的相对路径限制在知识库目录内，阻断路径穿越。"""
-    raw_parts = PurePosixPath(filename.replace("\\", "/")).parts
-    parts = tuple(part for part in raw_parts if part not in ("", ".", "/"))
-    if not parts or any(part == ".." or "\x00" in part for part in parts):
-        raise ValueError(f"不安全的上传路径：{filename}")
-    return parts
-
-
 def _clean_directory_name(name: str) -> str:
     """生成稳定、可读且不会越出目标目录的顶层文件夹名。"""
     cleaned = re.sub(r"[\\/:*?\"<>|\x00-\x1f]+", "-", name).strip(" .-")
-    return cleaned or "uploaded-directory"
-
-
-def _directory_upload_roots(uploads) -> list[str]:
-    roots: list[str] = []
-    for upload in uploads or []:
-        parts = _safe_upload_parts(upload.name)
-        root = _clean_directory_name(parts[0]) if len(parts) > 1 else "uploaded-directory"
-        if root not in roots:
-            roots.append(root)
-    return roots
+    if not cleaned:
+        raise ValueError(f"目录名称无效：{name}")
+    return cleaned
 
 
 def _available_directory(parent: Path, preferred_name: str) -> Path:
@@ -704,7 +786,14 @@ def page_chat():
             def _new_session_cb():
                 st.session_state["session_id"] = new_session_id()
                 st.session_state.messages = []
-            if c2.button("🆕 开启新会话", width="stretch", on_click=_new_session_cb):
+            if c2.button(
+                "开启新会话",
+                width="stretch",
+                type="primary",
+                icon=":material/add_comment:",
+                key="new_chat_session",
+                on_click=_new_session_cb,
+            ):
                 pass
 
     for message in st.session_state.messages:
@@ -713,15 +802,24 @@ def page_chat():
                 st.markdown(f'<div class="user-bubble">{html.escape(message["content"])}</div>',
                             unsafe_allow_html=True)
             else:
-                st.markdown(message["content"])
+                st.markdown(format_answer_markdown(message["content"]))
                 if message.get("result") is not None:
                     show_answer_sources(message["result"])
+
+    if st.session_state.pop("scroll_loaded_session_once", False):
+        scroll_chat_to_latest(
+            key=f"scroll_loaded_{st.session_state['session_id']}",
+            behavior="auto",
+        )
 
     def _process_question(question: str) -> None:
         st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user", avatar="🙋"):
             st.markdown(f'<div class="user-bubble">{html.escape(question)}</div>',
                         unsafe_allow_html=True)
+        scroll_chat_to_latest(
+            key=f"scroll_question_{st.session_state['session_id']}_{len(st.session_state.messages)}",
+        )
 
         with st.chat_message("assistant", avatar="🧠"):
             if not cfg.llm_api_key:
@@ -750,12 +848,23 @@ def page_chat():
                         on_progress=_show_progress,
                     )
                 progress_ph.empty()
-                full_text = st.write_stream(deltas)
+                answer_ph = st.empty()
+                full_text = ""
+                for delta in deltas:
+                    full_text += delta
+                    answer_ph.markdown(format_answer_markdown(full_text) + " ▌")
+                formatted_answer = format_answer_markdown(result.answer or full_text or "")
+                answer_ph.markdown(formatted_answer)
+                progress_ph.markdown("✅ 回答生成完成")
+                result.answer = formatted_answer or None
                 show_answer_sources(result)
                 st.session_state.messages.append(
-                    {"role": "assistant", "content": result.answer or full_text or "", "result": result}
+                    {"role": "assistant", "content": formatted_answer, "result": result}
                 )
                 save_session(st.session_state["session_id"], st.session_state.messages)
+                scroll_chat_to_latest(
+                    key=f"scroll_answer_{st.session_state['session_id']}_{len(st.session_state.messages)}",
+                )
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
                 st.error(str(exc))
                 st.session_state.messages.append({"role": "assistant", "content": f"（出错：{exc}）"})
@@ -765,7 +874,7 @@ def page_chat():
     # 嵌套在普通容器中，避免 Streamlit 的底部聊天容器在 Expander 展开时强制滚到底部。
     # CSS 仍将该容器固定在页面底部，交互与原聊天输入框一致。
     with st.container(key="chat_composer"):
-        question = st.chat_input("输入你的问题……", key="chat_question")
+        question = st.chat_input("输入问题，按 Enter 发送……", key="chat_question")
     if question:
         _process_question(question)
 
@@ -794,7 +903,7 @@ def page_upload():
 
     with tab_dir:
         st.markdown("**整个目录导入**")
-        st.caption("拖入一个文件夹，或点击下方区域选择目录。系统会保留目录名和全部子目录层级。")
+        st.caption("可拖拽或点击选择目录；两种方式都会保留目录名和全部子目录层级。")
         dir_domain = st.selectbox(
             "导入到领域",
             DOMAINS,
@@ -802,24 +911,54 @@ def page_upload():
             index=DOMAINS.index("learning"),
             key="directory_domain",
         )
-        directory_uploads = st.file_uploader(
-            "拖拽目录到此处，或点击选择目录",
-            accept_multiple_files="directory",
-            key="directory_uploader",
-            help="目录会完整复制；其中受支持的文档会自动入库，隐藏文件会忽略。",
+        directory_mode = st.segmented_control(
+            "导入方式",
+            ["拖拽目录 · 合计 64 MB", "点击选择目录 · 单文件 200 MB"],
+            default="拖拽目录 · 合计 64 MB",
+            key="directory_import_mode",
         )
-        if directory_uploads:
+        directory_batch = None
+        native_directory_uploads = None
+        batch_id = None
+        if directory_mode == "拖拽目录 · 合计 64 MB":
+            directory_batch = directory_drop_uploader(key="directory_drop_uploader")
+        else:
+            native_limit_mb = st.get_option("server.maxUploadSize")
+            native_directory_uploads = st.file_uploader(
+                "点击下方按钮选择目录",
+                accept_multiple_files="directory",
+                key="native_directory_picker",
+                help=(
+                    f"原生目录选择的上限是每个文件 {native_limit_mb} MB。"
+                    "请点击按钮选择；如需拖拽，请切换到“拖拽目录”。"
+                ),
+            )
+        decoded_entries = []
+        if directory_batch or native_directory_uploads:
             try:
-                roots = _directory_upload_roots(directory_uploads)
-                total_kb = sum(upload.size for upload in directory_uploads) / 1024
+                if directory_batch:
+                    decoded_entries = decode_directory_batch(directory_batch)
+                    batch_id = directory_batch.get("id")
+                else:
+                    decoded_entries = decode_native_directory_uploads(native_directory_uploads)
+                    upload_ids = [
+                        str(getattr(upload, "file_id", f"{upload.name}:{upload.size}"))
+                        for upload in native_directory_uploads
+                    ]
+                    batch_id = "native:" + "|".join(upload_ids)
+                roots = []
+                for parts, _content in decoded_entries:
+                    root = _clean_directory_name(parts[0])
+                    if root not in roots:
+                        roots.append(root)
+                total_kb = sum(len(content) for _parts, content in decoded_entries) / 1024
                 root_text = "、".join(roots)
                 supported_count = sum(
-                    1 for upload in directory_uploads
-                    if PurePosixPath(upload.name.replace("\\", "/")).suffix.lower()
-                    in SUPPORTED_EXTENSIONS
+                    1 for parts, _content in decoded_entries
+                    if Path(parts[-1]).suffix.lower() in SUPPORTED_EXTENSIONS
                 )
                 st.success(
-                    f"已选择 {len(directory_uploads)} 个文件 · {total_kb:.1f} KB · "
+                    f"已选择 {len(decoded_entries)} 个文件 · {total_kb:.1f} KB · "
                     f"其中 {supported_count} 个文档可入库"
                 )
                 st.caption(f"将复制到：`knowledge/{dir_domain}/` 下的子目录 **{root_text}**")
@@ -832,12 +971,16 @@ def page_upload():
 
         if st.button(
             "复制目录并开始入库",
-            disabled=not directory_uploads or not roots,
+            disabled=(
+                not decoded_entries
+                or not roots
+                or st.session_state.get("processed_directory_batch") == batch_id
+            ),
             use_container_width=True,
             type="primary",
             key="import_directory",
         ):
-            _do_directory_upload(directory_uploads, dir_domain)
+            _do_directory_upload(decoded_entries, dir_domain, batch_id)
 
 
 def _do_upload(uploads, upload_domain, upload_category):
@@ -854,20 +997,16 @@ def _do_upload(uploads, upload_domain, upload_category):
     _show_ingest_result(summary)
 
 
-def _do_directory_upload(uploads, dir_domain):
+def _do_directory_upload(entries, dir_domain, batch_id):
     """把浏览器选中的目录完整复制为领域目录的子目录，然后增量入库。"""
     domain_dir = cfg.knowledge_dir / dir_domain
     domain_dir.mkdir(parents=True, exist_ok=True)
 
-    grouped: dict[str, list[tuple[tuple[str, ...], object]]] = {}
+    grouped: dict[str, list[tuple[tuple[str, ...], bytes]]] = {}
     try:
-        for upload in uploads:
-            parts = _safe_upload_parts(upload.name)
-            if any(part.startswith(".") for part in parts):
-                continue
-            root = _clean_directory_name(parts[0]) if len(parts) > 1 else "uploaded-directory"
-            relative_parts = parts[1:] if len(parts) > 1 else parts
-            grouped.setdefault(root, []).append((relative_parts, upload))
+        for parts, content in entries:
+            root = _clean_directory_name(parts[0])
+            grouped.setdefault(root, []).append((parts[1:], content))
     except ValueError as exc:
         st.error(str(exc))
         return
@@ -877,10 +1016,10 @@ def _do_directory_upload(uploads, dir_domain):
     for root_name, entries in grouped.items():
         target_root = _available_directory(domain_dir, root_name)
         copied_roots.append(target_root.name)
-        for relative_parts, upload in entries:
+        for relative_parts, content in entries:
             destination = target_root.joinpath(*relative_parts)
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(upload.getvalue())
+            destination.write_bytes(content)
             saved.append(destination)
 
     if not saved:
@@ -898,6 +1037,7 @@ def _do_directory_upload(uploads, dir_domain):
     )
     with st.spinner("解析 → 清洗 → 切片 → 向量化 → 入库……"):
         summary = ingest_files(paths=ingest_paths)
+    st.session_state["processed_directory_batch"] = batch_id
     _show_ingest_result(summary)
 
 
@@ -940,7 +1080,9 @@ def _show_ingest_result(summary):
 # ---------------------------------------------------------------- 页面 3：知识管理台
 def page_manage():
     st.markdown('<div class="section-title">🗂 知识管理台</div>', unsafe_allow_html=True)
-    st.caption("选中任意一行，即可查看详情并执行：重新入库 / 归档 / 恢复 / 移除")
+    st.caption("勾选一个或多个文件，可批量移除知识；单选时还可以查看档案并执行重新入库、归档或恢复。")
+    if notice := st.session_state.pop("manage_action_notice", None):
+        st.toast(notice, icon="✅")
 
     # V3.6 跨文档知识总结
     with st.expander("📝 知识总结（跨文档综合）"):
@@ -1041,7 +1183,7 @@ def page_manage():
         rows,
         width="stretch",
         hide_index=True,
-        key="manage_document_table",
+        key=f"manage_document_table_{st.session_state.get('manage_table_revision', 0)}",
         column_config={
             "_id": None,
             "选择": st.column_config.CheckboxColumn("选择", help="勾选一个或多个知识文件"),
@@ -1055,8 +1197,48 @@ def page_manage():
     if not selected_ids:
         return
 
+    selected_documents = []
+    selected_paths: set[str] = set()
+    for item in filtered:
+        if item["document_id"] in selected_ids and item["path"] not in selected_paths:
+            selected_documents.append(item)
+            selected_paths.add(item["path"])
+
+    def _request_manage_remove(delete_files: bool) -> None:
+        st.session_state["manage_remove_request"] = {
+            "paths": [item["path"] for item in selected_documents],
+            "names": [item["source"] for item in selected_documents],
+            "delete_files": delete_files,
+        }
+
+    st.markdown("#### 批量操作" if len(selected_documents) > 1 else "#### 文件操作")
+    action_info, remove_index_col, remove_disk_col = st.columns(
+        [2.2, 1.35, 1.7], vertical_alignment="center"
+    )
+    action_info.caption(
+        f"已选择 {len(selected_documents)} 个文件。两种移除操作都会清除其全部知识卡片。"
+    )
+    remove_index_col.button(
+        "移除向量知识",
+        icon=":material/delete_sweep:",
+        width="stretch",
+        key="manage_remove_index",
+        help="只从向量知识库移除，磁盘文件保留，可再次入库",
+        on_click=_request_manage_remove,
+        args=(False,),
+    )
+    remove_disk_col.button(
+        "移除知识并删除文件",
+        icon=":material/delete_forever:",
+        width="stretch",
+        key="manage_remove_disk",
+        help="从向量知识库移除，并永久删除对应磁盘文件",
+        on_click=_request_manage_remove,
+        args=(True,),
+    )
+
     if len(selected_ids) > 1:
-        st.info(f"已选择 {len(selected_ids)} 个文件。为避免误操作，档案详情和单文件操作仅在只选中一项时显示。")
+        st.info("批量选择时不显示单文件档案；清空选择或只保留一项即可查看详情。")
         return
 
     selected_id = next(iter(selected_ids))
@@ -1077,30 +1259,24 @@ def page_manage():
         st.caption(f"`{d['document_id']}`　共 {d['chunks']} 张知识卡片")
     with head_r:
         is_archived = d["path"].split("/")[0] == "archive"
-        btn1, btn2, btn3 = st.columns(3)
+        btn1, btn2 = st.columns(2)
         reingest_btn = btn1.button("📥 重新入库", width="stretch", key="act_reingest",
                                    help="文件内容修改后，重新解析入库")
         archive_btn = btn2.button("🗄 归档", width="stretch", key="act_archive",
                                   disabled=is_archived, help="移入 archive/ 目录，退出日常检索")
         restore_btn = btn2.button("🔄 恢复", width="stretch", key="act_restore",
                                   disabled=not is_archived, help="移回原目录，重新参与检索")
-        remove_confirm = btn3.checkbox("确认移除", key=f"confirm_{d['document_id']}")
-        remove_btn = btn3.button("🗑 移除", width="stretch", key="act_remove",
-                                 disabled=not remove_confirm,
-                                 help="只从向量库删除知识，磁盘文件保留")
 
         actions = [
             (reingest_btn, lambda: reingest_file(d["path"])),
             (archive_btn, lambda: archive_file(d["path"])),
             (restore_btn, lambda: restore_file(d["path"])),
-            (remove_btn, lambda: remove_from_index(d["path"])),
         ]
         for btn, fn in actions:
             if btn:
                 try:
                     info = fn()
                     st.toast(info["message"], icon="✅")
-                    st.session_state.pop(f"confirm_{d['document_id']}", None)
                     st.rerun()
                 except ManageError as exc:
                     st.error(str(exc))
@@ -1294,20 +1470,29 @@ def page_learning():
         st.info("学习笔记文件 realize.md 不存在。")
 
 
+chat_page = st.Page(page_chat, title="知识库问答", icon="💬", url_path="chat", default=True)
+upload_page = st.Page(page_upload, title="上传文档", icon="📤", url_path="upload")
+manage_page = st.Page(page_manage, title="知识库管理", icon="🗂", url_path="manage")
+retrieval_page = st.Page(page_retrieval_settings, title="检索设置", icon="🔍", url_path="settings-retrieval")
+maintenance_page = st.Page(page_maintenance, title="维护操作", icon="🧹", url_path="settings-maintenance")
+status_page = st.Page(page_system_status, title="系统状态", icon="📊", url_path="settings-status")
+params_page = st.Page(page_params_overview, title="参数总览", icon="🧾", url_path="settings-params")
+learning_page = st.Page(page_learning, title="RAG 实现全解", icon="📖", url_path="learn")
+
 pg = st.navigation({
     "知识库": [
-        st.Page(page_chat, title="知识库问答", icon="💬", url_path="chat", default=True),
-        st.Page(page_upload, title="上传文档", icon="📤", url_path="upload"),
-        st.Page(page_manage, title="知识库管理", icon="🗂", url_path="manage"),
+        chat_page,
+        upload_page,
+        manage_page,
     ],
     "设置": [
-        st.Page(page_retrieval_settings, title="检索设置", icon="🔍", url_path="settings-retrieval"),
-        st.Page(page_maintenance, title="维护操作", icon="🧹", url_path="settings-maintenance"),
-        st.Page(page_system_status, title="系统状态", icon="📊", url_path="settings-status"),
-        st.Page(page_params_overview, title="参数总览", icon="🧾", url_path="settings-params"),
+        retrieval_page,
+        maintenance_page,
+        status_page,
+        params_page,
     ],
     "学习": [
-        st.Page(page_learning, title="RAG 实现全解", icon="📖", url_path="learn"),
+        learning_page,
     ],
 })
 
@@ -1316,32 +1501,35 @@ pg.run()
 with st.sidebar:
     with st.container(key="sidebar_footer"):
         sessions = list_sessions(10)
-        with st.expander(f"🕘 历史会话 · {len(sessions)}", expanded=False):
+        keep_history_expanded = st.session_state.pop("keep_history_expanded_once", False)
+        with st.expander(
+            f"🕘 历史会话 · {len(sessions)}",
+            expanded=keep_history_expanded,
+        ):
             if sessions:
                 for s in sessions:
                     with st.container(key=f"session_item_{s['session_id']}"):
-                        sc1, sc2 = st.columns([8.5, 1], vertical_alignment="center")
-                        with sc1:
-                            def _load_cb(sid=s["session_id"]):
-                                st.session_state["__load_session"] = sid
-                            title = s["title"].strip() or "未命名会话"
-                            if st.button(title[:24], key=f"hs_{s['session_id']}",
-                                         on_click=_load_cb, use_container_width=True):
-                                pass
-                        with sc2:
-                            def _request_del_cb(sid=s["session_id"], session_title=title):
-                                st.session_state["delete_session_request"] = {
-                                    "session_id": sid,
-                                    "title": session_title,
-                                }
-                            st.button(
-                                "删除",
-                                key=f"del_{s['session_id']}",
-                                on_click=_request_del_cb,
-                                help=f"删除会话：{title}",
-                                icon=":material/delete:",
-                                type="tertiary",
+                        title = s["title"].strip() or "未命名会话"
+                        with st.container(key=f"hs_{s['session_id']}"):
+                            st.page_link(
+                                chat_page,
+                                label=title[:24],
+                                query_params={"load": s["session_id"]},
+                                width="stretch",
                             )
+                        def _request_del_cb(sid=s["session_id"], session_title=title):
+                            st.session_state["delete_session_request"] = {
+                                "session_id": sid,
+                                "title": session_title,
+                            }
+                        st.button(
+                            "删除",
+                            key=f"del_{s['session_id']}",
+                            on_click=_request_del_cb,
+                            help=f"删除会话：{title}",
+                            icon=":material/delete:",
+                            type="tertiary",
+                        )
                         updated = s["updated_at"]
                         when = updated[5:16] if len(updated) >= 16 else updated
                         st.caption(f"{when}　·　{s['count']} 条消息")
@@ -1370,3 +1558,5 @@ with st.sidebar:
 
 if st.session_state.get("delete_session_request"):
     confirm_session_delete()
+elif st.session_state.get("manage_remove_request"):
+    confirm_manage_remove()

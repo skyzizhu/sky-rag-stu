@@ -1,9 +1,10 @@
-"""知识库管理操作：单个文件的 重新入库 / 归档 / 恢复 / 移除。
+"""知识库管理操作：重新入库 / 归档 / 恢复 / 批量移除。
 
 产品视角：这是「知识管理台」的后台——
 - 归档：把文件移进 knowledge/archive/，它自动变为 status=archive，退出日常检索
 - 恢复：把归档文件移回原目录，重新变为 active
-- 移除：只从向量库删掉这张文档的知识（磁盘文件保留，可随时重新入库）
+- 移除知识：从向量库删除，磁盘文件保留，可随时重新入库
+- 删除文件：从向量库删除并删除磁盘文件；二级目录无文件时一并清理
 """
 
 from __future__ import annotations
@@ -25,10 +26,47 @@ class ManageError(Exception):
 def _resolve(relative_path: str, cfg: AppConfig | None = None) -> tuple[Path, Path, AppConfig]:
     """把相对路径解析成 (绝对路径, 知识目录, 配置)，并检查文件存在。"""
     cfg = cfg or get_config()
-    path = (cfg.knowledge_dir / relative_path).resolve()
+    knowledge_dir = cfg.knowledge_dir.resolve()
+    path = (knowledge_dir / relative_path).resolve()
+    try:
+        path.relative_to(knowledge_dir)
+    except ValueError as exc:
+        raise ManageError(f"非法知识文件路径：{relative_path}") from exc
     if not path.is_file():
         raise ManageError(f"文件不在磁盘上：{relative_path}（可能已被移动或删除）")
-    return path, cfg.knowledge_dir, cfg
+    return path, knowledge_dir, cfg
+
+
+def _safe_knowledge_path(relative_path: str, cfg: AppConfig) -> Path:
+    """解析知识目录内路径但不要求文件存在，供仅删除向量的操作使用。"""
+    knowledge_dir = cfg.knowledge_dir.resolve()
+    path = (knowledge_dir / relative_path).resolve()
+    try:
+        path.relative_to(knowledge_dir)
+    except ValueError as exc:
+        raise ManageError(f"非法知识文件路径：{relative_path}") from exc
+    return path
+
+
+def _second_level_directory(relative_path: str, knowledge_dir: Path) -> Path | None:
+    """返回 domain/category 二级目录；根目录或一级目录文件不触发目录清理。"""
+    parts = Path(relative_path.replace("\\", "/")).parts
+    if len(parts) < 3 or parts[0] in ("", ".", "..") or parts[1] in ("", ".", ".."):
+        return None
+    directory = (knowledge_dir / parts[0] / parts[1]).resolve()
+    try:
+        directory.relative_to(knowledge_dir.resolve())
+    except ValueError:
+        return None
+    return directory
+
+
+def _has_user_files(directory: Path) -> bool:
+    """目录内是否仍有用户文件；.DS_Store/.gitkeep 等隐藏占位文件不计入。"""
+    return directory.exists() and any(
+        path.is_file() and not path.name.startswith(".")
+        for path in directory.rglob("*")
+    )
 
 
 def reingest(relative_path: str) -> dict:
@@ -149,11 +187,86 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
     return {"message": f"已更新档案：{relative_path}（{len(clean)} 个字段）"}
 
 
-def remove_from_index(relative_path: str) -> dict:
-    """只从向量库移除该文档的全部知识卡片；磁盘文件保留，可随时重新入库。"""
-    _, _, cfg = _resolve(relative_path)
-    from src.metadata import document_id_for
+def remove_documents(relative_paths: list[str], delete_files: bool = False) -> dict:
+    """批量移除知识；可选同时删除磁盘文件并清理空的二级目录。
+
+    所有路径会在执行前完成安全校验。无论是否删除磁盘文件，都同步移除增量
+    入库台账记录，确保保留在磁盘上的文件之后可以正常重新入库。
+    """
+    paths = list(dict.fromkeys(str(path).strip() for path in relative_paths if str(path).strip()))
+    if not paths:
+        raise ManageError("没有选择需要移除的知识文件。")
+
+    cfg = get_config()
+    knowledge_dir = cfg.knowledge_dir.resolve()
+    resolved = {relative_path: _safe_knowledge_path(relative_path, cfg) for relative_path in paths}
+    if delete_files:
+        missing = [relative_path for relative_path, path in resolved.items() if not path.is_file()]
+        if missing:
+            preview = "、".join(missing[:3])
+            suffix = f" 等 {len(missing)} 个文件" if len(missing) > 3 else ""
+            raise ManageError(f"磁盘文件不存在，已取消本次操作：{preview}{suffix}")
 
     store = get_vector_store()
-    removed = store.delete_documents([document_id_for(relative_path)])
-    return {"message": f"已从知识库移除：{relative_path}（磁盘文件保留，重新入库即可恢复）"}
+    document_ids = [document_id_for(relative_path) for relative_path in paths]
+    store.delete_documents(document_ids)
+
+    from src import index_state as istate
+
+    state = istate.load_state()
+    for relative_path in paths:
+        istate.remove_entry(state, relative_path)
+    istate.save_state(state)
+
+    deleted_files: list[str] = []
+    cleaned_directories: list[str] = []
+    if delete_files:
+        candidate_directories = {
+            directory
+            for relative_path in paths
+            if (directory := _second_level_directory(relative_path, knowledge_dir)) is not None
+        }
+        for relative_path, path in resolved.items():
+            try:
+                path.unlink()
+            except OSError as exc:
+                raise ManageError(
+                    f"向量知识已移除，但磁盘文件删除失败：{relative_path}（{exc}）"
+                ) from exc
+            deleted_files.append(relative_path)
+
+        # 只删除 domain/category；一级领域目录永远保留。
+        for directory in sorted(candidate_directories, key=lambda path: len(path.parts), reverse=True):
+            if directory.is_dir() and not _has_user_files(directory):
+                try:
+                    shutil.rmtree(directory)
+                except OSError as exc:
+                    raise ManageError(
+                        f"文件已删除，但空二级目录清理失败："
+                        f"{directory.relative_to(knowledge_dir).as_posix()}（{exc}）"
+                    ) from exc
+                cleaned_directories.append(directory.relative_to(knowledge_dir).as_posix())
+
+    count = len(paths)
+    if delete_files:
+        message = f"已从知识库移除并删除 {count} 个磁盘文件"
+        if cleaned_directories:
+            message += f"；已清理 {len(cleaned_directories)} 个空二级目录"
+    else:
+        message = f"已从向量知识库移除 {count} 个文件（磁盘文件保留，可重新入库）"
+    return {
+        "message": message,
+        "removed": paths,
+        "deleted_files": deleted_files,
+        "cleaned_directories": cleaned_directories,
+    }
+
+
+def remove_from_index(relative_path: str) -> dict:
+    """只从向量库移除单个文档；兼容原有调用。"""
+    return remove_documents([relative_path], delete_files=False)
+
+
+def remove_from_index_and_disk(relative_path: str) -> dict:
+    """从向量库移除单个文档并删除磁盘文件；兼容单文件调用。"""
+    return remove_documents([relative_path], delete_files=True)
