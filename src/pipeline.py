@@ -276,8 +276,13 @@ def answer_stream(
     use_hybrid: bool = True,
     use_rerank: bool = True,
     history: list[dict] | None = None,
+    on_progress=None,
     config: AppConfig | None = None,
 ):
+    def _p(msg):
+        if on_progress:
+            on_progress(msg)
+
     """流式问答：history 传入最近对话实现多轮（解析代词+上下文），不增加 LLM 调用。
 
     生成器迭代结束后，result.answer / result.elapsed / result.trace 才是完整值。
@@ -377,6 +382,7 @@ def answer_stream(
     qu_filters: dict = {}
     qu = None
     if use_query_understanding and use_llm:
+        _p("🧠 Query 理解中…")
         qu_start = now_str()
         llm = get_llm_client()
         try:
@@ -422,6 +428,7 @@ def answer_stream(
     if qu and qu.ok and qu.time_range:
         merged_filters["updated_at"] = qu.time_range  # V3.2 时间感知：按文档时间过滤
     result.filters = effective_filters(merged_filters)
+    _p("🔍 数据检索中…")
     t0 = time.time()
     result.retrieved = retriever.retrieve(
         search_query, top_k=recall_k, filters=merged_filters, trace=trace,
@@ -456,6 +463,7 @@ def answer_stream(
     result.elapsed["retrieval"] = time.time() - t0
     # 节点 ⑦：Rerank 精排（V2.5：LLM 逐条打分，宽召回精选）
     if use_rerank_now and result.retrieved:
+        _p("🏆 Rerank 精排中…")
         rr_start = now_str()
         t_rr = time.time()
         outcome = rerank_items(question, result.retrieved, top_k=top_k,
@@ -492,6 +500,7 @@ def answer_stream(
             items=[("说明", "开启后：召回先扩宽（默认 10 条候选），LLM 逐条打分精排，再取 Top K 进入回答")],
         ))
 
+    _p("📦 整理资料中…")
     # 节点 ⑧ 合并 / 去重 + 节点 ⑨ 上下文组装（V2.6：文档多样性 + 相邻补全）
     # 精排后不再截断候选池，由组装规则在全部候选中选出最终进入回答的 Top K
     merge_start = now_str()
@@ -571,6 +580,7 @@ def answer_stream(
 
     # 节点 ⑪⑫：LLM 生成 + 后处理（流式结束后写入）
     def _generate():
+        _p("✍️ 生成回答中…")
         llm_start = now_str()
         t3 = time.time()
         text = ""

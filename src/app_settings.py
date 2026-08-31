@@ -22,6 +22,7 @@ SETTINGS_KEYS = [
     "query_understanding",
     "hybrid_search",
     "rerank",
+    "theme",
 ]
 
 

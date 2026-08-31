@@ -54,6 +54,7 @@ st.session_state.setdefault("scope_choice", "仅 active")
 st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
 st.session_state.setdefault("session_id", new_session_id())
+st.session_state.setdefault("theme", "system")  # system / light / dark
 
 # 载入历史会话（侧边栏列表点击后在此处理；支持 URL 参数 ?load=会话ID）
 load_target = st.session_state.pop("__load_session", None)
@@ -92,19 +93,65 @@ if "app_settings_loaded" not in st.session_state:
 # ---------------------------------------------------------------- 全局样式
 CSS = """
 <style>
+/* ==================== 主题变量系统 ==================== */
+:root {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F7FB;
+  --bg-card: rgba(148,163,184,.03);
+  --bg-sidebar: linear-gradient(180deg, #F8FAFF, #F2F5FA);
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --border-subtle: rgba(148,163,184,.1);
+  --border-hover: rgba(99,102,241,.2);
+  --accent: #6366F1;
+  --accent-light: rgba(99,102,241,.06);
+  --accent-text: #818CF8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.theme-light) {
+    --bg-primary: #0B0F1A;
+    --bg-secondary: #111827;
+    --bg-card: rgba(148,163,184,.03);
+    --bg-sidebar: linear-gradient(180deg, #0F1523, #0B1018);
+    --text-primary: #E2E8F0;
+    --text-secondary: #94A3B8;
+    --text-muted: #475569;
+    --border-subtle: rgba(148,163,184,.08);
+    --border-hover: rgba(129,140,248,.15);
+    --accent: #818CF8;
+    --accent-light: rgba(99,102,241,.08);
+    --accent-text: #A5B4FC;
+  }
+}
+:root.theme-dark {
+  --bg-primary: #0B0F1A;
+  --bg-secondary: #111827;
+  --bg-card: rgba(148,163,184,.03);
+  --bg-sidebar: linear-gradient(180deg, #0F1523, #0B1018);
+  --text-primary: #E2E8F0;
+  --text-secondary: #94A3B8;
+  --text-muted: #475569;
+  --border-subtle: rgba(148,163,184,.08);
+  --border-hover: rgba(129,140,248,.15);
+  --accent: #818CF8;
+  --accent-light: rgba(99,102,241,.08);
+  --accent-text: #A5B4FC;
+}
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 #MainMenu, footer, [data-testid="stStatusWidget"] {display: none !important;}
 [data-testid="stAppDeployButton"] {display: none !important;}
 header[data-testid="stHeader"] {background: transparent !important;}
 html, body, .stApp, .stMarkdown, p, span, div, button, input, textarea {
   font-family: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif !important;}
-.stApp {background: #0B0F1A !important; color: #E2E8F0 !important;}
+.material-icons, [class*='material-icons'] {font-family: 'Material Icons' !important;}
+.stApp {background: var(--bg-primary) !important; color: var(--text-primary) !important;}
 .block-container {padding-top: 1.2rem !important; padding-bottom: 10rem !important; max-width: 1280px !important;}
-[data-testid="stSidebar"] {background: linear-gradient(180deg, #0F1523, #0B1018) !important;
+[data-testid="stSidebar"] {background: var(--bg-sidebar) !important;
   border-right: 1px solid rgba(148,163,184,.08) !important; min-width: 250px !important;}
 [data-testid="stSidebar"] .block-container {padding-top: 1.2rem !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label {border-radius: 10px; padding: 4px 12px;
-  margin: 1px 0; transition: all .2s; font-weight: 500; font-size: .82rem; color: #94A3B8 !important;}
+  margin: 1px 0; transition: all .2s; font-weight: 500; font-size: .82rem; color: var(--text-secondary) !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {background: rgba(99,102,241,.08); color: #C7D2FE !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
   background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(139,92,246,.1));
@@ -122,10 +169,10 @@ html, body, .stApp, .stMarkdown, p, span, div, button, input, textarea {
 .stButton > button[kind="primary"]:hover {filter: brightness(1.1); transform: translateY(-1px);}
 .stTextInput input, .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea {
   border-radius: 10px !important; border-color: rgba(148,163,184,.1) !important;
-  background: rgba(148,163,184,.03) !important; color: #E2E8F0 !important; font-size: .85rem !important;}
+  background: rgba(148,163,184,.03) !important; color: var(--text-primary) !important; font-size: .85rem !important;}
 .stTextInput input:focus, .stTextArea textarea:focus {
   border-color: #818CF8 !important; box-shadow: 0 0 0 3px rgba(99,102,241,.1) !important;}
-div[data-baseweb="radio"] label {color: #94A3B8 !important;}
+div[data-baseweb="radio"] label {color: var(--text-secondary) !important;}
 [data-testid="stChatMessage"] {border-radius: 16px; border: 1px solid rgba(148,163,184,.06);
   background: rgba(148,163,184,.02); padding: 8px 14px; margin-bottom: 6px;}
 [data-testid="stChatMessage"]:has(.user-bubble) {flex-direction: row-reverse;
@@ -138,10 +185,10 @@ div[data-baseweb="radio"] label {color: #94A3B8 !important;}
 [data-testid="stBottom"] {position: fixed !important; bottom: 10px !important;
   left: 50% !important; transform: translateX(-50%); width: min(920px, 94vw) !important; z-index: 200;}
 [data-testid="stChatInput"] {border-radius: 24px !important;
-  border: 1px solid rgba(148,163,184,.12) !important; background: #111827 !important;
+  border: 1px solid rgba(148,163,184,.12) !important; background: var(--bg-secondary) !important;
   box-shadow: 0 8px 32px rgba(0,0,0,.4) !important;}
 [data-testid="stChatInput"] textarea {border-radius: 24px !important;
-  background: transparent !important; color: #E2E8F0 !important;}
+  background: transparent !important; color: var(--text-primary) !important;}
 .hero {background: linear-gradient(135deg, #1E1B4B, #312E81 40%, #4338CA);
   border-radius: 20px; padding: 28px 32px; color: #E0E7FF; margin-bottom: 14px;
   border: 1px solid rgba(129,140,248,.15);}
@@ -154,7 +201,7 @@ div[data-baseweb="radio"] label {color: #94A3B8 !important;}
   border: 1px solid rgba(148,163,184,.08); border-radius: 16px; padding: 16px 18px;}
 [data-testid="stMetric"]:hover {border-color: rgba(129,140,248,.15);}
 [data-testid="stMetric"] label {color: #94A3B8 !important; font-size: .75rem !important;}
-[data-testid="stMetric"] [data-testid="stMetricValue"] {color: #E2E8F0 !important;}
+[data-testid="stMetric"] [data-testid="stMetricValue"] {color: var(--text-primary) !important;}
 [data-testid="stDataFrame"] {border-radius: 14px !important; overflow: hidden;
   border: 1px solid rgba(148,163,184,.08) !important;}
 .tag {display: inline-block; border-radius: 999px; padding: 2px 10px;
@@ -191,6 +238,35 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
+
+# 主题覆盖：非"跟随系统"时强制对应主题
+_theme = st.session_state.get("theme", "system")
+if _theme == "dark":
+    st.markdown("<style>:root{--bg-primary:#0B0F1A!important;--bg-secondary:#111827!important;"
+                "--bg-sidebar:linear-gradient(180deg,#0F1523,#0B1018)!important;"
+                "--text-primary:#E2E8F0!important;--text-secondary:#94A3B8!important;"
+                "--text-muted:#475569!important;--border-subtle:rgba(148,163,184,.08)!important;"
+                "--accent:#818CF8!important;--accent-text:#A5B4FC!important;}"
+                ".stApp{background:#0B0F1A!important;color:#E2E8F0!important;}"
+                "[data-testid='stSidebar']{background:linear-gradient(180deg,#0F1523,#0B1018)!important;}"
+                "[data-testid='stChatInput']{background:#111827!important;}"
+                "[data-testid='stChatInput'] textarea{color:#E2E8F0!important;}"
+                ".stTextInput input,.stTextArea textarea{background:rgba(148,163,184,.03)!important;"
+                "color:#E2E8F0!important;border-color:rgba(148,163,184,.1)!important;}"
+                "</style>", unsafe_allow_html=True)
+elif _theme == "light":
+    st.markdown("<style>:root{--bg-primary:#FFFFFF!important;--bg-secondary:#F5F7FB!important;"
+                "--bg-sidebar:linear-gradient(180deg,#F8FAFF,#F2F5FA)!important;"
+                "--text-primary:#1E293B!important;--text-secondary:#64748B!important;"
+                "--text-muted:#94A3B8!important;--border-subtle:rgba(148,163,184,.1)!important;"
+                "--accent:#6366F1!important;--accent-text:#818CF8!important;}"
+                ".stApp{background:#FFFFFF!important;color:#1E293B!important;}"
+                "[data-testid='stSidebar']{background:linear-gradient(180deg,#F8FAFF,#F2F5FA)!important;}"
+                "[data-testid='stChatInput']{background:#FFFFFF!important;}"
+                "[data-testid='stChatInput'] textarea{color:#1E293B!important;}"
+                ".stTextInput input,.stTextArea textarea{background:rgba(148,163,184,.03)!important;"
+                "color:#1E293B!important;}"
+                "</style>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------- 服务与工具
@@ -395,7 +471,10 @@ def page_chat():
                 st.session_state.messages.append({"role": "assistant", "content": "（未配置 LLM API Key）"})
                 return
             try:
-                with st.spinner("🔍 正在检索知识库……"):
+                progress_ph = st.empty()  # 实时进度占位符
+                def _show_progress(msg):
+                    progress_ph.markdown(f"⏳ {msg}")
+                if True:  # 保持缩进层级
                     # 传入历史消息实现多轮对话（Query 理解解析代词 + LLM 上下文连贯）
                     chat_history = [
                         {"role": m["role"], "content": m["content"]}
@@ -410,7 +489,9 @@ def page_chat():
                         use_hybrid=st.session_state["hybrid_search"],
                         use_rerank=st.session_state["rerank"],
                         history=chat_history,
+                        on_progress=_show_progress,
                     )
+                progress_ph.empty()
                 full_text = st.write_stream(deltas)
                 show_answer_sources(result)
                 st.session_state.messages.append(
@@ -639,6 +720,20 @@ def page_manage():
 
 # ---------------------------------------------------------------- 页面 4：检索设置
 def page_retrieval_settings():
+    st.markdown('<div class="section-title">🎨 外观</div>', unsafe_allow_html=True)
+    theme_labels = {"system": "🖥 跟随系统", "light": "☀️ 浅色", "dark": "🌙 深色"}
+    current_theme = st.session_state.get("theme", "system")
+    theme_choice = st.radio("界面主题", list(theme_labels.keys()),
+                            format_func=lambda k: theme_labels[k],
+                            index=list(theme_labels.keys()).index(current_theme),
+                            horizontal=True, key="set_theme_ui")
+    if theme_choice != current_theme:
+        st.session_state["theme"] = theme_choice
+        from src.app_settings import save_app_settings, SETTINGS_KEYS
+        save_app_settings({k: st.session_state.get(k) for k in SETTINGS_KEYS if k in st.session_state})
+        st.rerun()
+
+    st.divider()
     st.markdown('<div class="section-title">🔍 检索设置</div>', unsafe_allow_html=True)
     st.caption("这里的设置对「知识库问答」页即时生效")
 
@@ -808,15 +903,22 @@ with st.sidebar:
         sessions = list_sessions(10)
 
         if sessions:
-            for i, s in enumerate(sessions):
-                title_short = s["title"][:22]
-                time_short = s["updated_at"][5:16]
-                def _load_cb(session_id=s["session_id"]):
-                    st.session_state["__load_session"] = session_id
-                if st.button(f"📄 {title_short}", width="stretch",
-                             key=f"hs_{s['session_id']}", on_click=_load_cb):
-                    pass
-                st.caption(f"🕒 {time_short} · {s['count']} 条消息")
+            from src.sessions import SESSIONS_DIR
+            for s in sessions:
+                title = s["title"][:24]
+                time_str = s["updated_at"][5:16]
+                row1, row2 = st.columns([5, 1])
+                def _load_cb(sid=s["session_id"]):
+                    st.session_state["__load_session"] = sid
+                row1.button(f"💬 {title}", width="stretch",
+                            key=f"hs_{s['session_id']}", on_click=_load_cb)
+                def _del_cb(sid=s["session_id"]):
+                    f = SESSIONS_DIR / sid[:10] / f"{sid}.json"
+                    if f.exists():
+                        f.unlink()
+                row2.button("🗑", key=f"del_{s['session_id']}", on_click=_del_cb,
+                            help="删除此会话")
+                st.caption(f"🕒 {time_str} · {s['count']} 条", help=f"ID: {s['session_id']}")
         else:
             st.caption("暂无历史会话")
 
