@@ -574,7 +574,7 @@ def answer_stream(
         summary="把「任务说明书 + 资料附页 + 用户问题」组装成发给大模型的最终消息",
         items=[
             ("System Prompt（任务说明书）", messages[0]["content"]),
-            ("User Prompt（资料附页 + 问题）", messages[1]["content"]),
+            ("User Prompt（资料附页 + 问题，最终发给 LLM 的版本）", messages[-1]["content"]),
         ],
     ))
 
