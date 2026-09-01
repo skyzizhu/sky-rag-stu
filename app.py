@@ -363,7 +363,7 @@ body:has([data-testid="stSidebar"][aria-expanded="true"]) .st-key-chat_composer 
 [data-testid="stExpander"]:has(.debug-marker) summary div div {font-size: .78rem !important; color: #64748B !important;}
 .dbg-label {font-size: .72rem; font-weight: 600; color: #475569; margin: 10px 0 2px;
   text-transform: uppercase; letter-spacing: .03em;}
-pre.dbg {font-size: .72rem !important; line-height: 1.6; white-space: pre-wrap;
+pre.dbg, .dbg-content {font-size: .72rem !important; line-height: 1.6;
   word-break: break-word; background: rgba(11,15,26,.8);
   border: 1px solid rgba(148,163,184,.06); border-radius: 10px;
   padding: 8px 12px; margin: 2px 0 6px; color: #94A3B8;
@@ -748,7 +748,9 @@ def show_answer_sources(result) -> None:
                         st.markdown(f'<div class="dbg-label">{label}</div>', unsafe_allow_html=True)
                         if text:
                             shown = text if len(text) <= 6000 else text[:6000] + "……"
-                            st.markdown(f'<pre class="dbg">{shown}</pre>', unsafe_allow_html=True)
+                            # HTML 转义防止特殊字符破坏渲染，换行转 <br> 保证显示
+                            escaped = html.escape(shown).replace("\n", "<br>")
+                            st.markdown(f'<div class="dbg-content">{escaped}</div>', unsafe_allow_html=True)
                         else:
                             st.caption("（空）")
             if result.sources:
