@@ -469,7 +469,9 @@ def answer_stream(
         outcome = rerank_items(question, result.retrieved, top_k=top_k,
                                llm=get_llm_client(), config=cfg)
         rr_elapsed = time.time() - t_rr
-        # 不在这里截断：全部打分候选交给上下文组装，由「多样性 + Top K」规则统一精选
+        # 全部打分候选交给上下文组装，由「多样性 + Top K」规则统一精选
+        # 注意：不能按 Rerank 分数过滤 0 分卡片——实测发现 Rerank 可能误判
+        # （给含答案的卡片打 0 分），过滤后反而丢失正确内容
         result.retrieved = outcome.items
         trace.append(make_node(
             "🏆", "Rerank（精排）", time_str=rr_start,
