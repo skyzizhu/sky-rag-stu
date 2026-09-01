@@ -565,20 +565,11 @@ def answer_stream(
     if not use_llm:
         return result, iter(())
 
-    # 节点 ⑩：Prompt
+    # 节点 ⑩⑪：LLM 调用（Prompt 组装 + 生成回答，合并展示）
     t2 = time.time()
     messages = build_messages(context, question, history=history)
     llm = get_llm_client()
-    trace.append(make_node(
-        "📝", "Prompt", time_str=now_str(), elapsed=time.time() - t2,
-        summary="把「任务说明书 + 资料附页 + 用户问题」组装成发给大模型的最终消息",
-        items=[
-            ("System Prompt（任务说明书）", messages[0]["content"]),
-            ("User Prompt（资料附页 + 问题，最终发给 LLM 的版本）", messages[-1]["content"]),
-        ],
-    ))
 
-    # 节点 ⑪⑫：LLM 生成 + 后处理（流式结束后写入）
     def _generate():
         _p("✍️ 生成回答中…")
         llm_start = now_str()
@@ -593,12 +584,15 @@ def answer_stream(
             result.elapsed["llm"] = time.time() - t3
             result.elapsed["total"] = result.elapsed.get("retrieval", 0) + result.elapsed["llm"]
             trace.append(make_node(
-                "🤖", "LLM 生成", time_str=llm_start, elapsed=result.elapsed["llm"],
-                summary="云端大模型基于资料附页生成回答（流式输出，逐字返回）",
+                "🤖", "LLM 调用（Prompt 组装 + 生成回答）",
+                time_str=llm_start, elapsed=result.elapsed["llm"],
+                summary="把「任务说明书 + 资料附页 + 用户问题」组装成消息发给大模型，"
+                        "大模型基于资料流式生成回答",
                 items=[
                     ("模型", cfg.llm_model or "-"),
-                    ("输入规模", f"System {len(messages[0]['content'])} 字 + User {len(messages[1]['content'])} 字"),
-                    ("输出", f"{len(result.answer or '')} 字答案"),
+                    ("输入 · System Prompt（任务说明书）", messages[0]["content"]),
+                    ("输入 · User Prompt（资料附页 + 问题）", messages[-1]["content"]),
+                    ("输出 · LLM 生成的回答", result.answer or "（空）"),
                 ],
             ))
             trace.append(make_node(
