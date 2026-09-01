@@ -53,11 +53,14 @@ class LLMClient:
 
     @staticmethod
     def _clean_think_tags(text: str) -> str:
-        """去除 Ollama 推理模型（qwen3 等）输出的 <think>...</think> 标签。"""
-        if not text:
-            return text
+        """去除 Ollama 推理模型（qwen3 等）输出的 <think>...</think> 标签。
+
+        注意：只在确实包含 <think> 标签时才做 strip，
+        正常文本（含换行符）必须原样通过——否则会丢掉 LLM 的换行格式。
+        """
+        if not text or "<think>" not in text:
+            return text  # 没有 think 标签，原样返回（保留换行）
         cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
-        # 流式输出时 <think> 可能未闭合：去掉开头的 <think> 及其后的推理内容
         if "<think>" in cleaned and "</think>" not in cleaned:
             cleaned = cleaned.split("<think>")[-1].strip()
         return cleaned or text
