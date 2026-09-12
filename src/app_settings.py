@@ -23,6 +23,7 @@ SETTINGS_KEYS = [
     "hybrid_search",
     "rerank",
     "theme",
+    "installed_plugins",
 ]
 
 

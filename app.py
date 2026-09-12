@@ -41,6 +41,7 @@ from src.manage import (  # noqa: E402
 from src.metadata import DOMAINS, DOMAIN_LABELS  # noqa: E402
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
+from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import SESSIONS_DIR, list_sessions, load_session, new_session_id, save_session  # noqa: E402
 from src.vector_store import VectorStoreError, get_vector_store  # noqa: E402
 
@@ -886,7 +887,11 @@ def page_upload():
     st.markdown('<div class="section-title">导入知识</div>', unsafe_allow_html=True)
     st.caption(f"支持 {', '.join('.' + t for t in SUPPORTED_UPLOAD_TYPES)} · 文件会复制到领域目录后再入库")
 
-    tab_files, tab_dir = st.tabs(["📄 上传文件", "📁 导入目录"])
+    _tabs = ["📄 上传文件", "📁 导入目录"]
+    _has_web = is_installed("web_fetcher")
+    if _has_web:
+        _tabs.append("🌐 添加网页")
+    tab_files, tab_dir, tab_web = st.tabs(_tabs)
 
     with tab_files:
         col1, col2 = st.columns(2)
@@ -1460,6 +1465,37 @@ with st.sidebar:
             """,
             unsafe_allow_html=True,
         )
+
+# ---------------------------------------------------------------- 页面 7：插件管理
+def page_plugins():
+    st.markdown('<div class="section-title">🔌 插件管理</div>', unsafe_allow_html=True)
+    st.caption("插件是 RAG 的输入源扩展——安装后自动在上传页或管理台增加新功能入口")
+
+    installed = get_installed_plugins()
+
+    for pid, info in PLUGIN_REGISTRY.items():
+        is_on = pid in installed
+        with st.expander(f"{info['name']}　{'✅ 已安装' if is_on else '○ 未安装'}"):
+            st.markdown(f"**描述**　{info['description']}")
+            st.markdown(f"**版本**　v{info['version']}　·　**模块**　`{info['module']}`")
+
+            c1, c2 = st.columns(2)
+            if is_on:
+                if c2.button("🗑 卸载", key=f"uninstall_{pid}", use_container_width=True):
+                    uninstall_plugin(pid)
+                    st.rerun()
+                if c1.button("✅ 已安装", disabled=True, use_container_width=True, key=f"inst_{pid}"):
+                    pass
+            else:
+                if c1.button("📦 安装", key=f"install_{pid}", use_container_width=True, type="primary"):
+                    install_plugin(pid)
+                    st.rerun()
+                if c2.button("✅ 已安装", disabled=True, use_container_width=True, key=f"inst_{pid}"):
+                    pass
+
+    st.divider()
+    st.caption("💡 插件是 RAG 的输入源扩展——核心 RAG 流程不感知插件的存在，卸载不影响已有知识卡片。")
+
 
 # ---------------------------------------------------------------- 页面 8：学习笔记
 def page_learning():
