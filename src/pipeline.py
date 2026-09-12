@@ -72,8 +72,14 @@ def ingest_files(
     config: AppConfig | None = None,
     embedding_client: EmbeddingClient | None = None,
     store: VectorStore | None = None,
+    skip_unchanged: bool = False,
 ) -> IngestSummary:
-    """把文件送进知识库。paths 为空时扫描整个知识目录。"""
+    """把文件送进知识库。paths 为空时扫描整个知识目录。
+
+    增量判断（V3.1）：全库扫描始终做指纹跳过；显式传 paths 默认是强制
+    重新入库（管理台「重新入库」按钮的语义），skip_unchanged=True 可让
+    显式路径同样做指纹跳过（网页入库等"内容没变就别重跑"的场景）。
+    """
     cfg = config or get_config()
     embedding = embedding_client or get_embedding_client()
     vector_store = store or get_vector_store()
@@ -109,7 +115,7 @@ def ingest_files(
         except ValueError:
             pass
         current_hash = istate.file_hash(path)
-        if not explicit:
+        if not explicit or skip_unchanged:
             if state.get(rel, {}).get("hash") == current_hash:
                 summary.skipped_files.append(rel)
                 continue

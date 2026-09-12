@@ -283,8 +283,17 @@ def ingest_web_page(url: str, domain: str = "reference",
     result = fetch_and_parse(url)
     file_path = save_web_snapshot(url, result["text"], result.get("title", ""))
 
-    # 入库（走标准流水线）
-    summary = ingest_files(paths=[file_path])
+    # 入库（走标准流水线）：skip_unchanged 让同 URL 重复抓取时走增量判断，
+    # 网页内容没变就跳过（省 LLM 标签、切片和向量化）
+    summary = ingest_files(paths=[file_path], skip_unchanged=True)
+    if summary.skipped_files and not summary.ok_files:
+        return {
+            "message": f"网页内容未变化，已跳过入库：{url}（增量判断命中，省时省钱）",
+            "url": url,
+            "file_path": str(file_path),
+            "chunks": 0,
+            "skipped": True,
+        }
     if summary.ok_files:
         message = f"网页已入库：{url} → {file_path.name}（{summary.total_chunks} 张卡片）"
         if result.get("cert_skipped"):
