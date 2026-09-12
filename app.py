@@ -891,7 +891,10 @@ def page_upload():
     _has_web = is_installed("web_fetcher")
     if _has_web:
         _tabs.append("🌐 添加网页")
-    tab_files, tab_dir, tab_web = st.tabs(_tabs)
+    _tab_objs = st.tabs(_tabs)
+    tab_files = _tab_objs[0]
+    tab_dir = _tab_objs[1]
+    tab_web = _tab_objs[2] if _has_web else None
 
     with tab_files:
         col1, col2 = st.columns(2)
