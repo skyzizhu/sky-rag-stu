@@ -1518,6 +1518,7 @@ retrieval_page = st.Page(page_retrieval_settings, title="检索设置", icon="�
 maintenance_page = st.Page(page_maintenance, title="维护操作", icon="🧹", url_path="settings-maintenance")
 status_page = st.Page(page_system_status, title="系统状态", icon="📊", url_path="settings-status")
 params_page = st.Page(page_params_overview, title="参数总览", icon="🧾", url_path="settings-params")
+plugins_page = st.Page(page_plugins, title="插件管理", icon="🔌", url_path="plugins")
 learning_page = st.Page(page_learning, title="RAG 实现全解", icon="📖", url_path="learn")
 
 pg = st.navigation({
@@ -1534,6 +1535,9 @@ pg = st.navigation({
     ],
     "学习": [
         learning_page,
+    ],
+    "插件": [
+        plugins_page,
     ],
 })
 
