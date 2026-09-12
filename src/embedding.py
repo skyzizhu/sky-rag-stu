@@ -51,7 +51,8 @@ class EmbeddingClient:
     # ---------- 能力检查 ----------
     def model_available(self) -> bool:
         """检查配置的向量化模型是否已安装。"""
-        data = self._request("GET", "/api/tags", timeout=10)
+        # 状态灯只做在线/离线判断，超时要短：这里卡住会拖慢每一次页面交互
+        data = self._request("GET", "/api/tags", timeout=3)
         names = [m.get("name", "") for m in data.get("models", [])]
         return self.cfg.embedding_model in names
 

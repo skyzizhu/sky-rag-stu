@@ -278,16 +278,24 @@ def remove_from_index_and_disk(relative_path: str) -> dict:
 
 
 def ingest_web_page(url: str, domain: str = "reference",
-                    category: str = "webpages") -> dict:
+                    category: str = "webpages", on_progress=None) -> dict:
     """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
 
     流程：fetch URL → 提取正文 → 保存为 .md 快照到 knowledge/<domain>/<category>/ → 标准入库
+    on_progress(msg)：每个阶段开始时回调一次（界面用它显示分步进度）。
     """
     from src.web_fetcher import fetch_and_parse, save_web_snapshot
 
+    def _report(msg: str) -> None:
+        if on_progress:
+            on_progress(msg)
+
+    _report("fetch")
     result = fetch_and_parse(url)
+    _report("save")
     file_path = save_web_snapshot(url, result["text"], result.get("title", ""))
 
+    _report("ingest")
     # 入库（走标准流水线）：skip_unchanged 让同 URL 重复抓取时走增量判断，
     # 网页内容没变就跳过（省 LLM 标签、切片和向量化）
     summary = ingest_files(paths=[file_path], skip_unchanged=True)

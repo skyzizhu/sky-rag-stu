@@ -45,6 +45,7 @@ from src.i18n import (  # noqa: E402
     LANGUAGE_ORDER,
     LANGUAGES,
     browser_language,
+    current_language,
     domain_label_i18n,
     t,
     tr,
@@ -701,8 +702,11 @@ def _available_directory(parent: Path, preferred_name: str) -> Path:
     return parent / f"{preferred_name}-{index}"
 
 
-@st.cache_data(ttl=5)
-def system_status() -> dict[str, tuple[bool, str]]:
+@st.cache_data(ttl=30)
+def system_status(lang: str = "zh-CN") -> dict[str, tuple[bool, str]]:
+    """三盏灯检查（30 秒缓存）：Ollama/Qdrant 检查有网络开销，
+    不能每次页面交互都实时跑，否则按钮点击会被拖慢好几秒。
+    语言进缓存键：切语言后状态名称能立即更新。"""
     status: dict[str, tuple[bool, str]] = {}
     try:
         ok = services["embedding"].model_available()
@@ -727,7 +731,7 @@ def system_status() -> dict[str, tuple[bool, str]]:
 
 def status_pills() -> str:
     pills = []
-    for name, (ok, note) in system_status().items():
+    for name, (ok, note) in system_status(current_language()).items():
         pills.append(f'<span class="pill">{"✅" if ok else "❌"} {name} · {note}</span>')
     return "".join(pills)
 
@@ -1069,9 +1073,16 @@ def page_upload():
             if st.button(t("web.ingest"), disabled=not web_url.strip(), use_container_width=True, type="primary"):
                 from src.manage import ingest_web_page
                 try:
-                    with st.spinner(t("web.fetching")):
-                        result = ingest_web_page(web_url.strip(), domain=web_domain,
-                                                 category=web_category.strip().lower() or "webpages")
+                    # st.status 分步显示：抓取 → 保存 → 入库，点击后立刻有反馈，
+                    # 不再是笼统转圈等十几秒
+                    with st.status(t("web.status.working"), expanded=True) as status:
+                        st.write(t("web.status.fetch"))
+                        result = ingest_web_page(
+                            web_url.strip(), domain=web_domain,
+                            category=web_category.strip().lower() or "webpages",
+                            on_progress=lambda msg: st.write(tr(msg)),
+                        )
+                    status.update(label=t("web.status.done"), state="complete", expanded=False)
                     st.success(f"🎉 {result['message']}")
                 except Exception as exc:
                     st.error(t("web.failed", err=exc))
@@ -1582,7 +1593,7 @@ def page_maintenance():
 # ---------------------------------------------------------------- 页面 7：系统状态
 def page_system_status():
     st.markdown(f'<div class="section-title">{t("statuspage.title")}</div>', unsafe_allow_html=True)
-    for name, (ok, note) in system_status().items():
+    for name, (ok, note) in system_status(current_language()).items():
         dot = "🟢" if ok else "🔴"
         st.markdown(f"{dot} **{name}**　<span style='color:#64748B'>{note}</span>",
                     unsafe_allow_html=True)
@@ -1752,11 +1763,11 @@ with st.sidebar:
                     '<div style="text-align:center;font-size:.72rem;color:var(--text-muted);padding:18px 6px;line-height:1.7;">'
                     f'{t("sidebar.empty")}</div>', unsafe_allow_html=True)
 
-        ok_all = all(ok for ok, _ in system_status().values())
+        ok_all = all(ok for ok, _ in system_status(current_language()).values())
         status_emoji = "🟢" if ok_all else "🟡"
         status_text = t("sidebar.status.ok") if ok_all else t("sidebar.status.pending")
         status_detail = " · ".join(
-            f"{name}{'✓' if ok else '!'}" for name, (ok, _) in system_status().items()
+            f"{name}{'✓' if ok else '!'}" for name, (ok, _) in system_status(current_language()).items()
         )
         st.markdown(
             f"""

@@ -89,8 +89,11 @@ def tr(text: str) -> str:
     key = _DYNAMIC.get(text)
     if key is None:
         return text
+    # 先查动态目录，再回退主目录（dyn.web.* 等状态文案放在主目录）
     return _DYNAMIC_CATALOG.get(current_language(), {}).get(key) \
-        or _DYNAMIC_CATALOG[DEFAULT_LANGUAGE].get(key) or text
+        or _DYNAMIC_CATALOG[DEFAULT_LANGUAGE].get(key) \
+        or _CATALOG.get(current_language(), {}).get(key) \
+        or _CATALOG[DEFAULT_LANGUAGE].get(key) or text
 
 
 # 语言切换不影响领域枚举本身：给 app 层一个便捷函数
@@ -110,6 +113,12 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 简体中文（基准语言） ----------------
     "zh-CN": {
+        "web.status.working": "正在抓取并入库网页……",
+        "web.status.done": "网页入库完成",
+        "web.status.fetch": "🌐 抓取网页正文……",
+        "dyn.web.fetch": "🌐 正在抓取网页……",
+        "dyn.web.save": "💾 已保存网页快照",
+        "dyn.web.ingest": "🧩 清洗 → 切片 → 向量化 → 入库（含 LLM 自动标签，约 10 秒）……",
         "lang.system": "跟随系统",
         "sources.relevance": "相关度",
         "ingest.col.path": "路径",
@@ -421,6 +430,12 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 繁體中文 ----------------
     "zh-TW": {
+        "web.status.working": "正在擷取並入庫網頁……",
+        "web.status.done": "網頁入庫完成",
+        "web.status.fetch": "🌐 擷取網頁正文……",
+        "dyn.web.fetch": "🌐 正在擷取網頁……",
+        "dyn.web.save": "💾 已儲存網頁快照",
+        "dyn.web.ingest": "🧩 清洗 → 切片 → 向量化 → 入庫（含 LLM 自動標籤，約 10 秒）……",
         "lang.system": "跟隨系統",
         "sources.relevance": "相關度",
         "ingest.col.path": "路徑",
@@ -711,6 +726,12 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- English ----------------
     "en": {
+        "web.status.working": "Fetching & ingesting the page……",
+        "web.status.done": "Page ingested",
+        "web.status.fetch": "🌐 Fetching the page body……",
+        "dyn.web.fetch": "🌐 Fetching the page…",
+        "dyn.web.save": "💾 Snapshot saved",
+        "dyn.web.ingest": "🧩 Clean → chunk → embed → ingest (incl. LLM auto-tagging, ~10s)……",
         "lang.system": "Follow system",
         "sources.relevance": "relevance",
         "ingest.col.path": "Path",
@@ -1001,6 +1022,12 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 日本語 ----------------
     "ja": {
+        "web.status.working": "Webページを取得・取り込み中……",
+        "web.status.done": "取り込み完了",
+        "web.status.fetch": "🌐 ページ本文を取得中……",
+        "dyn.web.fetch": "🌐 ページを取得中……",
+        "dyn.web.save": "💾 スナップショットを保存しました",
+        "dyn.web.ingest": "🧩 クリーニング → チャンク分割 → 埋め込み → 取り込み（LLM 自動タグ含む、約10秒）……",
         "lang.system": "システムに従う",
         "sources.relevance": "関連度",
         "ingest.col.path": "パス",
@@ -1292,6 +1319,10 @@ _CATALOG: dict[str, dict[str, str]] = {
 
 # 流水线层发来的动态文本（简体中文原文 → 目录 key）
 _DYNAMIC: dict[str, str] = {
+    '正在抓取网页……': 'dyn.web.fetch',
+    '正在保存快照……': 'dyn.web.save',
+    '正在解析入库（自动标签 + 向量化，约 10 秒）……': 'dyn.web.ingest',
+
     # 进度提示（answer_stream 的 on_progress）
     "🧠 Query 理解中…": "dyn.progress.qu",
     "🔍 数据检索中…": "dyn.progress.retrieval",
