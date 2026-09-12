@@ -270,3 +270,26 @@ def remove_from_index(relative_path: str) -> dict:
 def remove_from_index_and_disk(relative_path: str) -> dict:
     """从向量库移除单个文档并删除磁盘文件；兼容单文件调用。"""
     return remove_documents([relative_path], delete_files=True)
+
+
+def ingest_web_page(url: str, domain: str = "reference",
+                    category: str = "webpages") -> dict:
+    """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
+
+    流程：fetch URL → 提取正文 → 保存为 .md 快照到 knowledge/<domain>/<category>/ → 标准入库
+    """
+    from src.web_fetcher import fetch_and_parse, save_web_snapshot
+
+    result = fetch_and_parse(url)
+    file_path = save_web_snapshot(url, result["text"], result.get("title", ""))
+
+    # 入库（走标准流水线）
+    summary = ingest_files(paths=[file_path])
+    if summary.ok_files:
+        return {
+            "message": f"网页已入库：{url} → {file_path.name}（{summary.total_chunks} 张卡片）",
+            "url": url,
+            "file_path": str(file_path),
+            "chunks": summary.total_chunks,
+        }
+    raise ManageError(f"网页入库失败：{summary.failed_files}")
