@@ -390,7 +390,7 @@ python eval_compare.py --eval-set eval_set_hard.json --save   # 难题考卷四�
 
 ```text
 sky-rag-stu/
-├── knowledge/                 📁 你的知识文件放这里（按 work/learning/life/reference/archive 分类）
+├── knowledge/                 📁 你的知识文件放这里（按 work/learning/life/projects/reference/archive 分类）
 ├── storage/                   📁 本地运行数据（向量库数据、评测报告），已 gitignore
 │
 ├── src/                       📁 核心源码：一条流水线上的各个节点

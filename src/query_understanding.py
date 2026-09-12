@@ -53,7 +53,7 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
    无法解析出时间范围时省略该字段。"""
 
 QU_USER_PROMPT_TEMPLATE = """【当前时间】{current_time}
-【知识库领域枚举】work / learning / life / reference / archive
+【知识库领域枚举】work / learning / life / projects / reference / archive
 【知识库现有分类】{categories}
 {history_section}【用户原始问题】{question}
 

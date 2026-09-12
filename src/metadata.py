@@ -9,7 +9,7 @@
     系统强制字段 > Front Matter > 目录推断 > 默认值
 
 Domain 固定枚举（系统内部一律英文，界面可显示中文）：
-    work / learning / life / reference / archive
+    work / learning / life / projects / reference / archive
 """
 
 from __future__ import annotations
@@ -23,11 +23,12 @@ from pathlib import Path
 import yaml
 
 # ---------------- 规范常量 ----------------
-DOMAINS = ["work", "learning", "life", "reference", "archive"]
+DOMAINS = ["work", "learning", "life", "projects", "reference", "archive"]
 DOMAIN_LABELS = {
     "work": "工作",
     "learning": "学习",
     "life": "生活",
+    "projects": "项目",
     "reference": "参考资料",
     "archive": "归档",
 }

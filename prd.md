@@ -317,7 +317,7 @@ knowledge/archive/x.md          →  domain=archive, status=archive（强制）
 knowledge/x.md（散落根目录）     →  domain=reference, category=general
 ```
 
-- 领域（domain）固定五个枚举：`work / learning / life / reference / archive`，系统内部一律英文，界面显示中文（工作/学习/生活/参考资料/归档）；
+- 领域（domain）固定六个枚举：`work / learning / life / projects / reference / archive`，系统内部一律英文，界面显示中文（工作/学习/生活/项目/参考资料/归档）；
 - 分类（category）自由命名、自动转小写、留空为 `general`；
 - 主题（topic）取自分类下的下一级目录名（`rag` 自动规范成 `RAG`），也可在文件头手动声明。
 
