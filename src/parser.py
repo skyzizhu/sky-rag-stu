@@ -144,7 +144,9 @@ def _read_html(path: Path) -> tuple[str, str, dict]:
         rows = []
         for row in table.find_all("tr"):
             cells = [
-                re.sub(r"\s+", " ", cell.get_text(" ", strip=True)).replace("|", "\\|")
+                _squeeze_cjk_spaces(
+                    re.sub(r"\s+", " ", cell.get_text(" ", strip=True))
+                ).replace("|", "\\|")
                 for cell in row.find_all(["th", "td"])
             ]
             if cells:
@@ -202,6 +204,12 @@ def _read_html(path: Path) -> tuple[str, str, dict]:
     return text, title, {}
 
 
+def _squeeze_cjk_spaces(text: str) -> str:
+    """压缩汉字之间的空白：Word/网页表格为排版常写「工 作 经 历」，
+    不压缩的话 jieba 分词与向量匹配都会失效，检索永远命中不了。"""
+    return re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "", text)
+
+
 def _read_docx(path: Path) -> tuple[str, str, dict]:
     """Word：按段落读正文；标题样式段落转成 Markdown 风格的 # 标记，
     让切片节点能识别章节（Heading 1 → #，Heading 2 → ## ……）。表格逐行读。"""
@@ -227,7 +235,8 @@ def _read_docx(path: Path) -> tuple[str, str, dict]:
         else:
             parts.append(line)
     for table in doc.tables:
-        rows = [" | ".join(cell.text.strip() for cell in row.cells) for row in table.rows]
+        rows = [_squeeze_cjk_spaces(" | ".join(cell.text.strip() for cell in row.cells))
+                for row in table.rows]
         parts.append("\n".join(rows))
     return "\n".join(parts), title, {}
 
