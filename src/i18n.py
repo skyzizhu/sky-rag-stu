@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 DEFAULT_LANGUAGE = "zh-CN"
+FOLLOW_SYSTEM = "system"  # language 设置的特殊值：跟随浏览器/系统 locale
 
 LANGUAGES = {
     "zh-CN": "简体中文",
@@ -27,15 +28,43 @@ LANGUAGES = {
 LANGUAGE_ORDER = ["zh-CN", "zh-TW", "en", "ja"]
 
 
-def current_language() -> str:
-    """当前界面语言。从 session_state 读取（未初始化时回退默认语言）。"""
+def locale_to_language(loc: str | None) -> str:
+    """浏览器/系统 locale → 支持的语言代码；识别不出回退简体中文。"""
+    loc = (loc or "").replace("_", "-").lower()
+    if loc.startswith("zh"):
+        return "zh-TW" if any(x in loc for x in ("hant", "tw", "hk", "mo")) else "zh-CN"
+    if loc.startswith("ja"):
+        return "ja"
+    if loc.startswith("en"):
+        return "en"
+    return DEFAULT_LANGUAGE
+
+
+def browser_language() -> str:
+    """当前浏览器 locale 对应的语言（仅限 Streamlit 运行环境内可用）。"""
     try:
         import streamlit as st
 
-        lang = st.session_state.get("language")
+        return locale_to_language(st.context.locale)
     except Exception:
-        lang = None
-    return lang if lang in LANGUAGES else DEFAULT_LANGUAGE
+        return DEFAULT_LANGUAGE
+
+
+def current_language() -> str:
+    """当前界面语言（永远返回具体语言代码，不返回 system）。
+
+    session 里存的是 "system" 时，按浏览器 locale 实时解析；
+    未初始化时同样跟随系统。
+    """
+    try:
+        import streamlit as st
+
+        lang = st.session_state.get("language", FOLLOW_SYSTEM)
+    except Exception:
+        lang = DEFAULT_LANGUAGE
+    if lang not in LANGUAGES:  # system / 异常值 → 按浏览器解析或回退
+        return browser_language() if lang == FOLLOW_SYSTEM else DEFAULT_LANGUAGE
+    return lang
 
 
 def t(key: str, **kwargs) -> str:
@@ -81,6 +110,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 简体中文（基准语言） ----------------
     "zh-CN": {
+        "lang.system": "跟随系统",
         "sources.relevance": "相关度",
         "ingest.col.path": "路径",
         "ingest.col.domain": "领域",
@@ -391,6 +421,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 繁體中文 ----------------
     "zh-TW": {
+        "lang.system": "跟隨系統",
         "sources.relevance": "相關度",
         "ingest.col.path": "路徑",
         "ingest.col.domain": "領域",
@@ -680,6 +711,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- English ----------------
     "en": {
+        "lang.system": "Follow system",
         "sources.relevance": "relevance",
         "ingest.col.path": "Path",
         "ingest.col.domain": "Domain",
@@ -969,6 +1001,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 日本語 ----------------
     "ja": {
+        "lang.system": "システムに従う",
         "sources.relevance": "関連度",
         "ingest.col.path": "パス",
         "ingest.col.domain": "ドメイン",

@@ -39,7 +39,15 @@ from src.manage import (  # noqa: E402
     restore as restore_file,
 )
 from src.metadata import DOMAINS  # noqa: E402
-from src.i18n import LANGUAGE_ORDER, LANGUAGES, domain_label_i18n, t, tr  # noqa: E402
+from src.i18n import (  # noqa: E402
+    FOLLOW_SYSTEM,
+    LANGUAGE_ORDER,
+    LANGUAGES,
+    browser_language,
+    domain_label_i18n,
+    t,
+    tr,
+)
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
@@ -51,21 +59,6 @@ cfg = get_config()
 
 SUPPORTED_UPLOAD_TYPES = [ext.lstrip(".") for ext in sorted(SUPPORTED_EXTENSIONS) if ext != ".htm"]
 
-
-def default_language() -> str:
-    """默认语言跟随浏览器/系统 locale；识别不出时回退简体中文。"""
-    try:
-        loc = (st.context.locale or "").replace("_", "-").lower()
-    except Exception:
-        loc = ""
-    if loc.startswith("zh"):
-        return "zh-TW" if any(x in loc for x in ("hant", "tw", "hk", "mo")) else "zh-CN"
-    if loc.startswith("ja"):
-        return "ja"
-    if loc.startswith("en"):
-        return "en"
-    return "zh-CN"
-
 # 跨页面共享的设置项：在「设置与状态」里改，问答页即时生效
 st.session_state.setdefault("top_k", cfg.top_k)
 st.session_state.setdefault("domain_choice", "all")
@@ -74,7 +67,7 @@ st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
 st.session_state.setdefault("session_id", new_session_id())
 st.session_state.setdefault("theme", "system")  # system / light / dark
-st.session_state.setdefault("language", default_language())  # zh-CN / zh-TW / en / ja
+st.session_state.setdefault("language", FOLLOW_SYSTEM)  # system / zh-CN / zh-TW / en / ja
 
 
 @st.dialog(t("dialog.delete_session.title"), width="small")
@@ -1386,19 +1379,23 @@ def page_general_settings():
     st.markdown(f'<div class="section-title">{t("set.general.title")}</div>', unsafe_allow_html=True)
     st.caption(t("set.general.caption"))
 
-    # ---------- 界面语言（点击选择，全部平铺） ----------
-    current_lang = st.session_state.get("language", "zh-CN")
+    # ---------- 界面语言（点击选择，全部平铺；含「跟随系统」） ----------
+    current_lang = st.session_state.get("language", FOLLOW_SYSTEM)
+    lang_keys = [FOLLOW_SYSTEM] + LANGUAGE_ORDER
     lang_choice = st.segmented_control(
-        t("set.language"), LANGUAGE_ORDER,
-        format_func=lambda c: LANGUAGES[c],
-        default=current_lang if current_lang in LANGUAGE_ORDER else "zh-CN",
+        t("set.language"), lang_keys,
+        format_func=lambda c: t("lang.system") if c == FOLLOW_SYSTEM else LANGUAGES[c],
+        default=current_lang if current_lang in lang_keys else FOLLOW_SYSTEM,
         key="set_language_ui",
     )
     if lang_choice and lang_choice != current_lang:
         st.session_state["language"] = lang_choice
         persist_app_settings()
         st.rerun()  # 立即以新语言重绘（导航、页面标题同步切换）
-    st.caption(t("set.language.caption"))
+    if current_lang == FOLLOW_SYSTEM:
+        st.caption(f"{t('set.language.caption')}　·　🌐 {t('lang.system')} → {LANGUAGES[browser_language()]}")
+    else:
+        st.caption(t("set.language.caption"))
 
     st.divider()
 
