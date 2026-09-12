@@ -113,6 +113,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 简体中文（基准语言） ----------------
     "zh-CN": {
+        "sidebar.status.title": "系统状态",
         "web.status.working": "正在抓取并入库网页……",
         "web.status.done": "网页入库完成",
         "web.status.fetch": "🌐 抓取网页正文……",
@@ -430,6 +431,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 繁體中文 ----------------
     "zh-TW": {
+        "sidebar.status.title": "系統狀態",
         "web.status.working": "正在擷取並入庫網頁……",
         "web.status.done": "網頁入庫完成",
         "web.status.fetch": "🌐 擷取網頁正文……",
@@ -726,6 +728,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- English ----------------
     "en": {
+        "sidebar.status.title": "System Status",
         "web.status.working": "Fetching & ingesting the page……",
         "web.status.done": "Page ingested",
         "web.status.fetch": "🌐 Fetching the page body……",
@@ -1022,6 +1025,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
     # ---------------- 日本語 ----------------
     "ja": {
+        "sidebar.status.title": "システム状態",
         "web.status.working": "Webページを取得・取り込み中……",
         "web.status.done": "取り込み完了",
         "web.status.fetch": "🌐 ページ本文を取得中……",

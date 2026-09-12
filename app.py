@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.app_settings import SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
 from src.answer_format import format_answer_markdown  # noqa: E402
 from src.config import get_config  # noqa: E402
-from src.chat_scroll import scroll_chat_to_latest  # noqa: E402
+from src.chat_scroll import scroll_chat_to_latest, scroll_follow_stream  # noqa: E402
 from src.directory_uploader import (  # noqa: E402
     decode_directory_batch,
     decode_native_directory_uploads,
@@ -905,6 +905,11 @@ def page_chat():
                 progress_ph = st.empty()  # 实时进度占位符
                 def _show_progress(msg):
                     progress_ph.markdown(f"⏳ {tr(msg)}")
+                # 流式回答期间持续贴底跟随：答案再长也始终看得到最新输出；
+                # 用户主动上滑阅读时跟随自动让位
+                scroll_follow_stream(
+                    key=f"follow_{st.session_state['session_id']}_{len(st.session_state.messages)}",
+                )
                 if True:  # 保持缩进层级
                     # 传入历史消息实现多轮对话（Query 理解解析代词 + LLM 上下文连贯）。
                     # 最后一条是刚 append 的当前问题本身，必须排除——否则 LLM 收到两遍，
@@ -1748,10 +1753,13 @@ with st.sidebar:
                 for s in sessions:
                     with st.container(key=f"session_item_{s['session_id']}"):
                         title = s["title"].strip() or t("sidebar.untitled")
+                        # 当前正在聊的会话加标记，方便区分"继续聊"和"翻旧会话"
+                        is_current = s["session_id"] == st.session_state.get("session_id")
+                        label = ("▶ " + title[:22]) if is_current else title[:24]
                         with st.container(key=f"hs_{s['session_id']}"):
                             st.page_link(
                                 chat_page,
-                                label=title[:24],
+                                label=label,
                                 query_params={"load": s["session_id"]},
                                 width="stretch",
                             )
@@ -1786,7 +1794,7 @@ with st.sidebar:
             f"""
             <div class="sidebar-status">
               <div class="sidebar-status-row">
-                <strong>{status_emoji} 系统状态</strong><span>{status_text}</span>
+                <strong>{status_emoji} {t("sidebar.status.title")}</strong><span>{status_text}</span>
               </div>
               <div class="sidebar-status-note">{status_detail}</div>
             </div>
