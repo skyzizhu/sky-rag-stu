@@ -51,6 +51,21 @@ cfg = get_config()
 
 SUPPORTED_UPLOAD_TYPES = [ext.lstrip(".") for ext in sorted(SUPPORTED_EXTENSIONS) if ext != ".htm"]
 
+
+def default_language() -> str:
+    """默认语言跟随浏览器/系统 locale；识别不出时回退简体中文。"""
+    try:
+        loc = (st.context.locale or "").replace("_", "-").lower()
+    except Exception:
+        loc = ""
+    if loc.startswith("zh"):
+        return "zh-TW" if any(x in loc for x in ("hant", "tw", "hk", "mo")) else "zh-CN"
+    if loc.startswith("ja"):
+        return "ja"
+    if loc.startswith("en"):
+        return "en"
+    return "zh-CN"
+
 # 跨页面共享的设置项：在「设置与状态」里改，问答页即时生效
 st.session_state.setdefault("top_k", cfg.top_k)
 st.session_state.setdefault("domain_choice", "all")
@@ -59,7 +74,7 @@ st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
 st.session_state.setdefault("session_id", new_session_id())
 st.session_state.setdefault("theme", "system")  # system / light / dark
-st.session_state.setdefault("language", "zh-CN")  # zh-CN / zh-TW / en / ja
+st.session_state.setdefault("language", default_language())  # zh-CN / zh-TW / en / ja
 
 
 @st.dialog(t("dialog.delete_session.title"), width="small")
@@ -258,6 +273,18 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebarUserContent"] > * > [data-testid="stVerticalBlock"] {display:contents !important;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_brand) {order:1 !important;}
 [data-testid="stSidebarNav"] {order:2 !important;}
+/* 导航文字颜色跟随主题变量（Streamlit 内置导航用固定主题色，深色下看不清） */
+[data-testid="stSidebarNav"] a,
+[data-testid="stSidebarNav"] a span,
+[data-testid="stSidebarNav"] a p,
+[data-testid="stSidebarNav"] p {color: var(--text-secondary) !important;}
+[data-testid="stSidebarNav"] a:hover,
+[data-testid="stSidebarNav"] a:hover span,
+[data-testid="stSidebarNav"] a:hover p {color: var(--text-primary) !important;}
+[data-testid="stSidebarNav"] a[aria-current="page"],
+[data-testid="stSidebarNav"] a[aria-current="page"] span,
+[data-testid="stSidebarNav"] a[aria-current="page"] p {
+  color: var(--accent-text) !important; font-weight: 600;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_footer) {order:3 !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label {border-radius: 10px; padding: 4px 12px;
   margin: 1px 0; transition: all .2s; font-weight: 500; font-size: .82rem; color: var(--text-secondary) !important;}
@@ -612,11 +639,22 @@ services = get_services()
 store = services["store"]
 
 
+def persist_app_settings() -> None:
+    """统一保存入口：session 里的设置 + 插件安装清单合并写入。
+
+    必须整包带上 installed_plugins（它不在 session_state 里，读取走 src/plugin），
+    否则任何一次覆盖式保存都会把它（或 language）从 settings.json 里丢掉。
+    """
+    data = {k: st.session_state[k] for k in SETTINGS_KEYS if k in st.session_state}
+    data["installed_plugins"] = get_installed_plugins()
+    save_app_settings(data)
+
+
 def _sync_setting(canonical_key: str, widget_key: str):
     """控件变化时：同步到规范 session 键（供其他页面读取）+ 持久化到配置文件。"""
     def _sync():
         st.session_state[canonical_key] = st.session_state[widget_key]
-        save_app_settings({k: st.session_state[k] for k in SETTINGS_KEYS})
+        persist_app_settings()
     return _sync
 
 
@@ -1348,17 +1386,17 @@ def page_general_settings():
     st.markdown(f'<div class="section-title">{t("set.general.title")}</div>', unsafe_allow_html=True)
     st.caption(t("set.general.caption"))
 
-    # ---------- 界面语言 ----------
+    # ---------- 界面语言（点击选择，全部平铺） ----------
     current_lang = st.session_state.get("language", "zh-CN")
-    lang_choice = st.selectbox(
+    lang_choice = st.segmented_control(
         t("set.language"), LANGUAGE_ORDER,
         format_func=lambda c: LANGUAGES[c],
-        index=LANGUAGE_ORDER.index(current_lang) if current_lang in LANGUAGE_ORDER else 0,
+        default=current_lang if current_lang in LANGUAGE_ORDER else "zh-CN",
         key="set_language_ui",
     )
-    if lang_choice != current_lang:
+    if lang_choice and lang_choice != current_lang:
         st.session_state["language"] = lang_choice
-        save_app_settings({k: st.session_state.get(k) for k in SETTINGS_KEYS if k in st.session_state})
+        persist_app_settings()
         st.rerun()  # 立即以新语言重绘（导航、页面标题同步切换）
     st.caption(t("set.language.caption"))
 
@@ -1374,7 +1412,7 @@ def page_general_settings():
                             horizontal=True, key="set_theme_ui")
     if theme_choice != current_theme:
         st.session_state["theme"] = theme_choice
-        save_app_settings({k: st.session_state.get(k) for k in SETTINGS_KEYS if k in st.session_state})
+        persist_app_settings()
         st.rerun()
 
 

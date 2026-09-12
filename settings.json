@@ -1,14 +1,14 @@
 {
   "top_k": 5,
-  "domain_choice": "全部",
-  "scope_choice": "仅 active",
+  "domain_choice": "all",
+  "scope_choice": "active",
   "debug_mode": true,
   "query_understanding": true,
   "hybrid_search": true,
   "rerank": true,
   "theme": "system",
+  "language": "zh-CN",
   "installed_plugins": [
     "web_fetcher"
-  ],
-  "language": "zh-CN"
+  ]
 }
