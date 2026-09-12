@@ -448,8 +448,11 @@ def answer_stream(
             items=[("说明", "传入历史后：Query 理解解析代词 + LLM 上下文连贯")],
         ))
 
-    # 列举/盘点类提问：自动扩大召回深度 + 上下文容量 + 放开单文档上限
-    enumeration = any(w in question for w in (
+    # 列举/盘点类提问：自动扩大召回深度 + 上下文容量 + 放开单文档上限。
+    # 双通道判定：Query 理解的语义识别（enumeration 字段）为主，
+    # 关键词词表为兜底（Query 理解关闭或解析失败时依然生效）。
+    # 注意：判定必须用原始问题——Query 理解改写后的查询已丢失计数语气
+    enumeration_keyword = any(w in question for w in (
         "有哪些", "列出", "都有什么", "列举", "全部",
         "那些", "哪些", "都有", "所有", "什么功能", "什么工具",
         "功能列表", "几个", "多少个", "多少种",
@@ -458,9 +461,9 @@ def answer_stream(
         "几份", "几段", "几条", "几次", "几轮", "几家", "几个方面",
         "多少份", "多少段", "多少条", "多少次", "多少轮", "多少家",
     ))
-    recall_k = top_k * 2 if enumeration else top_k
-    ctx_max_items = top_k * 2 if enumeration else top_k
-    ctx_max_per_doc = 999 if enumeration else None
+    recall_k = top_k * 2 if enumeration_keyword else top_k
+    ctx_max_items = top_k * 2 if enumeration_keyword else top_k
+    ctx_max_per_doc = 999 if enumeration_keyword else None
 
     # 节点 ②：Query 理解 / 改写（V2：一次 LLM 调用完成改写 + 关键词 + 过滤条件推断）
     search_query = question
@@ -477,11 +480,18 @@ def answer_stream(
         qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history)
         search_query = qu.vector_query or question
         qu_filters = dict(qu.filters)
+        # 语义判定合并：LLM 识别出计数/列举意图而词表没命中时，此处补齐扩容——
+        # 覆盖「经历过几家公司」这类词表外的任意计数问法
+        if qu.enumeration and not enumeration_keyword:
+            recall_k = top_k * 2
+            ctx_max_items = top_k * 2
+            ctx_max_per_doc = 999
         parsed = (f"intent: {qu.intent or '-'}\n"
                   f"vector_query（改写后检索语句）: {qu.vector_query}\n"
                   f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '-'}\n"
                   f"filters（推断的过滤条件）: {qu.filters or '{}'}\n"
-                  f"time_range（解析的时间范围）: {qu.time_range or '-'}")
+                  f"time_range（解析的时间范围）: {qu.time_range or '-'}\n"
+                  f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}")
         if qu.ok and qu.error:
             parsed += f"\n校验提示: {qu.error}"
         trace.append(make_node(

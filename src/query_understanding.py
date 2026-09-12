@@ -2,10 +2,11 @@
 
 产品视角：这是检索的「翻译官」——
 用户的问题往往是口语化的（"旧版笔记里 chunk_size 写的多少来着？"），
-直接拿去检索效果一般。这个节点用一次 LLM 调用同时完成三件事：
+直接拿去检索效果一般。这个节点用一次 LLM 调用同时完成四件事：
   1. 改写：把口语化提问改写成检索友好的查询语句（vector_query）
   2. 提关键词：产出关键词列表（keyword_query，供后续关键词/混合检索使用）
   3. 推断过滤条件：从问题里识别领域/分类/状态等（filters）
+  4. 识别计数/列举意图（enumeration）：这类问题需要召回扩容才能凑齐全部条目
 
 可靠性设计：
   - LLM 只被允许输出一个 JSON 对象，逐字段校验后再使用；
@@ -41,6 +42,9 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
    "intent"：一句话概括用户意图
    "vector_query"：改写后的检索语句（去掉口语和指代，补全关键信息；原问题已足够清晰时与原问题一致）
    "keyword_query"：字符串数组，3~6 个关键词（可含同义词），供关键词检索使用
+   "enumeration"：布尔值。当用户在「计数 / 列举 / 盘点」某类信息（如"工作经历有几份""列出全部功能""都有哪些笔记"，
+       包括换任意措辞问"多少个 X""几种 Y"）时输出 true——回答这类问题需要把知识库中该主题的全部条目找齐。
+       普通事实型提问省略该字段（默认 false）。
    "filters"：对象，只能包含以下键，推断不出来就整个省略：
        "status"：只能是 active 或 archive
        "source"：用户明确点名的文件名
@@ -73,6 +77,7 @@ class QueryUnderstanding:
     intent: str = ""
     vector_query: str = ""          # 改写后的检索语句（失败时回退为原始问题）
     keyword_query: list[str] = field(default_factory=list)
+    enumeration: bool = False       # 计数/列举类问题：召回与上下文需要扩容才能凑齐全部条目
     time_range: dict = field(default_factory=dict)  # {"from": "YYYY-MM-DD", "to": "YYYY-MM-DD"}
     filters: dict = field(default_factory=dict)
     system_prompt: str = QU_SYSTEM_PROMPT
@@ -178,6 +183,9 @@ def understand_query(
             keyword_query = [keyword_query]
         if isinstance(keyword_query, list):
             qu.keyword_query = [str(k).strip() for k in keyword_query if str(k).strip()][:8]
+
+        enum_raw = data.get("enumeration", False)
+        qu.enumeration = enum_raw is True or str(enum_raw).strip().lower() == "true"
 
         tr = data.get("time_range")
         if isinstance(tr, dict):
