@@ -1065,6 +1065,7 @@ def _show_ingest_result(summary):
     for f in summary.failed_files:
         st.warning(f)
 
+    # ---------- 🌐 添加网页 Tab ----------
     with tab_web:
         st.markdown('<div class="section-title">🌐 添加网页</div>', unsafe_allow_html=True)
         st.caption("输入 URL，抓取网页正文，自动切片入库为知识卡片。适合收藏技术文档、产品说明、教程等。")
