@@ -38,7 +38,8 @@ from src.manage import (  # noqa: E402
     remove_documents,
     restore as restore_file,
 )
-from src.metadata import DOMAINS, DOMAIN_LABELS  # noqa: E402
+from src.metadata import DOMAINS  # noqa: E402
+from src.i18n import LANGUAGE_ORDER, LANGUAGES, domain_label_i18n, t, tr  # noqa: E402
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
@@ -52,29 +53,30 @@ SUPPORTED_UPLOAD_TYPES = [ext.lstrip(".") for ext in sorted(SUPPORTED_EXTENSIONS
 
 # 跨页面共享的设置项：在「设置与状态」里改，问答页即时生效
 st.session_state.setdefault("top_k", cfg.top_k)
-st.session_state.setdefault("domain_choice", "全部")
-st.session_state.setdefault("scope_choice", "仅 active")
+st.session_state.setdefault("domain_choice", "all")
+st.session_state.setdefault("scope_choice", "active")
 st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
 st.session_state.setdefault("session_id", new_session_id())
 st.session_state.setdefault("theme", "system")  # system / light / dark
+st.session_state.setdefault("language", "zh-CN")  # zh-CN / zh-TW / en / ja
 
 
-@st.dialog("确认删除历史会话", width="small")
+@st.dialog(t("dialog.delete_session.title"), width="small")
 def confirm_session_delete() -> None:
     """在真正删除前要求用户二次确认。"""
     request = st.session_state.get("delete_session_request")
     if not request:
         return
 
-    st.write(f"确定要删除历史会话「{request['title']}」吗？")
-    st.caption("删除后无法恢复，但不会影响已经导入的知识库文件。")
+    st.write(t("dialog.delete_session.text", title=request["title"]))
+    st.caption(t("dialog.delete_session.caption"))
     cancel_col, confirm_col = st.columns(2)
-    if cancel_col.button("取消", use_container_width=True):
+    if cancel_col.button(t("common.cancel"), use_container_width=True):
         st.session_state.pop("delete_session_request", None)
         st.rerun()
     if confirm_col.button(
-        "确认删除",
+        t("dialog.delete_session.confirm"),
         type="primary",
         icon=":material/delete:",
         use_container_width=True,
@@ -89,7 +91,7 @@ def confirm_session_delete() -> None:
         st.rerun()
 
 
-@st.dialog("确认移除知识文件", width="small")
+@st.dialog(t("dialog.remove.title"), width="small")
 def confirm_manage_remove() -> None:
     """确认批量移除向量数据，以及可选的磁盘文件删除。"""
     request = st.session_state.get("manage_remove_request")
@@ -99,20 +101,20 @@ def confirm_manage_remove() -> None:
     count = len(request["paths"])
     delete_files = request["delete_files"]
     if delete_files:
-        st.error(f"将从向量知识库移除 {count} 个文件，并永久删除对应磁盘文件。")
-        st.caption("删除后无法恢复；如果所属二级目录中已没有其他文件，该目录也会被清理。")
-        confirm_label = "确认并删除文件"
+        st.error(t("dialog.remove.disk", n=count))
+        st.caption(t("dialog.remove.disk.caption"))
+        confirm_label = t("dialog.remove.disk.confirm")
     else:
-        st.info(f"将从向量知识库移除 {count} 个文件，磁盘文件会保留。")
-        st.caption("之后可通过“重新入库”恢复这些知识。")
-        confirm_label = "确认移除知识"
+        st.info(t("dialog.remove.index", n=count))
+        st.caption(t("dialog.remove.index.caption"))
+        confirm_label = t("dialog.remove.index.confirm")
 
-    with st.expander(f"查看将处理的 {count} 个文件"):
+    with st.expander(t("dialog.remove.files", n=count)):
         for name in request["names"]:
             st.write(f"• {name}")
 
     cancel_col, confirm_col = st.columns(2)
-    if cancel_col.button("取消", width="stretch", key="manage_remove_cancel"):
+    if cancel_col.button(t("common.cancel"), width="stretch", key="manage_remove_cancel"):
         st.session_state.pop("manage_remove_request", None)
         st.rerun()
     if confirm_col.button(
@@ -619,8 +621,8 @@ def _sync_setting(canonical_key: str, widget_key: str):
 
 
 def domain_label(domain: str) -> str:
-    label = DOMAIN_LABELS.get(domain, "")
-    return f"{domain} · {label}" if label else domain
+    """「code · 本地化标签」；随界面语言切换。"""
+    return domain_label_i18n(domain)
 
 
 def _clean_directory_name(name: str) -> str:
@@ -647,22 +649,22 @@ def system_status() -> dict[str, tuple[bool, str]]:
     status: dict[str, tuple[bool, str]] = {}
     try:
         ok = services["embedding"].model_available()
-        status["向量化模型"] = (ok, cfg.embedding_model if ok else f"缺少 {cfg.embedding_model}")
+        status[t("status.embedding")] = (ok, cfg.embedding_model if ok else f"缺少 {cfg.embedding_model}")
     except Exception as exc:
-        status["向量化模型"] = (False, str(exc)[:40])
+        status[t("status.embedding")] = (False, str(exc)[:40])
     try:
         count = store.count()
-        status["向量数据库"] = (True, f"{count} 张卡片")
+        status[t("status.vectordb")] = (True, t("status.cards", n=count))
     except Exception as exc:
-        status["向量数据库"] = (False, str(exc)[:40])
+        status[t("status.vectordb")] = (False, str(exc)[:40])
     is_local_llm = "localhost" in cfg.llm_base_url or "127.0.0.1" in cfg.llm_base_url
     llm_ok = bool(cfg.llm_api_key) or is_local_llm
-    llm_note = cfg.llm_model if llm_ok else "未配置"
+    llm_note = cfg.llm_model if llm_ok else t("status.not_configured")
     if llm_ok and is_local_llm:
-        llm_note = f"🖥 {cfg.llm_model}（本地 Ollama）"
+        llm_note = t("status.local_llm", model=cfg.llm_model)
     elif llm_ok:
-        llm_note = f"☁️ {cfg.llm_model}（云端）"
-    status["大模型"] = (llm_ok, llm_note)
+        llm_note = t("status.cloud_llm", model=cfg.llm_model)
+    status[t("status.llm")] = (llm_ok, llm_note)
     return status
 
 
@@ -678,30 +680,30 @@ def tag(text: str, color: str = "blue") -> str:
 
 
 def build_filters() -> dict:
-    """把设置页的检索设置翻译成 Metadata Filter。"""
+    """把设置页的检索设置翻译成 Metadata Filter（值为语言无关的代码）。"""
     filters: dict = {}
-    if not st.session_state["domain_choice"].startswith("全部"):
-        filters["domain"] = st.session_state["domain_choice"].split(" ")[0]
+    if st.session_state["domain_choice"] != "all":
+        filters["domain"] = st.session_state["domain_choice"]
     scope = st.session_state["scope_choice"]
-    if scope == "包含归档":
+    if scope == "all":
         filters["status"] = "all"
-    elif scope == "仅归档":
+    elif scope == "archive":
         filters["status"] = "archive"
     return filters
 
 
 def show_answer_sources(result) -> None:
     """卡片式参考来源 + 调试面板。"""
-    with st.expander(f"📚 参考来源（{len(result.sources)} 条）", expanded=False):
+    with st.expander(t("sources.title", n=len(result.sources)), expanded=False):
         if not result.sources:
-            st.write("没有召回任何知识片段。")
+            st.write(t("sources.empty"))
         for item in result.sources:
-            head = f"**[{item['rank']}] {item['source']}**　相关度 `{item['score']:.3f}`"
+            head = f"**[{item['rank']}] {item['source']}**　{t('sources.relevance')} `{item['score']:.3f}`"
             extras = []
             if item.get("section"):
-                extras.append(f"章节：{item['section']}")
+                extras.append(t("sources.section", v=item["section"]))
             if item.get("page"):
-                extras.append(f"页码：{item['page']}")
+                extras.append(t("sources.page", v=item["page"]))
             if extras:
                 head += "　·　" + "　".join(extras)
             st.markdown(head)
@@ -717,33 +719,27 @@ def show_answer_sources(result) -> None:
             st.write("")
 
         # V3.5 一键复制
-        st.code("【回答】\n" + (result.answer or ""), language=None)
-        st.code("【来源清单】\n" + "\n".join(
-            f"[{s['rank']}] {s['source']}（相关度 {s['score']:.3f}）"
+        st.code(t("sources.copy_answer") + "\n" + (result.answer or ""), language=None)
+        st.code(t("sources.copy_list") + "\n" + "\n".join(
+            f"[{s['rank']}] {s['source']}（{t('sources.relevance')} {s['score']:.3f}）"
             + (f" 章节: {s['section']}" if s.get("section") else "")
             for s in result.sources), language=None)
 
     if st.session_state.get("debug_mode"):
-        with st.expander("🛠 调试信息 · RAG 节点时间线（每个节点在什么时候做了什么）"):
+        with st.expander(t("debug.title")):
             st.markdown('<span class="debug-marker"></span>', unsafe_allow_html=True)
-            st.caption("按执行顺序展示一次问答经过的每个节点：发生时间、耗时、做了什么、输入与输出。"
-                       "标注「直通」的节点是完整 RAG 有、但当前版本未启用的环节。")
-            with st.expander("📚 学习提示：两条流水线的关系"):
-                st.markdown(
-                    "上面展示的是**问答流水线**（提问 → … → 后处理），每次提问都会走一遍。\n\n"
-                    "另一条是**入库流水线**：解析 → 清洗 → 切片 → 向量化 → 入库，"
-                    "只在上传文档或运行 `python ingest.py` 时执行（V3 起为增量式："
-                    "内容没变的文件自动跳过，LLM 自动补全主题/标签）。\n\n"
-                    "问答时检索到的知识卡片，就是入库流水线在当初切好、存好的。"
-                    "两条流水线在「向量数据库」汇合：入库负责存，问答负责查。")
+            st.caption(t("debug.caption"))
+            with st.expander(t("debug.pipeline_hint_title")):
+                st.markdown(t("debug.pipeline_hint_body"))
             for idx, node in enumerate(result.trace, start=1):
-                head = f"{node['icon']} 节点 {idx}｜{node['name']}　·　{node['time']}"
+                head = t("debug.node", icon=node["icon"], n=idx,
+                         name=tr(node["name"]), time=node["time"])
                 if node.get("elapsed"):
-                    head += f"　·　耗时 {node['elapsed']:.2f}s"
+                    head += t("debug.elapsed", s=f"{node['elapsed']:.2f}")
                 with st.expander(head):
                     if node.get("status") != "已执行":
-                        st.info(f"节点状态：{node['status']}")
-                    st.markdown(f"**做了什么**　{node['summary']}")
+                        st.info(t("debug.node_status", s=tr(node["status"])))
+                    st.markdown(t("debug.what", summary=node["summary"]))
                     for label, value in node.get("items", []):
                         text = str(value)
                         st.markdown(f'<div class="dbg-label">{label}</div>', unsafe_allow_html=True)
@@ -753,15 +749,18 @@ def show_answer_sources(result) -> None:
                             escaped = html.escape(shown).replace("\n", "<br>")
                             st.markdown(f'<div class="dbg-content">{escaped}</div>', unsafe_allow_html=True)
                         else:
-                            st.caption("（空）")
+                            st.caption(t("debug.empty"))
             if result.sources:
-                st.markdown("**📎 召回 Chunk 逐条明细表**")
+                st.markdown(t("debug.recall_table"))
                 st.dataframe(
-                    [{"排名": s["rank"], "分数": round(s["score"], 4), "通道": s.get("channels", "向量"),
+                    [{t("debug.col.rank"): s["rank"], t("debug.col.score"): round(s["score"], 4),
+                      t("debug.col.channel"): s.get("channels", "向量"),
                       "Source": s["source"],
                       "Domain": s.get("domain"), "Category": s.get("category"),
-                      "Topic": ", ".join(s.get("topic") or []), "章节": s.get("section") or "",
-                      "页码": s.get("page") or "", "Version": s.get("version"), "Status": s.get("status")}
+                      "Topic": ", ".join(s.get("topic") or []),
+                      t("debug.col.section"): s.get("section") or "",
+                      t("debug.col.page"): s.get("page") or "",
+                      "Version": s.get("version"), "Status": s.get("status")}
                      for s in result.sources],
                     width="stretch", hide_index=True,
                 )
@@ -772,8 +771,8 @@ def page_chat():
     st.markdown(
         f"""
         <div class="hero">
-          <h1>🧠 问点什么，让知识库替你记得</h1>
-          <p>基于你自己的文档回答，每条答案都标注出处 · 归档知识默认不参与</p>
+          <h1>{t("chat.hero.title")}</h1>
+          <p>{t("chat.hero.sub")}</p>
           {status_pills()}
         </div>
         """,
@@ -790,7 +789,7 @@ def page_chat():
                 st.session_state["session_id"] = new_session_id()
                 st.session_state.messages = []
             if c2.button(
-                "开启新会话",
+                t("chat.new_session"),
                 width="stretch",
                 type="primary",
                 icon=":material/add_comment:",
@@ -826,13 +825,13 @@ def page_chat():
 
         with st.chat_message("assistant", avatar="🧠"):
             if not cfg.llm_api_key:
-                st.error("还没有配置 LLM API Key：请到「设置 → 系统状态」查看指引，填好 .env 后刷新页面。")
-                st.session_state.messages.append({"role": "assistant", "content": "（未配置 LLM API Key）"})
+                st.error(t("chat.no_api_key"))
+                st.session_state.messages.append({"role": "assistant", "content": t("chat.no_api_key.msg")})
                 return
             try:
                 progress_ph = st.empty()  # 实时进度占位符
                 def _show_progress(msg):
-                    progress_ph.markdown(f"⏳ {msg}")
+                    progress_ph.markdown(f"⏳ {tr(msg)}")
                 if True:  # 保持缩进层级
                     # 传入历史消息实现多轮对话（Query 理解解析代词 + LLM 上下文连贯）
                     chat_history = [
@@ -858,7 +857,7 @@ def page_chat():
                     answer_ph.markdown(format_answer_markdown(full_text) + " ▌")
                 formatted_answer = format_answer_markdown(result.answer or full_text or "")
                 answer_ph.markdown(formatted_answer)
-                progress_ph.markdown("✅ 回答生成完成")
+                progress_ph.markdown(t("chat.done"))
                 result.answer = formatted_answer or None
                 show_answer_sources(result)
                 st.session_state.messages.append(
@@ -870,27 +869,27 @@ def page_chat():
                 )
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
                 st.error(str(exc))
-                st.session_state.messages.append({"role": "assistant", "content": f"（出错：{exc}）"})
+                st.session_state.messages.append({"role": "assistant", "content": t("chat.error_occurred", err=exc)})
             except Exception as exc:
-                st.error(f"发生意外错误：{type(exc).__name__}: {exc}")
+                st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
 
     # 嵌套在普通容器中，避免 Streamlit 的底部聊天容器在 Expander 展开时强制滚到底部。
     # CSS 仍将该容器固定在页面底部，交互与原聊天输入框一致。
     with st.container(key="chat_composer"):
-        question = st.chat_input("输入问题，按 Enter 发送……", key="chat_question")
+        question = st.chat_input(t("chat.input"), key="chat_question")
     if question:
         _process_question(question)
 
 
 # ---------------------------------------------------------------- 页面 2：上传文档
 def page_upload():
-    st.markdown('<div class="section-title">导入知识</div>', unsafe_allow_html=True)
-    st.caption(f"支持 {', '.join('.' + t for t in SUPPORTED_UPLOAD_TYPES)} · 文件会复制到领域目录后再入库")
+    st.markdown(f'<div class="section-title">{t("upload.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("upload.caption", types=", ".join("." + x for x in SUPPORTED_UPLOAD_TYPES)))
 
-    _tabs = ["📄 上传文件", "📁 导入目录"]
+    _tabs = [t("upload.tab.file"), t("upload.tab.dir")]
     _has_web = is_installed("web_fetcher")
     if _has_web:
-        _tabs.append("🌐 添加网页")
+        _tabs.append(t("upload.tab.web"))
     _tab_objs = st.tabs(_tabs)
     tab_files = _tab_objs[0]
     tab_dir = _tab_objs[1]
@@ -899,49 +898,47 @@ def page_upload():
     with tab_files:
         col1, col2 = st.columns(2)
         with col1:
-            upload_domain = st.selectbox("领域", DOMAINS,
+            upload_domain = st.selectbox(t("upload.domain"), DOMAINS,
                                          format_func=domain_label, index=DOMAINS.index("learning"))
         with col2:
-            upload_category = st.text_input("子分类（留空为 general）", value="",
-                                            help="自动转小写，如 projects、ai")
-        uploads = st.file_uploader("拖拽文件到此处，或点击选择",
+            upload_category = st.text_input(t("upload.category"), value="",
+                                            help=t("upload.category.help"))
+        uploads = st.file_uploader(t("upload.dropzone"),
                                    type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
         if uploads:
-            st.caption(f"✓ 已选择 {len(uploads)} 个文件 · {sum(u.size for u in uploads) / 1024:.0f} KB")
-        if st.button("📦 开始入库", disabled=not uploads, use_container_width=True, type="primary"):
+            st.caption(t("upload.selected", n=len(uploads), kb=f"{sum(u.size for u in uploads) / 1024:.0f}"))
+        if st.button(t("upload.start"), disabled=not uploads, use_container_width=True, type="primary"):
             _do_upload(uploads, upload_domain, upload_category)
 
     with tab_dir:
-        st.markdown("**整个目录导入**")
-        st.caption("可拖拽或点击选择目录；两种方式都会保留目录名和全部子目录层级。")
+        st.markdown(t("dir.title"))
+        st.caption(t("dir.caption"))
         dir_domain = st.selectbox(
-            "导入到领域",
+            t("dir.target"),
             DOMAINS,
             format_func=domain_label,
             index=DOMAINS.index("learning"),
             key="directory_domain",
         )
         directory_mode = st.segmented_control(
-            "导入方式",
-            ["拖拽目录 · 合计 64 MB", "点击选择目录 · 单文件 200 MB"],
-            default="拖拽目录 · 合计 64 MB",
+            t("dir.mode"),
+            ["drop", "native"],
+            format_func=lambda m: t("dir.mode.drop") if m == "drop" else t("dir.mode.native"),
+            default="drop",
             key="directory_import_mode",
         )
         directory_batch = None
         native_directory_uploads = None
         batch_id = None
-        if directory_mode == "拖拽目录 · 合计 64 MB":
+        if directory_mode == "drop":
             directory_batch = directory_drop_uploader(key="directory_drop_uploader")
         else:
             native_limit_mb = st.get_option("server.maxUploadSize")
             native_directory_uploads = st.file_uploader(
-                "点击下方按钮选择目录",
+                t("dir.pick"),
                 accept_multiple_files="directory",
                 key="native_directory_picker",
-                help=(
-                    f"原生目录选择的上限是每个文件 {native_limit_mb} MB。"
-                    "请点击按钮选择；如需拖拽，请切换到“拖拽目录”。"
-                ),
+                help=t("dir.native.help", limit=native_limit_mb),
             )
         decoded_entries = []
         if directory_batch or native_directory_uploads:
@@ -967,20 +964,18 @@ def page_upload():
                     1 for parts, _content in decoded_entries
                     if Path(parts[-1]).suffix.lower() in SUPPORTED_EXTENSIONS
                 )
-                st.success(
-                    f"已选择 {len(decoded_entries)} 个文件 · {total_kb:.1f} KB · "
-                    f"其中 {supported_count} 个文档可入库"
-                )
-                st.caption(f"将复制到：`knowledge/{dir_domain}/` 下的子目录 **{root_text}**")
+                st.success(t("dir.selected", n=len(decoded_entries),
+                             kb=f"{total_kb:.1f}", docs=supported_count))
+                st.caption(t("dir.target_hint", domain=dir_domain, roots=root_text))
             except ValueError as exc:
                 roots = []
                 st.error(str(exc))
         else:
             roots = []
-            st.info("选择后可在这里确认文件数量和目标目录。", icon="📁")
+            st.info(t("dir.pick_hint"), icon="📁")
 
         if st.button(
-            "复制目录并开始入库",
+            t("dir.start"),
             disabled=(
                 not decoded_entries
                 or not roots
@@ -995,27 +990,27 @@ def page_upload():
     # ---------- 🌐 添加网页 Tab ----------
     if _has_web:
         with tab_web:
-            st.markdown('<div class="section-title">🌐 添加网页</div>', unsafe_allow_html=True)
-            st.caption("输入 URL，抓取网页正文，自动切片入库为知识卡片。适合收藏技术文档、产品说明、教程等。")
+            st.markdown(f'<div class="section-title">{t("web.title")}</div>', unsafe_allow_html=True)
+            st.caption(t("web.caption"))
 
-            web_url = st.text_input("网页地址", placeholder="https://example.com/article",
-                                    help="支持 HTTP/HTTPS 链接")
+            web_url = st.text_input(t("web.url"), placeholder="https://example.com/article",
+                                    help=t("web.url.help"))
             col_w1, col_w2 = st.columns(2)
             with col_w1:
-                web_domain = st.selectbox("领域", DOMAINS,
+                web_domain = st.selectbox(t("common.domain"), DOMAINS,
                                           format_func=domain_label, index=DOMAINS.index("reference"))
             with col_w2:
-                web_category = st.text_input("子分类（默认 webpages）", value="webpages")
+                web_category = st.text_input(t("web.category"), value="webpages")
 
-            if st.button("🌐 抓取并入库", disabled=not web_url.strip(), use_container_width=True, type="primary"):
+            if st.button(t("web.ingest"), disabled=not web_url.strip(), use_container_width=True, type="primary"):
                 from src.manage import ingest_web_page
                 try:
-                    with st.spinner("正在抓取网页内容……"):
+                    with st.spinner(t("web.fetching")):
                         result = ingest_web_page(web_url.strip(), domain=web_domain,
                                                  category=web_category.strip().lower() or "webpages")
                     st.success(f"🎉 {result['message']}")
                 except Exception as exc:
-                    st.error(f"抓取失败：{exc}")
+                    st.error(t("web.failed", err=exc))
 
 
 def _do_upload(uploads, upload_domain, upload_category):
@@ -1027,7 +1022,7 @@ def _do_upload(uploads, upload_domain, upload_category):
         target = target_dir / upload.name
         target.write_bytes(upload.getvalue())
         saved_paths.append(target)
-    with st.spinner("解析 → 清洗 → 切片 → 向量化 → 入库……"):
+    with st.spinner(t("ingest.spinner")):
         summary = ingest_files(paths=saved_paths)
     _show_ingest_result(summary)
 
@@ -1058,19 +1053,17 @@ def _do_directory_upload(entries, dir_domain, batch_id):
             saved.append(destination)
 
     if not saved:
-        st.warning("所选目录中没有可导入的文档。")
+        st.warning(t("dir.no_docs"))
         return
 
     ingest_paths = [path for path in saved if path.suffix.lower() in SUPPORTED_EXTENSIONS]
     if not ingest_paths:
-        st.warning(f"目录已完整复制，但其中没有支持入库的文档（{', '.join(sorted(SUPPORTED_EXTENSIONS))}）。")
+        st.warning(t("dir.copied_none", types=", ".join(sorted(SUPPORTED_EXTENSIONS))))
         return
 
-    st.info(
-        f"已复制 {len(saved)} 个文件到 {dir_domain}/{'、'.join(copied_roots)}，"
-        f"正在为其中 {len(ingest_paths)} 个文档入库……"
-    )
-    with st.spinner("解析 → 清洗 → 切片 → 向量化 → 入库……"):
+    st.info(t("dir.copied", n=len(saved), domain=dir_domain,
+              roots="、".join(copied_roots), docs=len(ingest_paths)))
+    with st.spinner(t("ingest.spinner")):
         summary = ingest_files(paths=ingest_paths)
     st.session_state["processed_directory_batch"] = batch_id
     _show_ingest_result(summary)
@@ -1078,20 +1071,22 @@ def _do_directory_upload(entries, dir_domain, batch_id):
 
 def _show_ingest_result(summary):
     if summary.ok_files:
-        st.success(f"🎉 成功 {summary.ok_files}/{summary.total_files} · "
-                   f"{summary.total_chunks} 张卡片 · {summary.elapsed_seconds:.1f}s")
+        st.success(t("ingest.done", ok=summary.ok_files, total=summary.total_files,
+                     chunks=summary.total_chunks, secs=f"{summary.elapsed_seconds:.1f}"))
     else:
-        st.error("入库失败，请看终端日志。")
+        st.error(t("ingest.fail"))
     if summary.file_rows:
         st.dataframe(
-            [{"路径": r["path"], "领域": r["domain"], "分类": r["category"],
-              "状态": r["status"], "卡片": r["chunks"]} for r in summary.file_rows],
+            [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): r["domain"],
+              t("ingest.col.category"): r["category"],
+              t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"]}
+             for r in summary.file_rows],
             use_container_width=True, hide_index=True)
     for f in summary.failed_files:
         st.warning(f)
 
     st.divider()
-    st.markdown('<div class="section-title">📁 knowledge/ 目录现状</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-title">{t("upload.dir_status")}</div>', unsafe_allow_html=True)
     if cfg.knowledge_dir.exists():
         existing = sorted(p for p in cfg.knowledge_dir.rglob("*")
                           if p.is_file() and not p.name.startswith("."))
@@ -1103,44 +1098,42 @@ def _show_ingest_result(summary):
             "　".join(tag(f"{domain_label(d)} · {n}", "blue") for d, n in sorted(by_domain.items())),
             unsafe_allow_html=True,
         )
-        with st.expander(f"查看全部 {len(existing)} 个文件"):
+        with st.expander(t("ingest.view_all", n=len(existing))):
             for path in existing:
                 st.markdown(f"<code style='font-size:.85rem'>{path.relative_to(cfg.knowledge_dir).as_posix()}</code>"
                             f"<span style='color:#94A3B8;font-size:.8rem'>　{path.stat().st_size / 1024:.1f} KB</span>",
                             unsafe_allow_html=True)
     else:
-        st.info("knowledge/ 目录还不存在，上传第一个文件后会自动创建。")
+        st.info(t("upload.dir_missing"))
 
 
 # ---------------------------------------------------------------- 页面 3：知识管理台
 def page_manage():
-    st.markdown('<div class="section-title">🗂 知识管理台</div>', unsafe_allow_html=True)
-    st.caption("勾选一个或多个文件，可批量移除知识；单选时还可以查看档案并执行重新入库、归档或恢复。")
+    st.markdown(f'<div class="section-title">{t("manage.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("manage.caption"))
     if notice := st.session_state.pop("manage_action_notice", None):
         st.toast(notice, icon="✅")
 
     # V3.6 跨文档知识总结
-    with st.expander("📝 知识总结（跨文档综合）"):
-        st.caption(
-            "输入一个想了解的主题，系统会跨多个知识文件检索相关片段，"
-            "生成“核心要点 + 对应出处”的综合摘要；不会新建或修改知识文件。"
-        )
+    with st.expander(t("manage.sum.title")):
+        st.caption(t("manage.sum.caption"))
         sum_topic = st.text_input(
-            "总结主题",
-            placeholder="例如：RAG、智能客服、卡片笔记法",
+            t("manage.sum.topic"),
+            placeholder=t("manage.sum.placeholder"),
             key="sum_topic",
-            help="它相当于指定一份跨文档摘要的中心问题，而不是修改文件的主题标签。",
+            help=t("manage.sum.help"),
         )
-        if st.button("📝 生成总结", disabled=not sum_topic.strip(), type="primary"):
-            with st.spinner("综合多个文档生成知识总结……"):
+        if st.button(t("manage.sum.button"), disabled=not sum_topic.strip(), type="primary"):
+            with st.spinner(t("manage.sum.spinner")):
                 result = answer_question(
                     f"请综合知识库中与「{sum_topic.strip()}」相关的全部内容，"
                     "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
                     top_k=10,
                 )
-            st.markdown(result.answer or "（没有生成内容）")
+            st.markdown(result.answer or t("manage.sum.empty"))
             if result.sources:
-                st.caption("📚 参考来源：" + "、".join(sorted({s["source"] for s in result.sources})))
+                st.caption(t("manage.sum.sources",
+                             names="、".join(sorted({s["source"] for s in result.sources}))))
 
     try:
         documents = store.list_documents()
@@ -1149,34 +1142,38 @@ def page_manage():
         documents = []
 
     if not documents:
-        st.info("知识库还是空的：先去「📤 上传文档」或运行 python ingest.py 入库。")
+        st.info(t("manage.empty"))
         return
 
     total_chunks = sum(d["chunks"] for d in documents)
     archived = sum(1 for d in documents if d["status"] == "archive")
     domains_covered = len({d["domain"] for d in documents})
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("📚 知识文件", len(documents))
-    m2.metric("🧩 知识卡片", total_chunks)
-    m3.metric("🌍 覆盖领域", f"{domains_covered} / {len(DOMAINS)}")
-    m4.metric("🗄 归档文件", archived)
+    m1.metric(t("manage.metric.files"), len(documents))
+    m2.metric(t("manage.metric.chunks"), total_chunks)
+    m3.metric(t("manage.metric.domains"), f"{domains_covered} / {len(DOMAINS)}")
+    m4.metric(t("manage.metric.archived"), archived)
 
     st.divider()
 
     f1, f2, f3 = st.columns([3, 1.2, 1.2])
-    keyword = f1.text_input("🔍 按文件名 / 路径搜索", placeholder="例如：RAG、projects……")
-    dom_filter = f2.selectbox("领域", ["全部"] + [domain_label(d) for d in DOMAINS])
-    status_filter = f3.selectbox("状态", ["全部", "active", "archive"])
+    keyword = f1.text_input(t("manage.search"), placeholder=t("manage.search.ph"))
+    dom_codes = ["all"] + DOMAINS
+    dom_filter = f2.selectbox(t("common.domain"), dom_codes, format_func=domain_label)
+    status_codes = ["all", "active", "archive"]
+    status_filter = f3.selectbox(t("common.status"), status_codes,
+                                 format_func=lambda s: t("common.all") if s == "all" else s,
+                                 key="manage_status_select")
 
     filtered = [
         d for d in documents
         if (not keyword or keyword.lower() in d["path"].lower())
-        and (dom_filter.startswith("全部") or d["domain"] == dom_filter.split(" ")[0])
-        and (status_filter == "全部" or d["status"] == status_filter)
+        and (dom_filter == "all" or d["domain"] == dom_filter)
+        and (status_filter == "all" or d["status"] == status_filter)
     ]
 
     if not filtered:
-        st.info("没有符合筛选条件的文件。")
+        st.info(t("manage.no_match"))
         return
 
     # 列表头部多选工具栏。多选只改变当前选择，不直接触发归档/删除等操作。
@@ -1191,29 +1188,29 @@ def page_manage():
         st.session_state[selection_key] = []
 
     list_head, select_col, clear_col = st.columns([5, 1.35, 1.2], vertical_alignment="center")
-    list_head.markdown(f"**文件列表**　<span style='color:var(--text-muted);font-size:.78rem'>"
-                       f"{len(filtered)} 个结果 · 已选 {len(selected_ids)} 个</span>",
+    list_head.markdown(f"{t('manage.list_header')}　<span style='color:var(--text-muted);font-size:.78rem'>"
+                       f"{t('manage.list_stats', n=len(filtered), m=len(selected_ids))}</span>",
                        unsafe_allow_html=True)
     select_col.button(
-        "全选当前结果",
+        t("manage.select_all"),
         width="stretch",
         key="manage_select_all",
         disabled=not filtered or len(selected_ids) == len(visible_ids),
         on_click=_select_visible_documents,
     )
     clear_col.button(
-        "清空选择",
+        t("manage.clear_selection"),
         width="stretch",
         key="manage_clear_selection",
         disabled=not selected_ids,
         on_click=_clear_visible_documents,
     )
 
-    rows = [{"_id": d["document_id"], "选择": d["document_id"] in selected_ids,
-             "文件": d["source"], "路径": d["path"],
+    rows = [{"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
+             t("manage.col.file"): d["source"], t("manage.col.path"): d["path"],
              "Domain": d["domain"], "Category": d["category"],
              "Topic": ", ".join(d["topic"]) or "-", "Version": d["version"],
-             "Status": d["status"], "卡片数": d["chunks"]} for d in filtered]
+             "Status": d["status"], t("manage.col.chunks"): d["chunks"]} for d in filtered]
     edited = st.data_editor(
         rows,
         width="stretch",
@@ -1221,12 +1218,14 @@ def page_manage():
         key=f"manage_document_table_{st.session_state.get('manage_table_revision', 0)}",
         column_config={
             "_id": None,
-            "选择": st.column_config.CheckboxColumn("选择", help="勾选一个或多个知识文件"),
+            t("manage.col.select"): st.column_config.CheckboxColumn(t("manage.col.select"),
+                                                                    help=t("manage.col.select.help")),
         },
-        disabled=["文件", "路径", "Domain", "Category", "Topic", "Version", "Status", "卡片数"],
+        disabled=[t("manage.col.file"), t("manage.col.path"), "Domain", "Category", "Topic",
+                  "Version", "Status", t("manage.col.chunks")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
-    selected_ids = {row["_id"] for row in records if row.get("选择")}
+    selected_ids = {row["_id"] for row in records if row.get(t("manage.col.select"))}
     st.session_state[selection_key] = sorted(selected_ids)
 
     if not selected_ids:
@@ -1246,34 +1245,34 @@ def page_manage():
             "delete_files": delete_files,
         }
 
-    st.markdown("#### 批量操作" if len(selected_documents) > 1 else "#### 文件操作")
+    st.markdown(t("manage.batch") if len(selected_documents) > 1 else t("manage.single"))
     action_info, remove_index_col, remove_disk_col = st.columns(
         [2.2, 1.35, 1.7], vertical_alignment="center"
     )
     action_info.caption(
-        f"已选择 {len(selected_documents)} 个文件。两种移除操作都会清除其全部知识卡片。"
+        t("manage.selected_info", n=len(selected_documents))
     )
     remove_index_col.button(
-        "移除向量知识",
+        t("manage.remove_index"),
         icon=":material/delete_sweep:",
         width="stretch",
         key="manage_remove_index",
-        help="只从向量知识库移除，磁盘文件保留，可再次入库",
+        help=t("manage.remove_index.help"),
         on_click=_request_manage_remove,
         args=(False,),
     )
     remove_disk_col.button(
-        "移除知识并删除文件",
+        t("manage.remove_disk"),
         icon=":material/delete_forever:",
         width="stretch",
         key="manage_remove_disk",
-        help="从向量知识库移除，并永久删除对应磁盘文件",
+        help=t("manage.remove_disk.help"),
         on_click=_request_manage_remove,
         args=(True,),
     )
 
     if len(selected_ids) > 1:
-        st.info("批量选择时不显示单文件档案；清空选择或只保留一项即可查看详情。")
+        st.info(t("manage.multi_note"))
         return
 
     selected_id = next(iter(selected_ids))
@@ -1291,16 +1290,16 @@ def page_manage():
             + tag(f"v{d['version']}", "green"),
             unsafe_allow_html=True,
         )
-        st.caption(f"`{d['document_id']}`　共 {d['chunks']} 张知识卡片")
+        st.caption(t("manage.detail.cards", id=d["document_id"], n=d["chunks"]))
     with head_r:
         is_archived = d["path"].split("/")[0] == "archive"
         btn1, btn2 = st.columns(2)
-        reingest_btn = btn1.button("📥 重新入库", width="stretch", key="act_reingest",
-                                   help="文件内容修改后，重新解析入库")
-        archive_btn = btn2.button("🗄 归档", width="stretch", key="act_archive",
-                                  disabled=is_archived, help="移入 archive/ 目录，退出日常检索")
-        restore_btn = btn2.button("🔄 恢复", width="stretch", key="act_restore",
-                                  disabled=not is_archived, help="移回原目录，重新参与检索")
+        reingest_btn = btn1.button(t("manage.act.reingest"), width="stretch", key="act_reingest",
+                                   help=t("manage.act.reingest.help"))
+        archive_btn = btn2.button(t("manage.act.archive"), width="stretch", key="act_archive",
+                                  disabled=is_archived, help=t("manage.act.archive.help"))
+        restore_btn = btn2.button(t("manage.act.restore"), width="stretch", key="act_restore",
+                                  disabled=not is_archived, help=t("manage.act.restore.help"))
 
         actions = [
             (reingest_btn, lambda: reingest_file(d["path"])),
@@ -1317,13 +1316,13 @@ def page_manage():
                     st.error(str(exc))
 
     # 档案编辑（V3.4）
-    with st.expander("✏️ 编辑档案"):
+    with st.expander(t("manage.edit.title")):
         e1, e2 = st.columns(2)
-        new_title = e1.text_input("标题", value=d["source"] and (d.get("source") or ""), key="ed_title")
-        new_category = e2.text_input("分类 Category", value=d["category"], key="ed_cat")
-        new_topic = st.text_input("主题 Topic（逗号分隔）", value=", ".join(d["topic"]), key="ed_topic")
-        new_version = st.text_input("版本 Version", value=d["version"], key="ed_ver")
-        if st.button("💾 保存档案修改", type="primary"):
+        new_title = e1.text_input(t("manage.edit.title.label"), value=d["source"] and (d.get("source") or ""), key="ed_title")
+        new_category = e2.text_input(t("manage.edit.category"), value=d["category"], key="ed_cat")
+        new_topic = st.text_input(t("manage.edit.topic"), value=", ".join(d["topic"]), key="ed_topic")
+        new_version = st.text_input(t("manage.edit.version"), value=d["version"], key="ed_ver")
+        if st.button(t("manage.edit.save"), type="primary"):
             updates = {"title": new_title, "category": new_category,
                        "topic": [t.strip() for t in new_topic.split(",") if t.strip()],
                        "version": new_version}
@@ -1335,140 +1334,163 @@ def page_manage():
                 st.error(str(exc))
 
     payloads = store.chunks_by_document(d["document_id"])
-    st.markdown(f"**🧩 知识卡片（{len(payloads)} 张）**")
+    st.markdown(t("manage.cards.title", n=len(payloads)))
     for payload in payloads:
-        head = (f"`{payload.get('chunk_id', '?')}`　"
-                f"章节：{payload.get('section') or '-'}　页码：{payload.get('page') or '-'}")
+        head = t("manage.card.head", chunk_id=payload.get("chunk_id", "?"),
+                 section=payload.get("section") or "-", page=payload.get("page") or "-")
         with st.expander(head):
             st.markdown(f"<div class='chunk-quote'>{payload.get('text', '')}</div>",
                         unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------------- 页面 4：检索设置
-def page_retrieval_settings():
-    st.markdown('<div class="section-title">🎨 外观</div>', unsafe_allow_html=True)
-    theme_labels = {"system": "🖥 跟随系统", "light": "☀️ 浅色", "dark": "🌙 深色"}
+# ---------------------------------------------------------------- 页面 4：通用设置
+def page_general_settings():
+    st.markdown(f'<div class="section-title">{t("set.general.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("set.general.caption"))
+
+    # ---------- 界面语言 ----------
+    current_lang = st.session_state.get("language", "zh-CN")
+    lang_choice = st.selectbox(
+        t("set.language"), LANGUAGE_ORDER,
+        format_func=lambda c: LANGUAGES[c],
+        index=LANGUAGE_ORDER.index(current_lang) if current_lang in LANGUAGE_ORDER else 0,
+        key="set_language_ui",
+    )
+    if lang_choice != current_lang:
+        st.session_state["language"] = lang_choice
+        save_app_settings({k: st.session_state.get(k) for k in SETTINGS_KEYS if k in st.session_state})
+        st.rerun()  # 立即以新语言重绘（导航、页面标题同步切换）
+    st.caption(t("set.language.caption"))
+
+    st.divider()
+
+    # ---------- 外观主题 ----------
+    st.markdown(f'<div class="section-title">{t("set.theme.section")}</div>', unsafe_allow_html=True)
+    theme_keys = ["system", "light", "dark"]
     current_theme = st.session_state.get("theme", "system")
-    theme_choice = st.radio("界面主题", list(theme_labels.keys()),
-                            format_func=lambda k: theme_labels[k],
-                            index=list(theme_labels.keys()).index(current_theme),
+    theme_choice = st.radio(t("set.theme"), theme_keys,
+                            format_func=lambda k: t(f"theme.{k}"),
+                            index=theme_keys.index(current_theme) if current_theme in theme_keys else 0,
                             horizontal=True, key="set_theme_ui")
     if theme_choice != current_theme:
         st.session_state["theme"] = theme_choice
-        from src.app_settings import save_app_settings, SETTINGS_KEYS
         save_app_settings({k: st.session_state.get(k) for k in SETTINGS_KEYS if k in st.session_state})
         st.rerun()
 
-    st.divider()
-    st.markdown('<div class="section-title">🔍 检索设置</div>', unsafe_allow_html=True)
-    st.caption("这里的设置对「知识库问答」页即时生效")
 
-    domain_labels = ["全部"] + [domain_label(d) for d in DOMAINS]
-    scopes = ["仅 active", "包含归档", "仅归档"]
+# ---------------------------------------------------------------- 页面 5：检索设置
+def page_retrieval_settings():
+    st.markdown(f'<div class="section-title">{t("set.retrieval.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("set.retrieval.caption"))
 
-    # 显式传入当前生效值（value=），保证第一次打开就显示正确数据；变化时同步回 session
-    st.slider("每次召回知识条数（Top K）", 1, 10,
+    domain_codes = ["all"] + DOMAINS
+    scope_codes = ["active", "all", "archive"]
+
+    # 值保存语言无关的代码（all/work/…、active/all/archive），显示时本地化；
+    # 显式传入当前生效值，保证第一次打开就显示正确数据；变化时同步回 session
+    st.slider(t("set.top_k"), 1, 10,
               value=st.session_state["top_k"], key="set_top_k",
               on_change=_sync_setting("top_k", "set_top_k"))
-    st.selectbox("限定知识领域", domain_labels,
-                 index=domain_labels.index(st.session_state["domain_choice"]),
+    st.selectbox(t("set.domain"), domain_codes, format_func=lambda c: domain_label(c),
+                 index=domain_codes.index(st.session_state["domain_choice"])
+                 if st.session_state["domain_choice"] in domain_codes else 0,
                  key="set_domain", on_change=_sync_setting("domain_choice", "set_domain"))
-    st.radio("检索范围", scopes,
-             index=scopes.index(st.session_state["scope_choice"]),
+    st.radio(t("set.scope"), scope_codes,
+             format_func=lambda s: t(f"scope.{s}"),
+             index=scope_codes.index(st.session_state["scope_choice"])
+             if st.session_state["scope_choice"] in scope_codes else 0,
              key="set_scope", on_change=_sync_setting("scope_choice", "set_scope"),
              horizontal=True,
-             help="归档（archive）内容默认不参与回答，除非你明确要求")
+             help=t("set.scope.help"))
 
     st.divider()
-    st.markdown('<div class="section-title">🧠 检索增强开关（V2）</div>', unsafe_allow_html=True)
-    st.toggle("🧠 Query 理解 / 改写",
+    st.markdown(f'<div class="section-title">{t("set.enhance.title")}</div>', unsafe_allow_html=True)
+    st.toggle(t("set.qu"),
               value=st.session_state["query_understanding"], key="set_qu",
               on_change=_sync_setting("query_understanding", "set_qu"),
-              help="先用大模型把口语化提问改写成检索友好查询，并自动推断过滤条件（领域/归档等）。"
-                   "开启后每次问答多用一次 LLM 调用")
-    st.toggle("🔀 混合检索",
+              help=t("set.qu.help"))
+    st.toggle(t("set.hybrid"),
               value=st.session_state["hybrid_search"], key="set_hybrid",
               on_change=_sync_setting("hybrid_search", "set_hybrid"),
-              help="向量通道 + BM25 关键词通道两路召回，RRF 融合排序；"
-                   "专有名词、编号、缩写类问题更准。本机计算，不多花 API 钱")
-    st.toggle("🏆 Rerank 精排",
+              help=t("set.hybrid.help"))
+    st.toggle(t("set.rerank"),
               value=st.session_state["rerank"], key="set_rerank",
               on_change=_sync_setting("rerank", "set_rerank"),
-              help="召回扩宽到 10 条候选，大模型逐条阅读打相关度分后精选 Top K；"
-                   "开启后每次问答多用一次 LLM 调用")
-    st.toggle("🛠 调试模式（问答页展示节点时间线与检索明细）",
+              help=t("set.rerank.help"))
+    st.toggle(t("set.debug"),
               value=st.session_state["debug_mode"], key="set_debug",
               on_change=_sync_setting("debug_mode", "set_debug"))
 
 
-# ---------------------------------------------------------------- 页面 5：维护操作
+# ---------------------------------------------------------------- 页面 6：维护操作
 def page_maintenance():
-    st.markdown('<div class="section-title">🧹 维护操作</div>', unsafe_allow_html=True)
-    st.caption("批量操作，谨慎使用；日常的单文件管理请去「🗂 知识库管理」")
+    st.markdown(f'<div class="section-title">{t("maint.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("maint.caption"))
 
-    st.markdown("**知识库维护**")
-    confirm_rebuild = st.checkbox("我确认要清空并重建全库", key="confirm_rebuild")
+    st.markdown(t("maint.kb"))
+    confirm_rebuild = st.checkbox(t("maint.confirm"), key="confirm_rebuild")
     c1, c2 = st.columns(2)
-    if c1.button("🔄 清空并重建知识库", disabled=not confirm_rebuild,
+    if c1.button(t("maint.rebuild"), disabled=not confirm_rebuild,
                  width="stretch", type="primary"):
-        with st.spinner("重建中……"):
+        with st.spinner(t("maint.rebuilding")):
             summary = ingest_files(rebuild=True)
         if summary.ok_files:
-            st.success(f"重建完成：{summary.ok_files} 个文件 → {summary.total_chunks} 张卡片")
+            st.success(t("maint.rebuild.done", files=summary.ok_files, chunks=summary.total_chunks))
         else:
-            st.error("重建失败，请看终端日志。")
-    if c2.button("🗑 仅清空向量库", width="stretch"):
+            st.error(t("maint.rebuild.fail"))
+    if c2.button(t("maint.clear_only"), width="stretch"):
         store.clear()
-        st.success("已清空。重新入库即可恢复。")
+        st.success(t("maint.clear_only.done"))
 
     st.divider()
 
-    st.markdown("**缓存管理**")
+    st.markdown(t("maint.cache"))
     from src.pipeline import _qa_cache, clear_qa_cache
     from src.keyword_search import _bm25_cache, invalidate_cache
 
     cache_col1, cache_col2 = st.columns(2)
-    cache_col1.metric("⚡ Q→A 问答缓存", f"{len(_qa_cache)} 条")
-    cache_col2.metric("🔑 BM25 索引缓存", f"{len(_bm25_cache)} 组")
+    cache_col1.metric(t("maint.cache.qa"), t("maint.cache.unit", n=len(_qa_cache)))
+    cache_col2.metric(t("maint.cache.bm25"), t("maint.cache.unit.group", n=len(_bm25_cache)))
 
-    if st.button("🧹 清空全部缓存", width="stretch", type="primary"):
+    if st.button(t("maint.cache.clear"), width="stretch", type="primary"):
         clear_qa_cache()
         invalidate_cache()
-        st.success("已清空问答缓存和 BM25 索引缓存。下次提问会重新计算。")
+        st.success(t("maint.cache.clear.done"))
         st.rerun()
 
 
-# ---------------------------------------------------------------- 页面 6：系统状态
+# ---------------------------------------------------------------- 页面 7：系统状态
 def page_system_status():
-    st.markdown('<div class="section-title">📊 系统状态</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-title">{t("statuspage.title")}</div>', unsafe_allow_html=True)
     for name, (ok, note) in system_status().items():
         dot = "🟢" if ok else "🔴"
         st.markdown(f"{dot} **{name}**　<span style='color:#64748B'>{note}</span>",
                     unsafe_allow_html=True)
-    if st.button("🔄 重新检测"):
+    if st.button(t("statuspage.rerun")):
         st.cache_data.clear()
         st.rerun()
-    st.caption("三盏灯的含义：向量化模型（本机 Ollama）· 向量数据库（本机 Qdrant）· 大模型（云端 API Key）")
+    st.caption(t("statuspage.caption"))
 
 
-# ---------------------------------------------------------------- 页面 7：参数总览
+# ---------------------------------------------------------------- 页面 8：参数总览
 def page_params_overview():
-    st.markdown('<div class="section-title">🧾 当前参数总览</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-title">{t("params.title")}</div>', unsafe_allow_html=True)
     st.dataframe(
-        [{"参数": k, "当前值": str(v), "说明": note} for k, v, note in [
-            ("切片长度 CHUNK_SIZE", cfg.chunk_size, "每张知识卡片的目标字数"),
-            ("切片重叠 CHUNK_OVERLAP", cfg.chunk_overlap, "相邻卡片重复字数，防语义切断"),
-            ("召回条数 TOP_K", st.session_state["top_k"], "每次提问召回的知识卡片数"),
-            ("资料上限 CONTEXT_MAX_TOKENS", cfg.context_max_tokens, "发给大模型的资料 token 上限"),
-            ("回答发散度 TEMPERATURE", cfg.llm_temperature, "知识库场景建议小值"),
-            ("上下文单文档上限", cfg.context_max_per_doc, "同一文档最多进入回答的卡片数，保持来源多样"),
-            ("向量化模型", cfg.embedding_model, "本地 Ollama 运行；更换需重建知识库"),
-            ("大模型", cfg.llm_model or "未配置", "生成回答；支持云端 API 或本地 Ollama（OpenAI 兼容接口）"),
-            ("向量集合", cfg.qdrant_collection, "全部知识共居一库"),
+        [{t("params.col.name"): k, t("params.col.value"): str(v), t("params.col.note"): note}
+         for k, v, note in [
+            (t("params.chunk_size"), cfg.chunk_size, t("params.chunk_size.note")),
+            (t("params.chunk_overlap"), cfg.chunk_overlap, t("params.chunk_overlap.note")),
+            (t("params.top_k"), st.session_state["top_k"], t("params.top_k.note")),
+            (t("params.context_max_tokens"), cfg.context_max_tokens, t("params.context_max_tokens.note")),
+            (t("params.temperature"), cfg.llm_temperature, t("params.temperature.note")),
+            (t("params.max_per_doc"), cfg.context_max_per_doc, t("params.max_per_doc.note")),
+            (t("params.embedding"), cfg.embedding_model, t("params.embedding.note")),
+            (t("params.llm"), cfg.llm_model or t("params.llm.unconfigured"), t("params.llm.note")),
+            (t("params.collection"), cfg.qdrant_collection, t("params.collection.note")),
         ]],
         width="stretch", hide_index=True,
     )
-    st.caption("切片等入库参数在 .env 中修改，改完需重新入库生效。")
+    st.caption(t("params.caption"))
 
 
 # ---------------------------------------------------------------- 布局组装：左侧菜单 + 右侧页面
@@ -1477,7 +1499,7 @@ def page_params_overview():
 with st.sidebar:
     with st.container(key="sidebar_brand"):
         st.markdown(
-            """
+            f"""
             <div class="brand-block">
               <div style="display:flex;align-items:center;gap:10px;">
                 <div style="width:42px;height:42px;border-radius:12px;flex:none;
@@ -1486,7 +1508,7 @@ with st.sidebar:
                             font-size:1.35rem;box-shadow:0 4px 14px rgba(37,99,235,.35);">🧠</div>
                 <div>
                   <div class="brand-name">Sky Personal RAG</div>
-                  <div class="brand-slogan">个人知识库 · 检索增强问答</div>
+                  <div class="brand-slogan">{t("brand.slogan")}</div>
                 </div>
               </div>
             </div>
@@ -1494,74 +1516,76 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
 
-# ---------------------------------------------------------------- 页面 7：插件管理
+# ---------------------------------------------------------------- 页面 9：插件管理
 def page_plugins():
-    st.markdown('<div class="section-title">🔌 插件管理</div>', unsafe_allow_html=True)
-    st.caption("插件是 RAG 的输入源扩展——安装后自动在上传页或管理台增加新功能入口")
+    st.markdown(f'<div class="section-title">{t("plugin.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("plugin.caption"))
 
     installed = get_installed_plugins()
 
     for pid, info in PLUGIN_REGISTRY.items():
         is_on = pid in installed
-        with st.expander(f"{info['name']}　{'✅ 已安装' if is_on else '○ 未安装'}"):
-            st.markdown(f"**描述**　{info['description']}")
-            st.markdown(f"**版本**　v{info['version']}　·　**模块**　`{info['module']}`")
+        with st.expander(f"{info['name']}　{t('plugin.installed') if is_on else t('plugin.not_installed')}"):
+            st.markdown(t("plugin.desc", v=info["description"]))
+            st.markdown(t("plugin.version", v=info["version"], m=info["module"]))
 
             c1, c2 = st.columns(2)
             if is_on:
-                if c2.button("🗑 卸载", key=f"uninstall_{pid}", use_container_width=True):
+                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", use_container_width=True):
                     uninstall_plugin(pid)
                     st.rerun()
-                if c1.button("✅ 已安装", disabled=True, use_container_width=True, key=f"inst_{pid}"):
+                if c1.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
                     pass
             else:
-                if c1.button("📦 安装", key=f"install_{pid}", use_container_width=True, type="primary"):
+                if c1.button(t("plugin.install"), key=f"install_{pid}", use_container_width=True, type="primary"):
                     install_plugin(pid)
                     st.rerun()
-                if c2.button("✅ 已安装", disabled=True, use_container_width=True, key=f"inst_{pid}"):
+                if c2.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
                     pass
 
     st.divider()
-    st.caption("💡 插件是 RAG 的输入源扩展——核心 RAG 流程不感知插件的存在，卸载不影响已有知识卡片。")
+    st.caption(t("plugin.footer"))
 
 
-# ---------------------------------------------------------------- 页面 8：学习笔记
+# ---------------------------------------------------------------- 页面 10：学习笔记
 def page_learning():
-    st.markdown('<div class="section-title">📖 RAG 实现全解</div>', unsafe_allow_html=True)
-    st.caption("写给产品经理的节点级学习笔记：每个节点的技术、作用、目标与上下游衔接，基于本项目真实实现。")
+    st.markdown(f'<div class="section-title">{t("learn.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("learn.caption"))
     md_path = Path(__file__).parent / "realize.md"
     if md_path.exists():
         st.markdown(md_path.read_text(encoding="utf-8"))
     else:
-        st.info("学习笔记文件 realize.md 不存在。")
+        st.info(t("learn.missing"))
 
 
-chat_page = st.Page(page_chat, title="知识库问答", icon="💬", url_path="chat", default=True)
-upload_page = st.Page(page_upload, title="上传文档", icon="📤", url_path="upload")
-manage_page = st.Page(page_manage, title="知识库管理", icon="🗂", url_path="manage")
-retrieval_page = st.Page(page_retrieval_settings, title="检索设置", icon="🔍", url_path="settings-retrieval")
-maintenance_page = st.Page(page_maintenance, title="维护操作", icon="🧹", url_path="settings-maintenance")
-status_page = st.Page(page_system_status, title="系统状态", icon="📊", url_path="settings-status")
-params_page = st.Page(page_params_overview, title="参数总览", icon="🧾", url_path="settings-params")
-plugins_page = st.Page(page_plugins, title="插件管理", icon="🔌", url_path="plugins")
-learning_page = st.Page(page_learning, title="RAG 实现全解", icon="📖", url_path="learn")
+chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
+upload_page = st.Page(page_upload, title=t("nav.upload"), icon="📤", url_path="upload")
+manage_page = st.Page(page_manage, title=t("nav.manage"), icon="🗂", url_path="manage")
+general_page = st.Page(page_general_settings, title=t("nav.general"), icon="⚙️", url_path="settings-general")
+retrieval_page = st.Page(page_retrieval_settings, title=t("nav.retrieval"), icon="🔍", url_path="settings-retrieval")
+maintenance_page = st.Page(page_maintenance, title=t("nav.maintenance"), icon="🧹", url_path="settings-maintenance")
+status_page = st.Page(page_system_status, title=t("nav.status"), icon="📊", url_path="settings-status")
+params_page = st.Page(page_params_overview, title=t("nav.params"), icon="🧾", url_path="settings-params")
+plugins_page = st.Page(page_plugins, title=t("nav.plugins"), icon="🔌", url_path="plugins")
+learning_page = st.Page(page_learning, title=t("nav.learning"), icon="📖", url_path="learn")
 
 pg = st.navigation({
-    "知识库": [
+    t("nav.group.knowledge"): [
         chat_page,
         upload_page,
         manage_page,
     ],
-    "设置": [
+    t("nav.group.settings"): [
+        general_page,
         retrieval_page,
         maintenance_page,
         status_page,
         params_page,
     ],
-    "学习": [
+    t("nav.group.learn"): [
         learning_page,
     ],
-    "插件": [
+    t("nav.group.plugins"): [
         plugins_page,
     ],
 })
@@ -1573,13 +1597,13 @@ with st.sidebar:
         sessions = list_sessions(10)
         keep_history_expanded = st.session_state.pop("keep_history_expanded_once", False)
         with st.expander(
-            f"🕘 历史会话 · {len(sessions)}",
+            t("sidebar.history", n=len(sessions)),
             expanded=keep_history_expanded,
         ):
             if sessions:
                 for s in sessions:
                     with st.container(key=f"session_item_{s['session_id']}"):
-                        title = s["title"].strip() or "未命名会话"
+                        title = s["title"].strip() or t("sidebar.untitled")
                         with st.container(key=f"hs_{s['session_id']}"):
                             st.page_link(
                                 chat_page,
@@ -1593,24 +1617,24 @@ with st.sidebar:
                                 "title": session_title,
                             }
                         st.button(
-                            "删除",
+                            t("sidebar.delete"),
                             key=f"del_{s['session_id']}",
                             on_click=_request_del_cb,
-                            help=f"删除会话：{title}",
+                            help=t("sidebar.delete.help", title=title),
                             icon=":material/delete:",
                             type="tertiary",
                         )
                         updated = s["updated_at"]
                         when = updated[5:16] if len(updated) >= 16 else updated
-                        st.caption(f"{when}　·　{s['count']} 条消息")
+                        st.caption(f"{when}　·　" + t("sidebar.msg_count", n=s["count"]))
             else:
                 st.markdown(
                     '<div style="text-align:center;font-size:.72rem;color:var(--text-muted);padding:18px 6px;line-height:1.7;">'
-                    '还没有历史会话<br/>完成第一次问答后会自动保存在这里</div>', unsafe_allow_html=True)
+                    f'{t("sidebar.empty")}</div>', unsafe_allow_html=True)
 
         ok_all = all(ok for ok, _ in system_status().values())
         status_emoji = "🟢" if ok_all else "🟡"
-        status_text = "正常" if ok_all else "有待处理项"
+        status_text = t("sidebar.status.ok") if ok_all else t("sidebar.status.pending")
         status_detail = " · ".join(
             f"{name}{'✓' if ok else '!'}" for name, (ok, _) in system_status().items()
         )

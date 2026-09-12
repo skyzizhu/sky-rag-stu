@@ -23,8 +23,31 @@ SETTINGS_KEYS = [
     "hybrid_search",
     "rerank",
     "theme",
+    "language",
     "installed_plugins",
 ]
+
+
+def _normalize_choices(settings: dict) -> dict:
+    """把旧版「界面中文值」迁移成语言无关的代码值（i18n 引入前的存量设置）。
+
+    domain_choice：「全部」→「all」，「work · 学习」→「work」
+    scope_choice：「仅 active」→「active」，「包含归档」→「all」，「仅归档」→「archive」
+    """
+    dc = settings.get("domain_choice")
+    if dc:
+        if dc in ("全部", "All", "すべて"):
+            settings["domain_choice"] = "all"
+        elif " " in dc:
+            settings["domain_choice"] = dc.split(" ")[0]
+    sc = settings.get("scope_choice")
+    if sc:
+        settings["scope_choice"] = {
+            "仅 active": "active", "Active only": "active", "active のみ": "active",
+            "包含归档": "all", "Include archived": "all", "アーカイブを含む": "all",
+            "仅归档": "archive", "Archived only": "archive", "アーカイブのみ": "archive",
+        }.get(sc, sc)
+    return settings
 
 
 def load_app_settings() -> dict:
@@ -38,7 +61,7 @@ def load_app_settings() -> dict:
             pass
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {}
+        return _normalize_choices(data) if isinstance(data, dict) else {}
     except (json.JSONDecodeError, OSError):
         return {}
 

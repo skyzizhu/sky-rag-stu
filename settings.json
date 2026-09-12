@@ -6,5 +6,9 @@
   "query_understanding": true,
   "hybrid_search": true,
   "rerank": true,
-  "theme": "system"
+  "theme": "system",
+  "installed_plugins": [
+    "web_fetcher"
+  ],
+  "language": "zh-CN"
 }
