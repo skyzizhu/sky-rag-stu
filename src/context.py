@@ -54,6 +54,14 @@ def _chunk_seq(item: RetrievedItem) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _truncate_to_tokens(text: str, max_tokens: int) -> str:
+    """按 token 估算把文本截断到上限内（按比例折算字符数粗截，够用即可）。"""
+    total = estimate_tokens(text)
+    if total <= max_tokens:
+        return text
+    return text[: max(0, int(len(text) * max_tokens / total))] + "……"
+
+
 def _merge_adjacent_texts(texts: list[str]) -> str:
     """拼接相邻卡片文本：后一张与前一张的重叠部分（Overlap）只保留一份。"""
     merged = texts[0]
@@ -154,11 +162,23 @@ def build_context(
                 runs.append([it])
         for run in runs:
             first = run[0]
-            final_items.append(first)
-            number = len(final_items)
+            number = len(final_items) + 1
             label = citation_label(first, number)
             if len(run) > 1:
                 merged_text = _merge_adjacent_texts([it.text for it in run])
+                # 相邻拼接会叠加多张卡片的全文，可能突破第一轮的 token 预算：
+                # 合并后复核，超限则截断合并文本（保留卡片编号与出处）
+                over = estimate_tokens(merged_text) - max(
+                    200, cfg.context_max_tokens - estimate_tokens("\n\n".join(final_blocks))
+                )
+                if over > 0:
+                    merged_text = _truncate_to_tokens(merged_text, max(
+                        200, cfg.context_max_tokens - estimate_tokens("\n\n".join(final_blocks))
+                    ))
+                    merge_notes.append(
+                        f"{first.metadata.get('source')} 的相邻卡片拼接后超出资料上限，已截断"
+                    )
+                final_items.append(first)
                 final_blocks.append(f"{label}\n{merged_text}")
                 merge_notes.append(
                     f"{first.metadata.get('source')} 的 {len(run)} 张相邻卡片"
@@ -166,6 +186,7 @@ def build_context(
                     f"已拼接为一条，恢复被切片切断的上下文"
                 )
             else:
+                final_items.append(first)
                 final_blocks.append(f"{label}\n{first.text}")
 
     context = "\n\n".join(final_blocks) if final_blocks else "（没有检索到任何相关资料）"

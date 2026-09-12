@@ -222,6 +222,8 @@ class VectorStore:
     # ---------- 知识文件盘点（Knowledge 页面数据源） ----------
     def expire_document(self, document_id: str) -> None:
         """把某文档的全部卡片标记为 status=expired（旧版本留作历史，不再参与默认检索）。"""
+        if not self.collection_exists():
+            return  # 集合还不存在（首次使用/被手动删除）时无旧版本可过期
         self.client.set_payload(
             collection_name=self.cfg.qdrant_collection,
             payload={"status": "expired"},

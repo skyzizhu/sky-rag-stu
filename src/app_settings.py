@@ -33,7 +33,12 @@ def _normalize_choices(settings: dict) -> dict:
 
     domain_choice：「全部」→「all」，「work · 学习」→「work」
     scope_choice：「仅 active」→「active」，「包含归档」→「all」，「仅归档」→「archive」
+    同时做类型/取值校验：手改坏或旧版本写入的不兼容值一律回退默认，
+    否则一个坏值会让整个应用启动即崩。
     """
+    dc = settings.get("domain_choice")
+    if dc is not None and not isinstance(dc, str):
+        settings["domain_choice"] = "all"
     dc = settings.get("domain_choice")
     if dc:
         if dc in ("全部", "All", "すべて"):
@@ -41,12 +46,35 @@ def _normalize_choices(settings: dict) -> dict:
         elif " " in dc:
             settings["domain_choice"] = dc.split(" ")[0]
     sc = settings.get("scope_choice")
+    if sc is not None and not isinstance(sc, str):
+        settings["scope_choice"] = "active"
+    sc = settings.get("scope_choice")
     if sc:
         settings["scope_choice"] = {
             "仅 active": "active", "Active only": "active", "active のみ": "active",
             "包含归档": "all", "Include archived": "all", "アーカイブを含む": "all",
             "仅归档": "archive", "Archived only": "archive", "アーカイブのみ": "archive",
         }.get(sc, sc)
+    if sc not in (None, "active", "all", "archive"):
+        settings["scope_choice"] = "active"
+    # 布尔键：非布尔一律回退
+    for key in ("debug_mode", "query_understanding", "hybrid_search", "rerank"):
+        if key in settings and not isinstance(settings[key], bool):
+            settings.pop(key)
+    # top_k：整数且在滑条范围内，否则移除（回退 .env 默认值）
+    tk = settings.get("top_k")
+    if tk is not None and (not isinstance(tk, int) or isinstance(tk, bool) or not 1 <= tk <= 10):
+        settings.pop("top_k")
+    # theme / language：白名单
+    if settings.get("theme") not in (None, "system", "light", "dark"):
+        settings.pop("theme")
+    if settings.get("language") not in (None, "system", "zh-CN", "zh-TW", "en", "ja"):
+        settings.pop("language")
+    # 插件清单：必须是字符串列表
+    plugins = settings.get("installed_plugins")
+    if plugins is not None and (not isinstance(plugins, list)
+                                or not all(isinstance(x, str) for x in plugins)):
+        settings.pop("installed_plugins")
     return settings
 
 
@@ -67,10 +95,13 @@ def load_app_settings() -> dict:
 
 
 def save_app_settings(settings: dict) -> None:
-    """保存设置。写入失败静默忽略（设置只是偏好，不该打断问答）。"""
+    """保存设置。先写临时文件再原子替换：写一半崩溃不会留下损坏 JSON。"""
     try:
-        SETTINGS_PATH.write_text(
+        SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp = SETTINGS_PATH.with_suffix(".json.tmp")
+        tmp.write_text(
             json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8"
         )
+        tmp.replace(SETTINGS_PATH)
     except OSError:
         pass

@@ -51,7 +51,14 @@ from src.i18n import (  # noqa: E402
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
-from src.sessions import SESSIONS_DIR, list_sessions, load_session, new_session_id, save_session  # noqa: E402
+from src.sessions import (
+    SESSIONS_DIR,
+    _session_path,
+    list_sessions,
+    load_session,
+    new_session_id,
+    save_session,
+)  # noqa: E402
 from src.vector_store import VectorStoreError, get_vector_store  # noqa: E402
 
 st.set_page_config(page_title="Sky Personal RAG", page_icon="🧠", layout="wide")
@@ -90,9 +97,14 @@ def confirm_session_delete() -> None:
         use_container_width=True,
     ):
         sid = request["session_id"]
-        session_file = SESSIONS_DIR / sid[:10] / f"{sid}.json"
-        if session_file.exists():
+        session_file = _session_path(sid)
+        if session_file is not None and session_file.exists():
             session_file.unlink()
+        # 删除的是当前正在聊的会话时，同步重置本地状态——否则下次提问会把
+        # 刚删除的文件原样重建（会话"复活"）
+        if st.session_state.get("session_id") == sid:
+            st.session_state["session_id"] = new_session_id()
+            st.session_state.messages = []
         # 删除后会话数量变化会让 Expander 以新组件重建；下一次渲染强制保持展开。
         st.session_state["keep_history_expanded_once"] = True
         st.session_state.pop("delete_session_request", None)
@@ -137,6 +149,11 @@ def confirm_manage_remove() -> None:
         except (ManageError, VectorStoreError) as exc:
             st.error(str(exc))
             return
+        # 移除了知识必须清问答缓存，否则同问题命中缓存返回已删知识的旧答案
+        from src.pipeline import clear_qa_cache as _cqc
+        from src.keyword_search import invalidate_cache as _ici
+        _cqc()
+        _ici()
         st.session_state["manage_action_notice"] = info["message"]
         st.session_state["manage_selected_documents"] = []
         st.session_state["manage_table_revision"] = st.session_state.get("manage_table_revision", 0) + 1
@@ -729,7 +746,7 @@ def show_answer_sources(result) -> None:
         if not result.sources:
             st.write(t("sources.empty"))
         for item in result.sources:
-            head = f"**[{item['rank']}] {item['source']}**　{t('sources.relevance')} `{item['score']:.3f}`"
+            head = f"**[{item['rank']}] {html.escape(str(item['source']))}**　{t('sources.relevance')} `{item['score']:.3f}`"
             extras = []
             if item.get("section"):
                 extras.append(t("sources.section", v=item["section"]))
@@ -738,15 +755,17 @@ def show_answer_sources(result) -> None:
             if extras:
                 head += "　·　" + "　".join(extras)
             st.markdown(head)
-            tags = [tag(f"🗂 {item.get('domain')}", "blue"), tag(f"📁 {item.get('category')}", "blue")]
+            tags = [tag(f"🗂 {html.escape(str(item.get('domain') or ''))}", "blue"),
+                    tag(f"📁 {html.escape(str(item.get('category') or ''))}", "blue")]
             if item.get("topic"):
-                tags.append(tag("🏷 " + " / ".join(item["topic"])))
+                tags.append(tag("🏷 " + html.escape(" / ".join(item["topic"]))))
             tags.append(tag(f"v{item.get('version')}", "green" if item.get("status") == "active" else "amber"))
             tags.append(tag("✅ active" if item.get("status") == "active" else "🗄 archive",
                             "green" if item.get("status") == "active" else "amber"))
             st.markdown("".join(tags), unsafe_allow_html=True)
-            st.markdown(f"<div class='chunk-quote'>{item['text'][:400]}"
-                        f"{'……' if len(item['text']) > 400 else ''}</div>", unsafe_allow_html=True)
+            # 卡片原文可能来自任意网页（存储型 XSS 面），必须转义后才能进 HTML div
+            safe_text = html.escape(item["text"][:400]) + ("……" if len(item["text"]) > 400 else "")
+            st.markdown(f"<div class='chunk-quote'>{safe_text}</div>", unsafe_allow_html=True)
             st.write("")
 
         # V3.5 一键复制
@@ -858,16 +877,19 @@ def page_chat():
             if not cfg.llm_api_key:
                 st.error(t("chat.no_api_key"))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.no_api_key.msg")})
+                save_session(st.session_state["session_id"], st.session_state.messages)
                 return
             try:
                 progress_ph = st.empty()  # 实时进度占位符
                 def _show_progress(msg):
                     progress_ph.markdown(f"⏳ {tr(msg)}")
                 if True:  # 保持缩进层级
-                    # 传入历史消息实现多轮对话（Query 理解解析代词 + LLM 上下文连贯）
+                    # 传入历史消息实现多轮对话（Query 理解解析代词 + LLM 上下文连贯）。
+                    # 最后一条是刚 append 的当前问题本身，必须排除——否则 LLM 收到两遍，
+                    # 且 -6 滑窗实际只剩 2.5 轮历史
                     chat_history = [
                         {"role": m["role"], "content": m["content"]}
-                        for m in st.session_state.messages
+                        for m in st.session_state.messages[:-1]
                         if m.get("role") in ("user", "assistant") and m.get("content")
                     ][-6:]  # 最近 3 轮
                     result, deltas = answer_stream(
@@ -901,8 +923,10 @@ def page_chat():
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
                 st.error(str(exc))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.error_occurred", err=exc)})
+                save_session(st.session_state["session_id"], st.session_state.messages)
             except Exception as exc:
                 st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+                save_session(st.session_state["session_id"], st.session_state.messages)
 
     # 嵌套在普通容器中，避免 Streamlit 的底部聊天容器在 Expander 展开时强制滚到底部。
     # CSS 仍将该容器固定在页面底部，交互与原聊天输入框一致。
@@ -1010,7 +1034,7 @@ def page_upload():
             disabled=(
                 not decoded_entries
                 or not roots
-                or st.session_state.get("processed_directory_batch") == batch_id
+                or st.session_state.get("processed_directory_batch") == f"{batch_id}@{dir_domain}"
             ),
             use_container_width=True,
             type="primary",
@@ -1051,10 +1075,22 @@ def _do_upload(uploads, upload_domain, upload_category):
     saved_paths = []
     for upload in uploads:
         target = target_dir / upload.name
+        if target.exists():
+            # 同名不同内容 = 静默覆盖用户知识源文件；改名副本保住原文件
+            if target.read_bytes() != upload.getvalue():
+                target = _available_directory(target_dir, Path(upload.name).stem) \
+                    .with_suffix(Path(upload.name).suffix)
         target.write_bytes(upload.getvalue())
         saved_paths.append(target)
     with st.spinner(t("ingest.spinner")):
-        summary = ingest_files(paths=saved_paths)
+        try:
+            summary = ingest_files(paths=saved_paths)
+        except (LLMError, VectorStoreError, EmbeddingError) as exc:
+            st.error(str(exc))
+            return
+        except Exception as exc:
+            st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+            return
     _show_ingest_result(summary)
 
 
@@ -1095,8 +1131,15 @@ def _do_directory_upload(entries, dir_domain, batch_id):
     st.info(t("dir.copied", n=len(saved), domain=dir_domain,
               roots="、".join(copied_roots), docs=len(ingest_paths)))
     with st.spinner(t("ingest.spinner")):
-        summary = ingest_files(paths=ingest_paths)
-    st.session_state["processed_directory_batch"] = batch_id
+        try:
+            summary = ingest_files(paths=ingest_paths)
+        except (LLMError, VectorStoreError, EmbeddingError) as exc:
+            st.error(str(exc))
+            return
+        except Exception as exc:
+            st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+            return
+    st.session_state["processed_directory_batch"] = f"{batch_id}@{dir_domain}"
     _show_ingest_result(summary)
 
 
@@ -1131,7 +1174,8 @@ def _show_ingest_result(summary):
         )
         with st.expander(t("ingest.view_all", n=len(existing))):
             for path in existing:
-                st.markdown(f"<code style='font-size:.85rem'>{path.relative_to(cfg.knowledge_dir).as_posix()}</code>"
+                safe_rel = html.escape(path.relative_to(cfg.knowledge_dir).as_posix())
+                st.markdown(f"<code style='font-size:.85rem'>{safe_rel}</code>"
                             f"<span style='color:#94A3B8;font-size:.8rem'>　{path.stat().st_size / 1024:.1f} KB</span>",
                             unsafe_allow_html=True)
     else:
@@ -1315,11 +1359,11 @@ def page_manage():
     with head_l:
         status_tag = tag("✅ active", "green") if d["status"] == "active" else tag("🗄 archive", "amber")
         st.markdown(
-            f"### 📄 {d['source']}　{status_tag}"
-            + tag(f"🗂 {domain_label(d['domain'])}", "blue")
-            + tag(f"📁 {d['category']}", "blue")
-            + (tag("🏷 " + " / ".join(d["topic"])) if d["topic"] else "")
-            + tag(f"v{d['version']}", "green"),
+            f"### 📄 {html.escape(str(d['source']))}　{status_tag}"
+            + tag(f"🗂 {html.escape(str(d['domain']))}", "blue")
+            + tag(f"📁 {html.escape(str(d['category']))}", "blue")
+            + (tag("🏷 " + html.escape(" / ".join(d["topic"]))) if d["topic"] else "")
+            + tag(f"v{html.escape(str(d['version']))}", "green"),
             unsafe_allow_html=True,
         )
         st.caption(t("manage.detail.cards", id=d["document_id"], n=d["chunks"]))
@@ -1343,17 +1387,27 @@ def page_manage():
                 try:
                     info = fn()
                     st.toast(info["message"], icon="✅")
+                    # 表格数据变了（状态/版本列），必须换新 key 让 data_editor 重建
+                    st.session_state["manage_table_revision"] = \
+                        st.session_state.get("manage_table_revision", 0) + 1
                     st.rerun()
                 except ManageError as exc:
                     st.error(str(exc))
 
-    # 档案编辑（V3.4）
+    # 档案编辑（V3.4）：key 绑定当前文档——固定 key 会让切换文档后沿用
+    # 上一个文档的输入值，保存时把 A 的档案写进 B
     with st.expander(t("manage.edit.title")):
         e1, e2 = st.columns(2)
-        new_title = e1.text_input(t("manage.edit.title.label"), value=d["source"] and (d.get("source") or ""), key="ed_title")
-        new_category = e2.text_input(t("manage.edit.category"), value=d["category"], key="ed_cat")
-        new_topic = st.text_input(t("manage.edit.topic"), value=", ".join(d["topic"]), key="ed_topic")
-        new_version = st.text_input(t("manage.edit.version"), value=d["version"], key="ed_ver")
+        _ed_suffix = d["document_id"]
+        new_title = e1.text_input(t("manage.edit.title.label"),
+                                  value=d.get("source") or "",
+                                  key=f"ed_title_{_ed_suffix}")
+        new_category = e2.text_input(t("manage.edit.category"), value=d["category"],
+                                     key=f"ed_cat_{_ed_suffix}")
+        new_topic = st.text_input(t("manage.edit.topic"), value=", ".join(d["topic"]),
+                                  key=f"ed_topic_{_ed_suffix}")
+        new_version = st.text_input(t("manage.edit.version"), value=d["version"],
+                                    key=f"ed_ver_{_ed_suffix}")
         if st.button(t("manage.edit.save"), type="primary"):
             updates = {"title": new_title, "category": new_category,
                        "topic": [t.strip() for t in new_topic.split(",") if t.strip()],
@@ -1361,6 +1415,8 @@ def page_manage():
             try:
                 info = __import__("src.manage", fromlist=["update_metadata"]).update_metadata(d["path"], updates)
                 st.toast(info["message"], icon="✅")
+                st.session_state["manage_table_revision"] = \
+                    st.session_state.get("manage_table_revision", 0) + 1
                 st.rerun()
             except ManageError as exc:
                 st.error(str(exc))
@@ -1371,7 +1427,9 @@ def page_manage():
         head = t("manage.card.head", chunk_id=payload.get("chunk_id", "?"),
                  section=payload.get("section") or "-", page=payload.get("page") or "-")
         with st.expander(head):
-            st.markdown(f"<div class='chunk-quote'>{payload.get('text', '')}</div>",
+            # 网页抓取的卡片原文不可信，进 HTML div 前必须转义
+            safe_chunk = html.escape(payload.get("text", ""))
+            st.markdown(f"<div class='chunk-quote'>{safe_chunk}</div>",
                         unsafe_allow_html=True)
 
 
@@ -1470,13 +1528,29 @@ def page_maintenance():
     if c1.button(t("maint.rebuild"), disabled=not confirm_rebuild,
                  width="stretch", type="primary"):
         with st.spinner(t("maint.rebuilding")):
-            summary = ingest_files(rebuild=True)
+            try:
+                summary = ingest_files(rebuild=True)
+            except (LLMError, VectorStoreError, EmbeddingError) as exc:
+                st.error(str(exc))
+                st.stop()
+            except Exception as exc:
+                st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+                st.stop()
         if summary.ok_files:
             st.success(t("maint.rebuild.done", files=summary.ok_files, chunks=summary.total_chunks))
         else:
             st.error(t("maint.rebuild.fail"))
     if c2.button(t("maint.clear_only"), width="stretch"):
-        store.clear()
+        try:
+            store.clear()
+        except VectorStoreError as exc:
+            st.error(str(exc))
+            st.stop()
+        # 向量库清空后必须清问答缓存：否则同问题仍命中缓存返回已删知识的答案
+        from src.pipeline import clear_qa_cache as _cqc
+        from src.keyword_search import invalidate_cache as _ici
+        _cqc()
+        _ici()
         st.success(t("maint.clear_only.done"))
 
     st.divider()

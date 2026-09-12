@@ -30,18 +30,25 @@ def load_state() -> dict:
     try:
         data = json.loads(STATE_PATH.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError) as exc:
+        # 台账损坏时回退空账本，但必须大声警告：此时全部文件会被当新文件，
+        # 库里的旧版本卡片不会走 expire，可能出现新旧两代同时 active
+        print(f"❌ 入库台账损坏（{exc}），已按空台账处理。"
+              f"建议运行 python ingest.py --rebuild 重建以保持台账与向量库一致。")
         return {}
 
 
 def save_state(state: dict) -> None:
     try:
         STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        STATE_PATH.write_text(
+        # 先写临时文件再原子替换：避免写一半崩溃/并发写留下半截 JSON
+        tmp_path = STATE_PATH.with_suffix(".json.tmp")
+        tmp_path.write_text(
             json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-    except OSError:
-        pass
+        tmp_path.replace(STATE_PATH)
+    except OSError as exc:
+        print(f"⚠️ 入库台账写盘失败：{exc}（不影响本次入库，下次入库会重新比对）")
 
 
 def update_entry(state: dict, relative_path: str, document_id: str,

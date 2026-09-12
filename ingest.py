@@ -32,9 +32,8 @@ def main() -> int:
     paths = [Path(p) for p in args.paths]
     summary = ingest_files(paths=paths or None, rebuild=args.rebuild)
 
-    if summary.ok_files == 0:
-        return 1
-    return 0
+    # 退出码只看真实失败；「全部跳过/无变化」是成功运行（cron 定时任务不能误报）
+    return 1 if summary.failed_files else 0
 
 
 if __name__ == "__main__":

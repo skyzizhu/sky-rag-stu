@@ -33,6 +33,7 @@ _HEADERS = {
 }
 
 _TIMEOUT = 15  # 秒
+_MAX_BYTES = 5 * 1024 * 1024  # 单页正文上限 5 MB：恶意/超大页面不至耗尽内存
 
 
 def fetch_html(url: str) -> tuple[str, bool]:
@@ -44,15 +45,25 @@ def fetch_html(url: str) -> tuple[str, bool]:
     会一路传到界面提示用户。
     """
     try:
-        resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
+        resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT, stream=True)
         cert_skipped = False
     except requests.exceptions.SSLError:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-            resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT, verify=False)
+            resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT,
+                                stream=True, verify=False)
         cert_skipped = True
     resp.raise_for_status()
-    return resp.text, cert_skipped
+    # 流式读取并截断：timeout 只约束单次读，不限总量
+    parts: list[str] = []
+    total = 0
+    for chunk in resp.iter_content(chunk_size=65536, decode_unicode=False):
+        total += len(chunk)
+        if total > _MAX_BYTES:
+            break
+        parts.append(chunk.decode(resp.encoding or "utf-8", errors="replace"))
+    resp.close()
+    return "".join(parts), cert_skipped
 
 
 def extract_text(html: str) -> dict:
@@ -134,6 +145,11 @@ _SNAPSHOT_DIR = PROJECT_ROOT / "knowledge" / "reference" / "webpages"
 
 
 
+def _sanitize_single_line(value: str) -> str:
+    """压成单行：标题/URL 含换行会把任意键注入 YAML Front Matter（元数据投毒）。"""
+    return re.sub(r"[\r\n]+", " ", value or "").strip()
+
+
 def save_web_snapshot(url: str, text: str, title: str) -> Path:
     """将网页正文保存为 .md 文件到 knowledge/reference/webpages/ 目录。
 
@@ -142,6 +158,8 @@ def save_web_snapshot(url: str, text: str, title: str) -> Path:
     """
     import hashlib
 
+    url = _sanitize_single_line(url)
+    title = _sanitize_single_line(title)
     short_hash = hashlib.md5(url.encode()).hexdigest()[:8]
     safe_title = re.sub(r'[\\/:*?"<>|\s]+', "_", title[:30]) if title else short_hash
     filename = f"{short_hash}_{safe_title}.md"

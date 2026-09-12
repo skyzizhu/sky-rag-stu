@@ -13,6 +13,8 @@ JSON 内含会话标题（取第一条用户提问）、消息列表与每条回
 from __future__ import annotations
 
 import json
+import re
+import secrets
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
@@ -20,6 +22,10 @@ from pathlib import Path
 from src.config import PROJECT_ROOT
 
 SESSIONS_DIR = PROJECT_ROOT / "storage" / "sessions"
+
+# 合法 session_id：YYYYMMDD_HHMMSS + 可选短随机后缀。
+# session_id 会被拼进文件路径，绝不能含 / .. 等路径字符（防目录穿越）
+_SESSION_ID_RE = re.compile(r"^\d{8}_\d{6}(-[a-z0-9]{4})?$")
 
 
 def _to_plain(value):
@@ -31,19 +37,24 @@ def _to_plain(value):
     return value
 
 
-def _session_path(session_id: str) -> Path:
-    date_part = session_id[:10]  # YYYY-MM-DD
-    return SESSIONS_DIR / date_part / f"{session_id}.json"
+def _session_path(session_id: str) -> Path | None:
+    """会话文件路径；session_id 格式非法时返回 None（调用方按"不存在"处理）。
+
+    正则保证 id 只含数字/下划线/连字符，session_id[:10] 拼路径不可能穿越目录。
+    """
+    if not _SESSION_ID_RE.fullmatch(session_id or ""):
+        return None
+    return SESSIONS_DIR / session_id[:10] / f"{session_id}.json"
 
 
 def save_session(session_id: str, messages: list[dict], title: str = "") -> str:
     """保存一个会话。消息里的 result 对象转为普通字典。"""
     now = datetime.now()
-    if not session_id:
-        session_id = now.strftime("%Y%m%d_%H%M%S")
+    if not _SESSION_ID_RE.fullmatch(session_id or ""):
+        session_id = new_session_id()
     plain_messages = []
     for m in messages:
-        entry = {"role": m["role"], "content": m["content"]}
+        entry = {"role": m.get("role"), "content": m.get("content")}
         if m.get("result") is not None:
             entry["result"] = _to_plain(m["result"])
         plain_messages.append(entry)
@@ -58,13 +69,16 @@ def save_session(session_id: str, messages: list[dict], title: str = "") -> str:
     }
     path = _session_path(session_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    # 先写临时文件再原子替换：写一半崩溃不会留下损坏 JSON（丢整个会话）
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(path)
     return session_id
 
 
 def load_session(session_id: str) -> dict | None:
     path = _session_path(session_id)
-    if not path.exists():
+    if path is None or not path.exists():
         return None
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -78,19 +92,23 @@ def list_sessions(limit: int = 50) -> list[dict]:
     if not SESSIONS_DIR.exists():
         return out
     for path in sorted(SESSIONS_DIR.rglob("*.json"), reverse=True)[:limit]:
+        if path.suffix != ".json" or path.stem.endswith(".tmp"):
+            continue
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
+        sid = data.get("session_id", path.stem)
         out.append({
-            "session_id": data.get("session_id", path.stem),
+            "session_id": sid,
             "title": data.get("title", "未命名会话"),
             "updated_at": data.get("updated_at", ""),
-            "date": data.get("session_id", "")[:10],
+            "date": sid[:10],
             "count": len(data.get("messages", [])),
         })
     return out
 
 
 def new_session_id() -> str:
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
+    # 秒级时间戳 + 4 位随机后缀：同一秒建两个新会话不会互相覆盖
+    return datetime.now().strftime("%Y%m%d_%H%M%S") + "-" + secrets.token_hex(2)

@@ -89,19 +89,21 @@ def chunk_id_for(document_id: str, index: int) -> str:
 def parse_front_matter(text: str) -> tuple[dict, str]:
     """从 Markdown 文本中拆出 YAML Front Matter。
 
-    返回 (front_matter字典, 去掉声明后的正文)。没有声明或解析失败时返回 ({}, 原文)。
+    返回 (front_matter字典, 去掉声明后的正文)。没有声明时正文原样返回；
+    声明存在但 YAML 解析失败时，正文去掉声明块（否则 YAML 原文会被当正文入库可检索）。
     """
     match = _FRONT_MATTER_RE.match(text)
     if not match:
         return {}, text
+    body = text[match.end():]
     try:
         data = yaml.safe_load(match.group(1))
     except yaml.YAMLError as exc:
-        print(f"⚠️ Front Matter 解析失败，已忽略（{exc}）")
-        return {}, text
+        print(f"⚠️ Front Matter 解析失败，已忽略声明块（{exc}）")
+        return {}, body
     if not isinstance(data, dict):
-        return {}, text
-    return data, text[match.end():]
+        return {}, body
+    return data, body
 
 
 # ---------------- 目录推断 ----------------
@@ -129,6 +131,10 @@ def infer_from_path(relative_path: str) -> dict:
 
     dirs = parts[:-1]  # 最后一段是文件名，其余才是目录链
     domain = dirs[0].strip().lower()
+    if domain not in DOMAINS:
+        # 目录名不是合法领域枚举时回退默认值：否则这些文档按领域筛选永远筛不出来
+        print(f"⚠️ 目录「{dirs[0]}」不是合法领域（{'/'.join(DOMAINS)}），按 {DEFAULTS['domain']} 处理")
+        domain = DEFAULTS["domain"]
     category = normalize_category(dirs[1]) if len(dirs) >= 2 else DEFAULTS["category"]
 
     topic = []

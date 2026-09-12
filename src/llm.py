@@ -118,6 +118,11 @@ class LLMClient:
                 print(f"    LLM 流式调用完成：{self.cfg.llm_model}，耗时 {time.time() - start:.1f} 秒")
 
 
+def strip_think_tags(text: str) -> str:
+    """模块级思考标签清洗（pipeline 在答案定稿时做全文终清，跨 chunk 边界不漏）。"""
+    return LLMClient._clean_think_tags(text or "")
+
+
 @lru_cache(maxsize=1)
 def get_llm_client() -> LLMClient:
     return LLMClient()

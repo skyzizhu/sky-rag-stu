@@ -22,7 +22,7 @@ from src.chunker import clean_and_chunk
 from src.config import AppConfig, get_config
 from src.context import build_context, estimate_tokens
 from src.embedding import EmbeddingClient, get_embedding_client
-from src.llm import LLMClient, get_llm_client
+from src.llm import LLMClient, get_llm_client, strip_think_tags
 from src.metadata import build_document_metadata, document_id_for
 from src.parser import ParsedDocument, parse_file
 from src.prompt import build_messages
@@ -114,6 +114,9 @@ def ingest_files(
             rel = path.resolve().relative_to(cfg.knowledge_dir.resolve()).as_posix()
         except ValueError:
             pass
+        if not path.exists():
+            summary.failed_files.append(f"{rel}（文件不存在）")
+            continue
         current_hash = istate.file_hash(path)
         known = rel in state
         unchanged = known and state[rel].get("hash") == current_hash
@@ -140,6 +143,10 @@ def ingest_files(
     if summary.cleaned_files:
         print(f"   🧹 已同步清理 {len(summary.cleaned_files)} 个已删除文件的向量数据")
         istate.save_state(state)  # 清理结果立即落盘（该路径可能提前返回）
+        # 删除了知识就必须清问答缓存：否则同问题命中缓存返回已删除知识的答案
+        clear_qa_cache()
+        from src.keyword_search import invalidate_cache
+        invalidate_cache()
     if summary.skipped_files:
         print(f"   ⏭️ {len(summary.skipped_files)} 个文件内容未变化，跳过（省时省钱）")
         for rel in summary.skipped_files:
@@ -208,8 +215,9 @@ def ingest_files(
     summary.total_chunks = len(chunks)
     chunks_by_file: dict[str, int] = {}
     for chunk in chunks:
-        source = chunk.metadata["source"]
-        chunks_by_file[source] = chunks_by_file.get(source, 0) + 1
+        # 按相对路径聚合：不同子目录的同名文件不能混叠卡片数
+        rel_path = chunk.metadata["path"]
+        chunks_by_file[rel_path] = chunks_by_file.get(rel_path, 0) + 1
     for doc in cleaned_docs:
         meta = doc.metadata
         summary.file_rows.append({
@@ -218,21 +226,35 @@ def ingest_files(
             "domain": meta["domain"],
             "category": meta["category"],
             "status": meta["status"],
-            "chunks": chunks_by_file.get(meta["source"], 0),
+            "chunks": chunks_by_file.get(meta["path"], 0),
         })
     print(f"   共切出 {len(chunks)} 张知识卡片")
     if not chunks:
         return summary
 
-    # ⑦ 更新入库台账（V3.1）：记录每个文件的指纹与卡片数，作为下次增量的对比依据
-    for path, rel, file_hash_value in processed:
-        doc_id = next(
-            (c.metadata["document_id"] for c in chunks if c.metadata["path"] == rel),
-            document_id_for(rel),
-        )
-        chunk_count = sum(1 for c in chunks if c.metadata["path"] == rel)
-        istate.update_entry(state, rel, doc_id, chunk_count, file_hash_value)
-    istate.save_state(state)
+    # ⑦ 台账记录函数：只为「解析且切片成功」的文件记录指纹。
+    # 解析失败的文件刻意不记——旧向量保持原状，下次入库自动重试；
+    # 若记录了失败文件的新指纹，新内容会被增量判断永久跳过。
+    versions_by_rel = {d.metadata["path"]: d.metadata.get("version", "1.0") for d in cleaned_docs}
+
+    def _record_ledger() -> None:
+        for path, rel, file_hash_value in processed:
+            if rel not in versions_by_rel:
+                continue
+            doc_id = next(
+                (c.metadata["document_id"] for c in chunks if c.metadata["path"] == rel),
+                document_id_for(rel),
+            )
+            chunk_count = sum(1 for c in chunks if c.metadata["path"] == rel)
+            istate.update_entry(state, rel, doc_id, chunk_count, file_hash_value,
+                                version=versions_by_rel[rel])
+
+    if not chunks:
+        # 全部文件都没有切出卡片（空文件等）：也记台账（0 卡片），
+        # 否则这些文件每次入库都重跑、重复花 LLM 标签的钱
+        _record_ledger()
+        istate.save_state(state)
+        return summary
 
     # ⑤ 向量化
     print(f"⑤ 向量化（模型：{cfg.embedding_model}）")
@@ -244,14 +266,23 @@ def ingest_files(
     if rebuild:
         print("⑥ 重建模式：先清空向量库")
         vector_store.clear()
-    else:
+    vector_store.ensure_collection(summary.vector_dimension)
+    if not rebuild:
+        # 台账损坏/丢失时 new 文件在向量库里可能有旧残留，入库前清掉（幂等），
+        # 避免「台账说新、库里有旧」时新旧两代卡片同时 active
+        for doc in cleaned_docs:
+            if doc.metadata["path"] in summary.new_files:
+                vector_store.delete_documents([doc.metadata["document_id"]])
         # V3.2 版本管理：内容有变化的文件，旧版本整体转 expired 留作历史（新版本随后写入）
         for doc in cleaned_docs:
             if doc.metadata["path"] in summary.updated_files:
                 vector_store.expire_document(doc.metadata["document_id"])
     print("⑥ 存入 Qdrant 向量库")
-    vector_store.ensure_collection(summary.vector_dimension)
     stored = vector_store.upsert_chunks(chunks, vectors)
+    # 台账落盘放在向量写入成功之后：中途任何一步失败（Ollama 掉线、Qdrant 异常）
+    # 都不落盘，下次入库自动重试，不会出现「指纹已记录但内容没进库」的死锁
+    _record_ledger()
+    istate.save_state(state)
     # 入库后清空 BM25 缓存和 Q→A 缓存
     from src.keyword_search import invalidate_cache
     invalidate_cache()
@@ -273,8 +304,15 @@ _qa_cache: dict[str, QAResult] = {}
 _QA_CACHE_MAX = 50  # 最多缓存 50 条问答
 
 
-def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool, rerank: bool) -> str:
-    return f"{question.strip().lower()}|k={top_k}|f={sorted((filters or {}).items())}|qu={qu}|hy={hybrid}|rr={rerank}"
+def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool, rerank: bool,
+               history: list[dict] | None = None) -> str:
+    # 对话历史参与键：同样的短追问（"继续""展开讲讲"）在不同上下文里答案完全不同，
+    # 不带 history 会跨会话/跨轮次串答案
+    hist_sig = "|".join(
+        f"{m.get('role')}:{(m.get('content') or '')[:60]}" for m in (history or [])
+    )
+    return (f"{question.strip().lower()}|k={top_k}|f={sorted((filters or {}).items())}"
+            f"|qu={qu}|hy={hybrid}|rr={rerank}|h={hist_sig}")
 
 
 def clear_qa_cache() -> None:
@@ -310,9 +348,11 @@ def answer_stream(
     cfg = config or get_config()
     top_k = top_k or cfg.top_k
 
-    # Q→A 缓存：同一问题+同一配置直接返回上次结果
-    cache_key = _cache_key(question, top_k, filters or {}, use_query_understanding, use_hybrid, use_rerank)
-    if cache_key in _qa_cache:
+    # Q→A 缓存：同一问题+同一配置+同一对话上下文直接返回上次结果；
+    # 仅检索模式（use_llm=False）不读缓存——它要的是检索结果而非缓存的 LLM 答案
+    cache_key = _cache_key(question, top_k, filters or {}, use_query_understanding,
+                           use_hybrid, use_rerank, history=history)
+    if use_llm and cache_key in _qa_cache:
         import copy
         cached = copy.deepcopy(_qa_cache[cache_key])
         # 缓存命中：加一条时间线节点说明（不重跑流水线）
@@ -593,12 +633,16 @@ def answer_stream(
         llm_start = now_str()
         t3 = time.time()
         text = ""
+        completed = False
         try:
             for delta in llm.chat_stream(messages):
                 text += delta
                 yield delta
+            completed = True  # 正常跑完才会置 True；异常/用户中断都不会
         finally:
-            result.answer = text.strip() or None
+            # 思考标签跨 chunk 边界时逐段清洗会漏，回答定稿前对全文再清一次
+            cleaned = strip_think_tags(text).strip()
+            result.answer = cleaned or None
             result.elapsed["llm"] = time.time() - t3
             result.elapsed["total"] = result.elapsed.get("retrieval", 0) + result.elapsed["llm"]
             trace.append(make_node(
@@ -622,10 +666,12 @@ def answer_stream(
                      f"总耗时 {result.elapsed.get('total', 0):.2f} 秒"),
                 ],
             ))
-            # 写入 Q→A 缓存（最多保留 50 条）
-            if len(_qa_cache) >= _QA_CACHE_MAX:
-                _qa_cache.pop(next(iter(_qa_cache)))
-            _qa_cache[cache_key] = result
+            # 只缓存「完整且非空」的回答：LLM 失败（异常）或用户中断（半截答案）不缓存，
+            # 否则之后同样的问题永远命中这份坏结果
+            if completed and result.answer:
+                if len(_qa_cache) >= _QA_CACHE_MAX:
+                    _qa_cache.pop(next(iter(_qa_cache)))
+                _qa_cache[cache_key] = result
 
     return result, _generate()
 
