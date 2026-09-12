@@ -7,7 +7,7 @@
   "hybrid_search": true,
   "rerank": true,
   "theme": "system",
-  "language": "zh-CN",
+  "language": "system",
   "installed_plugins": [
     "web_fetcher"
   ]
