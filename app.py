@@ -1065,6 +1065,29 @@ def _show_ingest_result(summary):
     for f in summary.failed_files:
         st.warning(f)
 
+    with tab_web:
+        st.markdown('<div class="section-title">🌐 添加网页</div>', unsafe_allow_html=True)
+        st.caption("输入 URL，抓取网页正文，自动切片入库为知识卡片。适合收藏技术文档、产品说明、教程等。")
+
+        web_url = st.text_input("网页地址", placeholder="https://example.com/article",
+                                help="支持 HTTP/HTTPS 链接")
+        col_w1, col_w2 = st.columns(2)
+        with col_w1:
+            web_domain = st.selectbox("领域", DOMAINS,
+                                      format_func=domain_label, index=DOMAINS.index("reference"))
+        with col_w2:
+            web_category = st.text_input("子分类（默认 webpages）", value="webpages")
+
+        if st.button("🌐 抓取并入库", disabled=not web_url.strip(), use_container_width=True, type="primary"):
+            from src.manage import ingest_web_page
+            try:
+                with st.spinner("正在抓取网页内容……"):
+                    result = ingest_web_page(web_url.strip(), domain=web_domain,
+                                             category=web_category.strip().lower() or "webpages")
+                st.success(f"🎉 {result['message']}")
+            except Exception as exc:
+                st.error(f"抓取失败：{exc}")
+
     st.divider()
     st.markdown('<div class="section-title">📁 knowledge/ 目录现状</div>', unsafe_allow_html=True)
     if cfg.knowledge_dir.exists():
