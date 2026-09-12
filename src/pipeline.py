@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -67,6 +68,27 @@ class QAResult:
 
 # ---------------------------------------------------------------- 入库
 def ingest_files(
+    paths: list[Path] | None = None,
+    rebuild: bool = False,
+    config: AppConfig | None = None,
+    embedding_client: EmbeddingClient | None = None,
+    store: VectorStore | None = None,
+    skip_unchanged: bool = False,
+) -> IngestSummary:
+    """把文件送进知识库。paths 为空时扫描整个知识目录。
+
+    增量判断（V3.1）：全库扫描始终做指纹跳过；显式传 paths 默认是强制
+    重新入库（管理台「重新入库」按钮的语义），skip_unchanged=True 可让
+    显式路径同样做指纹跳过（网页入库等"内容没变就别重跑"的场景）。
+    """
+    # 多标签页并发点入库会互相覆盖台账/向量数据，入库全程串行化（单用户无感知）
+    with _ingest_lock:
+        return _ingest_files_impl(paths=paths, rebuild=rebuild, config=config,
+                                  embedding_client=embedding_client, store=store,
+                                  skip_unchanged=skip_unchanged)
+
+
+def _ingest_files_impl(
     paths: list[Path] | None = None,
     rebuild: bool = False,
     config: AppConfig | None = None,
@@ -302,6 +324,9 @@ def ingest_files(
 # 简单内存缓存：同一问题 + 同一配置 → 直接返回上次结果（不重跑流水线）
 _qa_cache: dict[str, QAResult] = {}
 _QA_CACHE_MAX = 50  # 最多缓存 50 条问答
+# Streamlit 多标签页 = 多线程：入库/缓存读写需要锁保护，
+# 否则驱逐点与并发清空可竞态崩溃，台账也会互相覆盖
+_ingest_lock = threading.Lock()
 
 
 def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool, rerank: bool,
@@ -669,8 +694,12 @@ def answer_stream(
             # 只缓存「完整且非空」的回答：LLM 失败（异常）或用户中断（半截答案）不缓存，
             # 否则之后同样的问题永远命中这份坏结果
             if completed and result.answer:
-                if len(_qa_cache) >= _QA_CACHE_MAX:
-                    _qa_cache.pop(next(iter(_qa_cache)))
+                # list() 快照 + pop(默认值)：并发 clear 时不抛 StopIteration/KeyError
+                while len(_qa_cache) >= _QA_CACHE_MAX:
+                    for oldest in list(_qa_cache)[: len(_qa_cache) - _QA_CACHE_MAX + 1]:
+                        _qa_cache.pop(oldest, None)
+                    if not _qa_cache:
+                        break
                 _qa_cache[cache_key] = result
 
     return result, _generate()

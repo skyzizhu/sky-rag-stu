@@ -114,6 +114,11 @@ def restore(archived_relative_path: str) -> dict:
         target = knowledge_dir / "reference" / "documents" / parts[1]
     else:
         target = knowledge_dir / original
+    # 复检目标仍在 knowledge/ 内：构造的 archive/../x 路径不能把文件移出知识库
+    try:
+        target.resolve().relative_to(knowledge_dir.resolve())
+    except (ValueError, OSError):
+        raise ManageError("恢复目标路径非法。")
     if target.exists():  # 同名冲突：加时间戳
         stamp = time.strftime("%Y%m%d_%H%M%S")
         target = target.with_name(f"{target.stem}_{stamp}{target.suffix}")

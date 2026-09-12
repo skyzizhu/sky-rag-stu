@@ -14,6 +14,7 @@ from __future__ import annotations
 import html
 import re
 import sys
+import dataclasses
 from pathlib import Path
 
 import streamlit as st
@@ -173,14 +174,22 @@ if load_target:
     if data:
         loaded_messages = []
         for m in data.get("messages", []):
+            # 旧版本/损坏的会话文件：缺 role/content 的消息跳过；QAResult 快照
+            # 缺必填字段时只恢复文本不恢复来源面板，不让一条坏消息毁掉整个加载
+            if not isinstance(m, dict) or not (m.get("role") and m.get("content") is not None):
+                continue
             entry = {"role": m["role"], "content": m["content"]}
             res = m.get("result")
-            if res:
-                res["retrieved"] = []  # 历史消息不再需要原始召回对象列表
-                entry["result"] = QAResult(**{
-                    k: v for k, v in res.items()
-                    if k in {f.name for f in QAResult.__dataclass_fields__.values()}
-                })
+            if res and isinstance(res, dict):
+                fields = dataclasses.fields(QAResult)
+                required = {f.name for f in fields
+                            if f.default is dataclasses.MISSING
+                            and f.default_factory is dataclasses.MISSING}
+                if required <= set(res.keys()):
+                    res["retrieved"] = []  # 历史消息不再需要原始召回对象列表
+                    entry["result"] = QAResult(**{
+                        k: v for k, v in res.items() if k in {f.name for f in fields}
+                    })
             loaded_messages.append(entry)
         st.session_state.messages = loaded_messages
         st.session_state.session_id = load_target
