@@ -871,6 +871,15 @@ def page_chat():
                 if message.get("result") is not None:
                     show_answer_sources(message["result"])
 
+    # 流式回答结束后强制一次干净重绘：流式过程中前端对长对话的 DOM 复用
+    # 可能出现新旧消息错位（旧答案渲染到新问题下方），rerun 从 session_state
+    # 完整重画即可归位；随后锚定到底部
+    if st.session_state.pop("scroll_answer_once", False):
+        scroll_chat_to_latest(
+            key=f"scroll_final_{st.session_state['session_id']}_{len(st.session_state.messages)}",
+            behavior="auto",
+        )
+
     if st.session_state.pop("scroll_loaded_session_once", False):
         scroll_chat_to_latest(
             key=f"scroll_loaded_{st.session_state['session_id']}",
@@ -933,6 +942,10 @@ def page_chat():
                 scroll_chat_to_latest(
                     key=f"scroll_answer_{st.session_state['session_id']}_{len(st.session_state.messages)}",
                 )
+                # 回答完成后强制 rerun 重绘整个会话：消除流式过程中前端
+                # DOM 复用错位（旧答案内容出现在新问题下方）
+                st.session_state["scroll_answer_once"] = True
+                st.rerun()
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
                 st.error(str(exc))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.error_occurred", err=exc)})
