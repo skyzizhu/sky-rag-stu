@@ -15,9 +15,11 @@ RAG 核心流程不感知网页的存在，它只负责处理文本。
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 
 import requests
+import urllib3
 from bs4 import BeautifulSoup
 
 from src.config import PROJECT_ROOT
@@ -33,11 +35,24 @@ _HEADERS = {
 _TIMEOUT = 15  # 秒
 
 
-def fetch_html(url: str) -> str:
-    """获取 URL 的 HTML 源码。"""
-    resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
+def fetch_html(url: str) -> tuple[str, bool]:
+    """获取 URL 的 HTML 源码，返回 (html, cert_skipped)。
+
+    SSL 校验失败时自动降级重试一次（不校验证书）。常见原因：目标网站证书链
+    不完整（浏览器会自动补全中间证书所以打得开，Python 严格校验打不开）。
+    个人知识库场景下 URL 是用户自己输入的，降级可接受，但 cert_skipped
+    会一路传到界面提示用户。
+    """
+    try:
+        resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
+        cert_skipped = False
+    except requests.exceptions.SSLError:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+            resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT, verify=False)
+        cert_skipped = True
     resp.raise_for_status()
-    return resp.text
+    return resp.text, cert_skipped
 
 
 def extract_text(html: str) -> dict:
@@ -93,14 +108,15 @@ def extract_text(html: str) -> dict:
 
 
 def fetch_and_parse(url: str) -> dict:
-    """抓取网页并提取正文。返回 {"text", "title", "url"}。"""
+    """抓取网页并提取正文。返回 {"text", "title", "url", "cert_skipped"}。"""
     url = url.strip()
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
 
-    html = fetch_html(url)
+    html, cert_skipped = fetch_html(url)
     result = extract_text(html)
     result["url"] = url
+    result["cert_skipped"] = cert_skipped
 
     if not result["text"] or len(result["text"]) < 50:
         raise ValueError(f"网页正文内容过短（{len(result['text'])} 字），可能无法有效入库")

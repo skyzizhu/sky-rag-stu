@@ -286,10 +286,14 @@ def ingest_web_page(url: str, domain: str = "reference",
     # 入库（走标准流水线）
     summary = ingest_files(paths=[file_path])
     if summary.ok_files:
+        message = f"网页已入库：{url} → {file_path.name}（{summary.total_chunks} 张卡片）"
+        if result.get("cert_skipped"):
+            message += "\n⚠️ 注意：该网站 SSL 证书校验失败（常见于证书链不完整的站点），已跳过校验抓取。"
         return {
-            "message": f"网页已入库：{url} → {file_path.name}（{summary.total_chunks} 张卡片）",
+            "message": message,
             "url": url,
             "file_path": str(file_path),
             "chunks": summary.total_chunks,
+            "cert_skipped": result.get("cert_skipped", False),
         }
     raise ManageError(f"网页入库失败：{summary.failed_files}")
