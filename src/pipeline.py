@@ -115,11 +115,19 @@ def ingest_files(
         except ValueError:
             pass
         current_hash = istate.file_hash(path)
-        if not explicit or skip_unchanged:
-            if state.get(rel, {}).get("hash") == current_hash:
-                summary.skipped_files.append(rel)
-                continue
-            (summary.updated_files if rel in state else summary.new_files).append(rel)
+        known = rel in state
+        unchanged = known and state[rel].get("hash") == current_hash
+        if unchanged and (not explicit or skip_unchanged):
+            summary.skipped_files.append(rel)
+            continue
+        if unchanged:
+            # 强制重跑且内容未变：按 new 处理（同 point_id 覆盖旧卡片，
+            # 不升版本、不 expire），否则重新入库会让版本号虚涨
+            summary.new_files.append(rel)
+        else:
+            # 分类必须无条件进行：updated_files 驱动旧版本 expire，
+            # 漏分类会导致新旧两代卡片同时 active 参与检索
+            (summary.updated_files if known else summary.new_files).append(rel)
         processed.append((path, rel, current_hash))
         paths_to_process.append(path)
 
@@ -166,9 +174,11 @@ def ingest_files(
             updated_at=parsed.metadata["updated_at"],
             front_matter=parsed.front_matter,
         )
-        # V3.2 版本管理：内容有变化的文件版本号自动 +0.1（Front Matter 手动指定优先）
+        # V3.2 版本管理：只有内容真的变化（updated）才升版本号；
+        # 强制重入库（内容未变）不涨版本，否则每次点「重新入库」版本都 +0.1
         prev_version = state.get(rel, {}).get("version")
-        if prev_version and "version" not in (parsed.front_matter or {}):
+        if (rel in summary.updated_files and prev_version
+                and "version" not in (parsed.front_matter or {})):
             from src.metadata import bump_version
             parsed.metadata["version"] = bump_version(prev_version)
         # V3.3 自动打标签：topic/tags 皆空时由 LLM 补全（失败静默跳过，不阻断入库）

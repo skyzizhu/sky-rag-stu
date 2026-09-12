@@ -1190,7 +1190,8 @@ def page_manage():
     f1, f2, f3 = st.columns([3, 1.2, 1.2])
     keyword = f1.text_input(t("manage.search"), placeholder=t("manage.search.ph"))
     dom_codes = ["all"] + DOMAINS
-    dom_filter = f2.selectbox(t("common.domain"), dom_codes, format_func=domain_label)
+    dom_filter = f2.selectbox(t("common.domain"), dom_codes,
+                              format_func=lambda c: t("common.all") if c == "all" else domain_label(c))
     status_codes = ["all", "active", "archive"]
     status_filter = f3.selectbox(t("common.status"), status_codes,
                                  format_func=lambda s: t("common.all") if s == "all" else s,
@@ -1426,7 +1427,8 @@ def page_retrieval_settings():
     st.slider(t("set.top_k"), 1, 10,
               value=st.session_state["top_k"], key="set_top_k",
               on_change=_sync_setting("top_k", "set_top_k"))
-    st.selectbox(t("set.domain"), domain_codes, format_func=lambda c: domain_label(c),
+    st.selectbox(t("set.domain"), domain_codes,
+                 format_func=lambda c: t("common.all") if c == "all" else domain_label(c),
                  index=domain_codes.index(st.session_state["domain_choice"])
                  if st.session_state["domain_choice"] in domain_codes else 0,
                  key="set_domain", on_change=_sync_setting("domain_choice", "set_domain"))
