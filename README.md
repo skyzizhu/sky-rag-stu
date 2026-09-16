@@ -10,6 +10,7 @@
 | 想了解什么 | 去哪里 |
 |---|---|
 | **系统学习 RAG**（每个节点做什么、注意什么、Metadata 格式、提示词规则） | 📄 [**prd.md**](prd.md) —— 产品需求文档，本项目的学习主文档 |
+| **RAG 易错问题清单**（两条流水线里容易忽略的坑：症状→后果→解法，真实踩坑记录） | ⚠️ [**rag_pitfalls.md**](rag_pitfalls.md) —— 复盘手册 |
 | 完整开发过程（V1/V2/V3 逐项清单） | [personal_rag_development_plan.md](personal_rag_development_plan.md) |
 | 知识库管理机制的设计 | [Personal RAG — 知识库管理开发计划.md](Personal%20RAG%20—%20知识库管理开发计划.md) |
 | 怎么安装、怎么用 | 就在本 README，往下看 ↓ |
