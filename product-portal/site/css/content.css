@@ -1,0 +1,191 @@
+/* content.css —— 正文渲染：文档排版、表格、徽标、图与嵌入 */
+
+/* ---------- 徽标 ---------- */
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 2px 9px;
+}
+.badge-origin { color: var(--ink-2); background: #eff1f3; }
+.badge-ai { color: var(--ai); background: var(--ai-bg); }
+.badge-ok { color: var(--ok); background: var(--ok-bg); }
+.badge-pending { color: var(--warn); background: var(--warn-bg); }
+
+/* ---------- 页面头 ---------- */
+.doc { max-width: 960px; }
+
+.content > .doc {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  padding: 30px 38px 34px;
+}
+
+@media (max-width: 750px) { .content > .doc { padding: 20px 18px 24px; } }
+
+.page-title { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.01em; }
+
+.page-summary { margin: 0 0 22px; font-size: 13.5px; color: var(--ink-3); }
+
+/* ---------- Markdown 正文 ---------- */
+.doc h1, .doc h2, .doc h3, .doc h4 { margin: 26px 0 10px; line-height: 1.35; }
+.doc h1 { font-size: 24px; letter-spacing: -0.015em; }
+.doc h2 { font-size: 18px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.doc h3 { font-size: 15.5px; }
+.doc h4 { font-size: 14px; color: var(--ink-2); }
+
+.doc p { margin: 10px 0; }
+
+.doc ul, .doc ol { margin: 10px 0; padding-left: 24px; }
+.doc li { margin: 4px 0; }
+.doc li.task { list-style: none; margin-left: -18px; }
+.doc li.task .cb { margin-right: 6px; color: var(--ink-3); }
+.doc li.task.done { color: var(--ink-3); }
+.doc li.task.done .cb { color: var(--ok); }
+
+.doc hr { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
+
+.doc img {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin: 10px 0;
+}
+
+.doc table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  width: 100%;
+  margin: 14px 0;
+  font-size: 13.5px;
+}
+
+.doc th, .doc td {
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.doc th { background: #f3f5f8; font-weight: 600; white-space: nowrap; }
+.doc tbody tr:nth-child(even) { background: #fafbfc; }
+.doc tbody tr:hover { background: var(--accent-soft); }
+
+.doc blockquote {
+  margin: 14px 0;
+  padding: 10px 14px;
+  border-left: 3px solid #d29922;
+  border-radius: 0 6px 6px 0;
+  background: var(--warn-bg);
+  color: #6b5900;
+  font-size: 13.5px;
+}
+
+pre.code {
+  overflow-x: auto;
+  background: #f6f8fa;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+pre.code code { background: none; padding: 0; }
+
+/* ---------- 提示块 ---------- */
+.callout {
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13.5px;
+  margin: 12px 0;
+}
+.callout.warn { background: var(--warn-bg); color: #6b5900; }
+.callout.ok { background: var(--ok-bg); color: var(--ok); }
+
+/* ---------- Mermaid ---------- */
+.mermaid-box {
+  overflow-x: auto;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin: 16px 0;
+}
+
+/* ---------- 原型 / 信息图嵌入 ---------- */
+.embed-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+iframe.embed {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+/* ---------- 连续长页模块（layout: continuous） ---------- */
+.content { scroll-behavior: smooth; }
+
+.doc-section { scroll-margin-top: 16px; }
+
+.doc-section + .doc-section {
+  margin-top: 48px;
+  padding-top: 40px;
+  border-top: 1px solid var(--line);
+}
+
+.doc-continuous .page-title { font-size: 22px; margin: 0; border-bottom: none; }
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+iframe.embed-inline {
+  width: 100%;
+  height: 640px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+/* ---------- 待确认清单 ---------- */
+.pending-list { list-style: none; padding: 0; margin: 10px 0 18px; }
+
+.pending-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  margin: 8px 0;
+}
+
+.pending-list li a { flex: 1; font-weight: 600; }
+
+/* ---------- 打印 / 导出 PDF：隐藏导航，正文通栏 ---------- */
+@media print {
+  body { display: block; background: #fff; }
+  .sidebar, .topbar, .sidebar-expand, .embed-bar { display: none !important; }
+  .main, .content { height: auto; overflow: visible; padding: 0; }
+  .content > .doc { border: none; box-shadow: none; padding: 0; }
+  .doc-section + .doc-section { break-inside: avoid; }
+}

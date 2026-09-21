@@ -1,0 +1,58 @@
+/* base.css —— 设计变量与基础样式 */
+
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #1f2328;
+  --ink-2: #57606a;
+  --ink-3: #8b949e;
+  --line: #e4e7eb;
+  --accent: #2563eb;
+  --accent-soft: #e8f0fe;
+  --ok: #1a7f37;
+  --ok-bg: #e6f4ea;
+  --warn: #9a6700;
+  --warn-bg: #fff8c5;
+  --ai: #8250df;
+  --ai-bg: #f4ebfd;
+  --radius: 8px;
+  --sidebar-w: 240px;
+  --shadow-sm: 0 1px 2px rgba(31, 35, 40, 0.04), 0 1px 6px rgba(31, 35, 40, 0.05);
+  --shadow-md: 0 4px 14px rgba(31, 35, 40, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--accent-soft); color: var(--accent); }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d5dbe1; border-radius: 6px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #bfc7cf; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code {
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: #eff1f3;
+  border-radius: 4px;
+  padding: 2px 6px;
+}

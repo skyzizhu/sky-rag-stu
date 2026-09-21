@@ -1,0 +1,380 @@
+{
+  "FR-INGEST-001": {
+    "id": "FR-INGEST-001",
+    "title": "输入源与格式覆盖",
+    "description": "支持 7 类知识输入：Markdown、纯文本、PDF、Word(docx)、HTML 剪藏、RTF 六种文件格式，以及网页 URL 直接抓取（需网页入库插件）。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "格式边界": "PDF 不支持扫描版/加密；网页抓取支持 http/https，正文过短（<50 字）报错不入库。",
+      "输入消毒": "网页标题/URL 单行化防 Front Matter 注入；抓取正文 5MB 上限；去噪（导航/页眉/脚本）。",
+      "能力边界声明": "每种格式的解析能力与限制须在产品文档中明示（如扫描版 PDF 需 OCR，属下一版规划）。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-INGEST-001",
+        "given": "六种格式的样例文件各一份",
+        "when": "分别入库",
+        "then": "全部解析成功并产出可检索卡片"
+      },
+      {
+        "id": "AC-INGEST-002",
+        "given": "一个正文过短（<50 字）的网页",
+        "when": "抓取入库",
+        "then": "报错提示正文过短，不产出空卡片"
+      }
+    ]
+  },
+  "FR-INGEST-002": {
+    "id": "FR-INGEST-002",
+    "title": "增量判断与入库台账",
+    "description": "入库前按内容 MD5 指纹比对台账（index_state）：未变化跳过，变化仅更新该文件；删除文件同步清理向量。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "判定范围": "全库扫描始终做指纹比对；显式指定文件默认强制重入库，网页入库场景走指纹跳过。",
+      "落盘时机": "台账在向量写入成功之后落盘；中途任何失败（向量化/写库异常）不落盘，下次自动重试。",
+      "失败隔离": "解析失败的文件不记台账，旧向量保持原状，下次自动重试。",
+      "健壮性": "台账原子写盘（临时文件+替换）；损坏时大声告警并建议重建，不静默降级。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-INGEST-003",
+        "given": "同 URL 网页内容未变化",
+        "when": "再次录入",
+        "then": "约 1 秒内跳过，不产生 LLM 与向量化开销"
+      },
+      {
+        "id": "AC-INGEST-004",
+        "given": "入库中途 Ollama 不可用",
+        "when": "修复后重新入库",
+        "then": "该文件正常入库，不出现永久跳过"
+      }
+    ]
+  },
+  "FR-INGEST-003": {
+    "id": "FR-INGEST-003",
+    "title": "解析与文本归一化",
+    "description": "各格式解析为统一文本，并做文本归一化：表格汉字间排版空格压缩、Front Matter 损坏降级、标题层级转 Markdown。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "表格归一化": "表格文本压缩汉字之间的排版空格（「工 作 经 历」→「工作经历」），否则关键词与向量双通道均失配。",
+      "Front Matter": "声明块解析失败时从正文去除声明块（YAML 原文不得入库可检索），并告警。",
+      "网页去噪": "剔除 nav/header/footer/script 等噪音元素，标题层级转 Markdown，合并过短段落。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-INGEST-005",
+        "given": "表单类 docx（栏目名含字间空格）",
+        "when": "入库后检索栏目内容",
+        "then": "卡片文本为归一化后的连续词，检索可命中"
+      },
+      {
+        "id": "AC-INGEST-006",
+        "given": "Front Matter 含 YAML 语法错误的 Markdown",
+        "when": "入库",
+        "then": "正文不含声明块原文，告警输出"
+      }
+    ]
+  },
+  "FR-INGEST-004": {
+    "id": "FR-INGEST-004",
+    "title": "切片策略（语义边界 + 重叠 + 拼回）",
+    "description": "沿标题与段落等语义边界切片，禁止按字符数硬截断；相邻卡片保留重叠；检索后支持相邻卡片拼接恢复上下文。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "语义边界": "优先按标题/段落切分，超限再按句子边界二次切分，不在词中间断开。",
+      "重叠": "相邻卡片保留约 10~15% 重叠，防止关键句落在切点上。",
+      "表头注入": "表格切片将栏目名/表头注入卡片文本，避免碎片语义贫瘠。",
+      "拼接恢复": "同文档序号连续的卡片在组装时可拼接，重叠部分去重。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-INGEST-007",
+        "given": "长文档含多个章节",
+        "when": "入库切片",
+        "then": "卡片不出现半句截断，且每张卡片携带所属章节上下文"
+      }
+    ]
+  },
+  "FR-INGEST-005": {
+    "id": "FR-INGEST-005",
+    "title": "元数据档案",
+    "description": "每张知识卡片携带完整元数据档案（来源/路径/领域/分类/主题/标签/版本/状态/时间等），合并优先级：系统强制 > Front Matter > 目录推断 > 默认值。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "枚举校验": "目录推断的领域不在六域枚举内时回退默认值并告警。",
+      "自动补全": "topic/tags 皆空时由 LLM 自动打标签（一次调用，可关闭），已声明则不调用。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-INGEST-008",
+        "given": "文件位于 learning/ai/rag 目录且无 Front Matter",
+        "when": "入库",
+        "then": "档案 domain=learning, category=ai, topic=RAG，标签由 LLM 补全"
+      }
+    ]
+  },
+  "FR-INGEST-006": {
+    "id": "FR-INGEST-006",
+    "title": "版本管理与删除一致性",
+    "description": "内容变化的文件重入库自动升版本（1.0→1.1），旧版本卡片转 expired 留作历史；删除文件同步删除向量与台账；重入库前清理旧版本卡片。",
+    "priority": "P1",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": false,
+    "rules": {
+      "版本号": "版本号写入台账；仅内容真变化时升版本，强制重入库不虚涨。",
+      "旧版清理": "重入库前旧版本卡片整体转 expired 或删除，杜绝多代卡片同时 active。",
+      "删除一致": "删除文件时同步删向量与台账，检索不再命中已删内容。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-INGEST-009",
+        "given": "文件内容修改后重新入库两次",
+        "when": "检查向量库",
+        "then": "仅存在最新版本 active 卡片，无多代并存"
+      }
+    ]
+  },
+  "FR-RTV-001": {
+    "id": "FR-RTV-001",
+    "title": "Query 理解与改写",
+    "description": "一次 LLM 调用完成：口语化问题改写为检索友好查询、提取关键词、保守推断过滤条件（status/source）、判定计数/列举意图（enumeration）。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "改写边界": "改写忠实原问题语义，不添加原问题没有的实体；失败自动回退原始问题。",
+      "过滤保守": "过滤推断宁少勿错：只允许 status 与明确点名的 source，猜错会漏掉正确答案。",
+      "意图判定": "计数/列举意图不限措辞（「工作变动过多少回」等）由 LLM 语义判定，关键词词表仅作兜底。",
+      "历史消解": "结合最近 3 轮对话解析指代（「它多少钱」→具体对象），当前问题不得重复计入历史。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-RTV-001",
+        "given": "多轮对话后使用指代提问",
+        "when": "Query 理解",
+        "then": "改写查询补全指代对象，且当前问题在 Prompt 中只出现一次"
+      },
+      {
+        "id": "AC-RTV-002",
+        "given": "Query 理解开关关闭",
+        "when": "提问",
+        "then": "原始问题直接检索，词表兜底判定计数意图"
+      }
+    ]
+  },
+  "FR-RTV-002": {
+    "id": "FR-RTV-002",
+    "title": "混合检索与融合",
+    "description": "向量通道（语义）与 BM25 关键词通道（专有名词/编号/缩写）并行召回，RRF 倒数排名融合。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "双路互补": "语义类问题向量通道贡献主要结果；精确术语/编号类问题关键词通道贡献主要结果。",
+      "成本": "BM25 索引内存现建，不调用大模型，无额外 API 成本。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-RTV-003",
+        "given": "提问含专有名词或配置编号",
+        "when": "混合检索开启",
+        "then": "正确文档进入 Top K（纯向量通道下可能漏）"
+      }
+    ]
+  },
+  "FR-RTV-003": {
+    "id": "FR-RTV-003",
+    "title": "Rerank 精排",
+    "description": "召回扩宽至 10 条候选，LLM 逐条阅读打相关度分，按分数选取 Top K。分数只用于排序，不作过滤阈值。",
+    "priority": "P1",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": false,
+    "rules": {
+      "排序不过滤": "LLM 打分存在随机性，禁止以固定阈值剔除候选；只按分数取前 K。",
+      "成本": "每次问答多一次 LLM 调用，可在检索设置关闭。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-RTV-004",
+        "given": "召回 10 条候选",
+        "when": "Rerank 开启",
+        "then": "最相关候选排入最终 Top K，且排序稳定用于选取"
+      }
+    ]
+  },
+  "FR-RTV-004": {
+    "id": "FR-RTV-004",
+    "title": "计数/列举意图扩容",
+    "description": "判定为计数/列举类问题时，三个限制同时放开：召回数量翻倍、上下文条数翻倍、单文档卡片上限放开——凑齐全部条目才能答对计数。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "三旋钮同拧": "只扩召回不扩上下文（组装时丢弃）或单文档上限未放开（同文档条目被截断），都会导致计数偏小。",
+      "双通道判定": "Query 理解语义判定为主，关键词词表（几份/几段/有哪些/全部…）为兜底。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-RTV-005",
+        "given": "文档含 4 段工作经历",
+        "when": "问「工作经历有几段」",
+        "then": "稳定回答 4 段并完整列出，不因召回不全答出更小数字"
+      }
+    ]
+  },
+  "FR-RTV-005": {
+    "id": "FR-RTV-005",
+    "title": "过滤与检索范围",
+    "description": "默认仅检索 active 状态卡片；用户可按领域、范围（active/含归档/仅归档）手动过滤，归档内容默认不参与回答。",
+    "priority": "P1",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": false,
+    "rules": {
+      "默认排除": "归档（archive/expired）默认不参与检索，用户明确要求（或切范围）才纳入。",
+      "值稳定": "过滤值存语言无关代码，界面语言切换不影响过滤行为。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-RTV-006",
+        "given": "归档一个文件",
+        "when": "默认范围提问",
+        "then": "该文件不参与回答；切「包含归档」后可命中"
+      }
+    ]
+  },
+  "FR-GEN-001": {
+    "id": "FR-GEN-001",
+    "title": "上下文组装与相邻补全",
+    "description": "按相关度选取卡片组装带编号与出处的资料附页；同文档相邻卡片拼接恢复被切断的上下文；全程受 token 预算约束。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "预算": "中文按 ~0.8 token/字估算，总上下文不超过配置上限；相邻拼接后复核预算，超限截断拼接块。",
+      "编号同源": "上下文编号、LLM 引用、来源列表三者出自同一列表对象。",
+      "多样性": "默认单文档最多 3 张卡片保持来源多样；计数模式下放开。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-GEN-001",
+        "given": "列举类问题触发大量相邻卡片拼接",
+        "when": "组装上下文",
+        "then": "总 token 不超上限，超限拼接块被截断且保留出处"
+      }
+    ]
+  },
+  "FR-GEN-002": {
+    "id": "FR-GEN-002",
+    "title": "生成、引用与拒答",
+    "description": "LLM 基于资料附页流式生成答案并标注引用编号；知识库没有的内容明确说明资料不足，不编造。",
+    "priority": "P0",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": true,
+    "rules": {
+      "拒答优先": "证据不足时明确说明，不得编造；考卷含 should_refuse 题验证。",
+      "安全渲染": "答案与卡片原文渲染前 HTML 转义（网页内容不可信）。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-GEN-002",
+        "given": "知识库无相关问题内容",
+        "when": "提问",
+        "then": "回答明确说明资料不足，不编造条目"
+      }
+    ]
+  },
+  "FR-GEN-003": {
+    "id": "FR-GEN-003",
+    "title": "流式输出与缓存纪律",
+    "description": "回答流式输出并实时显示流水线节点进度；Q→A 缓存键包含对话历史，仅缓存完整成功的回答。",
+    "priority": "P1",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": false,
+    "rules": {
+      "缓存键": "键包含问题、检索参数与对话历史签名，杜绝多轮短追问串答案；仅检索模式不读缓存。",
+      "缓存纪律": "LLM 失败或用户中断产生的空/半截答案不缓存；删除或重建知识库后清空全部缓存。",
+      "思考标签": "推理模型 <think> 标签跨流式片段泄漏时，答案定稿前全文清洗一次。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-GEN-003",
+        "given": "多轮会话中短追问「继续」",
+        "when": "提问",
+        "then": "不命中其他轮次的缓存答案，基于本轮上下文生成"
+      },
+      {
+        "id": "AC-GEN-004",
+        "given": "LLM 超时失败一次",
+        "when": "重试同一问题",
+        "then": "正常重新生成，不返回缓存的空答案"
+      }
+    ]
+  },
+  "FR-EVAL-001": {
+    "id": "FR-EVAL-001",
+    "title": "评测体系",
+    "description": "两套考卷（基础 12 题 / 困难 18 题含考察节点标注）× 三项指标（检索命中率 / 答案关键词 / 拒答准确率），脚本化出报告。",
+    "priority": "P1",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": false,
+    "rules": {
+      "指标口径": "命中率=expected_source 被召回的题数占比；答案质量=expect_keywords 出现于回答；拒答=should_refuse 题正确说明没有。",
+      "工具": "eval.py 基础体检（--no-llm 零成本测检索）；eval_compare.py 开关组合对比。",
+      "边界": "规则判卷存在语义盲区；考卷为静态集，知识库更新后需补题。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-EVAL-001",
+        "given": "基础卷 12 题",
+        "when": "运行 eval.py",
+        "then": "输出三指标通过率并保存报告"
+      }
+    ]
+  },
+  "FR-EVAL-002": {
+    "id": "FR-EVAL-002",
+    "title": "评测触发时机（回归保护）",
+    "description": "四类时机必须跑评测：改入库参数（全库重建后）、改检索配置、修 bug、知识库大更新（先补题再跑）。",
+    "priority": "P1",
+    "source": "ai-inferred",
+    "status": "confirmed",
+    "blocking": false,
+    "rules": {
+      "闭环": "改前改后各跑一次，目标指标上涨且其他指标不跌才算改好。",
+      "定位": "按题型分维度定位：命中率低→检索之前环节；命中但答案差→组装/生成环节；该拒不拒→底线环节。"
+    },
+    "acceptance": [
+      {
+        "id": "AC-EVAL-002",
+        "given": "修改 chunk_size 并重建知识库",
+        "when": "前后各跑一次评测",
+        "then": "输出对比报告，明确各题涨跌"
+      }
+    ]
+  }
+}
