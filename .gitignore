@@ -22,3 +22,8 @@ tools/
 
 # Qdrant 首次运行的标记文件
 .qdrant-initialized
+
+# AI 工具本地配置与个人知识文档（不入仓库）
+.agents/
+.claude/
+knowledge/learning/general/AI_PM交付物深度指南_RAG与Agent.md
