@@ -11,3 +11,4 @@ requests>=2.31
 pyyaml>=6.0
 rank-bm25>=0.2.2
 jieba>=0.42
+mcp>=1.0,<2  # MCP Server：把 RAG 暴露为 Agent 可调用的知识工具
