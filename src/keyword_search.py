@@ -56,13 +56,23 @@ def _get_cached_index(store: VectorStore, filters: dict | None) -> tuple[BM25Oka
     return None
 
 
+def _index_text(payload: dict) -> str:
+    """BM25 索引文本 = 卡片正文 + 来源文件名 + 标题。
+
+    文件名本身是高频查询入口（如「帮我找心得那篇」），只索引正文会让
+    按文件名找文件永远失败——文件名属于必须可检索的档案信息。
+    """
+    parts = [payload.get("text", ""), payload.get("source", ""), payload.get("title", "")]
+    return " ".join(str(p) for p in parts if p)
+
+
 def _build_and_cache(store: VectorStore, filters: dict | None, cfg: AppConfig) -> tuple[BM25Okapi, list[dict]] | None:
     """构建 BM25 索引并写入缓存。"""
     global _cache_collection_count
     cards = store.get_all_cards(filters=filters, limit=_MAX_CARDS)
     if not cards:
         return None
-    corpus = [tokenize(card["payload"].get("text", "")) for card in cards]
+    corpus = [tokenize(_index_text(card["payload"])) for card in cards]
     bm25 = BM25Okapi(corpus)
     key = str(sorted((filters or {}).items(), key=lambda kv: kv[0]))
     _bm25_cache[key] = {"bm25": bm25, "cards": cards}

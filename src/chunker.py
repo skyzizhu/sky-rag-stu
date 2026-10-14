@@ -170,6 +170,9 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
     size = max(100, cfg.chunk_size)
     overlap = max(0, min(cfg.chunk_overlap, size // 2))
     document_id = doc.metadata.get("document_id") or "doc_unknown"
+    # 文件名注入正文：让「按文件名找文件」在向量与 BM25 双通道都可命中
+    # （与表头注入同属「档案信息入正文」原则），并让每张卡自报来源。
+    source_name = str(doc.metadata.get("source") or "").strip()
 
     chunks: list[Chunk] = []
     for page_start, page_text in _split_by_pages(doc.text):
@@ -178,6 +181,8 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
                 piece = piece.strip()
                 if not piece:
                     continue
+                if source_name:
+                    piece = f"来源文档：{source_name}\n{piece}"
                 page = str(page_start) if page_start else None
                 metadata = dict(doc.metadata)
                 version = str(doc.metadata.get("version") or "1.0")  # 版本进编号，新旧版本共存
