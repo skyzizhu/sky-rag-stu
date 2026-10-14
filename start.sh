@@ -8,6 +8,12 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
+# 本机服务直连：摘除代理软件注入的代理变量。
+# 否则 curl 健康检查与 Streamlit/Qdrant 的本机请求会被送进代理而失败。
+unset http_proxy https_proxy all_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY
+export NO_PROXY=localhost,127.0.0.1
+export no_proxy=localhost,127.0.0.1
+
 # 清理残留进程
 pkill -9 qdrant 2>/dev/null || true
 pkill -f "streamlit run" 2>/dev/null || true
