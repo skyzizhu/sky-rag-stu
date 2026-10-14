@@ -26,8 +26,16 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
+
+# 本服务只访问本机依赖（Qdrant/Ollama）与 LLM API（已验证无代理可直连）。
+# 宿主环境（如 ZCode）可能注入 SOCKS/HTTP 代理变量，会让本机 Qdrant 请求
+# 报 502/缺少 socksio——启动前一律摘除。
+for _proxy_key in ("http_proxy", "https_proxy", "all_proxy",
+                   "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+    os.environ.pop(_proxy_key, None)
 
 # 保证作为脚本直接运行时能 import 项目包（src.*）
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
