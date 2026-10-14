@@ -127,7 +127,10 @@ RAG = Retrieval-Augmented Generation，检索增强生成。整个系统就是�
 | **V1** | 跑通基础 RAG 全链路：能入库、能检索、能回答、能看来源 | ✅ 已完成 |
 | **V1.x** | 知识库管理：目录分类、统一元数据、手动过滤、归档机制 | ✅ 已完成 |
 | **V2** | 增强检索质量：Query 理解/改写、混合检索（向量+BM25）、Rerank 精排、上下文优化 | ✅ 已完成 |
-| **V3** | 长期知识系统：增量入库、版本管理、自动打标签、档案编辑、知识总结、本地 Ollama 生成模型 | ✅ 当前版本 |
+| **V3** | 长期知识系统：增量入库、版本管理、自动打标签、档案编辑、知识总结、本地 Ollama 生成模型 | ✅ 已完成 |
+| **V3.1** | 网页入库插件、界面多语言（含跟随系统）、计数意图扩容、30+ 稳定性修复 | ✅ 已发布 |
+| **V3.2** | 知识治理：易错问题复盘手册、评测方法论、切片规则详解、标准 RAG PRD 需求清单 | ✅ 已发布 |
+| **V3.3** | 对外能力：MCP Server（RAG 作为 Agent 可调用的知识工具）、文件名可检索修复 | 🚧 开发中 |
 
 ### V3 主要更新
 
@@ -349,6 +352,41 @@ python scripts/test_km_scenarios.py            # 知识库管理机制自动测�
 ```
 
 > 这就是学习模式：每个节点都能单独运行、单独观察输入输出。
+
+### 给 Agent 用：MCP 接口（V3.3 新增）
+
+除了给人用的 Web 界面，本 RAG 还能作为**工具**接入任何支持 MCP（Model Context Protocol）
+的 Agent（Claude Desktop、Cursor、ZCode 等）——Agent 会自动调用你的个人知识库回答问题。
+
+**四个工具**：
+
+| 工具 | 作用 | 是否需要 LLM |
+|---|---|---|
+| `knowledge_qa` | 基于知识库问答，返回带来源引用的答案（支持多轮 `history` 与领域/状态过滤） | 需要 |
+| `knowledge_search` | 只检索不生成，返回片段与相关度（零生成成本） | **不需要** |
+| `knowledge_digest` | 跨文档主题总结 | 需要 |
+| `knowledge_status` | 服务就绪检查（向量库 / 向量化模型 / LLM Key / 卡片数） | **不需要** |
+
+**接入方式**（以 ZCode / Claude Desktop 为例，写入其 MCP 配置）：
+
+```json
+{
+  "mcpServers": {
+    "sky-personal-rag": {
+      "command": "/Users/你的用户名/sky-rag-stu/.venv/bin/python",
+      "args": ["/Users/你的用户名/sky-rag-stu/src/mcp_server.py"]
+    }
+  }
+}
+```
+
+**前置条件**：调用前需保持 **Qdrant 与 Ollama 运行**（`./start.sh` 或 `bash scripts/start_qdrant.sh`）；
+不确定时先让 Agent 调 `knowledge_status` 自检。
+
+**设计说明**：MCP 是纯外壳（`src/mcp_server.py`），只 import 既有问答入口，
+**核心 RAG 流水线与 Web 界面零改动**；服务无状态（会话历史由 Agent 传入），
+Streamlit 界面照常可用。工具描述内置三层行为契约：何时必须调用、检索结果的权威性、
+查不到时的边界——让 Agent 无需额外配置即可正确使用。
 
 ### 调参
 
