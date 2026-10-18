@@ -138,6 +138,15 @@
       "expect_keywords": [],
       "should_refuse": true,
       "_考察节点": "证据门控——库里只有个人资料，无公司经营数据"
+    },
+    {
+      "question": "查询一下我的心得，并且查询我的工作经历有几个？",
+      "expected_source": "心得.rtf",
+      "expect_keywords": [
+        "4"
+      ],
+      "should_refuse": false,
+      "_考察节点": "查询拆分——复合问题需拆成多个子查询分别召回，混合单查询会丢失其中一个主题"
     }
   ]
 }

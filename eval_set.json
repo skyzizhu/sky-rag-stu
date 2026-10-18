@@ -101,6 +101,14 @@
       "expected_source": "",
       "expect_keywords": [],
       "should_refuse": true
+    },
+    {
+      "question": "查询一下我的心得，并且查询我的工作经历有几个？",
+      "expected_source": "心得.rtf",
+      "expect_keywords": [
+        "4"
+      ],
+      "should_refuse": false
     }
   ]
 }
