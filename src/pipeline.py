@@ -486,25 +486,30 @@ def answer_stream(
             recall_k = top_k * 2
             ctx_max_items = top_k * 2
             ctx_max_per_doc = 999
-        parsed = (f"intent: {qu.intent or '-'}\n"
-                  f"vector_query（改写后检索语句）: {qu.vector_query}\n"
-                  f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '-'}\n"
-                  f"filters（推断的过滤条件）: {qu.filters or '{}'}\n"
-                  f"time_range（解析的时间范围）: {qu.time_range or '-'}\n"
-                  f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}\n"
-                  f"sub_queries（复合问题拆分，逐子查询检索）: {qu.sub_queries or '-'}")
+        # 返回字段逐项解析：B3 规范的 7 个字段全部展示（未输出 = LLM 按规范省略，取默认值）
+        fields_dump = (
+            f"intent（意图概括）: {qu.intent or '（未输出）'}\n"
+            f"vector_query（改写后检索语句）: {qu.vector_query}\n"
+            f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '（未输出）'}\n"
+            f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}\n"
+            f"sub_queries（复合问题拆分，逐子查询检索）: {('；'.join(qu.sub_queries)) if qu.sub_queries else '（未输出，单信息需求）'}\n"
+            f"time_range（解析的时间范围）: {qu.time_range or '（未输出）'}\n"
+            f"filters（推断的过滤条件）: {qu.filters or '（未输出）'}")
         if qu.ok and qu.error:
-            parsed += f"\n校验提示: {qu.error}"
+            fields_dump += f"\n校验提示: {qu.error}"
+        request_dump = (f"模型: {cfg.llm_model or '-'}　|　温度: {cfg.llm_temperature}　|　"
+                        f"消息数: 2 条（System 任务说明书 + User 请求）")
         trace.append(make_node(
             "🧠", "Query 理解 / 改写", time_str=qu_start, elapsed=qu.elapsed,
             status="已执行" if qu.ok else "回退（解析失败，使用原始问题检索）",
-            summary="用一次 LLM 调用，把口语化提问改写成检索友好的查询语句，"
-                    "同时推断过滤条件（领域/分类/状态等）；失败自动回退为原始问题",
+            summary="用一次 LLM 调用完成问题理解：改写查询 + 提关键词 + 推断过滤 + "
+                    "计数意图判定 + 复合问题拆分；失败自动回退为原始问题",
             items=[
-                ("改写 System Prompt", qu.system_prompt),
-                ("改写 User Prompt", qu.user_prompt),
-                ("LLM 原始输出", qu.raw_output or qu.error),
-                ("解析结果", parsed),
+                ("① 调用参数（发给 LLM 的完整请求）", request_dump),
+                ("② System Prompt（任务说明书全文）", qu.system_prompt),
+                ("③ User Prompt（时间+领域枚举+分类+历史+原始问题）", qu.user_prompt),
+                ("④ LLM 原始输出（返回的 JSON 全文）", qu.raw_output or qu.error),
+                ("⑤ 返回字段逐项解析（未输出 = 按规范省略）", fields_dump),
             ],
         ))
     else:
