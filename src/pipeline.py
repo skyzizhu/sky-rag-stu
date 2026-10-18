@@ -576,6 +576,10 @@ def answer_stream(
                 ("合并后候选池", f"{len(pool)} 条（上限 20 条）"),
             ],
         ))
+
+        # 查询拆分模式：N 个子查询 = N 个独立信息需求，最终选取同步放宽——
+        # 3 个主题竞争 5 个名额时必有一个被挤出，与计数扩容同理
+        ctx_max_items = max(ctx_max_items, top_k * 2)
     else:
         result.retrieved = retriever.retrieve(
             search_query, top_k=recall_k, filters=merged_filters, trace=trace,

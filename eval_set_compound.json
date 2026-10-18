@@ -18,7 +18,8 @@
             "详细总结"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "我的简历里李强的联系电话是多少？另外 Mac 下怎么显示隐藏文件？",
@@ -35,7 +36,8 @@
             "AppleShowAllFiles"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "CentOS 下怎么设置服务开机自启？还有交付物指南里 Context 总预算建议不超过多少？",
@@ -52,7 +54,8 @@
             "4000"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "我的心德里写的做事闭环有哪几步？以及交付物指南里说同一文档最多几个 Chunk 进入上下文？",
@@ -71,7 +74,8 @@
             "3"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "李强在联动在线做的是什么工作？顺便问 CentOS 下文件权限 600 是什么意思？",
@@ -80,7 +84,8 @@
           "expected_source": "李强-产品经理-简历.docx",
           "expect_keywords": [
             "移动开发",
-            "iOS"
+            "iOS",
+            "开发"
           ]
         },
         {
@@ -89,7 +94,8 @@
             "所有者"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "交付物指南里 LLM 调用失败的重试策略是什么？以及 Mac 下重启 apache 的命令是什么？",
@@ -106,7 +112,8 @@
             "apachectl"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "AI 学习路径那篇文章建议从什么开始入手？另外登记表里记录了几段工作经历？",
@@ -123,7 +130,8 @@
             "4"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "PDF 智能解析从哪里导入文件？还有我的简历里提到熟悉哪方面的方案设计？",
@@ -141,7 +149,8 @@
             "数据"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "我的心德里说怎么收集数据？加上 CentOS 里重启 mysql 的命令是什么？",
@@ -158,7 +167,8 @@
             "mysqld"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
     },
     {
       "question": "交付物指南里 Agent 和 AI Chat 的区别是什么？以及 Mac 下怎么清空剪切板？",
@@ -175,7 +185,248 @@
             "pbcopy"
           ]
         }
-      ]
+      ],
+      "_意图数": 2
+    },
+    {
+      "question": "帮我总结心得里的五条原则、查一下李强的联系电话，还有交付物指南里 Context 总预算建议不超过多少？",
+      "parts": [
+        {
+          "expected_source": "心得.rtf",
+          "expect_keywords": [
+            "不要急于求成"
+          ]
+        },
+        {
+          "expected_source": "李强-产品经理-简历.docx",
+          "expect_keywords": [
+            "15210232173"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "4000"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "CentOS 下怎么设置开机自启？Mac 下怎么清空剪切板？以及 AI 学习路径建议从什么开始？",
+      "parts": [
+        {
+          "expected_source": "7fdf7013_centos7.x一些服务器命令_–_迷人的暮.md",
+          "expect_keywords": [
+            "systemctl enable"
+          ]
+        },
+        {
+          "expected_source": "35f0d7a2_Mac下一些快捷操作_–_迷人的暮.md",
+          "expect_keywords": [
+            "pbcopy"
+          ]
+        },
+        {
+          "expected_source": "465ec67d_AI学习路径_–_迷人的暮.md",
+          "expect_keywords": [
+            "Agent"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "登记表里记录了几段工作经历？我的心德里说设计需求之后要做什么？还有交付物指南里说相邻卡片同时入选时怎么处理？",
+      "parts": [
+        {
+          "expected_source": "应聘面试登记表.docx",
+          "expect_keywords": [
+            "4"
+          ]
+        },
+        {
+          "expected_source": "心得.rtf",
+          "expect_keywords": [
+            "A/B"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "合并"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "PDF 智能解析支持哪几种总结方式？Mac 下怎么重启 apache？以及交付物指南里 LLM 调用失败的重试策略是怎么规定的？",
+      "parts": [
+        {
+          "expected_source": "93b58f9c_“PDF智能解析”功能介绍_-_Xtools.md",
+          "expect_keywords": [
+            "重点与行动"
+          ]
+        },
+        {
+          "expected_source": "35f0d7a2_Mac下一些快捷操作_–_迷人的暮.md",
+          "expect_keywords": [
+            "apachectl"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "重试"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "李强在灵动生活负责了什么？我的心得里提到秉持什么样的思想？以及 CentOS 下文件权限 600 是什么意思？",
+      "parts": [
+        {
+          "expected_source": "李强-产品经理-简历.docx",
+          "expect_keywords": [
+            "产品经理"
+          ]
+        },
+        {
+          "expected_source": "心得.rtf",
+          "expect_keywords": [
+            "开放"
+          ]
+        },
+        {
+          "expected_source": "7fdf7013_centos7.x一些服务器命令_–_迷人的暮.md",
+          "expect_keywords": [
+            "所有者"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "登记表里李强的籍贯是哪里？交付物指南里 Chunk Size 默认是多少？以及 PDF 智能解析从哪里导入文件？",
+      "parts": [
+        {
+          "expected_source": "应聘面试登记表.docx",
+          "expect_keywords": [
+            "天水"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "600"
+          ]
+        },
+        {
+          "expected_source": "93b58f9c_“PDF智能解析”功能介绍_-_Xtools.md",
+          "expect_keywords": [
+            "文件"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "我的心德里说设计埋点之后要做什么？交付物指南里 Final Top K 默认是多少？以及 Mac 下 mysql 服务怎么启动？",
+      "parts": [
+        {
+          "expected_source": "心得.rtf",
+          "expect_keywords": [
+            "监控"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "5"
+          ]
+        },
+        {
+          "expected_source": "35f0d7a2_Mac下一些快捷操作_–_迷人的暮.md",
+          "expect_keywords": [
+            "XAMPP"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "李强的邮箱是多少？交付物指南里说同一文档最多几个 Chunk 进入上下文？以及 PDF 智能解析支持哪几种总结方式？",
+      "parts": [
+        {
+          "expected_source": "李强-产品经理-简历.docx",
+          "expect_keywords": [
+            "outlook"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "3"
+          ]
+        },
+        {
+          "expected_source": "93b58f9c_“PDF智能解析”功能介绍_-_Xtools.md",
+          "expect_keywords": [
+            "详细总结"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "登记表里李强的家庭成员是谁？我的心德里提到的第一条原则是什么？以及交付物指南里说知识从新建到删除会经历哪些状态？",
+      "parts": [
+        {
+          "expected_source": "应聘面试登记表.docx",
+          "expect_keywords": [
+            "马韶辰"
+          ]
+        },
+        {
+          "expected_source": "心得.rtf",
+          "expect_keywords": [
+            "急于求成"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "归档"
+          ]
+        }
+      ],
+      "_意图数": 3
+    },
+    {
+      "question": "我的简历里李强今年多大年纪？Mac 下怎么查看电池信息？以及交付物指南里 Chunk Size 默认是多少？",
+      "parts": [
+        {
+          "expected_source": "李强-产品经理-简历.docx",
+          "expect_keywords": [
+            "34"
+          ]
+        },
+        {
+          "expected_source": "35f0d7a2_Mac下一些快捷操作_–_迷人的暮.md",
+          "expect_keywords": [
+            "AppleSmartBattery"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "600"
+          ]
+        }
+      ],
+      "_意图数": 3
     }
   ]
 }

@@ -72,10 +72,20 @@ def main() -> int:
 
     print("\n" + "=" * 60)
     print(f"总计：{len(rows)} 题")
-    print(f"完整回答率（两个子需求都答对）: {both_ok}/{len(rows)} = {both_ok / len(rows):.0%}")
+    print(f"完整回答率（全部子需求都答对）: {both_ok}/{len(rows)} = {both_ok / len(rows):.0%}")
     half = sum(1 for r in rows if any(r['parts_ok']) and not all(r['parts_ok']))
     print(f"只答对一半: {half}")
     print(f"平均单题耗时: {sum(r['elapsed'] for r in rows) / max(len(rows), 1):.1f} 秒")
+
+    # 按意图数分组统计（2 意图 vs 3 意图 vs ...）
+    by_intent: dict[int, list[dict]] = {}
+    for q, r in zip(questions, rows):
+        by_intent.setdefault(q.get("_意图数", 2), []).append(r)
+    print("\n按意图数分组：")
+    for intent in sorted(by_intent):
+        group = by_intent[intent]
+        g_ok = sum(1 for r in group if r["ok"])
+        print(f"  {intent} 意图: {g_ok}/{len(group)} 通过")
 
     if args.save:
         out = Path(__file__).parent / "storage" / f"eval_compound_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
