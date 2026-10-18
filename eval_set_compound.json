@@ -1,0 +1,181 @@
+{
+  "_说明": "复合问题查询拆分评测集（V3.4）。每题包含两个不同信息需求（可来自不同文档），检验查询拆分能否让两个子问题都得到带引用的回答。运行：python scripts/eval_compound.py",
+  "questions": [
+    {
+      "question": "帮我查一下我的心得里提到的处事原则，顺便看看 PDF 智能解析功能支持哪几种总结方式？",
+      "parts": [
+        {
+          "expected_source": "心得.rtf",
+          "expect_keywords": [
+            "闭环",
+            "不要急于求成"
+          ]
+        },
+        {
+          "expected_source": "93b58f9c_“PDF智能解析”功能介绍_-_Xtools.md",
+          "expect_keywords": [
+            "简短总结",
+            "详细总结"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "我的简历里李强的联系电话是多少？另外 Mac 下怎么显示隐藏文件？",
+      "parts": [
+        {
+          "expected_source": "李强-产品经理-简历.docx",
+          "expect_keywords": [
+            "15210232173"
+          ]
+        },
+        {
+          "expected_source": "35f0d7a2_Mac下一些快捷操作_–_迷人的暮.md",
+          "expect_keywords": [
+            "AppleShowAllFiles"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "CentOS 下怎么设置服务开机自启？还有交付物指南里 Context 总预算建议不超过多少？",
+      "parts": [
+        {
+          "expected_source": "7fdf7013_centos7.x一些服务器命令_–_迷人的暮.md",
+          "expect_keywords": [
+            "systemctl enable"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "4000"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "我的心德里写的做事闭环有哪几步？以及交付物指南里说同一文档最多几个 Chunk 进入上下文？",
+      "parts": [
+        {
+          "expected_source": "心得.rtf",
+          "expect_keywords": [
+            "闭环",
+            "六步",
+            "确定背景"
+          ]
+        },
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "3"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "李强在联动在线做的是什么工作？顺便问 CentOS 下文件权限 600 是什么意思？",
+      "parts": [
+        {
+          "expected_source": "李强-产品经理-简历.docx",
+          "expect_keywords": [
+            "移动开发",
+            "iOS"
+          ]
+        },
+        {
+          "expected_source": "7fdf7013_centos7.x一些服务器命令_–_迷人的暮.md",
+          "expect_keywords": [
+            "所有者"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "交付物指南里 LLM 调用失败的重试策略是什么？以及 Mac 下重启 apache 的命令是什么？",
+      "parts": [
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "重试"
+          ]
+        },
+        {
+          "expected_source": "35f0d7a2_Mac下一些快捷操作_–_迷人的暮.md",
+          "expect_keywords": [
+            "apachectl"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "AI 学习路径那篇文章建议从什么开始入手？另外登记表里记录了几段工作经历？",
+      "parts": [
+        {
+          "expected_source": "465ec67d_AI学习路径_–_迷人的暮.md",
+          "expect_keywords": [
+            "Agent"
+          ]
+        },
+        {
+          "expected_source": "应聘面试登记表.docx",
+          "expect_keywords": [
+            "4"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "PDF 智能解析从哪里导入文件？还有我的简历里提到熟悉哪方面的方案设计？",
+      "parts": [
+        {
+          "expected_source": "93b58f9c_“PDF智能解析”功能介绍_-_Xtools.md",
+          "expect_keywords": [
+            "文件"
+          ]
+        },
+        {
+          "expected_source": "李强-产品经理-简历.docx",
+          "expect_keywords": [
+            "埋点",
+            "数据"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "我的心德里说怎么收集数据？加上 CentOS 里重启 mysql 的命令是什么？",
+      "parts": [
+        {
+          "expected_source": "心得.rtf",
+          "expect_keywords": [
+            "收集数据"
+          ]
+        },
+        {
+          "expected_source": "7fdf7013_centos7.x一些服务器命令_–_迷人的暮.md",
+          "expect_keywords": [
+            "mysqld"
+          ]
+        }
+      ]
+    },
+    {
+      "question": "交付物指南里 Agent 和 AI Chat 的区别是什么？以及 Mac 下怎么清空剪切板？",
+      "parts": [
+        {
+          "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
+          "expect_keywords": [
+            "决定下一步"
+          ]
+        },
+        {
+          "expected_source": "35f0d7a2_Mac下一些快捷操作_–_迷人的暮.md",
+          "expect_keywords": [
+            "pbcopy"
+          ]
+        }
+      ]
+    }
+  ]
+}
