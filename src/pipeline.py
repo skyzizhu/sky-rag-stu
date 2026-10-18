@@ -539,14 +539,15 @@ def answer_stream(
 
     if len(sub_q_lists) >= 2:
         sq_start = now_str()
-        merged: dict = {}
         sq_lines = []
+        # 每个子查询独立检索，各自保留原始结果列表
+        per_sq_results: list[list] = []
         for i, sq in enumerate(sub_q_lists, start=1):
             sub_items = retriever.retrieve(
                 sq, top_k=recall_k, filters=merged_filters, trace=None,
                 keyword_query=None, use_hybrid=use_hybrid,
             )
-            # 每个子查询的主要命中来源（诊断拆分质量：这个子问题到底找没找到）
+            per_sq_results.append(sub_items)
             top_srcs, seen = [], set()
             for it in sub_items:
                 s = it.metadata.get("source", "?")
@@ -556,24 +557,58 @@ def answer_stream(
                 if len(top_srcs) >= 3:
                     break
             sq_lines.append(f"子查询 {i}：「{sq}」→ {len(sub_items)} 条｜主要来源：{'、'.join(top_srcs)}")
+
+        # 合并去重（按 chunk_id 保留最高分）
+        merged: dict = {}
+        for sub_items in per_sq_results:
             for it in sub_items:
                 key = (it.metadata.get("chunk_id")
                        or f'{it.metadata.get("source","?")}|{(it.text or "")[:40]}')
                 cur = merged.get(key)
                 if cur is None or it.score > cur.score:
                     merged[key] = it
-        pool = sorted(merged.values(), key=lambda x: -x.score)[:20]  # 上限保护：控制精排成本
+
+        # 保底配额选取：每个子查询先保底取 Top N 条（N = 合并池上限 // 子查询数），
+        # 保证每个子问题的证据不会被其他主题挤掉；剩余名额按全局分数补足
+        # 保底配额选取：每个子查询先保底取 Top N 条（N = 合并池上限 // 子查询数），
+        # 保证每个子问题的证据不会被其他主题挤掉；剩余名额按全局分数补足
+        _pool_cap = 20
+        _quota = max(3, 20 // max(len(sub_q_lists), 1))
+        _selected_keys: set = set()
+        _selected: list = []
+        for sub_items in per_sq_results:
+            picked = 0
+            for it in sorted(sub_items, key=lambda x: -x.score):
+                key = (it.metadata.get("chunk_id")
+                       or f'{it.metadata.get("source","?")}|{(it.text or "")[:40]}')
+                if key not in _selected_keys and len(_selected) < _pool_cap:
+                    _selected_keys.add(key)
+                    _selected.append(it)
+                    picked += 1
+                if picked >= _quota:
+                    break
+
+        # 剩余名额按全局分数补足
+        for key, it in sorted(merged.items(), key=lambda kv: -kv[1].score):
+            if key not in _selected_keys and len(_selected) < _pool_cap:
+                _selected_keys.add(key)
+                _selected.append(it)
+
+        # 按分数排序 + 重新编号
+        pool = sorted(_selected, key=lambda x: -x.score)[:_pool_cap]
         for i, it in enumerate(pool, start=1):
             it.rank = i
         result.retrieved = pool
+
         trace.append(make_node(
             "🔀", "查询拆分检索（Sub-Query）", time_str=sq_start,
             summary=(f"复合问题拆分为 {len(sub_q_lists)} 个子查询，逐个独立检索后合并去重："
                      f"共 {len(pool)} 张不同卡片进入精排——避免混合查询让两个主题互相稀释"),
             items=[
                 ("各子查询命中明细", "\n".join(sq_lines)),
-                ("合并策略", "同一张卡片被多个子查询命中时，保留相似度分数最高的一份"),
-                ("合并后候选池", f"{len(pool)} 条（上限 20 条）"),
+                ("保底配额", f"每个子查询保底 {_quota} 条"),
+                ("合并策略", "同卡多子查询命中保留最高分"),
+                ("合并后候选池", f"{len(pool)} 条（上限 {_pool_cap} 条）"),
             ],
         ))
 
