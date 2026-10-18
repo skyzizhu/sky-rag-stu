@@ -491,7 +491,8 @@ def answer_stream(
                   f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '-'}\n"
                   f"filters（推断的过滤条件）: {qu.filters or '{}'}\n"
                   f"time_range（解析的时间范围）: {qu.time_range or '-'}\n"
-                  f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}")
+                  f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}\n"
+                  f"sub_queries（复合问题拆分，逐子查询检索）: {qu.sub_queries or '-'}")
         if qu.ok and qu.error:
             parsed += f"\n校验提示: {qu.error}"
         trace.append(make_node(
@@ -525,11 +526,48 @@ def answer_stream(
     result.filters = effective_filters(merged_filters)
     _p("🔍 数据检索中…")
     t0 = time.time()
-    result.retrieved = retriever.retrieve(
-        search_query, top_k=recall_k, filters=merged_filters, trace=trace,
-        keyword_query=(qu.keyword_query if qu and qu.ok else None),
-        use_hybrid=use_hybrid,
-    )
+
+    # 节点 ②.5：查询拆分检索（V3.4 Sub-Query）——复合问题（一个问题多个信息需求）
+    # 由 Query 理解拆成多个子查询，逐个独立检索后合并去重。
+    # 不拆分时走原始单查询检索；两种路径产出统一为 result.retrieved 供精排。
+    sub_q_lists = [s for s in ((qu.sub_queries if (qu and qu.ok) else []) or []) if s and s.strip()][:4]
+
+    if len(sub_q_lists) >= 2:
+        sq_start = now_str()
+        merged: dict = {}
+        sq_lines = []
+        for i, sq in enumerate(sub_q_lists, start=1):
+            sub_items = retriever.retrieve(
+                sq, top_k=recall_k, filters=merged_filters, trace=None,
+                keyword_query=None, use_hybrid=use_hybrid,
+            )
+            sq_lines.append(f"子查询 {i}：「{sq}」→ {len(sub_items)} 条")
+            for it in sub_items:
+                key = (it.metadata.get("chunk_id")
+                       or f'{it.metadata.get("source","?")}|{(it.text or "")[:40]}')
+                cur = merged.get(key)
+                if cur is None or it.score > cur.score:
+                    merged[key] = it
+        pool = sorted(merged.values(), key=lambda x: -x.score)[:20]  # 上限保护：控制精排成本
+        for i, it in enumerate(pool, start=1):
+            it.rank = i
+        result.retrieved = pool
+        trace.append(make_node(
+            "🔀", "查询拆分检索（Sub-Query）", time_str=sq_start,
+            summary=(f"复合问题拆分为 {len(sub_q_lists)} 个子查询，逐个独立检索后合并去重："
+                     f"共 {len(pool)} 张不同卡片进入精排——避免混合查询让两个主题互相稀释"),
+            items=[
+                ("拆分出的子查询", "\n".join(sq_lines)),
+                ("合并策略", "同一张卡片被多个子查询命中时，保留相似度分数最高的一份"),
+                ("合并后候选池", f"{len(pool)} 条（上限 20 条）"),
+            ],
+        ))
+    else:
+        result.retrieved = retriever.retrieve(
+            search_query, top_k=recall_k, filters=merged_filters, trace=trace,
+            keyword_query=(qu.keyword_query if qu and qu.ok else None),
+            use_hybrid=use_hybrid,
+        )
 
     # 渐进式放宽（检索容错）：LLM 推断的过滤条件猜错时可能把正确答案挡在门外——
     # 如果「带推断条件」检索为 0 条，自动去掉推断条件（保留手动设置）重试一次。
