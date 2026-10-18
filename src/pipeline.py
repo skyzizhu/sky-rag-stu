@@ -546,7 +546,16 @@ def answer_stream(
                 sq, top_k=recall_k, filters=merged_filters, trace=None,
                 keyword_query=None, use_hybrid=use_hybrid,
             )
-            sq_lines.append(f"子查询 {i}：「{sq}」→ {len(sub_items)} 条")
+            # 每个子查询的主要命中来源（诊断拆分质量：这个子问题到底找没找到）
+            top_srcs, seen = [], set()
+            for it in sub_items:
+                s = it.metadata.get("source", "?")
+                if s not in seen:
+                    seen.add(s)
+                    top_srcs.append(s[:24])
+                if len(top_srcs) >= 3:
+                    break
+            sq_lines.append(f"子查询 {i}：「{sq}」→ {len(sub_items)} 条｜主要来源：{'、'.join(top_srcs)}")
             for it in sub_items:
                 key = (it.metadata.get("chunk_id")
                        or f'{it.metadata.get("source","?")}|{(it.text or "")[:40]}')
@@ -562,7 +571,7 @@ def answer_stream(
             summary=(f"复合问题拆分为 {len(sub_q_lists)} 个子查询，逐个独立检索后合并去重："
                      f"共 {len(pool)} 张不同卡片进入精排——避免混合查询让两个主题互相稀释"),
             items=[
-                ("拆分出的子查询", "\n".join(sq_lines)),
+                ("各子查询命中明细", "\n".join(sq_lines)),
                 ("合并策略", "同一张卡片被多个子查询命中时，保留相似度分数最高的一份"),
                 ("合并后候选池", f"{len(pool)} 条（上限 20 条）"),
             ],
