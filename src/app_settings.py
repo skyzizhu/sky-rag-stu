@@ -22,6 +22,7 @@ SETTINGS_KEYS = [
     "query_understanding",
     "hybrid_search",
     "rerank",
+    "answer_eval",
     "theme",
     "language",
     "installed_plugins",
@@ -58,7 +59,7 @@ def _normalize_choices(settings: dict) -> dict:
     if sc not in (None, "active", "all", "archive"):
         settings["scope_choice"] = "active"
     # 布尔键：非布尔一律回退
-    for key in ("debug_mode", "query_understanding", "hybrid_search", "rerank"):
+    for key in ("debug_mode", "query_understanding", "hybrid_search", "rerank", "answer_eval"):
         if key in settings and not isinstance(settings[key], bool):
             settings.pop(key)
     # top_k：整数且在滑条范围内，否则移除（回退 .env 默认值）

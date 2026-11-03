@@ -52,6 +52,7 @@ from src.i18n import (  # noqa: E402
 )
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
+from src.answer_evaluator import run_evaluation  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import (
     SESSIONS_DIR,
@@ -197,6 +198,7 @@ if load_target:
         st.session_state["scroll_loaded_session_once"] = True
 st.session_state.setdefault("hybrid_search", cfg.hybrid_search)
 st.session_state.setdefault("rerank", cfg.rerank_enabled)
+st.session_state.setdefault("answer_eval", True)  # V3.6 回答质量评估卡片
 
 # 用户保存过的检索设置优先于 .env 默认值（每个浏览器会话只加载一次）
 if "app_settings_loaded" not in st.session_state:
@@ -753,6 +755,65 @@ def build_filters() -> dict:
     return filters
 
 
+def _render_eval_card(evaluation: dict) -> None:
+    """V3.6 回答质量评估卡片：LLM 两维评审（分档展示）+ 结构信号。
+
+    评分只分档不做精确阈值——LLM 打分有波动（与精排同一教训），分档更稳。
+    """
+    with st.expander(t("eval.title"), expanded=False):
+        bands = {"good": ("good", "green"), "mid": ("mid", "amber"), "poor": ("poor", "red")}
+        overall = evaluation.get("overall")
+        if overall in bands:
+            label, color = bands[overall]
+            st.markdown(f"{t('eval.overall')}：{tag(t(f'eval.band.{label}'), color)}",
+                        unsafe_allow_html=True)
+        for dim_key, name_key, desc_key in (
+            ("faithfulness", "eval.faithfulness", "eval.faithfulness.desc"),
+            ("relevance", "eval.relevance", "eval.relevance.desc"),
+        ):
+            item = evaluation.get(dim_key)
+            if not item:
+                continue
+            label, color = bands.get(item.get("band"), ("mid", "amber"))
+            st.markdown(
+                f"**{t(name_key)}**　{tag(t(f'eval.band.{label}'), color)} "
+                f"`{item.get('score', 0)}/10`　·　{t(desc_key)}",
+                unsafe_allow_html=True,
+            )
+            if item.get("reason"):
+                safe_reason = html.escape(str(item["reason"]))
+                st.markdown(f"<div class='chunk-quote'>{safe_reason}</div>",
+                            unsafe_allow_html=True)
+        if not evaluation.get("ok") and evaluation.get("error"):
+            st.caption(t("eval.failed", err=evaluation["error"]))
+
+        signals = evaluation.get("signals") or {}
+        st.markdown(f"**{t('eval.signals.title')}**")
+        lines = []
+        split = signals.get("split") or {}
+        if split.get("triggered"):
+            lines.append(t("eval.signal.split.on", n=split.get("sub_queries", 0),
+                           pool=split.get("pool", 0)))
+        else:
+            lines.append(t("eval.signal.split.off"))
+        rr = signals.get("rerank") or {}
+        if rr.get("ok"):
+            lines.append(t("eval.signal.rerank", top=rr.get("top", 0),
+                           med=rr.get("median", 0), n=rr.get("n", 0)))
+        ctx = signals.get("context") or {}
+        if ctx.get("pool"):
+            lines.append(t("eval.signal.context", pool=ctx.get("pool", 0),
+                           final=ctx.get("final", 0)))
+        cite = signals.get("cite") or {}
+        if cite.get("total"):
+            lines.append(t("eval.signal.cite", cited=cite.get("cited", 0),
+                           total=cite.get("total", 0)))
+        ref = signals.get("refusal") or {}
+        lines.append(t(f"eval.signal.refusal.{ref.get('state', 'normal')}"))
+        for line in lines:
+            st.markdown(line)
+
+
 def show_answer_sources(result) -> None:
     """卡片式参考来源 + 调试面板。"""
     with st.expander(t("sources.title", n=len(result.sources)), expanded=False):
@@ -827,6 +888,12 @@ def show_answer_sources(result) -> None:
                      for s in result.sources],
                     width="stretch", hide_index=True,
                 )
+
+    # V3.6 回答质量评估卡片：位置在参考来源/调试信息之下；
+    # 新回答的评估计算在问答流程里完成并挂到 result.evaluation 后才会出现在这里，
+    # 历史消息重绘时直接展示已算好的结果，不重新调用 LLM
+    if getattr(result, "evaluation", None):
+        _render_eval_card(result.evaluation)
 
 
 # ---------------------------------------------------------------- 页面 1：知识库问答
@@ -939,6 +1006,20 @@ def page_chat():
                 answer_ph.markdown(formatted_answer)
                 progress_ph.markdown(t("chat.done"))
                 result.answer = formatted_answer or None
+                # V3.6 回答质量评估：回答完成后才执行（不阻塞流式输出），
+                # 失败降级为仅结构信号，绝不影响问答主流程
+                if st.session_state.get("answer_eval", True):
+                    eval_ph = st.empty()
+                    eval_ph.markdown(f"⏳ {t('eval.pending')}")
+                    try:
+                        result.evaluation = run_evaluation(result)
+                    except Exception as exc:
+                        result.evaluation = {"ok": False, "overall": None,
+                                             "faithfulness": None, "relevance": None,
+                                             "signals": {},
+                                             "error": f"{type(exc).__name__}: {exc}",
+                                             "elapsed": 0.0}
+                    eval_ph.empty()
                 show_answer_sources(result)
                 st.session_state.messages.append(
                     {"role": "assistant", "content": formatted_answer, "result": result}
@@ -1550,6 +1631,10 @@ def page_retrieval_settings():
               value=st.session_state["rerank"], key="set_rerank",
               on_change=_sync_setting("rerank", "set_rerank"),
               help=t("set.rerank.help"))
+    st.toggle(t("set.eval"),
+              value=st.session_state["answer_eval"], key="set_eval",
+              on_change=_sync_setting("answer_eval", "set_eval"),
+              help=t("set.eval.help"))
     st.toggle(t("set.debug"),
               value=st.session_state["debug_mode"], key="set_debug",
               on_change=_sync_setting("debug_mode", "set_debug"))

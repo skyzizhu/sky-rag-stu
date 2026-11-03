@@ -64,6 +64,7 @@ class QAResult:
     filters: dict = field(default_factory=dict)  # 本次检索实际使用的过滤条件
     trace: list = field(default_factory=list)    # 节点时间线（调试面板）
     elapsed: dict = field(default_factory=dict)
+    evaluation: dict | None = None  # V3.6 回答质量评估载荷（见 src/answer_evaluator.py）
 
 
 # ---------------------------------------------------------------- 入库
