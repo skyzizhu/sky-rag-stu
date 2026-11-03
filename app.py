@@ -22,6 +22,8 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.app_settings import SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
+from src import auth_client  # noqa: E402  # V3.7 登录/注册/偏好（FastAPI 认证服务 8700）
+from src import auth_db  # noqa: E402  # V3.7 部门列表（上传可见性选项）
 from src.answer_format import format_answer_markdown  # noqa: E402
 from src.config import get_config  # noqa: E402
 from src.chat_scroll import scroll_chat_to_latest, scroll_follow_stream  # noqa: E402
@@ -666,10 +668,15 @@ def persist_app_settings() -> None:
 
     必须整包带上 installed_plugins（它不在 session_state 里，读取走 src/plugin），
     否则任何一次覆盖式保存都会把它（或 language）从 settings.json 里丢掉。
+    V3.7：登录用户额外把偏好按人存入 SQLite（不同用户语言/主题互不影响）。
     """
     data = {k: st.session_state[k] for k in SETTINGS_KEYS if k in st.session_state}
     data["installed_plugins"] = get_installed_plugins()
     save_app_settings(data)
+    user = st.session_state.get("auth_user")
+    if user:
+        prefs = {k: v for k, v in data.items() if k != "installed_plugins"}
+        auth_client.save_prefs(user["username"], prefs)
 
 
 def _sync_setting(canonical_key: str, widget_key: str):
@@ -753,6 +760,106 @@ def build_filters() -> dict:
     elif scope == "archive":
         filters["status"] = "archive"
     return filters
+
+
+# ---------------------------------------------------------------- V3.7 登录门
+def _apply_user_prefs(username: str) -> None:
+    """登录后把该用户的界面偏好套到 session（覆盖默认值）。"""
+    prefs = auth_client.get_prefs(username) or {}
+    for key, value in prefs.items():
+        if key in SETTINGS_KEYS and key != "installed_plugins":
+            st.session_state[key] = value
+
+
+def auth_gate() -> bool:
+    """V3.7 登录门。返回 True = 已登录，继续渲染应用；否则渲染登录/注册页。
+
+    - 系统没有任何用户 → 只显示"初始化管理员"表单（首账户自动成为管理员）
+    - 已有用户 → 登录 / 注册 两个标签页（注册需选择部门，密码两次确认）
+    - 认证服务（8700）未启动 → 显示提示并停止
+    """
+    if st.session_state.get("auth_user"):
+        return True
+
+    boot = auth_client.bootstrap()
+    if boot is None:
+        st.error(t("auth.api.down"))
+        st.stop()
+    st.markdown(
+        f'<div style="text-align:center;margin:7vh 0 6px;">'
+        f'<div style="font-size:40px">🧠</div>'
+        f'<h1 style="margin:8px 0 4px;">{t("auth.title")}</h1>'
+        f'<div style="color:var(--text-muted)">{t("auth.subtitle")}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    if not boot.get("has_users"):
+        st.markdown(f'<div class="section-title">{t("auth.init.title")}</div>',
+                    unsafe_allow_html=True)
+        st.caption(t("auth.init.note"))
+        u = st.text_input(t("auth.username"), key="init_user")
+        p1 = st.text_input(t("auth.password"), type="password", key="init_pw1")
+        p2 = st.text_input(t("auth.password.confirm"), type="password", key="init_pw2")
+        if st.button(t("auth.init.btn"), type="primary", width="stretch"):
+            if p1 != p2:
+                st.error(t("auth.pwd.mismatch"))
+            elif len(p1) < 6:
+                st.error(t("auth.pwd.short"))
+            else:
+                data, err = auth_client.bootstrap_admin(u, p1, p2)
+                if err:
+                    st.error(err)
+                else:
+                    data2, err2 = auth_client.login(u, p1)
+                    if data2:
+                        st.session_state["auth_user"] = data2["user"]
+                        st.rerun()
+                    else:
+                        st.success(t("auth.init.ok"))
+        return False
+
+    tab_login, tab_register = st.tabs([t("auth.tab.login"), t("auth.tab.register")])
+    with tab_login:
+        u = st.text_input(t("auth.username"), key="login_user")
+        p = st.text_input(t("auth.password"), type="password", key="login_pw")
+        if st.button(t("auth.login.btn"), type="primary", width="stretch"):
+            data, err = auth_client.login(u, p)
+            if err:
+                st.error(err)
+            else:
+                st.session_state["auth_user"] = data["user"]
+                _apply_user_prefs(data["user"]["username"])
+                st.rerun()
+
+    with tab_register:
+        departments = boot.get("departments") or []
+        if not departments:
+            st.info(t("auth.no_departments"))
+        else:
+            u = st.text_input(t("auth.username"), key="reg_user")
+            dep = st.selectbox(
+                t("auth.department"), departments,
+                format_func=lambda d: d["name"],
+            )
+            p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
+            p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
+            if st.button(t("auth.register.btn"), type="primary", width="stretch"):
+                if p1 != p2:
+                    st.error(t("auth.pwd.mismatch"))
+                elif len(p1) < 6:
+                    st.error(t("auth.pwd.short"))
+                else:
+                    data, err = auth_client.register(u, p1, p2, dep["id"])
+                    if err:
+                        st.error(err)
+                    else:
+                        data2, err2 = auth_client.login(u, p1)
+                        if data2:
+                            st.session_state["auth_user"] = data2["user"]
+                            st.rerun()
+                        else:
+                            st.success(t("auth.register.ok"))
+    st.stop()
 
 
 def _render_eval_card(evaluation: dict) -> None:
@@ -991,6 +1098,15 @@ def page_chat():
                         for m in st.session_state.messages[:-1]
                         if m.get("role") in ("user", "assistant") and m.get("content")
                     ][-6:]  # 最近 3 轮
+                    # V3.7 权限：普通员工注入可见部门（服务端强制，UI 改不掉）；
+                    # 管理员不注入（看全库）
+                    _au = st.session_state.get("auth_user") or {}
+                    if _au.get("is_admin"):
+                        _user_groups = None
+                    elif _au.get("department"):
+                        _user_groups = [_au["department"]]
+                    else:
+                        _user_groups = ["all"]
                     result, deltas = answer_stream(
                         question,
                         top_k=st.session_state["top_k"],
@@ -1000,6 +1116,7 @@ def page_chat():
                         use_rerank=st.session_state["rerank"],
                         history=chat_history,
                         on_progress=_show_progress,
+                        user_groups=_user_groups,
                     )
                 progress_ph.empty()
                 answer_ph = st.empty()
@@ -1075,12 +1192,16 @@ def page_upload():
         with col2:
             upload_category = st.text_input(t("upload.category"), value="",
                                             help=t("upload.category.help"))
+        # V3.7 权限：可见部门多选（默认全员）；选项 = 全部 + 管理后台已建部门
+        _dep_options = ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)]
+        upload_groups = st.multiselect(t("upload.groups"), _dep_options,
+                                       default=["all"], help=t("upload.groups.help"))
         uploads = st.file_uploader(t("upload.dropzone"),
                                    type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
         if uploads:
             st.caption(t("upload.selected", n=len(uploads), kb=f"{sum(u.size for u in uploads) / 1024:.0f}"))
         if st.button(t("upload.start"), disabled=not uploads, use_container_width=True, type="primary"):
-            _do_upload(uploads, upload_domain, upload_category)
+            _do_upload(uploads, upload_domain, upload_category, upload_groups)
 
     with tab_dir:
         st.markdown(t("dir.title"))
@@ -1092,6 +1213,11 @@ def page_upload():
             index=DOMAINS.index("learning"),
             key="directory_domain",
         )
+        # V3.7 权限：本批目录导入的可见部门（默认全员）
+        _dep_options_dir = ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)]
+        dir_groups = st.multiselect(t("upload.groups"), _dep_options_dir,
+                                    default=["all"], key="dir_groups",
+                                    help=t("upload.groups.help"))
         directory_mode = st.segmented_control(
             t("dir.mode"),
             ["drop", "native"],
@@ -1157,7 +1283,7 @@ def page_upload():
             type="primary",
             key="import_directory",
         ):
-            _do_directory_upload(decoded_entries, dir_domain, batch_id)
+            _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups)
 
     # ---------- 🌐 添加网页 Tab ----------
     if _has_web:
@@ -1173,6 +1299,10 @@ def page_upload():
                                           format_func=domain_label, index=DOMAINS.index("reference"))
             with col_w2:
                 web_category = st.text_input(t("web.category"), value="webpages")
+            web_groups = st.multiselect(t("upload.groups"),
+                                        ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)],
+                                        default=["all"], key="web_groups",
+                                        help=t("upload.groups.help"))
 
             if st.button(t("web.ingest"), disabled=not web_url.strip(), use_container_width=True, type="primary"):
                 from src.manage import ingest_web_page
@@ -1185,6 +1315,7 @@ def page_upload():
                             web_url.strip(), domain=web_domain,
                             category=web_category.strip().lower() or "webpages",
                             on_progress=lambda msg: st.write(tr(msg)),
+                            default_groups=web_groups,
                         )
                     status.update(label=t("web.status.done"), state="complete", expanded=False)
                     st.success(f"🎉 {result['message']}")
@@ -1192,7 +1323,7 @@ def page_upload():
                     st.error(t("web.failed", err=exc))
 
 
-def _do_upload(uploads, upload_domain, upload_category):
+def _do_upload(uploads, upload_domain, upload_category, groups=None):
     cfg.knowledge_dir.mkdir(exist_ok=True)
     target_dir = cfg.knowledge_dir / upload_domain / (upload_category.strip().lower() or "general")
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -1208,7 +1339,7 @@ def _do_upload(uploads, upload_domain, upload_category):
         saved_paths.append(target)
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=saved_paths)
+            summary = ingest_files(paths=saved_paths, default_groups=groups)
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1218,7 +1349,7 @@ def _do_upload(uploads, upload_domain, upload_category):
     _show_ingest_result(summary)
 
 
-def _do_directory_upload(entries, dir_domain, batch_id):
+def _do_directory_upload(entries, dir_domain, batch_id, groups=None):
     """把浏览器选中的目录完整复制为领域目录的子目录，然后增量入库。"""
     domain_dir = cfg.knowledge_dir / dir_domain
     domain_dir.mkdir(parents=True, exist_ok=True)
@@ -1256,7 +1387,7 @@ def _do_directory_upload(entries, dir_domain, batch_id):
               roots="、".join(copied_roots), docs=len(ingest_paths)))
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=ingest_paths)
+            summary = ingest_files(paths=ingest_paths, default_groups=groups)
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1409,7 +1540,9 @@ def page_manage():
     rows = [{"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
              t("manage.col.file"): d["source"], t("manage.col.path"): d["path"],
              "Domain": d["domain"], "Category": d["category"],
-             "Topic": ", ".join(d["topic"]) or "-", "Version": d["version"],
+             "Topic": ", ".join(d["topic"]) or "-",
+             "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
+             "Version": d["version"],
              "Status": d["status"], t("manage.col.chunks"): d["chunks"]} for d in filtered]
     edited = st.data_editor(
         rows,
@@ -1422,7 +1555,7 @@ def page_manage():
                                                                     help=t("manage.col.select.help")),
         },
         disabled=[t("manage.col.file"), t("manage.col.path"), "Domain", "Category", "Topic",
-                  "Version", "Status", t("manage.col.chunks")],
+                  "Groups", "Version", "Status", t("manage.col.chunks")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
     selected_ids = {row["_id"] for row in records if row.get(t("manage.col.select"))}
@@ -1530,12 +1663,20 @@ def page_manage():
                                      key=f"ed_cat_{_ed_suffix}")
         new_topic = st.text_input(t("manage.edit.topic"), value=", ".join(d["topic"]),
                                   key=f"ed_topic_{_ed_suffix}")
+        # V3.7 权限：可见部门多选（空 = 全员可见）
+        _group_options = list(dict.fromkeys(
+            ["all"] + [x["name"] for x in auth_db.list_departments(include_disabled=False)]))
+        new_groups = st.multiselect(t("manage.edit.groups"), _group_options,
+                                    default=d.get("allowed_groups") or ["all"],
+                                    key=f"ed_groups_{_ed_suffix}",
+                                    help=t("manage.edit.groups.help"))
         new_version = st.text_input(t("manage.edit.version"), value=d["version"],
                                     key=f"ed_ver_{_ed_suffix}")
         if st.button(t("manage.edit.save"), type="primary"):
             updates = {"title": new_title, "category": new_category,
                        "topic": [t.strip() for t in new_topic.split(",") if t.strip()],
-                       "version": new_version}
+                       "version": new_version,
+                       "allowed_groups": new_groups}
             try:
                 info = __import__("src.manage", fromlist=["update_metadata"]).update_metadata(d["path"], updates)
                 st.toast(info["message"], icon="✅")
@@ -1797,6 +1938,11 @@ def page_learning():
         st.info(t("learn.missing"))
 
 
+# ── V3.7 登录门：未登录只渲染登录/注册页，到此为止 ──
+auth_gate()
+
+is_admin_view = bool(st.session_state.get("auth_user", {}).get("is_admin"))
+
 chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
 upload_page = st.Page(page_upload, title=t("nav.upload"), icon="📤", url_path="upload")
 manage_page = st.Page(page_manage, title=t("nav.manage"), icon="🗂", url_path="manage")
@@ -1808,31 +1954,57 @@ params_page = st.Page(page_params_overview, title=t("nav.params"), icon="🧾", 
 plugins_page = st.Page(page_plugins, title=t("nav.plugins"), icon="🔌", url_path="plugins")
 learning_page = st.Page(page_learning, title=t("nav.learning"), icon="📖", url_path="learn")
 
-pg = st.navigation({
-    t("nav.group.knowledge"): [
-        chat_page,
-        upload_page,
-        manage_page,
-    ],
-    t("nav.group.settings"): [
-        general_page,
-        retrieval_page,
-        maintenance_page,
-        status_page,
-        params_page,
-    ],
-    t("nav.group.learn"): [
-        learning_page,
-    ],
-    t("nav.group.plugins"): [
-        plugins_page,
-    ],
-})
+if is_admin_view:
+    pg = st.navigation({
+        t("nav.group.knowledge"): [
+            chat_page,
+            upload_page,
+            manage_page,
+        ],
+        t("nav.group.settings"): [
+            general_page,
+            retrieval_page,
+            maintenance_page,
+            status_page,
+            params_page,
+        ],
+        t("nav.group.learn"): [
+            learning_page,
+        ],
+        t("nav.group.plugins"): [
+            plugins_page,
+        ],
+    })
+else:
+    # 普通员工：仅知识问答（上传/管理/设置是管理员功能）
+    pg = st.navigation({
+        t("nav.group.knowledge"): [chat_page],
+    })
 
 pg.run()
 
 with st.sidebar:
     with st.container(key="sidebar_footer"):
+        # V3.7 当前用户标识 + 登出 + 管理后台入口
+        _user = st.session_state.get("auth_user") or {}
+        if _user:
+            _dep_label = f" · {_user['department']}" if _user.get("department") else ""
+            _role_label = " 🛡" if _user.get("is_admin") else ""
+            st.markdown(
+                f'<div style="font-size:.8rem;padding:2px 4px;">👤 '
+                f'<b>{html.escape(str(_user["username"]))}</b>{_role_label}'
+                f'{html.escape(_dep_label)}</div>',
+                unsafe_allow_html=True,
+            )
+            _footer_c1, _footer_c2 = st.columns([1, 1])
+            if _footer_c1.button(t("auth.logout"), key="auth_logout", width="stretch"):
+                st.session_state["auth_user"] = None
+                st.session_state["messages"] = []
+                st.session_state["session_id"] = new_session_id()
+                st.rerun()
+            if _user.get("is_admin"):
+                _footer_c2.link_button(t("auth.admin.console"), auth_client.BASE + "/admin/login",
+                                       width="stretch")
         sessions = list_sessions(10)
         keep_history_expanded = st.session_state.pop("keep_history_expanded_once", False)
         with st.expander(

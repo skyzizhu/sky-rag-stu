@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% set active = "emps" %}
+{% block content %}
+<h2>员工管理
+  {% if filter_dep_name %}<span class="tag on">部门：{{ filter_dep_name }}
+    <a href="/admin/employees" style="margin-left:6px">清除筛选</a></span>{% endif %}
+</h2>
+
+<div class="card">
+  <b>新增员工</b>
+  <form method="post" action="/admin/employees/create"
+        style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap">
+    <input name="username" placeholder="账户名（2~32 位字母/数字/下划线/中文）" class="wide" required>
+    <input name="password" placeholder="初始密码（至少 6 位）" required>
+    <select name="department_id" required>
+      <option value="" disabled selected>选择部门</option>
+      {% for d in departments %}
+      {% if not d["disabled"] %}
+      <option value="{{ d['id'] }}">{{ d["name"] }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+    <button type="submit">创建</button>
+  </form>
+  <p class="muted" style="margin:10px 0 0">员工也可以在知识库前台<b>自助注册</b>（自己选部门）；管理员创建适合统一分配账户的场景。</p>
+</div>
+
+<div class="card">
+  <table>
+    <tr><th>ID</th><th>账户名</th><th>部门</th><th>角色</th><th>状态</th><th>创建时间</th><th style="width:380px">操作</th></tr>
+    {% for u in users %}
+    <tr>
+      <td>{{ u["id"] }}</td>
+      <td><b>{{ u["username"] }}</b></td>
+      <td>{{ u["department"] or "—" }}</td>
+      <td>{% if u["is_admin"] %}<span class="tag admin">管理员</span>{% else %}<span class="muted">员工</span>{% endif %}</td>
+      <td>
+        {% if u["status"] == "active" %}<span class="tag on">启用</span>
+        {% else %}<span class="tag off">已停用</span>{% endif %}
+      </td>
+      <td class="muted">{{ u["created_at"][:10] }}</td>
+      <td>
+        <form class="inline" method="post"
+              action="/admin/employees/{{ u['id'] }}/reset">
+          <input name="new_password" placeholder="新密码（≥6 位）" required>
+          <button class="mini gray" type="submit"
+                  onclick="return confirm('确认重置「{{ u['username'] }}」的密码？其全部访问令牌将被吊销。');">
+            重置密码</button>
+        </form>
+        {% if not u["is_admin"] %}
+        <form class="inline" method="post"
+              action="/admin/employees/{{ u['id'] }}/department">
+          <select name="department_id">
+            {% for d in departments %}
+            {% if not d["disabled"] and d["id"] != u["department_id"] %}
+            <option value="{{ d['id'] }}">{{ d["name"] }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          <button class="mini gray" type="submit">调入</button>
+        </form>
+        <form class="inline" method="post"
+              action="/admin/employees/{{ u['id'] }}/toggle">
+          <button class="mini {{ 'gray' if u['status'] == 'active' else '' }}"
+                  type="submit">{{ "停用" if u["status"] == "active" else "启用" }}</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% if not users %}
+    <tr><td colspan="7" class="muted">该筛选条件下没有员工账户。</td></tr>
+    {% endif %}
+  </table>
+</div>
+{% endblock %}

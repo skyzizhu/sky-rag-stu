@@ -141,9 +141,11 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
 
     可编辑字段：title / category / topic / tags / version / status。
     覆盖设置存入入库台账，重新入库时依然生效；磁盘文件不做改动。
+    可编辑字段：title / category / topic / tags / version / status / allowed_groups。
     """
     path, _, cfg = _resolve(relative_path)
-    allowed = {"title", "category", "topic", "tags", "version", "status"}
+    # V3.7：allowed_groups（可见部门列表）可编辑；空列表规范化为 ["all"]（全员可见）
+    allowed = {"title", "category", "topic", "tags", "version", "status", "allowed_groups"}
     clean: dict = {}
     for key, value in (updates or {}).items():
         if key not in allowed or value in (None, "", "all"):
@@ -152,6 +154,9 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
             value = [v.strip() for v in (value if isinstance(value, list) else [value]) if str(v).strip()]
             if not value:
                 continue
+        elif key == "allowed_groups":
+            value = [v.strip() for v in (value if isinstance(value, list) else [value]) if str(v).strip()]
+            value = value or ["all"]  # 空列表 = 全员可见，保证 payload 永不为空列表
         else:
             value = str(value).strip()
             if not value:
@@ -278,11 +283,13 @@ def remove_from_index_and_disk(relative_path: str) -> dict:
 
 
 def ingest_web_page(url: str, domain: str = "reference",
-                    category: str = "webpages", on_progress=None) -> dict:
+                    category: str = "webpages", on_progress=None,
+                    default_groups: list[str] | None = None) -> dict:
     """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
 
     流程：fetch URL → 提取正文 → 保存为 .md 快照到 knowledge/<domain>/<category>/ → 标准入库
     on_progress(msg)：每个阶段开始时回调一次（界面用它显示分步进度）。
+    default_groups（V3.7）：上传表单选择的可见部门，透传给入库流水线。
     """
     from src.web_fetcher import fetch_and_parse, save_web_snapshot
 
@@ -298,7 +305,8 @@ def ingest_web_page(url: str, domain: str = "reference",
     _report("ingest")
     # 入库（走标准流水线）：skip_unchanged 让同 URL 重复抓取时走增量判断，
     # 网页内容没变就跳过（省 LLM 标签、切片和向量化）
-    summary = ingest_files(paths=[file_path], skip_unchanged=True)
+    summary = ingest_files(paths=[file_path], skip_unchanged=True,
+                           default_groups=default_groups)
     if summary.skipped_files and not summary.ok_files:
         return {
             "message": f"网页内容未变化，已跳过入库：{url}（增量判断命中，省时省钱）",

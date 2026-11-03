@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from contextvars import ContextVar
 from pathlib import Path
 
 # 本服务只访问本机依赖（Qdrant/Ollama）与 LLM API（已验证无代理可直连）。
@@ -43,6 +44,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("sky-personal-rag")
+
+# V3.7 身份透传：HTTP 模式下中间件验 PAT 后把调用者可见部门写入此 contextvar；
+# stdio 个人模式从不写入 → None = 不限制（行为与 V3.6 完全一致）
+_request_groups: ContextVar[list[str] | None] = ContextVar("mcp_request_groups",
+                                                           default=None)
+
+
+def _current_user_groups() -> list[str] | None:
+    return _request_groups.get()
 
 
 def _filters(domain: str | None, status: str | None) -> dict | None:
@@ -125,6 +135,7 @@ def knowledge_qa(
         top_k=max(1, min(int(top_k), 10)),
         filters=_filters(domain, status),
         history=_history(history),
+        user_groups=_current_user_groups(),
     )
     return json.dumps(
         {
@@ -171,6 +182,7 @@ def knowledge_search(
         top_k=max(1, min(int(top_k), 10)),
         use_llm=False,  # 仅检索：不调用生成模型
         filters=_filters(domain, status),
+        user_groups=_current_user_groups(),
     )
     return json.dumps(
         {
@@ -215,6 +227,7 @@ def knowledge_digest(topic: str) -> str:
         f"请综合知识库中与「{topic.strip()}」相关的全部内容，"
         "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
         top_k=10,
+        user_groups=_current_user_groups(),
     )
     return json.dumps(
         {
@@ -257,5 +270,66 @@ def knowledge_status() -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
+# ---------------------------------------------------------------- V3.7 HTTP 传输 + PAT 身份透传
+class _TokenAuthMiddleware:
+    """ASGI 中间件：校验 Authorization: Bearer mcp_pat_...
+
+    通过验证 → 把调用者的可见部门写入 contextvar（工具内读取并注入检索过滤）；
+    无效/缺失令牌 → 401。is_admin 的令牌不注入（与 Web 管理员同语义：看全库）。
+    """
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        headers = {k.decode("latin-1").lower(): v.decode("latin-1")
+                   for k, v in scope.get("headers", [])}
+        auth_header = headers.get("authorization", "")
+        token = auth_header[7:].strip() if auth_header.lower().startswith("bearer ") else ""
+        from src import auth_db
+
+        ident = auth_db.verify_token(token) if token else None
+        if ident is None:
+            payload = json.dumps(
+                {"error": "invalid or missing MCP token",
+                 "hint": "在管理后台「访问令牌」页生成，配置到 MCP 客户端 Authorization 头"},
+                ensure_ascii=False,
+            ).encode("utf-8")
+            await send({"type": "http.response.start", "status": 401,
+                        "headers": [(b"content-type", b"application/json; charset=utf-8"),
+                                    (b"content-length", str(len(payload)).encode()),
+                                    (b"www-authenticate", b"Bearer")]})
+            await send({"type": "http.response.body", "body": payload})
+            return
+        if ident["is_admin"]:
+            groups = None
+        elif ident["department"]:
+            groups = [ident["department"]]
+        else:
+            groups = ["all"]
+        _request_groups.set(groups)
+        await self.app(scope, receive, send)
+
+    def __init__(self, app):
+        self.app = app
+
+
+def _run_http() -> None:
+    """streamable-http 模式：PAT 鉴权 + 团队共享。默认端口 8760（MCP_HTTP_PORT 可改）。"""
+    import uvicorn
+
+    auth_db_init = __import__("src.auth_db", fromlist=["init_db"])
+    auth_db_init.init_db()
+    asgi_app = _TokenAuthMiddleware(mcp.streamable_http_app())
+    host = os.environ.get("MCP_HTTP_HOST", "0.0.0.0")
+    port = int(os.environ.get("MCP_HTTP_PORT", "8760"))
+    print(f"📡 MCP Server (streamable-http) 监听 http://{host}:{port}/mcp（PAT 鉴权）")
+    uvicorn.run(asgi_app, host=host, port=port)
+
+
 if __name__ == "__main__":
-    mcp.run()  # stdio 模式（默认），供 MCP 客户端以子进程方式挂载
+    transport = os.environ.get("MCP_TRANSPORT", "stdio").strip().lower()
+    if transport in ("streamable-http", "streamable_http", "http"):
+        _run_http()
+    else:
+        mcp.run()  # stdio 模式（默认），供 MCP 客户端以子进程方式挂载

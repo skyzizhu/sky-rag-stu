@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% set active = "dash" %}
+{% block content %}
+<h2>工作台</h2>
+<div class="stats">
+  <div class="stat"><b>{{ n_departments }}</b><span>部门总数（启用 {{ n_enabled_deps }}）</span></div>
+  <div class="stat"><b>{{ n_users }}</b><span>员工账户（启用 {{ n_active_users }}）</span></div>
+</div>
+<div class="card" style="margin-top:20px">
+  <b>快速开始</b>
+  <p class="muted" style="margin:8px 0">
+    ① 先到「部门管理」创建部门 → ② 到「员工管理」创建员工账户（或员工在知识库前台自助注册）
+    → ③ 员工在知识库前台登录后，只能检索本部门与全员可见的知识。
+  </p>
+  <p class="muted" style="margin:0">
+    管理员本人登录知识库前台可查看全部知识，不受部门权限限制。
+  </p>
+</div>
+{% endblock %}

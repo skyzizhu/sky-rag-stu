@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sky Personal RAG · 管理后台</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         margin: 0; background: #f4f6fb; color: #1e2430; }
+  header { background: #2b3a67; color: #fff; padding: 10px 24px;
+           display: flex; align-items: center; gap: 24px; }
+  header .brand { font-weight: 700; font-size: 16px; }
+  header nav a { color: #cdd6f0; text-decoration: none; margin-right: 18px; font-size: 14px; }
+  header nav a.active { color: #fff; font-weight: 600; border-bottom: 2px solid #7c9bff; padding-bottom: 2px; }
+  header .spacer { flex: 1; }
+  header .who { font-size: 13px; color: #cdd6f0; }
+  header .who a { color: #fff; font-size: 13px; margin-left: 12px; }
+  main { max-width: 1080px; margin: 24px auto; padding: 0 16px; }
+  .flash { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+  .flash.msg { background: #e6f7e9; color: #176b32; border: 1px solid #b7e2c3; }
+  .flash.err { background: #fdeaea; color: #a12622; border: 1px solid #f3c1c0; }
+  h2 { font-size: 18px; margin: 8px 0 16px; }
+  .card { background: #fff; border: 1px solid #e3e8f2; border-radius: 10px;
+          padding: 16px 20px; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #edf0f6; text-align: left;
+           vertical-align: middle; }
+  th { color: #5a6478; font-weight: 600; background: #f8f9fd; }
+  form.inline { display: inline-flex; gap: 6px; align-items: center; margin: 0; }
+  input, select { padding: 6px 10px; border: 1px solid #ccd3e0; border-radius: 6px;
+                  font-size: 14px; }
+  input.wide { width: 240px; }
+  button { padding: 6px 14px; border: 0; border-radius: 6px; background: #3d5af1;
+           color: #fff; font-size: 14px; cursor: pointer; }
+  button.gray { background: #7a869e; }
+  button.danger { background: #d64545; }
+  button.mini { padding: 4px 10px; font-size: 13px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .tag.on  { background: #e6f7e9; color: #176b32; }
+  .tag.off { background: #fdeaea; color: #a12622; }
+  .tag.admin { background: #eceafe; color: #4534ae; }
+  .muted { color: #8a93a6; font-size: 12px; }
+  .stats { display: flex; gap: 16px; }
+  .stat { flex: 1; background: #fff; border: 1px solid #e3e8f2; border-radius: 10px;
+          padding: 14px 18px; }
+  .stat b { font-size: 26px; display: block; }
+  .stat span { color: #5a6478; font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">🛡 Sky Personal RAG · 管理后台</span>
+  <nav>
+    <a href="/admin" class="{{ 'active' if active == 'dash' else '' }}">工作台</a>
+    <a href="/admin/departments" class="{{ 'active' if active == 'deps' else '' }}">部门管理</a>
+    <a href="/admin/employees" class="{{ 'active' if active == 'emps' else '' }}">员工管理</a>
+    <a href="/admin/tokens" class="{{ 'active' if active == 'tokens' else '' }}">访问令牌</a>
+  </nav>
+  <span class="spacer"></span>
+  <span class="who">👤 {{ admin['username'] }}<a href="/admin/logout">退出</a></span>
+</header>
+<main>
+  {% if msg %}<div class="flash msg">{{ msg }}</div>{% endif %}
+  {% if err %}<div class="flash err">{{ err }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
