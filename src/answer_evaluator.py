@@ -83,8 +83,9 @@ def compute_signals(result) -> dict:
                     split["pool"] = int(m.group(1))
         break
 
-    # 精排分数带：从 Rerank 节点的打分明细解析
-    rerank = {"ok": False, "top": 0.0, "median": 0.0, "n": 0}
+    # 精排分数带：从 Rerank 节点的打分明细解析；断层（最高−中位）大 →
+    # 语义带薄，问题可能歧义大或库中无货（"自信地检索到无关内容"预警）
+    rerank = {"ok": False, "top": 0.0, "median": 0.0, "gap": 0.0, "n": 0}
     for node in trace:
         if "Rerank" not in str(node.get("name", "")) or "精排" not in str(node.get("name", "")):
             continue
@@ -95,7 +96,8 @@ def compute_signals(result) -> dict:
             if scores:
                 scores.sort(reverse=True)
                 mid = scores[len(scores) // 2]
-                rerank = {"ok": True, "top": scores[0], "median": mid, "n": len(scores)}
+                rerank = {"ok": True, "top": scores[0], "median": mid,
+                          "gap": round(scores[0] - mid, 1), "n": len(scores)}
         break
 
     # 候选池 → 上下文的收窄比例：
@@ -137,16 +139,21 @@ def compute_signals(result) -> dict:
             "cite": cite, "refusal": refusal}
 
 
-# ---------------------------------------------------------------- LLM 两维评审
+# ---------------------------------------------------------------- LLM 三维评审
 _JUDGE_SYSTEM_PROMPT = """你是 RAG 回答质量评审员。给定【用户问题】【参考资料】【AI 回答】，输出严格的 JSON 对象：
 {"faithfulness": {"score": <0~10 整数>, "reason": "<一句话理由>"},
- "relevance": {"score": <0~10 整数>, "reason": "<一句话理由>"}}
+ "relevance": {"score": <0~10 整数>, "reason": "<一句话理由>"},
+ "completeness": {"score": <0~10 整数>, "reason": "<一句话理由>"}}
 
 评分标准：
-- faithfulness 忠实度：回答的每个论断是否都能被参考资料支撑。10=全部有据；5~7=部分有据/部分概括；
+- faithfulness 忠实度：回答的每个论断是否都能被参考资料支撑，**论断与其引用编号 [n] 的对应关系
+  也要核对——错标引用必须扣分**。10=全部有据且引用正确；5~7=部分有据/部分概括；
   4 及以下=出现资料中没有的内容（编造、脑补、夸大）。资料不支撑的论断必须扣分，不要当老好人。
 - relevance 相关性：回答是否针对用户所问。10=完整回答了问题；5~7=只回答了一部分；
   4 及以下=答非所问或明显偏题。
+- completeness 完备性：**问题包含多个子需求时，逐个检查是否都有作答**——
+  10=全部子需求都有答案；多需求问题漏答任一子需求最高 4 分；
+  单一需求问题时按回答是否完整充分打分（此时此项与相关性接近）。
 
 要求：
 1. 只输出一个 JSON 对象，不要输出任何多余文字，不要用代码块包裹。
@@ -169,8 +176,8 @@ def judge_dimensions(
     context_text: str,
     llm: LLMClient | None = None,
     config: AppConfig | None = None,
-) -> tuple[EvalDimension, EvalDimension]:
-    """LLM 两维评审。任何失败抛出异常，由 run_evaluation 统一降级。"""
+) -> tuple[EvalDimension, EvalDimension, EvalDimension]:
+    """LLM 三维评审（一次调用）。任何失败抛出异常，由 run_evaluation 统一降级。"""
     cfg = config or get_config()
     llm = llm or LLMClient(cfg)
     # 附页可能很长，评审只需"足够判断有据性"的篇幅
@@ -190,7 +197,7 @@ def judge_dimensions(
         return EvalDimension(score=int(round(score)), band=_band(score),
                              reason=str(item.get("reason", "")).strip()[:120])
 
-    return _dim("faithfulness"), _dim("relevance")
+    return _dim("faithfulness"), _dim("relevance"), _dim("completeness")
 
 
 # ---------------------------------------------------------------- 入口
@@ -207,17 +214,19 @@ def run_evaluation(result, llm: LLMClient | None = None,
             payload["error"] = "empty_answer"
             payload["elapsed"] = time.time() - start
             return payload
-        faith, rel = judge_dimensions(
+        faith, rel, comp = judge_dimensions(
             result.question or "", answer, getattr(result, "context", "") or "",
             llm=llm, config=config,
         )
         payload["faithfulness"] = {"score": faith.score, "band": faith.band, "reason": faith.reason}
         payload["relevance"] = {"score": rel.score, "band": rel.band, "reason": rel.reason}
-        # 量化参考分（0~100）：忠实度权重更高——RAG 里编造比答不全严重得多。
-        # 分档仍为主口径：任一维度"差"一票否决，防止高分维度掩盖编造
-        score_100 = int(round(faith.score * 6 + rel.score * 4))
+        payload["completeness"] = {"score": comp.score, "band": comp.band, "reason": comp.reason}
+        # 量化参考分（0~100）：忠实度 50% / 相关性 30% / 完备性 20%——
+        # 忠实度权重最高（编造最严重），完备性针对复合问题漏答。
+        # 分档仍为主口径：任一维度"差"一票否决，防止高分维度掩盖编造或漏答
+        score_100 = int(round(faith.score * 5 + rel.score * 3 + comp.score * 2))
         payload["overall_score"] = score_100
-        if "poor" in (faith.band, rel.band):
+        if "poor" in (faith.band, rel.band, comp.band):
             payload["overall"] = "poor"
         else:
             payload["overall"] = _band(score_100 / 10)

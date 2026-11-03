@@ -773,6 +773,7 @@ def _render_eval_card(evaluation: dict) -> None:
         for dim_key, name_key, desc_key in (
             ("faithfulness", "eval.faithfulness", "eval.faithfulness.desc"),
             ("relevance", "eval.relevance", "eval.relevance.desc"),
+            ("completeness", "eval.completeness", "eval.completeness.desc"),
         ):
             item = evaluation.get(dim_key)
             if not item:
@@ -802,7 +803,8 @@ def _render_eval_card(evaluation: dict) -> None:
         rr = signals.get("rerank") or {}
         if rr.get("ok"):
             lines.append(t("eval.signal.rerank", top=rr.get("top", 0),
-                           med=rr.get("median", 0), n=rr.get("n", 0)))
+                           med=rr.get("median", 0), gap=rr.get("gap", 0),
+                           n=rr.get("n", 0)))
         ctx = signals.get("context") or {}
         if ctx.get("pool"):
             lines.append(t("eval.signal.context", pool=ctx.get("pool", 0),
