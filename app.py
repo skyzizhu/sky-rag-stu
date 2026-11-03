@@ -765,8 +765,11 @@ def _render_eval_card(evaluation: dict) -> None:
         overall = evaluation.get("overall")
         if overall in bands:
             label, color = bands[overall]
-            st.markdown(f"{t('eval.overall')}：{tag(t(f'eval.band.{label}'), color)}",
+            score_100 = evaluation.get("overall_score")
+            score_part = f"　`{score_100}/100`" if isinstance(score_100, int) else ""
+            st.markdown(f"{t('eval.overall')}：{tag(t(f'eval.band.{label}'), color)}{score_part}",
                         unsafe_allow_html=True)
+            st.caption(t("eval.score.formula"))
         for dim_key, name_key, desc_key in (
             ("faithfulness", "eval.faithfulness", "eval.faithfulness.desc"),
             ("relevance", "eval.relevance", "eval.relevance.desc"),

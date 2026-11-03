@@ -211,10 +211,16 @@ def run_evaluation(result, llm: LLMClient | None = None,
             result.question or "", answer, getattr(result, "context", "") or "",
             llm=llm, config=config,
         )
-        order = {"poor": 0, "mid": 1, "good": 2}
         payload["faithfulness"] = {"score": faith.score, "band": faith.band, "reason": faith.reason}
         payload["relevance"] = {"score": rel.score, "band": rel.band, "reason": rel.reason}
-        payload["overall"] = min(faith.band, rel.band, key=lambda b: order[b])
+        # 量化参考分（0~100）：忠实度权重更高——RAG 里编造比答不全严重得多。
+        # 分档仍为主口径：任一维度"差"一票否决，防止高分维度掩盖编造
+        score_100 = int(round(faith.score * 6 + rel.score * 4))
+        payload["overall_score"] = score_100
+        if "poor" in (faith.band, rel.band):
+            payload["overall"] = "poor"
+        else:
+            payload["overall"] = _band(score_100 / 10)
         payload["ok"] = True
     except Exception as exc:  # 评估失败绝不影响问答主流程
         payload["error"] = f"{type(exc).__name__}: {exc}"
