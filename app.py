@@ -321,7 +321,11 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebarUserContent"] > *,
 [data-testid="stSidebarUserContent"] > * > [data-testid="stVerticalBlock"] {display:contents !important;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_brand) {order:1 !important;}
-[data-testid="stSidebarNav"] {order:2 !important;}
+/* V3.7.2 用户信息卡紧贴 Logo 下方；登出按钮吸附最底部 */
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo) {order:2 !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo)
+  [data-testid="stVerticalBlock"] {gap: .2rem !important; padding: 2px 4px !important;}
+[data-testid="stSidebarNav"] {order:3 !important;}
 /* 导航文字颜色跟随主题变量（Streamlit 内置导航用固定主题色，深色下看不清） */
 [data-testid="stSidebarNav"] a,
 [data-testid="stSidebarNav"] a span,
@@ -334,7 +338,12 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebarNav"] a[aria-current="page"] span,
 [data-testid="stSidebarNav"] a[aria-current="page"] p {
   color: var(--accent-text) !important; font-weight: 600;}
-[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_footer) {order:3 !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_footer) {order:4 !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_logout) {
+  order:5 !important; margin-top:auto !important; padding: 4px 6px 2px !important;
+  border-top: 1px solid var(--border-subtle) !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_logout) button {
+  width: 100% !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label {border-radius: 10px; padding: 4px 12px;
   margin: 1px 0; transition: all .2s; font-weight: 500; font-size: .82rem; color: var(--text-secondary) !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {background: rgba(99,102,241,.08); color: #C7D2FE !important;}
@@ -1303,17 +1312,21 @@ def page_upload():
     tab_web = _tab_objs[2] if _has_web else None
 
     with tab_files:
-        col1, col2 = st.columns(2)
-        with col1:
-            upload_domain = st.selectbox(t("upload.domain"), DOMAINS,
-                                         format_func=domain_label, index=DOMAINS.index("learning"))
-        with col2:
-            upload_category = st.text_input(t("upload.category"), value="",
-                                            help=t("upload.category.help"))
-        # V3.7 权限：可见部门多选（默认全员）；选项 = 全部 + 管理后台已建部门
-        _dep_options = ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)]
-        upload_groups = st.multiselect(t("upload.groups"), _dep_options,
-                                       default=["all"], help=t("upload.groups.help"))
+        # V3.7.2 归属设置卡片：领域/分类/可见部门收进带边框容器，视觉上分组清晰
+        with st.container(border=True):
+            st.markdown(f'<div class="section-title">{t("upload.attribution")}</div>',
+                        unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                upload_domain = st.selectbox(t("upload.domain"), DOMAINS,
+                                             format_func=domain_label, index=DOMAINS.index("learning"))
+            with col2:
+                upload_category = st.text_input(t("upload.category"), value="",
+                                                help=t("upload.category.help"))
+            # V3.7 权限：可见部门多选（默认全员）；选项 = 全部 + 管理后台已建部门
+            _dep_options = ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)]
+            upload_groups = st.multiselect(t("upload.groups"), _dep_options,
+                                           default=["all"], help=t("upload.groups.help"))
         uploads = st.file_uploader(t("upload.dropzone"),
                                    type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
         if uploads:
@@ -1324,18 +1337,20 @@ def page_upload():
     with tab_dir:
         st.markdown(t("dir.title"))
         st.caption(t("dir.caption"))
-        dir_domain = st.selectbox(
-            t("dir.target"),
-            DOMAINS,
-            format_func=domain_label,
-            index=DOMAINS.index("learning"),
-            key="directory_domain",
-        )
-        # V3.7 权限：本批目录导入的可见部门（默认全员）
-        _dep_options_dir = ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)]
-        dir_groups = st.multiselect(t("upload.groups"), _dep_options_dir,
-                                    default=["all"], key="dir_groups",
-                                    help=t("upload.groups.help"))
+        # V3.7.2 归属设置卡片：领域与可见部门收进带边框容器
+        with st.container(border=True):
+            dir_domain = st.selectbox(
+                t("dir.target"),
+                DOMAINS,
+                format_func=domain_label,
+                index=DOMAINS.index("learning"),
+                key="directory_domain",
+            )
+            # V3.7 权限：本批目录导入的可见部门（默认全员）
+            _dep_options_dir = ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)]
+            dir_groups = st.multiselect(t("upload.groups"), _dep_options_dir,
+                                        default=["all"], key="dir_groups",
+                                        help=t("upload.groups.help"))
         directory_mode = st.segmented_control(
             t("dir.mode"),
             ["drop", "native"],
@@ -1411,16 +1426,18 @@ def page_upload():
 
             web_url = st.text_input(t("web.url"), placeholder="https://example.com/article",
                                     help=t("web.url.help"))
-            col_w1, col_w2 = st.columns(2)
-            with col_w1:
-                web_domain = st.selectbox(t("common.domain"), DOMAINS,
-                                          format_func=domain_label, index=DOMAINS.index("reference"))
-            with col_w2:
-                web_category = st.text_input(t("web.category"), value="webpages")
-            web_groups = st.multiselect(t("upload.groups"),
-                                        ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)],
-                                        default=["all"], key="web_groups",
-                                        help=t("upload.groups.help"))
+            # V3.7.2 归属设置卡片：领域/分类/可见部门收进带边框容器
+            with st.container(border=True):
+                col_w1, col_w2 = st.columns(2)
+                with col_w1:
+                    web_domain = st.selectbox(t("common.domain"), DOMAINS,
+                                              format_func=domain_label, index=DOMAINS.index("reference"))
+                with col_w2:
+                    web_category = st.text_input(t("web.category"), value="webpages")
+                web_groups = st.multiselect(t("upload.groups"),
+                                            ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)],
+                                            default=["all"], key="web_groups",
+                                            help=t("upload.groups.help"))
 
             if st.button(t("web.ingest"), disabled=not web_url.strip(), use_container_width=True, type="primary"):
                 from src.manage import ingest_web_page
@@ -2038,6 +2055,25 @@ with st.sidebar:
             """,
             unsafe_allow_html=True,
         )
+    # V3.7.2 用户信息卡：紧跟 Logo 下方一行（姓名/部门 + @账户 + 职责备注）
+    _top_user = st.session_state.get("auth_user") or {}
+    if _top_user:
+        _display_name = str(_top_user.get("real_name") or _top_user.get("username") or "")
+        _dep_label = f" · {_top_user['department']}" if _top_user.get("department") else ""
+        _role_label = " 🛡" if _top_user.get("is_admin") else ""
+        _note_top = (f'<div style="font-size:.72rem;color:var(--text-muted);'
+                     f'padding:0 4px;">{html.escape(str(_top_user.get("note") or ""))}</div>'
+                     if _top_user.get("note") else "")
+        with st.container(key="sidebar_userinfo"):
+            st.markdown(
+                f'<div style="font-size:.82rem;padding:4px 6px;">👤 '
+                f'<b>{html.escape(_display_name)}</b>{_role_label}'
+                f'{html.escape(_dep_label)}</div>'
+                f'<div style="font-size:.7rem;color:var(--text-muted);padding:0 6px;">'
+                f'@{html.escape(str(_top_user.get("username") or ""))}</div>'
+                f'{_note_top}',
+                unsafe_allow_html=True,
+            )
 
 # ---------------------------------------------------------------- 页面 9：插件管理
 def page_plugins():
@@ -2151,32 +2187,6 @@ pg.run()
 
 with st.sidebar:
     with st.container(key="sidebar_footer"):
-        # V3.7 当前用户标识 + 登出 + 管理后台入口
-        _user = st.session_state.get("auth_user") or {}
-        if _user:
-            # V3.7.2 姓名（real_name）优先回显；账户名与职责/职位备注作次要信息
-            _display_name = str(_user.get("real_name") or _user.get("username") or "")
-            _dep_label = f" · {_user['department']}" if _user.get("department") else ""
-            _role_label = " 🛡" if _user.get("is_admin") else ""
-            _note_line = (f'<div style="font-size:.72rem;color:var(--text-muted);'
-                          f'padding:0 4px;">{html.escape(str(_user.get("note") or ""))}</div>'
-                          if _user.get("note") else "")
-            st.markdown(
-                f'<div style="font-size:.8rem;padding:2px 4px;">👤 '
-                f'<b>{html.escape(_display_name)}</b>{_role_label}'
-                f'{html.escape(_dep_label)}</div>'
-                f'<div style="font-size:.7rem;color:var(--text-muted);padding:0 4px;">'
-                f'@{html.escape(str(_user.get("username") or ""))}</div>'
-                f'{_note_line}',
-                unsafe_allow_html=True,
-            )
-            _footer_c1, _footer_c2 = st.columns([1, 1])
-            if _footer_c1.button(t("auth.logout"), key="auth_logout", width="stretch"):
-                st.session_state["logout_request"] = True
-                st.rerun()
-            if _user.get("is_admin"):
-                _footer_c2.link_button(t("auth.admin.console"), auth_client.BASE + "/admin/login",
-                                       width="stretch")
         _sidebar_user = st.session_state.get("auth_user") or {}
         sessions = list_sessions(10,
                                  username=str(_sidebar_user.get("username") or "") or None,
@@ -2238,6 +2248,15 @@ with st.sidebar:
             """,
             unsafe_allow_html=True,
         )
+
+    # V3.7.2 登出按钮：独立容器吸附侧边栏最底部（CSS margin-top:auto），
+    # 点击后弹确认框（confirm_logout），确认才真正退出
+    if st.session_state.get("auth_user"):
+        with st.container(key="sidebar_logout"):
+            if st.button(t("auth.logout"), key="auth_logout_btn",
+                         width="stretch", icon=":material/logout:"):
+                st.session_state["logout_request"] = True
+                st.rerun()
 
 if st.session_state.get("delete_session_request"):
     confirm_session_delete()
