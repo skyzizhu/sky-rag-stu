@@ -324,7 +324,7 @@ html, body, .stApp, .stMarkdown, input, textarea {
 /* V3.7.2 用户信息卡：Logo 下方留出呼吸间距，卡片分层样式 */
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo) {
   order:2 !important;
-  margin: 12px 10px 10px !important;
+  margin: 12px 10px 10px 0 !important;
 }
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo)
   [data-testid="stVerticalBlock"] {gap: 0 !important; padding: 0 !important;}
