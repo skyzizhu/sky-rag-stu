@@ -116,6 +116,24 @@ def confirm_session_delete() -> None:
         st.rerun()
 
 
+@st.dialog(t("auth.logout.confirm.title"), width="small")
+def confirm_logout() -> None:
+    st.write(t("auth.logout.confirm.msg"))
+    _u = st.session_state.get("auth_user") or {}
+    c1, c2 = st.columns(2)
+    if c1.button(t("auth.logout.confirm.yes"), type="primary", use_container_width=True):
+        auth_client.logout(str(_u.get("username") or ""))  # 登出写入登录日志
+        from streamlit.components.v1 import html as components_html
+        components_html(auth_client.clear_cookie_html(front_host_global), height=0)
+        st.session_state["auth_user"] = None
+        st.session_state["messages"] = []
+        st.session_state["session_id"] = new_session_id()
+        st.rerun()
+    if c2.button(t("auth.logout.confirm.no"), use_container_width=True):
+        st.session_state.pop("logout_request", None)
+        st.rerun()
+
+
 @st.dialog(t("dialog.remove.title"), width="small")
 def confirm_manage_remove() -> None:
     """确认批量移除向量数据，以及可选的磁盘文件删除。"""
@@ -771,6 +789,9 @@ def _apply_user_prefs(username: str) -> None:
             st.session_state[key] = value
 
 
+front_host_global = "localhost:8501"  # 由 auth_gate 每次渲染时更新
+
+
 def auth_gate() -> bool:
     """V3.7 登录门。返回 True = 已登录，继续渲染应用；否则渲染登录/注册页。
 
@@ -781,6 +802,56 @@ def auth_gate() -> bool:
     if st.session_state.get("auth_user"):
         return True
 
+    # 浏览器访问前台的 host（含端口）——供持久化 iframe 拼认证服务地址
+    global front_host_global
+    try:
+        front_host = st.context.headers.get("host", "localhost:8501")
+        front_host_global = front_host
+    except Exception:
+        front_host = front_host_global
+
+    def _restore_from_cookie() -> bool:
+        """front_auth Cookie（30 天）里若还有有效登录态，直接恢复登录。"""
+        try:
+            cookie_val = st.context.cookies.get("front_auth", "")
+        except Exception:
+            return False
+        restored_username = auth_db.verify_session_cookie(cookie_val)
+        if not restored_username:
+            return False
+        restored = auth_db.get_user(restored_username)
+        if not restored or restored["status"] != "active":
+            return False
+        st.session_state["auth_user"] = {
+            "username": restored["username"],
+            "department": restored.get("department"),
+            "department_id": restored.get("department_id"),
+            "is_admin": bool(restored.get("is_admin")),
+            "permissions": restored.get("permissions") or [],
+            "real_name": restored.get("real_name") or "",
+            "note": restored.get("note") or "",
+        }
+        _apply_user_prefs(restored["username"])
+        return True
+
+    if _restore_from_cookie():
+        return True
+
+    def _finish_login(data):
+        """登录成功收尾：写入会话；有 proof 时渲染持久化 iframe
+        （浏览器直连认证服务换 30 天 Cookie，完成后带 ?login=1 重载，
+        重载后由 Cookie 自动恢复登录态——登录持久化的关键一跳）。"""
+        st.session_state["auth_user"] = data["user"]
+        proof = data.get("login_proof")
+        if proof:
+            from streamlit.components.v1 import html as components_html
+            components_html(auth_client.persist_login_html(
+                data["user"]["username"], proof, front_host), height=0)
+            st.caption(t("auth.persist.note"))
+            st.stop()
+        _apply_user_prefs(data["user"]["username"])
+        st.rerun()
+
     # V3.7.2 记录真实登录 IP：隐藏组件让浏览器直连认证服务 /auth/ping，认证服务
     # 看到浏览器真实局域网 IP 并写入 rip cookie（localhost 域共享，30 天有效）。
     # 注意 st.context.cookies 读的是页面加载（WebSocket 握手）时的 cookie——
@@ -788,8 +859,10 @@ def auth_gate() -> bool:
     # 计数器防死循环：ping 不生效（服务没起等）最多重载 2 次后照常登录（IP 留空）。
     try:
         rip_cookie = st.context.cookies.get("rip", "")
+        _host_header = st.context.headers.get("host", "localhost:8501")
     except Exception:
         rip_cookie = ""
+        _host_header = "localhost:8501"
     # 防刷新循环：用 URL 参数 ?rip=1 标记"ping 已尝试过"（URL 参数跨整页刷新持久；
     # session_state 不行——整页刷新会新建会话把计数器清零，导致无限刷新）。
     # ping 已尝试（无论成败）或已有 cookie，都不再重试，IP 尽力而为。
@@ -833,8 +906,7 @@ def auth_gate() -> bool:
                 else:
                     data2, err2 = auth_client.login(u, p1)
                     if data2:
-                        st.session_state["auth_user"] = data2["user"]
-                        st.rerun()
+                        _finish_login(data2)
                     else:
                         st.success(t("auth.init.ok"))
         return False
@@ -848,9 +920,7 @@ def auth_gate() -> bool:
             if err:
                 st.error(err)
             else:
-                st.session_state["auth_user"] = data["user"]
-                _apply_user_prefs(data["user"]["username"])
-                st.rerun()
+                _finish_login(data)
 
     with tab_register:
         departments = boot.get("departments") or []
@@ -876,8 +946,7 @@ def auth_gate() -> bool:
                     else:
                         data2, err2 = auth_client.login(u, p1)
                         if data2:
-                            st.session_state["auth_user"] = data2["user"]
-                            st.rerun()
+                            _finish_login(data2)
                         else:
                             st.success(t("auth.register.ok"))
     st.stop()
@@ -2093,10 +2162,7 @@ with st.sidebar:
             )
             _footer_c1, _footer_c2 = st.columns([1, 1])
             if _footer_c1.button(t("auth.logout"), key="auth_logout", width="stretch"):
-                auth_client.logout(str(_user.get("username") or ""))  # 登出写入登录日志
-                st.session_state["auth_user"] = None
-                st.session_state["messages"] = []
-                st.session_state["session_id"] = new_session_id()
+                st.session_state["logout_request"] = True
                 st.rerun()
             if _user.get("is_admin"):
                 _footer_c2.link_button(t("auth.admin.console"), auth_client.BASE + "/admin/login",
@@ -2167,3 +2233,5 @@ if st.session_state.get("delete_session_request"):
     confirm_session_delete()
 elif st.session_state.get("manage_remove_request"):
     confirm_manage_remove()
+elif st.session_state.get("logout_request"):
+    confirm_logout()

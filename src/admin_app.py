@@ -13,10 +13,7 @@ V3.7.1 重构：管理页面从"服务端渲染多页 + 表单跳转"重构为**
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import os
-import secrets
 import time
 from pathlib import Path
 
@@ -44,33 +41,17 @@ _SESSION_COOKIE = "admin_sess"
 _SESSION_TTL = 7 * 24 * 3600
 
 
-# ---------------------------------------------------------------- 会话签名
-_SECRET_CACHE: bytes | None = None
-
-
-def _secret() -> bytes:
-    """HMAC 签名密钥：首启生成并落盘（0600），此后常驻缓存。"""
-    global _SECRET_CACHE
-    if _SECRET_CACHE is not None:
-        return _SECRET_CACHE
-    if auth_db.SECRET_PATH.exists():
-        _SECRET_CACHE = auth_db.SECRET_PATH.read_bytes()
-    else:
-        secret = secrets.token_hex(32).encode()
-        auth_db.AUTH_DIR.mkdir(parents=True, exist_ok=True)
-        auth_db.SECRET_PATH.write_bytes(secret)
-        os.chmod(auth_db.SECRET_PATH, 0o600)
-        _SECRET_CACHE = secret
-    return _SECRET_CACHE
-
-
+# ---------------------------------------------------------------- 会话签名（共享 auth_db 密钥）
 def _sign(payload: str) -> str:
-    return hmac.new(_secret(), payload.encode(), hashlib.sha256).hexdigest()
+    import hmac
+    return auth_db.hmac.new(auth_db.get_secret(), payload.encode(),
+                            hashlib.sha256).hexdigest()
 
 
 def _make_cookie(username: str) -> str:
+    """管理后台会话 Cookie（7 天）。"""
     expires = str(int(time.time()) + _SESSION_TTL)
-    return f"{expires}|{username}|{_sign(f'{expires}|{username}')}"
+    return f"{expires}|{username}|{_sign(f'admin|{expires}|{username}')}"
 
 
 def _read_cookie(value: str | None) -> str | None:
@@ -80,7 +61,7 @@ def _read_cookie(value: str | None) -> str | None:
     if len(parts) != 3:
         return None
     expires, username, sig = parts
-    if not hmac.compare_digest(_sign(f"{expires}|{username}"), sig):
+    if not hmac.compare_digest(_sign(f"admin|{expires}|{username}"), sig):
         return None
     if int(expires) < int(time.time()):
         return None
@@ -131,7 +112,7 @@ def _log_from_admin(request: Request, action: str, username: str,
 @app.on_event("startup")
 def _startup() -> None:
     auth_db.init_db()
-    _secret()
+    auth_db.get_secret()  # 首次启动生成签名密钥
 
 
 # ---------------------------------------------------------------- 页面：登录/登出
@@ -268,8 +249,10 @@ def api_department_delete(dep_id: int, request: Request,
 @app.get("/api/users")
 def api_users(dep: int | None = None, q: str = "",
               scope: str | None = Query(None),
+              page: int = Query(1, ge=1), page_size: int = Query(0, le=200),
               _: dict = Depends(require_admin_api)):
-    """scope="admins" 只返回管理员，"employees" 只返回员工。"""
+    """scope="admins" 只返回管理员，"employees" 只返回员工。
+    page_size=0 表示不分页（下拉框等场景取全量）。"""
     is_admin = {"admins": True, "employees": False}.get(scope)
     users = auth_db.list_users(department_id=dep, is_admin=is_admin)
     if q:
@@ -277,7 +260,11 @@ def api_users(dep: int | None = None, q: str = "",
         users = [u for u in users
                  if ql in u["username"].lower()
                  or ql in (u.get("real_name") or "").lower()]
-    return {"ok": True, "users": users}
+    total = len(users)
+    if page_size > 0:
+        start = (page - 1) * page_size
+        users = users[start:start + page_size]
+    return {"ok": True, "users": users, "total": total}
 
 
 @app.get("/api/users/{user_id}")
@@ -593,7 +580,8 @@ def api_login(body: LoginBody, request: Request):
                            department=info.get("department", ""), entry="web",
                            ip=(body.client_ip or ip), user_agent=body.user_agent,
                            accept_language=body.accept_language)
-    return {"ok": True, "user": info}
+    return {"ok": True, "user": info,
+            "login_proof": auth_db.make_login_proof(info["username"])}
 
 
 class LogoutBody(ContextFields):
@@ -647,6 +635,57 @@ def api_bootstrap_admin(body: BootstrapAdminBody, request: Request):
 class PrefsBody(BaseModel):
     username: str
     settings: dict
+
+
+class PersistLoginBody(BaseModel):
+    username: str
+    proof: str
+
+
+def _persist_login_impl(username: str, proof: str, back: str):
+    """proof 校验 + Set-Cookie + 返回导航回前台的脚本页。公共实现。"""
+    username_ok = auth_db.verify_login_proof(proof)
+    if not username_ok or username_ok != username:
+        return HTMLResponse("<script>history.back()</script>", status_code=401)
+    user = auth_db.get_user(username)
+    if user is None or user["status"] != "active":
+        return HTMLResponse("<script>history.back()</script>", status_code=401)
+    # back 必须以 / 开头（防开放重定向）
+    back = back if back.startswith("/") else "/"
+    resp = HTMLResponse(f'<script>window.location.href = "{back}";</script>')
+    resp.set_cookie("front_auth", auth_db.make_session_cookie(username),
+                    samesite="lax", max_age=30 * 24 * 3600)
+    return resp
+
+
+@app.get("/auth/persist-login")
+def api_persist_login_get(request: Request, username: str = Query(""),
+                          proof: str = Query(""), back: str = Query("")):
+    """顶层导航版：浏览器以第一方身份 GET 本端点（无 CORS、无三方 Cookie 限制），
+    Set-Cookie 后自动导航回前台。"""
+    from urllib.parse import unquote
+    return _persist_login_impl(unquote(username), unquote(proof), unquote(back))
+
+
+@app.post("/auth/persist-login")
+def api_persist_login_post(body: PersistLoginBody):
+    username = auth_db.verify_login_proof(body.proof)
+    if not username or username != body.username:
+        return JSONResponse({"ok": False, "detail": "凭证无效"}, status_code=401)
+    user = auth_db.get_user(username)
+    if user is None or user["status"] != "active":
+        return JSONResponse({"ok": False, "detail": "账户不可用"}, status_code=401)
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie("front_auth", auth_db.make_session_cookie(username),
+                    samesite="lax", max_age=30 * 24 * 3600)
+    return resp
+
+
+@app.post("/auth/clear-front-cookie")
+def api_clear_front_cookie():
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie("front_auth", samesite="lax")
+    return resp
 
 
 @app.get("/auth/ping")

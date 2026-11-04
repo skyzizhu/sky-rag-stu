@@ -9,6 +9,7 @@ V3.7.1：login/register/bootstrap/logout 附带浏览器上下文（UA/语言）
 
 from __future__ import annotations
 
+import json
 import os
 
 import requests
@@ -55,6 +56,28 @@ def ping_html(hostname_part: str, front_host: str) -> str:
             f'fetch("//{hostname_part}:{admin_port}/auth/ping",'
             f' {{credentials: "include"}}).then(go).catch(go);'
             f'</script>')
+
+
+def persist_login_html(username: str, proof: str, front_host: str) -> str:
+    """登录成功后渲染的隐藏 iframe：浏览器直连认证服务，凭一次性 proof
+    换取 30 天 front_auth Cookie（Cookie 不区分端口，同域跨端口共享），
+    实现"重启/刷新后仍保持登录，直到主动退出或清理浏览器"。"""
+    admin_port = os.environ.get("AUTH_ADMIN_PORT", "8700")
+    return (f'<script>'
+            f'fetch("//{front_host}:{admin_port}/auth/persist-login",'
+            f' {{method: "POST", credentials: "include",'
+            f' headers: {{"Content-Type": "application/json"}},'
+            f' body: JSON.stringify({{username: {json.dumps(username)},'
+            f' proof: {json.dumps(proof)}}})}})'
+            f'.catch(() => {{}});</script>')
+
+
+def clear_cookie_html(front_host: str) -> str:
+    """退出登录时渲染的隐藏 iframe：删除 front_auth Cookie。"""
+    admin_port = os.environ.get("AUTH_ADMIN_PORT", "8700")
+    return (f'<script>'
+            f'parent.location.href = "//{front_host}:{admin_port}'
+            f'/auth/clear-front-cookie";</script>')
 
 
 def _post_json(path: str, body: dict) -> tuple[dict | None, str]:

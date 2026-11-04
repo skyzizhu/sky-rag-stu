@@ -12,10 +12,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
 import sqlite3
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -646,3 +648,80 @@ def count_user_tokens(user_id: int) -> int:
             "SELECT COUNT(*) AS n FROM tokens WHERE user_id=? AND revoked=0",
             (user_id,)).fetchone()
     return row["n"]
+
+
+# ---------------------------------------------------------------- 登录态 Cookie（V3.7.2）
+# 前台（8501）与管理后台（8700）同域不同端口——Cookie 不区分端口，
+# 认证服务签发的 front_auth cookie，浏览器会带给 Streamlit，实现登录态持久化。
+_SECRET_CACHE: bytes | None = None
+
+
+def get_secret() -> bytes:
+    """HMAC 签名密钥：落盘 storage/auth/admin_secret.key（0600），进程内缓存。"""
+    global _SECRET_CACHE
+    if _SECRET_CACHE is not None:
+        return _SECRET_CACHE
+    if SECRET_PATH.exists():
+        _SECRET_CACHE = SECRET_PATH.read_bytes()
+    else:
+        secret = secrets.token_hex(32).encode()
+        AUTH_DIR.mkdir(parents=True, exist_ok=True)
+        SECRET_PATH.write_bytes(secret)
+        os.chmod(SECRET_PATH, 0o600)
+        _SECRET_CACHE = secret
+    return _SECRET_CACHE
+
+
+_SESSION_TTL = 30 * 24 * 3600  # 登录态保持 30 天
+
+
+def _sign(payload: str) -> str:
+    import hmac
+    return hmac.new(get_secret(), payload.encode(), hashlib.sha256).hexdigest()
+
+
+def make_session_cookie(username: str) -> str:
+    """登录态 Cookie 值：用户名|过期时间戳|签名。"""
+    expires = str(int(time.time()) + _SESSION_TTL)
+    return f"{expires}|{username}|{_sign(f'sess|{expires}|{username}')}"
+
+
+def verify_session_cookie(value: str) -> str | None:
+    """校验登录态 Cookie，返回用户名；无效/过期返回 None。"""
+    import time
+    if not value:
+        return None
+    parts = value.split("|")
+    if len(parts) != 3:
+        return None
+    expires, username, sig = parts
+    if not hmac.compare_digest(_sign(f"sess|{expires}|{username}"), sig):
+        return None
+    if int(expires) < int(time.time()):
+        return None
+    return username
+
+
+def make_login_proof(username: str, ttl: int = 120) -> str:
+    """一次性登录凭证：登录成功后由前端 iframe 提交给认证服务换取持久化 Cookie。
+
+    短时效 + 绑定用户名，防止任何人凭空给自己签发登录态 Cookie。
+    """
+    import time
+    expires = str(int(time.time()) + ttl)
+    return f"{expires}|{username}|{_sign(f'proof|{expires}|{username}')}"
+
+
+def verify_login_proof(proof: str) -> str | None:
+    import time
+    if not proof:
+        return None
+    parts = proof.split("|")
+    if len(parts) != 3:
+        return None
+    expires, username, sig = parts
+    if not hmac.compare_digest(_sign(f"proof|{expires}|{username}"), sig):
+        return None
+    if int(expires) < int(time.time()):
+        return None
+    return username

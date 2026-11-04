@@ -182,8 +182,10 @@ function switchTab(id) {
 }
 
 async function logout() {
-  await fetch('/admin/logout');
-  location.href = '/admin/login';
+  // 退出前确认：防误触（登录日志会完整记录本次登出）
+  openDlg('确认退出登录', '<div class="log-detail">退出后需要重新输入账户密码才能再次进入管理后台。确认退出吗？</div>',
+    async () => { await fetch('/admin/logout'); location.href = '/admin/login'; },
+    '确认退出');
 }
 
 /* ---------- 工作台 ---------- */
@@ -278,13 +280,18 @@ async function depDelete(id, name, employees) {
 }
 
 /* ---------- 员工管理（仅员工；管理员账户在「管理员」标签单独管理） ---------- */
-let empFilterDep = '', empFilterQ = '', empDebounce = null, empRefocus = false;
+let empFilterDep = '', empSearchInput = '', empPage = 1;
+const EMP_PAGE_SIZE = 20;
 async function renderEmps() {
   const deps = (await api('GET', '/api/departments')).departments;
-  const q = empFilterQ ? '&q=' + encodeURIComponent(empFilterQ) : '';
-  const d = await api('GET', '/api/users?scope=employees' +
-    (empFilterDep ? '&dep=' + empFilterDep : '') + q);
-  window._emp_deps = deps;  // 新增员工对话框复用部门选项
+  const qs = new URLSearchParams();
+  qs.set('scope', 'employees');
+  if (empFilterDep) qs.set('dep', empFilterDep);
+  if (empSearchInput) qs.set('q', encodeURIComponent(empSearchInput));
+  qs.set('page', empPage);
+  qs.set('page_size', EMP_PAGE_SIZE);
+  const d = await api('GET', '/api/users?' + qs.toString());
+  const totalPages = Math.max(1, Math.ceil(d.total / EMP_PAGE_SIZE));
   const rows = d.users.map(u => `
     <tr class="clickable" onclick="empView(${u.id})">
       <td>${u.id}</td><td><b>${esc(u.username)}</b></td>
@@ -304,41 +311,35 @@ async function renderEmps() {
     <div class="card">
       <div class="toolbar">
         <button type="button" onclick="empCreateDlg()">＋ 新增员工</button>
-        <input class="wide" placeholder="搜索账户名/姓名…" value="${esc(empFilterQ)}">
-        <select onchange="empFilterDep=this.value; renderEmps()">
+        <input id="emp-search-input" class="wide"
+          placeholder="搜索账户名 / 姓名…" value="${esc(empSearchInput)}">
+        <button type="button" onclick="empDoSearch()">🔍 搜索</button>
+        <button class="mini gray" type="button"
+          onclick="empSearchInput=''; empPage=1; renderEmps()">清空</button>
+        <select onchange="empFilterDep=this.value; empPage=1; renderEmps()">
           <option value="">全部部门</option>
           ${deps.map(x => `<option value="${x.id}" ${String(x.id) === String(empFilterDep)
             ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
         </select>
       </div>
-      <div class="muted" style="margin:10px 0">三类操作分开进行：<b>详情</b>=只读查看；
-        <b>编辑</b>=改姓名/备注/前台权限/状态；<b>密码/部门</b>=重置密码与调整部门。
-        员工也可以在知识库前台自助注册。</div>
+      <div class="muted" style="margin:10px 0">输入账户名或姓名后点「🔍 搜索」（支持回车）。
+        点击任意员工行进入<b>详情</b>；「编辑」改姓名/备注/权限/状态；「密码/部门」重置密码与调部门。</div>
       <table><tr><th>ID</th><th>账户名</th><th>姓名</th><th>部门</th><th>备注（职责/职位）</th><th>状态</th><th>创建</th><th>操作</th></tr>
       ${rows || '<tr><td colspan="8" class="empty">没有匹配的员工</td></tr>'}</table>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+        <button class="mini gray" ${empPage <= 1 ? 'disabled' : ''}
+          onclick="empPage--; renderEmps()">上一页</button>
+        <span class="muted">第 ${empPage} / ${totalPages} 页（共 ${d.total} 名）</span>
+        <button class="mini gray" ${empPage >= totalPages ? 'disabled' : ''}
+          onclick="empPage++; renderEmps()">下一页</button>
+      </div>
     </div>`;
-  const search = document.querySelector('.toolbar input');
-  search.addEventListener('input', () => {
-    clearTimeout(empDebounce);
-    empDebounce = setTimeout(() => { empFilterQ = search.value; empRefocus = true; renderEmps(); }, 400);
+  const search = document.querySelector('#emp-search-input');
+  search.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { empSearchInput = search.value.trim(); empPage = 1; renderEmps(); }
   });
-  if (empRefocus) {
-    search.focus();
-    search.setSelectionRange(search.value.length, search.value.length);
-    empRefocus = false;
-  }
 }
-async function empCreate(ev) {
-  ev.preventDefault();
-  const f = ev.target;
-  try {
-    await api('POST', '/api/users', { username: f.username.value.trim(),
-      password: f.password.value, department_id: +f.department_id.value });
-    toast(`员工「${f.username.value.trim()}」已创建`);
-    renderEmps();
-  } catch (e) { toast(e.message, false); }
-  return false;
-}
+function empDoSearch() { empPage = 1; renderEmps(); }
 function empCreateDlg() {
   const opts = (window._emp_deps || []);
   openDlg('新增员工', `
