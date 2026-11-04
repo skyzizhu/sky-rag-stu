@@ -72,6 +72,13 @@
   dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
   dialog .row { display: flex; gap: 8px; align-items: center; }
   dialog .row input { flex: 1; }
+  /* 前台权限勾选列表：复选框不继承 width:100%，行内左对齐 */
+  dialog .perm-list { border: 1px solid #e3e8f2; border-radius: 8px;
+                      padding: 2px 12px; margin: 2px 0 10px; }
+  dialog .perm-item { display: flex; align-items: center; gap: 10px;
+                      padding: 7px 2px; font-size: 13.5px; }
+  dialog .perm-item + .perm-item { border-top: 1px dashed #eef1f8; }
+  dialog .perm-item input[type="checkbox"] { width: auto; margin: 0; }
   .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
   .empty { text-align: center; color: #8a93a6; padding: 26px 0; font-size: 13px; }
   .log-detail { background: #f8f9fd; border-radius: 8px; padding: 10px 12px; margin-top: 6px;
@@ -423,55 +430,40 @@ async function empView(id) {
       或「密码/部门」（重置密码、调整部门）。</div>`);
 }
 
-/* ② 编辑（姓名 · 备注 · 前台权限 · 状态） */
+/* ② 编辑（姓名 · 备注 · 前台权限 · 状态）——一个保存按钮管全部 */
 async function empEdit(id) {
   empDlgRefresh = () => empEdit(id);
   let u;
   try { ({ u } = await _fetchEmp(id)); }
   catch (e) { toast(e.message, false); return; }
   const perms = Array.isArray(u.permissions) ? u.permissions : [];
-  const permChecks = Object.keys(PERM_LABELS).map(p => `
-    <label style="display:flex;align-items:center;gap:8px;margin:4px 0">
+  const permItems = Object.keys(PERM_LABELS).map(p => `
+    <label class="perm-item">
       <input type="checkbox" class="perm-check" value="${p}"
         ${perms.includes(p) ? 'checked' : ''}>
       <span>${PERM_LABELS[p]}</span>
     </label>`).join("");
   openEmpDlg(`编辑员工 — ${esc(u.username)}`, `
     <label>姓名（展示用，如：王强）</label>
-    <div class="row">
-      <input id="emp-name-edit" style="flex:1" value="${esc(u.real_name || '')}">
-      <button class="gray" type="button" onclick="empSaveProfile(${u.id})">保存姓名/备注</button>
-    </div>
+    <input id="emp-name-edit" value="${esc(u.real_name || '')}">
     <label>备注（职责 / 职位）</label>
-    <div class="row">
-      <input id="emp-note-edit" style="flex:1" value="${esc(u.note || '')}"
-        placeholder="如：产品经理 / 负责数据标注">
-      <button class="gray" type="button" onclick="empSaveProfile(${u.id})">保存姓名/备注</button>
-    </div>
+    <input id="emp-note-edit" value="${esc(u.note || '')}"
+      placeholder="如：产品经理 / 负责数据标注">
     <label>前台权限（默认无——员工仅可检索；勾选后登录可见对应功能页）</label>
-    <div style="margin:2px 0 10px">${permChecks}</div>
-    <button class="mini gray" type="button" onclick="empSavePerms(${u.id})">保存权限</button>
+    <div class="perm-list">${permItems}</div>
     <label>状态</label>
     <button class="${u.status === 'active' ? 'danger' : 'gray'}" type="button"
-      onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`);
-}
-async function empSaveProfile(uid) {
-  const name = document.querySelector('#emp-name-edit').value.trim();
-  const note = document.querySelector('#emp-note-edit').value.trim();
-  try {
-    await api('POST', `/api/users/${uid}/profile`, { real_name: name, note });
-    toast('姓名/备注已保存');
-    if (empDlgRefresh) empDlgRefresh();
-  } catch (e) { toast(e.message, false); }
-}
-async function empSavePerms(uid) {
-  const perms = [...document.querySelectorAll('.perm-check')]
-    .filter(c => c.checked).map(c => c.value);
-  try {
-    const r = await api('PATCH', `/api/users/${uid}/permissions`, { permissions: perms });
-    toast(`前台权限已保存：${r.permissions.length ? r.permissions.join(' / ') : '无'}`);
-    if (empDlgRefresh) empDlgRefresh();
-  } catch (e) { toast(e.message, false); }
+      onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`,
+    async () => {
+      const name = document.querySelector('#emp-name-edit').value.trim();
+      const note = document.querySelector('#emp-note-edit').value.trim();
+      const perms = [...document.querySelectorAll('.perm-check')]
+        .filter(c => c.checked).map(c => c.value);
+      await api('POST', `/api/users/${id}/profile`, { real_name: name, note });
+      const r = await api('PATCH', `/api/users/${id}/permissions`, { permissions: perms });
+      toast(`已保存：${name || '@' + u.username} ｜ 前台权限 ${r.permissions.length} 项`);
+      renderEmps();
+    }, '保存全部');
 }
 async function empToggle(uid) {
   try {
