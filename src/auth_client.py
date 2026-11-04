@@ -18,14 +18,42 @@ _TIMEOUT = 5
 
 
 def browser_context() -> dict:
-    """当前浏览器会话的 UA 与语言（登录日志指纹用）。非浏览器上下文返回空。"""
+    """当前浏览器会话的 UA/语言/客户端 IP（登录日志用）。
+
+    - UA/语言：st.context.headers（真实浏览器请求头）
+    - IP：登录门渲染的隐藏组件会直连认证服务 /auth/ping（CORS 已放行），
+      认证服务看到的是浏览器真实局域网 IP，并写入 rip cookie（localhost 域
+      不分端口共享），这里从 cookie 读回。没 ping 过（首次进入）则为空。
+    """
     try:
         import streamlit as st
         headers = st.context.headers
+        ip = st.context.cookies.get("rip", "")
         return {"user_agent": headers.get("user-agent", ""),
-                "accept_language": headers.get("accept-language", "")}
+                "accept_language": headers.get("accept-language", ""),
+                "client_ip": ip}
     except Exception:
-        return {"user_agent": "", "accept_language": ""}
+        return {"user_agent": "", "accept_language": "", "client_ip": ""}
+
+
+def ping_html(reload_parent: bool = False) -> str:
+    """登录门用的隐藏 iframe：浏览器直连 /auth/ping 写 rip cookie。
+
+    关键：ping 必须与访问前台的**同一主机名**（cookie 不跨主机名——用 127.0.0.1
+    ping 而浏览器从 localhost 访问时，cookie 挂在 127.0.0.1 下，前台读不到）。
+    所以从页面 location.hostname 动态拼 ping 地址，端口取管理后台端口。
+
+    reload_parent=True：ping 完成后刷新父页面——st.context.cookies 读的是
+    WebSocket 握手时的 cookie，ping 新写的 cookie 要重载一次才进得了握手。
+    """
+    admin_port = os.environ.get("AUTH_ADMIN_PORT", "8700")
+    reload_js = "parent.location.reload()" if reload_parent else ""
+    tail = f".then(() => {{{reload_js}}}).catch(() => {{{reload_js}}})" \
+        if reload_parent else ".catch(() => {})"
+    return (f'<script>'
+            f'fetch(location.protocol + "//" + location.hostname + ":{admin_port}'
+            f'/auth/ping", {{credentials: "include"}}){tail};'
+            f'</script>')
 
 
 def _post_json(path: str, body: dict) -> tuple[dict | None, str]:

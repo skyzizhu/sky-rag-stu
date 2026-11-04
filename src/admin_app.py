@@ -23,11 +23,21 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src import auth_db
 
 app = FastAPI(title="Sky Personal RAG · 管理后台", docs_url=None, redoc_url=None)
+# V3.7：允许知识库前台（8501）的浏览器直接 ping 本服务以记录真实客户端 IP
+# （Cookie 不区分端口，ping 写下的 rip cookie 会被浏览器带给 8501，Streamlit 读取后随登录请求传回）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=".*",
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "admin_templates"))
 
 _SESSION_COOKIE = "admin_sess"
@@ -139,9 +149,18 @@ def login_page(request: Request, err: str = ""):
 
 
 @app.post("/admin/login")
-def login_action(request: Request, username: str = Form(""), password: str = Form("")):
+async def login_action(request: Request):
+    # 兼容两种提交：登录页 fetch JSON（中文账户无乱码）与普通表单
+    ctype = request.headers.get("content-type", "")
+    if "application/json" in ctype:
+        body = await request.json()
+        username = str(body.get("username", ""))
+        password = str(body.get("password", ""))
+    else:
+        form = await request.form()
+        username = str(form.get("username", ""))
+        password = str(form.get("password", ""))
     info, err = auth_db.authenticate(username, password)
-    ua = request.headers.get("user-agent", "")
     if err or not info or not info.get("is_admin"):
         msg = err or "该账户不是管理员"
         _log_from_admin(request, "login", username, success=False,
@@ -178,6 +197,7 @@ def admin_shell(request: Request, admin: dict = Depends(require_admin)):
 def api_overview(_: dict = Depends(require_admin_api)):
     deps = auth_db.list_departments()
     users = auth_db.list_users()
+    admins = [u for u in users if u["is_admin"]]
     logs = auth_db.list_login_logs(limit=10, scope="users")
     return {
         "departments": len(deps),
@@ -185,6 +205,8 @@ def api_overview(_: dict = Depends(require_admin_api)):
         "users": len([u for u in users if not u["is_admin"]]),
         "users_active": len([u for u in users
                              if u["status"] == "active" and not u["is_admin"]]),
+        "admins": len(admins),
+        "admins_active": len([a for a in admins if a["status"] == "active"]),
         "recent_logins": logs,
     }
 
@@ -311,12 +333,57 @@ def api_user_toggle(user_id: int, request: Request,
     user = auth_db.get_user_by_id(user_id)
     if user is None:
         return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
+    if user["is_super"]:
+        return JSONResponse({"ok": False,
+                             "detail": "超级管理员不能被停用"}, status_code=400)
     new_status = "disabled" if user["status"] == "active" else "active"
     auth_db.update_user(user_id, status=new_status)
     state = "启用" if new_status == "active" else "停用"
     _log_from_admin(request, "employee_toggle", admin["username"],
                     detail=f"{user['username']} → {state}")
     return {"ok": True, "status": new_status}
+
+
+# ---------------------------------------------------------------- JSON API：管理员（与员工分列）
+class AdminBody(BaseModel):
+    username: str
+    password: str
+    password_confirm: str
+    department_id: int | None = None
+
+
+@app.post("/api/admins")
+def api_admin_create(body: AdminBody, request: Request,
+                     admin: dict = Depends(require_admin_api)):
+    if body.password != body.password_confirm:
+        return JSONResponse({"ok": False, "detail": "两次输入的密码不一致"}, status_code=400)
+    try:
+        user = auth_db.create_user(body.username, body.password,
+                                   department_id=body.department_id, is_admin=True)
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    _log_from_admin(request, "admin_create", admin["username"],
+                    detail=f"新增管理员 {user['username']}")
+    return {"ok": True, "user": user}
+
+
+@app.delete("/api/admins/{user_id}")
+def api_admin_delete(user_id: int, request: Request,
+                     admin: dict = Depends(require_admin_api)):
+    user = auth_db.get_user_by_id(user_id)
+    if user is None:
+        return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
+    if user["is_super"]:
+        return JSONResponse({"ok": False,
+                             "detail": "超级管理员（admin）不能删除"}, status_code=400)
+    if user_id == admin["id"]:
+        return JSONResponse({"ok": False, "detail": "不能删除自己的账户"}, status_code=400)
+    with auth_db._connect() as conn:
+        conn.execute("DELETE FROM tokens WHERE user_id=?", (user_id,))
+        conn.execute("DELETE FROM users WHERE id=?", (user_id,))
+    _log_from_admin(request, "admin_delete", admin["username"],
+                    detail=f"删除管理员 {user['username']}")
+    return {"ok": True}
 
 
 class TransferBody(BaseModel):
@@ -395,9 +462,10 @@ def api_logs_qa(limit: int = 100, username: str = "", entry: str = "",
 
 # ---------------------------------------------------------------- 认证 API（Streamlit 前台调用）
 class ContextFields(BaseModel):
-    """浏览器上下文（Streamlit 转发真实用户的 UA/语言，用于登录日志指纹）。"""
+    """浏览器上下文（Streamlit 转发真实用户的 UA/语言/IP，用于登录日志指纹与溯源）。"""
     user_agent: str = ""
     accept_language: str = ""
+    client_ip: str = ""  # 登录门 JS ping 写下的 rip cookie（浏览器真实局域网 IP）
 
 
 class RegisterBody(ContextFields):
@@ -428,7 +496,7 @@ def api_register(body: RegisterBody, request: Request):
     if body.password != body.password_confirm:
         auth_db.log_auth_event("register", body.username, success=False,
                                detail="两次密码不一致", entry="web",
-                               ip=_web_ip(request), user_agent=body.user_agent,
+                               ip=(body.client_ip or _web_ip(request)), user_agent=body.user_agent,
                                accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": "两次输入的密码不一致"}, status_code=400)
     dep = next((d for d in auth_db.list_departments(include_disabled=False)
@@ -436,7 +504,7 @@ def api_register(body: RegisterBody, request: Request):
     if dep is None:
         auth_db.log_auth_event("register", body.username, success=False,
                                detail="部门无效", entry="web",
-                               ip=_web_ip(request), user_agent=body.user_agent,
+                               ip=(body.client_ip or _web_ip(request)), user_agent=body.user_agent,
                                accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": "请选择一个有效部门"}, status_code=400)
     try:
@@ -445,12 +513,12 @@ def api_register(body: RegisterBody, request: Request):
     except ValueError as exc:
         auth_db.log_auth_event("register", body.username, success=False,
                                detail=str(exc), entry="web",
-                               ip=_web_ip(request), user_agent=body.user_agent,
+                               ip=(body.client_ip or _web_ip(request)), user_agent=body.user_agent,
                                accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
     auth_db.log_auth_event("register", user["username"], success=True,
                            department=user.get("department", ""), entry="web",
-                           ip=_web_ip(request), user_agent=body.user_agent,
+                           ip=(body.client_ip or _web_ip(request)), user_agent=body.user_agent,
                            accept_language=body.accept_language)
     return {"ok": True, "username": user["username"], "department": user["department"]}
 
@@ -461,13 +529,13 @@ def api_login(body: LoginBody, request: Request):
     ip = _web_ip(request)
     if err or info is None:
         auth_db.log_auth_event("login", body.username, success=False,
-                               detail=err or "登录失败", entry="web", ip=ip,
+                               detail=err or "登录失败", entry="web", ip=(body.client_ip or ip),
                                user_agent=body.user_agent,
                                accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": err or "登录失败"}, status_code=401)
     auth_db.log_auth_event("login", info["username"], success=True,
                            department=info.get("department", ""), entry="web",
-                           ip=ip, user_agent=body.user_agent,
+                           ip=(body.client_ip or ip), user_agent=body.user_agent,
                            accept_language=body.accept_language)
     return {"ok": True, "user": info}
 
@@ -479,7 +547,8 @@ class LogoutBody(ContextFields):
 @app.post("/auth/logout")
 def api_logout(body: LogoutBody, request: Request):
     auth_db.log_auth_event("logout", body.username, success=True, entry="web",
-                           ip=_web_ip(request), user_agent=body.user_agent,
+                           ip=(body.client_ip or _web_ip(request)),
+                           user_agent=body.user_agent,
                            accept_language=body.accept_language)
     return {"ok": True}
 
@@ -510,8 +579,10 @@ def api_bootstrap_admin(body: BootstrapAdminBody, request: Request):
         user = auth_db.create_user(body.username, body.password, is_admin=True)
     except ValueError as exc:
         return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    with auth_db._connect() as conn:
+        conn.execute("UPDATE users SET is_super=1 WHERE id=?", (user["id"],))
     auth_db.log_auth_event("bootstrap_admin", user["username"], success=True,
-                           entry="web", ip=_web_ip(request),
+                           entry="web", ip=(body.client_ip or _web_ip(request)),
                            user_agent=body.user_agent,
                            accept_language=body.accept_language)
     return {"ok": True, "username": user["username"], "is_admin": True}
@@ -520,6 +591,16 @@ def api_bootstrap_admin(body: BootstrapAdminBody, request: Request):
 class PrefsBody(BaseModel):
     username: str
     settings: dict
+
+
+@app.get("/auth/ping")
+def api_ping(request: Request):
+    """登录门的隐藏组件直连本端点：让浏览器记下自己的真实局域网 IP（rip cookie，
+    与 Streamlit(8501) 共享 localhost 域），登录请求随后从 cookie 读回传给日志。"""
+    ip = request.client.host if request.client else ""
+    resp = JSONResponse({"ok": True, "ip": ip})
+    resp.set_cookie("rip", ip, samesite="lax", max_age=86400 * 30)
+    return resp
 
 
 @app.get("/auth/prefs")

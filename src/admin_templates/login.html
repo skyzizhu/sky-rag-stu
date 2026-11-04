@@ -27,7 +27,7 @@
   <p class="sub">Sky Personal RAG · 仅限管理员账户</p>
   {% if err %}<div class="flash err">{{ err }}</div>{% endif %}
   {% if msg %}<div class="flash msg">{{ msg }}</div>{% endif %}
-  <form method="post" action="/admin/login">
+  <form id="login-form">
     <label>账户名</label>
     <input name="username" autocomplete="username" required>
     <label>密码</label>
@@ -35,5 +35,34 @@
     <button type="submit">登录</button>
   </form>
 </div>
+<script>
+// fetch JSON 提交：原生 urlencoded 表单在此环境对中文账户会按 Latin-1 解码（乱码），
+// JSON 请求体不受影响；失败原因就地展示
+document.getElementById('login-form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const f = ev.target;
+  const errBox = document.querySelector('.flash.err');
+  if (errBox) errBox.remove();
+  try {
+    const resp = await fetch('/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: f.username.value.trim(),
+                             password: f.password.value }),
+    });
+    if (resp.ok || resp.status === 303) { location.href = '/admin'; return; }
+    const data = await resp.json().catch(() => ({}));
+    const box = document.createElement('div');
+    box.className = 'flash err';
+    box.textContent = data.detail || '登录失败';
+    f.prepend(box);
+  } catch (e) {
+    const box = document.createElement('div');
+    box.className = 'flash err';
+    box.textContent = '网络错误，请重试';
+    f.prepend(box);
+  }
+});
+</script>
 </body>
 </html>

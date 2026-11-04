@@ -781,6 +781,22 @@ def auth_gate() -> bool:
     if st.session_state.get("auth_user"):
         return True
 
+    # V3.7.2 记录真实登录 IP：隐藏组件让浏览器直连认证服务 /auth/ping，认证服务
+    # 看到浏览器真实局域网 IP 并写入 rip cookie（localhost 域共享，30 天有效）。
+    # 注意 st.context.cookies 读的是页面加载（WebSocket 握手）时的 cookie——
+    # 首次渲染时还没有，所以先 ping 后自动重载一次；重载后 cookie 进入握手即可用。
+    # 计数器防死循环：ping 不生效（服务没起等）最多重载 2 次后照常登录（IP 留空）。
+    try:
+        rip_cookie = st.context.cookies.get("rip", "")
+    except Exception:
+        rip_cookie = ""
+    if not rip_cookie:
+        from streamlit.components.v1 import html as components_html
+        wait_count = st.session_state.get("_rip_wait", 0)
+        if wait_count < 2:
+            st.session_state["_rip_wait"] = wait_count + 1
+            components_html(auth_client.ping_html(reload_parent=True), height=0)
+            st.stop()
     boot = auth_client.bootstrap()
     if boot is None:
         st.error(t("auth.api.down"))

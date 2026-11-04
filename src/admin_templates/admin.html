@@ -200,12 +200,14 @@ async function renderDash() {
     <div class="stats">
       <div class="stat"><b>${d.departments}</b><span>部门（启用 ${d.departments_enabled}）</span></div>
       <div class="stat"><b>${d.users}</b><span>员工账户（启用 ${d.users_active}）</span></div>
+      <div class="stat"><b>${d.admins}</b><span>管理员账户（启用 ${d.admins_active}）</span></div>
     </div>
-    <div class="card"><h3>最近登录</h3><div id="dash-log"></div></div>
+    <div class="card"><h3>最近登录（员工侧）</h3><div id="dash-log"></div></div>
     <div class="card"><h3>使用说明</h3>
       <div class="muted">① 部门管理里创建部门 → ② 员工在知识库前台自助注册（选部门），或在此处创建账户
       → ③ 员工登录知识库后只能检索本部门与全员可见的知识；管理员看全库。
-      ④ 「访问令牌」页可为员工签发 MCP 调用凭证（mcp_pat_…）。</div></div>`;
+      ④ 「访问令牌」页可为员工签发 MCP 调用凭证（mcp_pat_…）。
+      管理员的登录日志在「管理员」标签下方查看。</div></div>`;
   $('#dash-log').innerHTML = logTableHTML(d.recent_logins);
 }
 
@@ -274,8 +276,7 @@ async function renderEmps() {
   const q = empFilterQ ? '&q=' + encodeURIComponent(empFilterQ) : '';
   const d = await api('GET', '/api/users?scope=employees' +
     (empFilterDep ? '&dep=' + empFilterDep : '') + q);
-  const opts = deps.filter(x => !x.disabled)
-    .map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
+  window._emp_deps = deps;  // 新增员工对话框复用部门选项
   const rows = d.users.map(u => `
     <tr class="clickable" onclick="empDetail(${u.id})">
       <td>${u.id}</td><td><b>${esc(u.username)}</b></td>
@@ -288,18 +289,9 @@ async function renderEmps() {
     </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
-      <h3>新增员工</h3>
-      <form class="row" onsubmit="return empCreate(event)">
-        <input name="username" class="wide" placeholder="账户名（2~32 位字母/数字/下划线/中文）" required>
-        <input name="password" placeholder="初始密码（≥6 位）" required>
-        <select name="department_id" required><option value="" disabled selected>选择部门</option>${opts}</select>
-        <button type="submit">创建</button>
-      </form>
-      <div class="muted">员工也可以在知识库前台自助注册（自己选部门）。重置密码会同时吊销其全部访问令牌。管理员账户在「管理员」标签单独管理，不与员工混排。</div>
-    </div>
-    <div class="card">
       <h3>员工列表（${d.users.length}）</h3>
       <div class="toolbar">
+        <button type="button" onclick="empCreateDlg()">＋ 新增员工</button>
         <input class="wide" placeholder="搜索账户名…" value="${esc(empFilterQ)}">
         <select onchange="empFilterDep=this.value; renderEmps()">
           <option value="">全部部门</option>
@@ -307,7 +299,7 @@ async function renderEmps() {
             ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
         </select>
       </div>
-      <div class="muted" style="margin:10px 0">点击任意员工行进入<b>详情</b>：查看信息、重置密码、停用/启用、调整部门。</div>
+      <div class="muted" style="margin:10px 0">点击任意员工行进入<b>详情</b>：查看信息、重置密码、停用/启用、调整部门。员工也可以在知识库前台自助注册。</div>
       <table><tr><th>ID</th><th>账户名</th><th>部门</th><th>状态</th><th>创建</th><th></th></tr>
       ${rows || '<tr><td colspan="6" class="empty">没有匹配的员工</td></tr>'}</table>
     </div>`;
@@ -332,6 +324,34 @@ async function empCreate(ev) {
     renderEmps();
   } catch (e) { toast(e.message, false); }
   return false;
+}
+function empCreateDlg() {
+  const opts = (window._emp_deps || []);
+  openDlg('新增员工', `
+    <label>账户名（2~32 位字母/数字/下划线/中文）</label>
+    <input id="emp-u">
+    <label>选择部门</label>
+    <select id="emp-dep">
+      ${opts.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
+    </select>
+    <label>初始密码（≥6 位）</label>
+    <input id="emp-p1" type="password" value="${genPwd()}">
+    <label>确认密码（再次输入，与上面一致）</label>
+    <input id="emp-p2" type="password">
+    <div class="muted" style="margin-top:6px">创建后可在员工行「详情」里重置密码、调整部门、停用。</div>`,
+    async () => {
+      const u = document.querySelector('#emp-u').value.trim();
+      const dep = document.querySelector('#emp-dep').value;
+      const p1 = document.querySelector('#emp-p1').value;
+      const p2 = document.querySelector('#emp-p2').value;
+      if (!u || !dep) throw new Error('请填写账户名并选择部门');
+      if (p1 !== p2) throw new Error('两次输入的密码不一致');
+      if (p1.length < 6) throw new Error('密码至少 6 位');
+      await api('POST', '/api/users', { username: u, password: p1,
+                                        department_id: +dep });
+      toast(`员工「${u}」已创建`);
+      renderEmps();
+    }, '创建');
 }
 function genPwd() {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -414,29 +434,89 @@ function userResetDlg(id, username) {
 /* ---------- 管理员（独立于员工列表） ---------- */
 async function renderAdmins() {
   const d = await api('GET', '/api/users?scope=admins');
+  const logs = (await api('GET', '/api/logs/auth?scope=admins&limit=20')).logs;
   const rows = d.users.map(u => `
     <tr>
-      <td>${u.id}</td><td><b>${esc(u.username)}</b></td>
+      <td>${u.id}</td>
+      <td><b>${esc(u.username)}</b>
+        ${u.is_super ? '<span class="tag admin">🦸 超级管理员</span>' : ''}</td>
       <td>${esc(u.department) || '—'}</td>
       <td>${u.status === 'active' ? '<span class="tag on">启用</span>'
                                   : '<span class="tag off">已停用</span>'}</td>
       <td class="muted">${esc((u.created_at || '').slice(0, 16))}</td>
       <td>
         <button class="mini ghost" onclick="userResetDlg(${u.id}, '${esc(u.username)}')">重置密码</button>
-        <button class="mini danger" ${u.username === me ? 'disabled title="不能停用自己的账户"' : ''}
+        <button class="mini danger" ${u.is_super || u.username === me
+          ? 'disabled title="超级管理员与当前登录账户不能停用"' : ''}
           onclick="empToggle(${u.id})">${u.status === 'active' ? '停用' : '启用'}</button>
+        <button class="mini danger" ${u.is_super ? 'disabled title="超级管理员不能删除"' : ''}
+          onclick="admDelete(${u.id}, '${esc(u.username)}')">删除</button>
       </td>
+    </tr>`).join('');
+  const logRows = logs.map(l => `
+    <tr>
+      <td class="muted">${esc(l.created_at)}</td>
+      <td><b>${esc(l.username)}</b></td>
+      <td>${l.success ? '<span class="tag on">成功</span>'
+                      : '<span class="tag off">失败</span>'}</td>
+      <td>${esc(l.browser)} / ${esc(l.os_name)}</td>
+      <td class="muted">${esc(l.ip || '—')}</td>
     </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
       <h3>管理员列表（${d.users.length}）</h3>
+      <div class="toolbar">
+        <button type="button" onclick="admCreateDlg()">＋ 新增管理员</button>
+      </div>
       <div class="muted" style="margin:10px 0">
         管理员登录知识库前台<b>不受部门权限限制</b>（看全库），且只有管理员能登录管理后台。
-        管理员名单独立于员工列表；新管理员由系统初始化产生（首账户），员工不会出现在这里。
+        <b>admin 是超级管理员</b>：不能停用、不能删除。其他管理员可停用/删除（删除会同时清除其访问令牌）。
+        管理员名单独立于员工列表，员工不会出现在这里。
       </div>
       <table><tr><th>ID</th><th>账户名</th><th>部门</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
       ${rows || '<tr><td colspan="6" class="empty">没有管理员</td></tr>'}</table>
+    </div>
+    <div class="card">
+      <h3>管理员登录日志（最近 ${logs.length} 条）</h3>
+      <table><tr><th>时间</th><th>账户</th><th>结果</th><th>设备</th><th>IP</th></tr>
+      ${logRows || '<tr><td colspan="5" class="empty">暂无登录记录</td></tr>'}</table>
+      <div class="muted" style="margin-top:8px">员工登录日志在「登录日志」标签单独查看。</div>
     </div>`;
+}
+function admCreateDlg() {
+  const deps = window._emp_deps || [];
+  openDlg('新增管理员', `
+    <label>账户名（2~32 位字母/数字/下划线/中文）</label>
+    <input id="adm-u">
+    <label>部门（可选，仅作归属记录，不影响其全库权限）</label>
+    <select id="adm-dep"><option value="">— 无 —</option>
+      ${deps.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
+    </select>
+    <label>初始密码（≥6 位）</label>
+    <input id="adm-p1" type="password" value="${genPwd()}">
+    <label>确认密码（再次输入，与上面一致）</label>
+    <input id="adm-p2" type="password">
+    <div class="muted" style="margin-top:6px">管理员与员工权限不同：看全库、可进管理后台。</div>`,
+    async () => {
+      const u = document.querySelector('#adm-u').value.trim();
+      const dep = document.querySelector('#adm-dep').value;
+      const p1 = document.querySelector('#adm-p1').value;
+      const p2 = document.querySelector('#adm-p2').value;
+      if (!u) throw new Error('请填写账户名');
+      if (p1 !== p2) throw new Error('两次输入的密码不一致');
+      if (p1.length < 6) throw new Error('密码至少 6 位');
+      await api('POST', '/api/admins', { username: u, password: p1,
+        password_confirm: p2,
+        department_id: dep ? +dep : null });
+      toast(`管理员「${u}」已创建`);
+      renderAdmins();
+    }, '创建');
+}
+async function admDelete(id, username) {
+  confirmDo('删除管理员', `确认删除管理员「${username}」？其访问令牌将被清除，此操作不可撤销。`,
+    async () => { await api('DELETE', `/api/admins/${id}`);
+                  toast(`管理员「${username}」已删除`); renderAdmins(); },
+    '删除', true);
 }
 
 /* ---------- 访问令牌 ---------- */
@@ -495,15 +575,14 @@ async function tokenRevoke(prefix) {
                   toast('令牌已吊销'); renderTokens(); }, '吊销', true);
 }
 
-/* ---------- 登录日志（员工 / 管理员 分开查看） ---------- */
-let authLogFilter = { username: '', action: '', scope: 'users' };
+/* ---------- 登录日志（员工专属；管理员的在「管理员」标签下查看） ---------- */
+let authLogFilter = { username: '', action: '' };
 async function renderAuthLog() {
   const qs = new URLSearchParams();
-  qs.set('scope', authLogFilter.scope);
+  qs.set('scope', 'users');
   if (authLogFilter.username) qs.set('username', authLogFilter.username);
   if (authLogFilter.action) qs.set('action', authLogFilter.action);
   const d = await api('GET', '/api/logs/auth?' + qs.toString());
-  const who = authLogFilter.scope === 'admins' ? '管理员' : '员工';
   const rows = d.logs.map(l => `
     <tr class="clickable" onclick="this.nextElementSibling.classList.toggle('hidden')">
       <td class="muted">${esc(l.created_at)}</td>
@@ -524,12 +603,8 @@ async function renderAuthLog() {
     </td></tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
-      <h3>登录日志（${who}）—— 最近 ${d.logs.length} 条</h3>
+      <h3>员工登录日志（最近 ${d.logs.length} 条）</h3>
       <div class="toolbar">
-        <select onchange="authLogFilter.scope=this.value; renderAuthLog()">
-          <option value="users" ${authLogFilter.scope === 'users' ? 'selected' : ''}>员工登录</option>
-          <option value="admins" ${authLogFilter.scope === 'admins' ? 'selected' : ''}>管理员登录</option>
-        </select>
         <input class="wide" placeholder="按账户过滤…" value="${esc(authLogFilter.username)}"
           onchange="authLogFilter.username=this.value; renderAuthLog()">
         <select onchange="authLogFilter.action=this.value; renderAuthLog()">
@@ -543,11 +618,12 @@ async function renderAuthLog() {
         </select>
         <button class="mini gray" onclick="renderAuthLog()">刷新</button>
       </div>
-      <div class="muted" style="margin-bottom:10px">管理员与员工的日志<b>分开查看</b>（上方切换）。
-        点击任意行展开浏览器指纹与完整 UA。失败的登录尝试同样完整保留（含原因）。</div>
+      <div class="muted" style="margin-bottom:10px">本页只记录<b>员工</b>的登录与相关操作
+        （管理员日志在「管理员」标签下方）。IP 为浏览器真实局域网地址（登录门已直连认证服务获取）。
+        点击任意行展开浏览器指纹与完整 UA，失败的登录尝试同样完整保留（含原因）。</div>
       <table><tr><th>时间</th><th>账户</th><th>动作</th><th>结果</th><th>说明</th>
         <th>部门</th><th>入口</th><th>IP</th></tr>
-      ${rows || `<tr><td colspan="8" class="empty">${who}暂无登录日志</td></tr>`}</table>
+      ${rows || '<tr><td colspan="8" class="empty">暂无登录日志</td></tr>'}</table>
     </div>`;
 }
 function actionLabel(a) {

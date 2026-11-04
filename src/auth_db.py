@@ -108,9 +108,23 @@ CREATE INDEX IF NOT EXISTS idx_qa_logs_time ON qa_logs(created_at DESC);
 
 
 def init_db() -> None:
-    """建表（幂等）。两服务启动时各调一次。"""
+    """建表（幂等）+ 增量迁移（如 users.is_super）。两服务启动时各调一次。"""
     with _write_lock, _connect() as conn:
         conn.executescript(_SCHEMA)
+        try:
+            conn.execute("ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass  # 列已存在
+        # 超级管理员迁移：系统已有用户但还没有超级管理员时，
+        # 把最早创建的管理员（init_db 引导的首账户）标记为超级管理员
+        has_super = conn.execute(
+            "SELECT COUNT(*) AS n FROM users WHERE is_super=1").fetchone()["n"]
+        if has_super == 0:
+            first_admin = conn.execute(
+                "SELECT id FROM users WHERE is_admin=1 ORDER BY id LIMIT 1").fetchone()
+            if first_admin:
+                conn.execute("UPDATE users SET is_super=1 WHERE id=?",
+                             (first_admin["id"],))
 
 
 # ---------------------------------------------------------------- 密码与令牌
