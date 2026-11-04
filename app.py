@@ -322,9 +322,16 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebarUserContent"] > * > [data-testid="stVerticalBlock"] {display:contents !important;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_brand) {order:1 !important;}
 /* V3.7.2 用户信息卡紧贴 Logo 下方；登出按钮吸附最底部 */
-[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo) {order:2 !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo) {
+  order:2 !important;
+  margin: 14px 10px 6px !important;
+  padding: 10px 12px !important;
+  background: rgba(148,163,184,.10) !important;
+  border: 1px solid var(--border-subtle, rgba(148,163,184,.25)) !important;
+  border-radius: 10px !important;
+}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo)
-  [data-testid="stVerticalBlock"] {gap: .2rem !important; padding: 2px 4px !important;}
+  [data-testid="stVerticalBlock"] {gap: .12rem !important; padding: 0 !important;}
 [data-testid="stSidebarNav"] {order:3 !important;}
 /* 导航文字颜色跟随主题变量（Streamlit 内置导航用固定主题色，深色下看不清） */
 [data-testid="stSidebarNav"] a,
@@ -808,6 +815,37 @@ def _apply_user_prefs(username: str) -> None:
 front_host_global = "localhost:8501"  # 由 auth_gate 每次渲染时更新
 
 
+def try_restore_session() -> bool:
+    """front_auth Cookie（30 天）里若还有有效登录态，恢复 auth_user（含偏好）。
+
+    必须在侧边栏渲染之前调用——恢复当帧的用户信息卡才能带上身份。
+    """
+    try:
+        cookie_val = st.context.cookies.get("front_auth", "")
+    except Exception:
+        return False
+    restored_username = auth_db.verify_session_cookie(cookie_val)
+    if not restored_username:
+        return False
+    restored = auth_db.get_user(restored_username)
+    if not restored or restored["status"] != "active":
+        return False
+    st.session_state["auth_user"] = {
+        "username": restored["username"],
+        "department": restored.get("department"),
+        "department_id": restored.get("department_id"),
+        "is_admin": bool(restored.get("is_admin")),
+        "permissions": restored.get("permissions") or [],
+        "real_name": restored.get("real_name") or "",
+        "note": restored.get("note") or "",
+    }
+    _apply_user_prefs(restored["username"])
+    return True
+
+
+front_host_global = "localhost:8501"  # 由 auth_gate 每次渲染时更新
+
+
 def auth_gate() -> bool:
     """V3.7 登录门。返回 True = 已登录，继续渲染应用；否则渲染登录/注册页。
 
@@ -826,31 +864,7 @@ def auth_gate() -> bool:
     except Exception:
         front_host = front_host_global
 
-    def _restore_from_cookie() -> bool:
-        """front_auth Cookie（30 天）里若还有有效登录态，直接恢复登录。"""
-        try:
-            cookie_val = st.context.cookies.get("front_auth", "")
-        except Exception:
-            return False
-        restored_username = auth_db.verify_session_cookie(cookie_val)
-        if not restored_username:
-            return False
-        restored = auth_db.get_user(restored_username)
-        if not restored or restored["status"] != "active":
-            return False
-        st.session_state["auth_user"] = {
-            "username": restored["username"],
-            "department": restored.get("department"),
-            "department_id": restored.get("department_id"),
-            "is_admin": bool(restored.get("is_admin")),
-            "permissions": restored.get("permissions") or [],
-            "real_name": restored.get("real_name") or "",
-            "note": restored.get("note") or "",
-        }
-        _apply_user_prefs(restored["username"])
-        return True
-
-    if _restore_from_cookie():
+    if try_restore_session():
         return True
 
     def _finish_login(data):
@@ -2036,6 +2050,9 @@ def page_params_overview():
 # ---------------------------------------------------------------- 布局组装：左侧菜单 + 右侧页面
 # 品牌区（Logo + Slogan）通过 CSS order 固定在导航上方；
 # 系统状态通过 order + margin-top:auto 固定在侧边栏最底部。
+# Cookie 恢复必须在侧边栏渲染之前，否则恢复当帧的用户信息卡会缺失
+try_restore_session()
+
 with st.sidebar:
     with st.container(key="sidebar_brand"):
         st.markdown(
