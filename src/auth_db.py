@@ -713,6 +713,7 @@ def make_login_proof(username: str, ttl: int = 120) -> str:
 
 
 def verify_login_proof(proof: str) -> str | None:
+    """校验 proof 签名与时效（不消费；消费由 consume_login_proof 负责）。"""
     import time
     if not proof:
         return None
@@ -724,4 +725,27 @@ def verify_login_proof(proof: str) -> str | None:
         return None
     if int(expires) < int(time.time()):
         return None
+    return username
+
+
+# 已消费的 proof 记录（防 120 秒时效内的重放）；带时间戳，过期自动清理
+_used_proofs: dict[str, int] = {}
+
+
+def consume_login_proof(proof: str) -> str | None:
+    """校验并【一次性消费】登录 proof：返回用户名；无效/过期/已用过返回 None。
+
+    proof 会出现在 persist-login 的 URL 里（可能进访问日志），一次性消费
+    保证日志里的旧 proof 无法重放换取 Cookie。
+    """
+    username = verify_login_proof(proof)
+    if not username:
+        return None
+    now = int(time.time())
+    for k in [k for k, exp in _used_proofs.items() if exp < now]:
+        _used_proofs.pop(k, None)
+    key = hashlib.sha256(proof.encode()).hexdigest()[:16]
+    if key in _used_proofs:
+        return None  # 已消费
+    _used_proofs[key] = now + 600
     return username

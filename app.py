@@ -815,6 +815,19 @@ def build_filters() -> dict:
 
 
 # ---------------------------------------------------------------- V3.7 登录门
+def require_perm(perm: str) -> bool:
+    """页面级权限守卫（纵深防御）：无权限渲染拒绝提示并 st.stop()。
+
+    管理员天然全通过；员工按管理后台分配的前台权限。
+    """
+    _au = st.session_state.get("auth_user") or {}
+    if _au.get("is_admin") or perm in (_au.get("permissions") or []):
+        return True
+    st.error(t("perm.denied"))
+    st.stop()
+    return False
+
+
 def _apply_user_prefs(username: str) -> None:
     """登录后把该用户的界面偏好套到 session（覆盖默认值）。"""
     prefs = auth_client.get_prefs(username) or {}
@@ -1324,6 +1337,7 @@ def page_chat():
 
 # ---------------------------------------------------------------- 页面 2：上传文档
 def page_upload():
+    require_perm('upload')
     st.markdown(f'<div class="section-title">{t("upload.title")}</div>', unsafe_allow_html=True)
     st.caption(t("upload.caption", types=", ".join("." + x for x in SUPPORTED_UPLOAD_TYPES)))
 
@@ -1599,6 +1613,7 @@ def _show_ingest_result(summary):
 
 # ---------------------------------------------------------------- 页面 3：知识管理台
 def page_manage():
+    require_perm('manage')
     st.markdown(f'<div class="section-title">{t("manage.title")}</div>', unsafe_allow_html=True)
     st.caption(t("manage.caption"))
     if notice := st.session_state.pop("manage_action_notice", None):
@@ -1615,10 +1630,19 @@ def page_manage():
         )
         if st.button(t("manage.sum.button"), disabled=not sum_topic.strip(), type="primary"):
             with st.spinner(t("manage.sum.spinner")):
+                # V3.7.2 权限：跨文档总结同样按登录者部门过滤（管理员看全库）
+                _sum_au = st.session_state.get("auth_user") or {}
+                if _sum_au.get("is_admin"):
+                    _sum_groups = None
+                elif _sum_au.get("department"):
+                    _sum_groups = [_sum_au["department"]]
+                else:
+                    _sum_groups = ["all"]
                 result = answer_question(
                     f"请综合知识库中与「{sum_topic.strip()}」相关的全部内容，"
                     "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
                     top_k=10,
+                    user_groups=_sum_groups,
                 )
             # V3.7.1 使用记录：跨文档总结同样落库（管理员操作）
             _sum_user = st.session_state.get("auth_user") or {}
@@ -1912,6 +1936,7 @@ def page_general_settings():
 
 # ---------------------------------------------------------------- 页面 5：检索设置
 def page_retrieval_settings():
+    require_perm('retrieval_settings')
     st.markdown(f'<div class="section-title">{t("set.retrieval.title")}</div>', unsafe_allow_html=True)
     st.caption(t("set.retrieval.caption"))
 

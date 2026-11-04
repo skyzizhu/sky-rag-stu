@@ -644,7 +644,7 @@ class PersistLoginBody(BaseModel):
 
 def _persist_login_impl(username: str, proof: str, back: str):
     """proof 校验 + Set-Cookie + 返回导航回前台的脚本页。公共实现。"""
-    username_ok = auth_db.verify_login_proof(proof)
+    username_ok = auth_db.consume_login_proof(proof)
     if not username_ok or username_ok != username:
         return HTMLResponse("<script>history.back()</script>", status_code=401)
     user = auth_db.get_user(username)
