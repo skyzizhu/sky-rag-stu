@@ -1,10 +1,14 @@
 """V3.7：FastAPI 管理后台（独立服务，默认端口 8700）。
 
-职责：部门管理 / 员工管理 / 管理员登录（含重置密码）/ 认证 API（供 Streamlit 前台调用）。
-- 页面：Jinja2 极简模板（src/admin_templates/），管理员内部工具不做多语言
-- 会话：HMAC 签名 Cookie（secret 落盘 storage/auth/admin_secret.key，仅本服务用）
+V3.7.1 重构：管理页面从"服务端渲染多页 + 表单跳转"重构为**单页工作台（SPA）+ JSON API**——
+所有操作 fetch 即时完成、toast 反馈、不整页刷新；新增登录日志（含浏览器指纹）与 RAG 使用日志。
+
+- 页面：/admin/login（服务端渲染）+ /admin（SPA 壳，前端 fetch 渲染）
+- JSON API：/api/departments /api/users /api/tokens /api/logs/... （全部管理员鉴权）
+- 认证 API：/auth/register /auth/login /auth/bootstrap* /auth/prefs（Streamlit 前台调用，
+  请求体可带浏览器 UA/语言用于登录日志指纹）
+- 会话：HMAC 签名 Cookie（secret 落盘 storage/auth/admin_secret.key）
 - 与 Streamlit 共用 src/auth_db.py 的同一份 SQLite
-- 启动：uvicorn src.admin_app:app --port 8700（start.sh 自动拉起）
 """
 
 from __future__ import annotations
@@ -16,7 +20,7 @@ import secrets
 import time
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -85,34 +89,39 @@ def current_admin(request: Request) -> dict | None:
 
 
 def require_admin(request: Request) -> dict:
+    """页面用：未登录跳登录页。"""
     admin = current_admin(request)
     if admin is None:
-        raise HTTPRedirect("/admin/login?err=" + _quote("请先以管理员身份登录"))
+        raise HTTPException(status_code=303,
+                            headers={"Location": "/admin/login"})
     return admin
 
 
-class HTTPRedirect(Exception):
-    """表单路由里让 FastAPI 返回重定向的轻量约定（在 handler 内转成 RedirectResponse）。"""
-
-    def __init__(self, location: str):
-        self.location = location
-        super().__init__(location)
-
-
-def _quote(text: str) -> str:
-    from urllib.parse import quote
-    return quote(text)
+def require_admin_api(request: Request) -> dict:
+    """JSON API 用：未登录返回 401 JSON。"""
+    admin = current_admin(request)
+    if admin is None:
+        raise HTTPException(status_code=401, detail="未登录或会话已过期")
+    return admin
 
 
-@app.exception_handler(HTTPRedirect)
-async def _http_redirect_handler(_: Request, exc: HTTPRedirect):
-    return RedirectResponse(url=exc.location, status_code=303)
+def _log_from_admin(request: Request, action: str, username: str,
+                    success: bool = True, detail: str = "",
+                    department: str = "") -> None:
+    """管理后台自身发生的认证事件（真实浏览器 UA + IP）。"""
+    auth_db.log_auth_event(
+        action=action, username=username, success=success, detail=detail,
+        department=department, entry="admin",
+        ip=request.client.host if request.client else "",
+        user_agent=request.headers.get("user-agent", ""),
+        accept_language=request.headers.get("accept-language", ""),
+    )
 
 
 @app.on_event("startup")
 def _startup() -> None:
     auth_db.init_db()
-    _secret()  # 首次启动生成签名密钥
+    _secret()
 
 
 # ---------------------------------------------------------------- 页面：登录/登出
@@ -132,10 +141,15 @@ def login_page(request: Request, err: str = ""):
 @app.post("/admin/login")
 def login_action(request: Request, username: str = Form(""), password: str = Form("")):
     info, err = auth_db.authenticate(username, password)
+    ua = request.headers.get("user-agent", "")
     if err or not info or not info.get("is_admin"):
         msg = err or "该账户不是管理员"
+        _log_from_admin(request, "login", username, success=False,
+                        detail=msg or "非管理员", department=info.get("department", "") if info else "")
         return templates.TemplateResponse(request, "login.html",
                                           {"err": msg, "msg": ""}, status_code=401)
+    _log_from_admin(request, "login", info["username"], success=True,
+                    department=info.get("department", ""))
     resp = RedirectResponse("/admin", status_code=303)
     resp.set_cookie(_SESSION_COOKIE, _make_cookie(info["username"]),
                     httponly=True, samesite="lax")
@@ -143,197 +157,311 @@ def login_action(request: Request, username: str = Form(""), password: str = For
 
 
 @app.get("/admin/logout")
-def logout():
+def logout(request: Request):
+    admin = current_admin(request)
+    if admin:
+        _log_from_admin(request, "logout", admin["username"])
     resp = RedirectResponse("/admin/login", status_code=303)
     resp.delete_cookie(_SESSION_COOKIE)
     return resp
 
 
-# ---------------------------------------------------------------- 页面：工作台
+# ---------------------------------------------------------------- 页面：SPA 工作台
 @app.get("/admin", response_class=HTMLResponse)
-def dashboard(request: Request, admin: dict = Depends(require_admin)):
+def admin_shell(request: Request, admin: dict = Depends(require_admin)):
+    return templates.TemplateResponse(request, "admin.html",
+                                      {"admin": admin})
+
+
+# ---------------------------------------------------------------- JSON API：概览
+@app.get("/api/overview")
+def api_overview(_: dict = Depends(require_admin_api)):
     deps = auth_db.list_departments()
     users = auth_db.list_users()
-    ctx = {
-        "admin": admin, "msg": request.query_params.get("msg", ""),
-        "err": request.query_params.get("err", ""),
-        "n_departments": len(deps), "n_enabled_deps": len([d for d in deps if not d["disabled"]]),
-        "n_users": len(users),
-        "n_active_users": len([u for u in users if u["status"] == "active"]),
+    logs = auth_db.list_login_logs(limit=10)
+    return {
+        "departments": len(deps),
+        "departments_enabled": len([d for d in deps if not d["disabled"]]),
+        "users": len(users),
+        "users_active": len([u for u in users if u["status"] == "active"]),
+        "recent_logins": logs,
     }
-    return templates.TemplateResponse(request, "dashboard.html", ctx)
 
 
-# ---------------------------------------------------------------- 页面：部门管理
-@app.get("/admin/departments", response_class=HTMLResponse)
-def departments_page(request: Request, admin: dict = Depends(require_admin),
-                     msg: str = "", err: str = ""):
+# ---------------------------------------------------------------- JSON API：部门
+@app.get("/api/departments")
+def api_departments(_: dict = Depends(require_admin_api)):
     deps = auth_db.list_departments()
     counts = auth_db.department_counts()
     for d in deps:
         d["employees"] = counts.get(d["id"], 0)
-    return templates.TemplateResponse(request, "departments.html",
-                                      {"admin": admin, "departments": deps,
-                                       "msg": msg, "err": err})
+    return {"ok": True, "departments": deps}
 
 
-@app.post("/admin/departments/create")
-def department_create(name: str = Form(""), description: str = Form(""),
-                      _: dict = Depends(require_admin)):
+class DepartmentBody(BaseModel):
+    name: str
+    description: str = ""
+
+
+@app.post("/api/departments")
+def api_department_create(body: DepartmentBody, request: Request,
+                          admin: dict = Depends(require_admin_api)):
     try:
-        auth_db.create_department(name, description)
+        dep = auth_db.create_department(body.name, body.description)
     except ValueError as exc:
-        raise HTTPRedirect(f"/admin/departments?err={_quote(str(exc))}")
-    raise HTTPRedirect(f"/admin/departments?msg={_quote(f'部门「{name.strip()}」已创建')}")
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    _log_from_admin(request, "department_create", admin["username"],
+                    department=dep["name"])
+    return {"ok": True, "department": dep}
 
 
-@app.post("/admin/departments/{dep_id}/toggle")
-def department_toggle(dep_id: int, _: dict = Depends(require_admin)):
+@app.post("/api/departments/{dep_id}/toggle")
+def api_department_toggle(dep_id: int, request: Request,
+                          admin: dict = Depends(require_admin_api)):
     dep = next((d for d in auth_db.list_departments() if d["id"] == dep_id), None)
     if dep is None:
-        raise HTTPRedirect("/admin/departments?err=" + _quote("部门不存在"))
+        return JSONResponse({"ok": False, "detail": "部门不存在"}, status_code=404)
     auth_db.set_department_disabled(dep_id, not bool(dep["disabled"]))
-    state = "启用" if dep["disabled"] else "停用"
-    msg = f"部门「{dep['name']}」已{state}"
-    raise HTTPRedirect(f"/admin/departments?msg={_quote(msg)}")
+    _log_from_admin(request, "department_toggle", admin["username"],
+                    detail=f"{dep['name']} → {'启用' if dep['disabled'] else '停用'}",
+                    department=dep["name"])
+    return {"ok": True, "disabled": not bool(dep["disabled"])}
 
 
-@app.post("/admin/departments/{dep_id}/delete")
-def department_delete(dep_id: int, _: dict = Depends(require_admin)):
+@app.delete("/api/departments/{dep_id}")
+def api_department_delete(dep_id: int, request: Request,
+                          admin: dict = Depends(require_admin_api)):
     dep = next((d for d in auth_db.list_departments() if d["id"] == dep_id), None)
     name = dep["name"] if dep else str(dep_id)
     try:
         auth_db.delete_department(dep_id)
     except ValueError as exc:
-        raise HTTPRedirect(f"/admin/departments?err={_quote(str(exc))}")
-    raise HTTPRedirect(f"/admin/departments?msg={_quote(f'部门「{name}」已删除')}")
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    _log_from_admin(request, "department_delete", admin["username"], department=name)
+    return {"ok": True}
 
 
-# ---------------------------------------------------------------- 页面：员工管理
-@app.get("/admin/employees", response_class=HTMLResponse)
-def employees_page(request: Request, admin: dict = Depends(require_admin),
-                   dep: int | None = None, msg: str = "", err: str = ""):
+# ---------------------------------------------------------------- JSON API：员工
+@app.get("/api/users")
+def api_users(dep: int | None = None, q: str = "",
+              _: dict = Depends(require_admin_api)):
     users = auth_db.list_users(department_id=dep)
-    deps = auth_db.list_departments()
-    dep_name = next((d["name"] for d in deps if d["id"] == dep), None) if dep else None
-    return templates.TemplateResponse(request, "employees.html",
-                                      {"admin": admin, "users": users,
-                                       "departments": deps, "filter_dep": dep,
-                                       "filter_dep_name": dep_name,
-                                       "msg": msg, "err": err})
+    if q:
+        ql = q.strip().lower()
+        users = [u for u in users if ql in u["username"].lower()]
+    return {"ok": True, "users": users}
 
 
-@app.post("/admin/employees/create")
-def employee_create(username: str = Form(""), password: str = Form(""),
-                    department_id: int = Form(...), _: dict = Depends(require_admin)):
+class UserBody(BaseModel):
+    username: str
+    password: str
+    department_id: int
+
+
+@app.post("/api/users")
+def api_user_create(body: UserBody, request: Request,
+                    admin: dict = Depends(require_admin_api)):
     try:
-        user = auth_db.create_user(username, password, department_id=department_id)
+        user = auth_db.create_user(body.username, body.password,
+                                   department_id=body.department_id)
     except ValueError as exc:
-        raise HTTPRedirect(f"/admin/employees?err={_quote(str(exc))}")
-    msg = f"员工「{user['username']}」已创建"
-    raise HTTPRedirect(f"/admin/employees?msg={_quote(msg)}")
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    _log_from_admin(request, "employee_create", admin["username"],
+                    detail=f"创建员工 {user['username']}",
+                    department=user.get("department", ""))
+    return {"ok": True, "user": user}
 
 
-@app.post("/admin/employees/{user_id}/reset")
-def employee_reset(user_id: int, new_password: str = Form(""),
-                   _: dict = Depends(require_admin)):
+class ResetPasswordBody(BaseModel):
+    new_password: str
+
+
+@app.post("/api/users/{user_id}/reset")
+def api_user_reset(user_id: int, body: ResetPasswordBody, request: Request,
+                   admin: dict = Depends(require_admin_api)):
     try:
-        auth_db.reset_password(user_id, new_password)
+        auth_db.reset_password(user_id, body.new_password)
     except ValueError as exc:
-        raise HTTPRedirect(f"/admin/employees?err={_quote(str(exc))}")
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
     user = auth_db.get_user_by_id(user_id)
     name = user["username"] if user else str(user_id)
-    msg = (f"「{name}」的密码已重置为：{new_password}"
-           f"（请告知本人，此提示仅显示一次）")
-    raise HTTPRedirect(f"/admin/employees?msg={_quote(msg)}")
+    _log_from_admin(request, "password_reset", admin["username"],
+                    detail=f"重置 {name} 的密码")
+    return {"ok": True, "detail": f"「{name}」的密码已重置（其全部访问令牌已吊销）"}
 
 
-@app.post("/admin/employees/{user_id}/toggle")
-def employee_toggle(user_id: int, _: dict = Depends(require_admin)):
+@app.post("/api/users/{user_id}/toggle")
+def api_user_toggle(user_id: int, request: Request,
+                    admin: dict = Depends(require_admin_api)):
     user = auth_db.get_user_by_id(user_id)
     if user is None:
-        raise HTTPRedirect("/admin/employees?err=" + _quote("用户不存在"))
+        return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
     new_status = "disabled" if user["status"] == "active" else "active"
     auth_db.update_user(user_id, status=new_status)
     state = "启用" if new_status == "active" else "停用"
-    msg = f"账户「{user['username']}」已{state}"
-    raise HTTPRedirect(f"/admin/employees?msg={_quote(msg)}")
+    _log_from_admin(request, "employee_toggle", admin["username"],
+                    detail=f"{user['username']} → {state}")
+    return {"ok": True, "status": new_status}
 
 
-@app.post("/admin/employees/{user_id}/department")
-def employee_department(user_id: int, department_id: int = Form(...),
-                        _: dict = Depends(require_admin)):
+class TransferBody(BaseModel):
+    department_id: int
+
+
+@app.post("/api/users/{user_id}/department")
+def api_user_transfer(user_id: int, body: TransferBody, request: Request,
+                      admin: dict = Depends(require_admin_api)):
     user = auth_db.get_user_by_id(user_id)
     if user is None:
-        raise HTTPRedirect("/admin/employees?err=" + _quote("用户不存在"))
-    auth_db.update_user(user_id, department_id=department_id)
+        return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
+    auth_db.update_user(user_id, department_id=body.department_id)
     deps = auth_db.list_departments()
-    dep_name = next((d["name"] for d in deps if d["id"] == department_id),
-                    str(department_id))
-    msg = f"「{user['username']}」已调入「{dep_name}」"
-    raise HTTPRedirect(f"/admin/employees?msg={_quote(msg)}")
+    dep_name = next((d["name"] for d in deps if d["id"] == body.department_id),
+                    str(body.department_id))
+    _log_from_admin(request, "employee_transfer", admin["username"],
+                    detail=f"{user['username']} → {dep_name}", department=dep_name)
+    return {"ok": True, "department": dep_name}
 
 
-# ---------------------------------------------------------------- 页面：访问令牌
-@app.get("/admin/tokens", response_class=HTMLResponse)
-def tokens_page(request: Request, admin: dict = Depends(require_admin),
-                msg: str = "", err: str = ""):
-    return templates.TemplateResponse(request, "tokens.html",
-                                      {"admin": admin, "tokens": auth_db.list_tokens(),
-                                       "new_token": request.query_params.get("new_token", ""),
-                                       "msg": msg, "err": err})
+# ---------------------------------------------------------------- JSON API：访问令牌
+@app.get("/api/tokens")
+def api_tokens(_: dict = Depends(require_admin_api)):
+    return {"ok": True, "tokens": auth_db.list_tokens()}
 
 
-@app.post("/admin/tokens/create")
-def token_create(request: Request, name: str = Form(""),
-                 username: str = Form(...), _: dict = Depends(require_admin)):
-    user = auth_db.get_user((username or "").strip())
+class TokenBody(BaseModel):
+    username: str
+    name: str = ""
+
+
+@app.post("/api/tokens")
+def api_token_create(body: TokenBody, request: Request,
+                     admin: dict = Depends(require_admin_api)):
+    user = auth_db.get_user((body.username or "").strip())
     if user is None:
-        raise HTTPRedirect("/admin/tokens?err=" + _quote("该账户名不存在"))
-    plaintext = auth_db.create_token(user["id"], name)
-    raise HTTPRedirect("/admin/tokens?new_token=" + _quote(plaintext))
+        return JSONResponse({"ok": False, "detail": "该账户名不存在"}, status_code=400)
+    plaintext = auth_db.create_token(user["id"], body.name)
+    _log_from_admin(request, "token_create", admin["username"],
+                    detail=f"为 {user['username']} 签发令牌（{body.name or '未命名'}）")
+    return {"ok": True, "plaintext": plaintext,
+            "detail": "令牌只显示这一次，请立即复制保存"}
 
 
-@app.post("/admin/tokens/revoke")
-def token_revoke(token_prefix: str = Form(...), _: dict = Depends(require_admin)):
+@app.post("/api/tokens/revoke")
+def api_token_revoke(request: Request, admin: dict = Depends(require_admin_api),
+                     token_prefix: str = Query(...)):
     auth_db.revoke_token(token_prefix)
-    raise HTTPRedirect("/admin/tokens?msg=" + _quote("令牌已吊销"))
+    _log_from_admin(request, "token_revoke", admin["username"],
+                    detail=f"吊销令牌 {token_prefix}…")
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------- JSON API：日志
+@app.get("/api/logs/auth")
+def api_logs_auth(limit: int = 200, username: str = "", action: str = "",
+                  _: dict = Depends(require_admin_api)):
+    return {"ok": True, "logs": auth_db.list_login_logs(limit=limit,
+                                                        username=username,
+                                                        action=action)}
+
+
+@app.get("/api/logs/qa")
+def api_logs_qa(limit: int = 100, username: str = "", entry: str = "",
+                _: dict = Depends(require_admin_api)):
+    return {"ok": True, "logs": auth_db.list_qa_logs(limit=limit,
+                                                     username=username,
+                                                     entry=entry)}
 
 
 # ---------------------------------------------------------------- 认证 API（Streamlit 前台调用）
-class RegisterBody(BaseModel):
+class ContextFields(BaseModel):
+    """浏览器上下文（Streamlit 转发真实用户的 UA/语言，用于登录日志指纹）。"""
+    user_agent: str = ""
+    accept_language: str = ""
+
+
+class RegisterBody(ContextFields):
     username: str
     password: str
     password_confirm: str
     department_id: int
 
 
-class LoginBody(BaseModel):
+class LoginBody(ContextFields):
     username: str
     password: str
 
 
+class BootstrapAdminBody(ContextFields):
+    username: str
+    password: str
+    password_confirm: str
+
+
+def _web_ip(request: Request) -> str:
+    """Streamlit 转发来的真实用户 IP（走反代时是 X-Forwarded-For）；拿不到就留空。"""
+    return request.headers.get("x-forwarded-for", "")
+
+
 @app.post("/auth/register")
-def api_register(body: RegisterBody):
+def api_register(body: RegisterBody, request: Request):
     if body.password != body.password_confirm:
+        auth_db.log_auth_event("register", body.username, success=False,
+                               detail="两次密码不一致", entry="web",
+                               ip=_web_ip(request), user_agent=body.user_agent,
+                               accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": "两次输入的密码不一致"}, status_code=400)
     dep = next((d for d in auth_db.list_departments(include_disabled=False)
                 if d["id"] == body.department_id), None)
     if dep is None:
+        auth_db.log_auth_event("register", body.username, success=False,
+                               detail="部门无效", entry="web",
+                               ip=_web_ip(request), user_agent=body.user_agent,
+                               accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": "请选择一个有效部门"}, status_code=400)
     try:
-        user = auth_db.create_user(body.username, body.password, department_id=dep["id"])
+        user = auth_db.create_user(body.username, body.password,
+                                   department_id=dep["id"])
     except ValueError as exc:
+        auth_db.log_auth_event("register", body.username, success=False,
+                               detail=str(exc), entry="web",
+                               ip=_web_ip(request), user_agent=body.user_agent,
+                               accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    auth_db.log_auth_event("register", user["username"], success=True,
+                           department=user.get("department", ""), entry="web",
+                           ip=_web_ip(request), user_agent=body.user_agent,
+                           accept_language=body.accept_language)
     return {"ok": True, "username": user["username"], "department": user["department"]}
 
 
 @app.post("/auth/login")
-def api_login(body: LoginBody):
+def api_login(body: LoginBody, request: Request):
     info, err = auth_db.authenticate(body.username, body.password)
+    ip = _web_ip(request)
     if err or info is None:
+        auth_db.log_auth_event("login", body.username, success=False,
+                               detail=err or "登录失败", entry="web", ip=ip,
+                               user_agent=body.user_agent,
+                               accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": err or "登录失败"}, status_code=401)
+    auth_db.log_auth_event("login", info["username"], success=True,
+                           department=info.get("department", ""), entry="web",
+                           ip=ip, user_agent=body.user_agent,
+                           accept_language=body.accept_language)
     return {"ok": True, "user": info}
+
+
+class LogoutBody(ContextFields):
+    username: str
+
+
+@app.post("/auth/logout")
+def api_logout(body: LogoutBody, request: Request):
+    auth_db.log_auth_event("logout", body.username, success=True, entry="web",
+                           ip=_web_ip(request), user_agent=body.user_agent,
+                           accept_language=body.accept_language)
+    return {"ok": True}
 
 
 @app.get("/auth/bootstrap")
@@ -344,14 +472,14 @@ def api_bootstrap():
                             for d in auth_db.list_departments(include_disabled=False)]}
 
 
-class BootstrapAdminBody(BaseModel):
+class BootstrapAdminBody(ContextFields):
     username: str
     password: str
     password_confirm: str
 
 
 @app.post("/auth/bootstrap-admin")
-def api_bootstrap_admin(body: BootstrapAdminBody):
+def api_bootstrap_admin(body: BootstrapAdminBody, request: Request):
     """仅当系统中还没有任何用户时可用（首启初始化管理员）。"""
     if auth_db.count_users() > 0:
         return JSONResponse({"ok": False,
@@ -362,6 +490,10 @@ def api_bootstrap_admin(body: BootstrapAdminBody):
         user = auth_db.create_user(body.username, body.password, is_admin=True)
     except ValueError as exc:
         return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    auth_db.log_auth_event("bootstrap_admin", user["username"], success=True,
+                           entry="web", ip=_web_ip(request),
+                           user_agent=body.user_agent,
+                           accept_language=body.accept_language)
     return {"ok": True, "username": user["username"], "is_admin": True}
 
 

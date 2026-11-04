@@ -2,6 +2,9 @@
 
 管理后台（8700）是用户与令牌数据的唯一写入方；前台只通过这些调用读写。
 服务未启动时返回友好错误，不抛异常（登录门会显示提示）。
+V3.7.1：login/register/bootstrap/logout 附带浏览器上下文（UA/语言），
+由认证服务写入登录日志并计算设备指纹——Streamlit 发起请求的是服务进程，
+真实浏览器 UA 必须从 st.context.headers 显式转发。
 """
 
 from __future__ import annotations
@@ -12,6 +15,17 @@ import requests
 
 BASE = os.environ.get("AUTH_API_BASE", "http://127.0.0.1:8700")
 _TIMEOUT = 5
+
+
+def browser_context() -> dict:
+    """当前浏览器会话的 UA 与语言（登录日志指纹用）。非浏览器上下文返回空。"""
+    try:
+        import streamlit as st
+        headers = st.context.headers
+        return {"user_agent": headers.get("user-agent", ""),
+                "accept_language": headers.get("accept-language", "")}
+    except Exception:
+        return {"user_agent": "", "accept_language": ""}
 
 
 def _post_json(path: str, body: dict) -> tuple[dict | None, str]:
@@ -51,7 +65,7 @@ def bootstrap() -> dict | None:
 def bootstrap_admin(username: str, password: str, password_confirm: str) -> tuple[dict | None, str]:
     return _post_json("/auth/bootstrap-admin", {
         "username": username, "password": password,
-        "password_confirm": password_confirm,
+        "password_confirm": password_confirm, **browser_context(),
     })
 
 
@@ -60,11 +74,22 @@ def register(username: str, password: str, password_confirm: str,
     return _post_json("/auth/register", {
         "username": username, "password": password,
         "password_confirm": password_confirm, "department_id": department_id,
+        **browser_context(),
     })
 
 
 def login(username: str, password: str) -> tuple[dict | None, str]:
-    return _post_json("/auth/login", {"username": username, "password": password})
+    return _post_json("/auth/login", {"username": username, "password": password,
+                                      **browser_context()})
+
+
+def logout(username: str) -> None:
+    try:
+        requests.post(f"{BASE}/auth/logout", json={"username": username,
+                                                   **browser_context()},
+                      timeout=_TIMEOUT)
+    except requests.RequestException:
+        pass
 
 
 def get_prefs(username: str) -> dict | None:

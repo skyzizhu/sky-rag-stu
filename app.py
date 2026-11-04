@@ -1128,6 +1128,19 @@ def page_chat():
                 answer_ph.markdown(formatted_answer)
                 progress_ph.markdown(t("chat.done"))
                 result.answer = formatted_answer or None
+                # V3.7.1 使用记录：本次问答落 SQLite（回答完成才写，失败不影响主流程）
+                _qa_user = st.session_state.get("auth_user") or {}
+                auth_db.log_qa_event(
+                    username=str(_qa_user.get("username") or "local"),
+                    department=str(_qa_user.get("department") or ""),
+                    entry="web",
+                    question=question,
+                    answer=result.answer or "",
+                    sources=result.sources,
+                    filters=result.filters,
+                    top_k=st.session_state.get("top_k", 5),
+                    elapsed=float(result.elapsed.get("total", 0)),
+                )
                 # V3.6 回答质量评估：回答完成后才执行（不阻塞流式输出），
                 # 失败降级为仅结构信号，绝不影响问答主流程
                 if st.session_state.get("answer_eval", True):
@@ -1460,6 +1473,19 @@ def page_manage():
                     "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
                     top_k=10,
                 )
+            # V3.7.1 使用记录：跨文档总结同样落库（管理员操作）
+            _sum_user = st.session_state.get("auth_user") or {}
+            auth_db.log_qa_event(
+                username=str(_sum_user.get("username") or "local"),
+                department=str(_sum_user.get("department") or ""),
+                entry="manage_summary",
+                question=str(sum_topic.strip()),
+                answer=result.answer or "",
+                sources=result.sources,
+                filters=result.filters,
+                top_k=10,
+                elapsed=float(result.elapsed.get("total", 0)),
+            )
             st.markdown(result.answer or t("manage.sum.empty"))
             if result.sources:
                 st.caption(t("manage.sum.sources",
@@ -1998,6 +2024,7 @@ with st.sidebar:
             )
             _footer_c1, _footer_c2 = st.columns([1, 1])
             if _footer_c1.button(t("auth.logout"), key="auth_logout", width="stretch"):
+                auth_client.logout(str(_user.get("username") or ""))  # 登出写入登录日志
                 st.session_state["auth_user"] = None
                 st.session_state["messages"] = []
                 st.session_state["session_id"] = new_session_id()

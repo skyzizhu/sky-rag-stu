@@ -74,6 +74,36 @@ CREATE TABLE IF NOT EXISTS user_prefs (
     username TEXT PRIMARY KEY,
     settings_json TEXT NOT NULL DEFAULT '{}'
 );
+CREATE TABLE IF NOT EXISTS login_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    action TEXT NOT NULL,            -- login / logout / register / bootstrap_admin
+    username TEXT NOT NULL DEFAULT '',
+    success INTEGER NOT NULL DEFAULT 1,
+    detail TEXT NOT NULL DEFAULT '',
+    department TEXT NOT NULL DEFAULT '',
+    entry TEXT NOT NULL DEFAULT '',  -- web / admin
+    ip TEXT NOT NULL DEFAULT '',
+    user_agent TEXT NOT NULL DEFAULT '',
+    browser TEXT NOT NULL DEFAULT '',
+    os_name TEXT NOT NULL DEFAULT '',
+    fingerprint TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_login_logs_time ON login_logs(created_at DESC);
+CREATE TABLE IF NOT EXISTS qa_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL DEFAULT '',
+    department TEXT NOT NULL DEFAULT '',
+    entry TEXT NOT NULL DEFAULT '',  -- web / manage_summary / mcp_http / mcp_stdio
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL DEFAULT '',
+    sources TEXT NOT NULL DEFAULT '[]',  -- JSON [{source, score}]
+    filters TEXT NOT NULL DEFAULT '{}',  -- JSON（含 allowed_groups 权限域）
+    top_k INTEGER NOT NULL DEFAULT 0,
+    elapsed REAL NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_qa_logs_time ON qa_logs(created_at DESC);
 """
 
 
@@ -335,3 +365,144 @@ def save_user_prefs(username: str, settings: dict) -> None:
             "ON CONFLICT(username) DO UPDATE SET settings_json=excluded.settings_json",
             (username, json.dumps(settings, ensure_ascii=False)),
         )
+
+
+# ---------------------------------------------------------------- 登录日志
+_BROWSER_RES = [
+    ("Edge", re.compile(r"Edg(?:e|A|iOS)?/([\d.]+)")),
+    ("Chrome", re.compile(r"(?:Chrome|CriOS)/([\d.]+)")),
+    ("Firefox", re.compile(r"Firefox/([\d.]+)")),
+    ("Safari", re.compile(r"Version/([\d.]+).*Safari")),
+]
+_OS_RES = [
+    ("Windows", re.compile(r"Windows NT")),
+    ("macOS", re.compile(r"Mac OS X|Macintosh")),
+    ("iOS", re.compile(r"iPhone|iPad|iPod")),
+    ("Android", re.compile(r"Android")),
+    ("Linux", re.compile(r"Linux")),
+]
+
+
+def parse_user_agent(ua: str) -> tuple[str, str]:
+    """从 User-Agent 解析 (浏览器名+主版本, 操作系统)。解析不出返回 ('unknown','unknown')。"""
+    ua = ua or ""
+    browser, os_name = "unknown", "unknown"
+    for name, pattern in _BROWSER_RES:
+        m = pattern.search(ua)
+        if m:
+            major = (m.group(1) or "").split(".")[0]
+            browser = f"{name} {major}" if major else name
+            break
+    for name, pattern in _OS_RES:
+        if pattern.search(ua):
+            os_name = name
+            break
+    return browser, os_name
+
+
+def make_fingerprint(user_agent: str, accept_language: str = "",
+                     extra: str = "") -> str:
+    """设备指纹：UA + 接受语言 + 附加串 的 SHA-256 前 16 位。
+
+    不是 Canvas 级指纹，但对内部工具足够识别"同一台设备/同一浏览器配置"。
+    """
+    raw = "|".join([user_agent or "", accept_language or "", extra or ""])
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def log_auth_event(action: str, username: str, *, success: bool = True,
+                   detail: str = "", department: str = "", entry: str = "",
+                   ip: str = "", user_agent: str = "",
+                   accept_language: str = "") -> None:
+    """记录一条认证事件（登录成功/失败、注册、登出、初始化管理员）。
+
+    日志失败绝不抛出——认证主流程不能被日志拖垮。
+    """
+    browser, os_name = parse_user_agent(user_agent)
+    fp = make_fingerprint(user_agent, accept_language, ip)
+    try:
+        with _connect() as conn:
+            conn.execute(
+                "INSERT INTO login_logs(action, username, success, detail, department,"
+                " entry, ip, user_agent, browser, os_name, fingerprint, created_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                (action, username or "", 1 if success else 0, detail or "",
+                 department or "", entry or "", ip or "", user_agent or "",
+                 browser, os_name, fp, _now()),
+            )
+    except sqlite3.Error:
+        pass
+
+
+def list_login_logs(limit: int = 200, username: str = "",
+                    action: str = "") -> list[dict]:
+    sql = "SELECT * FROM login_logs"
+    where, params = [], []
+    if username:
+        where.append("username LIKE ?")
+        params.append(f"%{username}%")
+    if action:
+        where.append("action=?")
+        params.append(action)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY id DESC LIMIT ?"
+    params.append(max(1, min(int(limit), 500)))
+    with _connect() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------- RAG 使用日志
+def log_qa_event(username: str, department: str, entry: str, question: str,
+                 answer: str = "", sources: list | None = None,
+                 filters: dict | None = None, top_k: int = 0,
+                 elapsed: float = 0.0) -> None:
+    """记录一次 RAG 使用（问答/检索/总结）。失败不抛出，不影响回答主流程。"""
+    slim_sources = [
+        {"source": s.get("source"), "score": round(float(s.get("score", 0)), 4)}
+        for s in (sources or [])[:12]
+    ]
+    try:
+        with _connect() as conn:
+            conn.execute(
+                "INSERT INTO qa_logs(username, department, entry, question, answer,"
+                " sources, filters, top_k, elapsed, created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (username or "", department or "", entry or "", question or "",
+                 answer or "", json.dumps(slim_sources, ensure_ascii=False),
+                 json.dumps(filters or {}, ensure_ascii=False),
+                 int(top_k or 0), float(elapsed or 0), _now()),
+            )
+    except (sqlite3.Error, TypeError, ValueError):
+        pass
+
+
+def list_qa_logs(limit: int = 100, username: str = "",
+                 entry: str = "") -> list[dict]:
+    sql = "SELECT * FROM qa_logs"
+    where, params = [], []
+    if username:
+        where.append("username LIKE ?")
+        params.append(f"%{username}%")
+    if entry:
+        where.append("entry=?")
+        params.append(entry)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY id DESC LIMIT ?"
+    params.append(max(1, min(int(limit), 300)))
+    with _connect() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    out = []
+    for r in rows:
+        item = dict(r)
+        try:
+            item["sources"] = json.loads(item.get("sources") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            item["sources"] = []
+        try:
+            item["filters"] = json.loads(item.get("filters") or "{}")
+        except (json.JSONDecodeError, TypeError):
+            item["filters"] = {}
+        out.append(item)
+    return out

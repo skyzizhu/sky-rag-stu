@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from contextvars import ContextVar
 from pathlib import Path
 
@@ -45,14 +46,33 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("sky-personal-rag")
 
-# V3.7 身份透传：HTTP 模式下中间件验 PAT 后把调用者可见部门写入此 contextvar；
+# V3.7 身份透传：HTTP 模式下中间件验 PAT 后把调用者信息写入 contextvar；
 # stdio 个人模式从不写入 → None = 不限制（行为与 V3.6 完全一致）
 _request_groups: ContextVar[list[str] | None] = ContextVar("mcp_request_groups",
                                                            default=None)
+_request_user: ContextVar[dict | None] = ContextVar("mcp_request_user", default=None)
+_ENTRY = ("mcp_http"
+          if os.environ.get("MCP_TRANSPORT", "stdio").strip().lower()
+          in ("streamable-http", "streamable_http", "http")
+          else "mcp_stdio")
 
 
 def _current_user_groups() -> list[str] | None:
     return _request_groups.get()
+
+
+def _log_qa(question: str, result, top_k: int, elapsed: float) -> None:
+    """RAG 使用记录：MCP 调用同样落 SQLite。日志失败不影响回答。"""
+    from src import auth_db
+
+    user = _request_user.get() or {}
+    auth_db.log_qa_event(
+        username=str(user.get("username") or "local"),
+        department=str(user.get("department") or ""),
+        entry=_ENTRY, question=question, answer=result.answer or "",
+        sources=result.sources, filters=result.filters,
+        top_k=top_k, elapsed=elapsed,
+    )
 
 
 def _filters(domain: str | None, status: str | None) -> dict | None:
@@ -130,6 +150,7 @@ def knowledge_qa(
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
     from src.pipeline import answer_question
 
+    _t0 = time.time()
     result = answer_question(
         question.strip(),
         top_k=max(1, min(int(top_k), 10)),
@@ -137,6 +158,7 @@ def knowledge_qa(
         history=_history(history),
         user_groups=_current_user_groups(),
     )
+    _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0)
     return json.dumps(
         {
             "answer": result.answer or "知识库中没有找到足够的信息回答这个问题。",
@@ -177,6 +199,7 @@ def knowledge_search(
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
     from src.pipeline import answer_question
 
+    _t0 = time.time()
     result = answer_question(
         question.strip(),
         top_k=max(1, min(int(top_k), 10)),
@@ -184,6 +207,7 @@ def knowledge_search(
         filters=_filters(domain, status),
         user_groups=_current_user_groups(),
     )
+    _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0)
     return json.dumps(
         {
             "query": question.strip(),
@@ -223,12 +247,14 @@ def knowledge_digest(topic: str) -> str:
         return json.dumps({"error": "主题不能为空"}, ensure_ascii=False)
     from src.pipeline import answer_question
 
+    _t0 = time.time()
     result = answer_question(
         f"请综合知识库中与「{topic.strip()}」相关的全部内容，"
         "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
         top_k=10,
         user_groups=_current_user_groups(),
     )
+    _log_qa(topic.strip(), result, 10, time.time() - _t0)
     return json.dumps(
         {
             "topic": topic.strip(),
@@ -308,6 +334,8 @@ class _TokenAuthMiddleware:
         else:
             groups = ["all"]
         _request_groups.set(groups)
+        _request_user.set({"username": ident["username"],
+                           "department": ident["department"]})
         await self.app(scope, receive, send)
 
     def __init__(self, app):
