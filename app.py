@@ -321,17 +321,26 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebarUserContent"] > *,
 [data-testid="stSidebarUserContent"] > * > [data-testid="stVerticalBlock"] {display:contents !important;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_brand) {order:1 !important;}
-/* V3.7.2 用户信息卡紧贴 Logo 下方；登出按钮吸附最底部 */
+/* V3.7.2 用户信息卡：Logo 下方留出呼吸间距，卡片分层样式 */
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo) {
   order:2 !important;
-  margin: 14px 10px 6px !important;
-  padding: 10px 12px !important;
-  background: rgba(148,163,184,.10) !important;
-  border: 1px solid var(--border-subtle, rgba(148,163,184,.25)) !important;
-  border-radius: 10px !important;
+  margin: 12px 10px 4px !important;
 }
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo)
-  [data-testid="stVerticalBlock"] {gap: .12rem !important; padding: 0 !important;}
+  [data-testid="stVerticalBlock"] {gap: 0 !important; padding: 0 !important;}
+.user-card { display:flex; align-items:center; gap:10px; padding:9px 12px;
+  background: var(--bg-secondary, rgba(148,163,184,.10));
+  border: 1px solid var(--border-subtle, rgba(148,163,184,.25));
+  border-radius: 12px; }
+.user-card .avatar { width:38px; height:38px; border-radius:50%; flex:none;
+  background:linear-gradient(135deg,#2563EB,#4F46E5); color:#fff;
+  font-weight:700; font-size:.95rem; display:flex; align-items:center;
+  justify-content:center; box-shadow:0 2px 8px rgba(37,99,235,.30); }
+.user-card .u-name { font-weight:700; font-size:.86rem; }
+.user-card .u-sub { color:var(--text-muted, #8a93a6); font-size:.72rem; margin-top:1px; }
+.user-card .u-dept { display:inline-block; padding:1px 8px; margin-left:6px;
+  border-radius:9px; font-size:.68rem; background:rgba(99,102,241,.14);
+  color:var(--accent-text, #4F46E5); font-weight:600; vertical-align:2px; }
 [data-testid="stSidebarNav"] {order:3 !important;}
 /* 导航文字颜色跟随主题变量（Streamlit 内置导航用固定主题色，深色下看不清） */
 [data-testid="stSidebarNav"] a,
@@ -2076,19 +2085,21 @@ with st.sidebar:
     _top_user = st.session_state.get("auth_user") or {}
     if _top_user:
         _display_name = str(_top_user.get("real_name") or _top_user.get("username") or "")
-        _dep_label = f" · {_top_user['department']}" if _top_user.get("department") else ""
+        _dep_label = str(_top_user.get("department") or "")
         _role_label = " 🛡" if _top_user.get("is_admin") else ""
-        _note_top = (f'<div style="font-size:.72rem;color:var(--text-muted);'
-                     f'padding:0 4px;">{html.escape(str(_top_user.get("note") or ""))}</div>'
+        _avatar_char = html.escape((_display_name or "·")[:1])
+        _note_top = (f'<div class="u-sub">{html.escape(str(_top_user.get("note") or ""))}</div>'
                      if _top_user.get("note") else "")
         with st.container(key="sidebar_userinfo"):
             st.markdown(
-                f'<div style="font-size:.82rem;padding:4px 6px;">👤 '
-                f'<b>{html.escape(_display_name)}</b>{_role_label}'
-                f'{html.escape(_dep_label)}</div>'
-                f'<div style="font-size:.7rem;color:var(--text-muted);padding:0 6px;">'
-                f'@{html.escape(str(_top_user.get("username") or ""))}</div>'
-                f'{_note_top}',
+                f'<div class="user-card">'
+                f'<div class="avatar">{_avatar_char}</div>'
+                f'<div style="min-width:0;">'
+                f'<div class="u-name">{html.escape(_display_name)}'
+                f'<span class="u-dept">{html.escape(str(_top_user.get("department") or ""))}</span>'
+                f'{_role_label}</div>'
+                f'<div class="u-sub">@{html.escape(str(_top_user.get("username") or ""))}</div>'
+                f'</div></div>{_note_top}',
                 unsafe_allow_html=True,
             )
 
