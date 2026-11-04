@@ -141,7 +141,8 @@ function openDlg(title, bodyHtml, onOk, okText = '确认') {
   ok.textContent = okText;
   ok.onclick = async () => { try { await onOk(); closeDlg(); }
                              catch (e) { toast(e.message, false); } };
-  $('#dlg').showModal();
+  const dlg = $('#dlg');
+  if (!dlg.open) dlg.showModal();  // 已打开时仅替换内容（员工对话框就地刷新用）
 }
 function closeDlg() { $('#dlg').close(); dlgConfirm = null; }
 
@@ -278,7 +279,7 @@ async function renderEmps() {
     (empFilterDep ? '&dep=' + empFilterDep : '') + q);
   window._emp_deps = deps;  // 新增员工对话框复用部门选项
   const rows = d.users.map(u => `
-    <tr class="clickable" onclick="empDetail(${u.id})">
+    <tr class="clickable" onclick="empView(${u.id})">
       <td>${u.id}</td><td><b>${esc(u.username)}</b></td>
       <td>${esc(u.real_name) || '—'}</td>
       <td>${esc(u.department) || '—'}</td>
@@ -286,8 +287,11 @@ async function renderEmps() {
       <td>${u.status === 'active' ? '<span class="tag on">启用</span>'
                                   : '<span class="tag off">已停用</span>'}</td>
       <td class="muted">${esc((u.created_at || '').slice(0, 10))}</td>
-      <td><button class="mini ghost"
-        onclick="event.stopPropagation(); empDetail(${u.id})">详情</button></td>
+      <td style="white-space:nowrap">
+        <button class="mini ghost" onclick="event.stopPropagation(); empView(${u.id})">详情</button>
+        <button class="mini gray" onclick="event.stopPropagation(); empEdit(${u.id})">编辑</button>
+        <button class="mini gray" onclick="event.stopPropagation(); empPwdDep(${u.id})">密码/部门</button>
+      </td>
     </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
@@ -300,8 +304,10 @@ async function renderEmps() {
             ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
         </select>
       </div>
-      <div class="muted" style="margin:10px 0">点击任意员工行进入<b>详情</b>：查看信息、重置密码、停用/启用、调整部门、编辑姓名/备注。员工也可以在知识库前台自助注册。</div>
-      <table><tr><th>ID</th><th>账户名</th><th>姓名</th><th>部门</th><th>备注（职责/职位）</th><th>状态</th><th>创建</th><th></th></tr>
+      <div class="muted" style="margin:10px 0">三类操作分开进行：<b>详情</b>=只读查看；
+        <b>编辑</b>=改姓名/备注/前台权限/状态；<b>密码/部门</b>=重置密码与调整部门。
+        员工也可以在知识库前台自助注册。</div>
+      <table><tr><th>ID</th><th>账户名</th><th>姓名</th><th>部门</th><th>备注（职责/职位）</th><th>状态</th><th>创建</th><th>操作</th></tr>
       ${rows || '<tr><td colspan="8" class="empty">没有匹配的员工</td></tr>'}</table>
     </div>`;
   const search = document.querySelector('.toolbar input');
@@ -365,24 +371,39 @@ function genPwd() {
   return Array.from({length: 10}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-/* 员工详情：资料编辑（姓名/备注）/ 重置密码 / 停用启用 / 调整部门 / 前台权限分配 */
+/* 员工三类操作拆分为三个独立对话框：
+   empView（详情只读）/ empEdit（编辑：姓名·备注·权限·状态）/ empPwdDep（密码·部门） */
 const PERM_LABELS = { upload: "📤 上传知识", manage: "🗂 知识管理",
                       settings: "⚙️ 设置", learn: "📖 学习笔记", plugins: "🔌 插件管理" };
-async function empDetail(id) {
-  let d, deps;
-  try {
-    d = await api('GET', `/api/users/${id}`);
-    deps = (await api('GET', '/api/departments')).departments.filter(x => !x.disabled);
-  } catch (e) { toast(e.message, false); return; }
-  const u = d.user;
+
+let empDlgRefresh = null;  // 当前打开的员工对话框刷新函数（操作成功后就地刷新，不关窗）
+
+function openEmpDlg(title, bodyHtml) {
+  $('#dlg-title').textContent = title;
+  $('#dlg-body').innerHTML = bodyHtml;
+  $('#dlg-ok').textContent = '关闭';
+  $('#dlg-ok').onclick = () => { closeDlg(); renderEmps(); };
+  const dlg = $('#dlg');
+  if (!dlg.open) dlg.showModal();  // 已打开时只替换内容（就地刷新）
+}
+
+async function _fetchEmp(id) {
+  const d = await api('GET', `/api/users/${id}`);
+  const deps = (await api('GET', '/api/departments')).departments.filter(x => !x.disabled);
+  return { u: d.user, d, deps };
+}
+
+/* ① 详情（只读） */
+async function empView(id) {
+  empDlgRefresh = () => empView(id);
+  let u, d;
+  try { ({ u, d } = await _fetchEmp(id)); }
+  catch (e) { toast(e.message, false); return; }
   const perms = Array.isArray(u.permissions) ? u.permissions : [];
-  const permChecks = Object.keys(PERM_LABELS).map(p => `
-    <label style="display:flex;align-items:center;gap:8px;margin:4px 0">
-      <input type="checkbox" class="perm-check" value="${p}"
-        ${perms.includes(p) ? 'checked' : ''}>
-      <span>${PERM_LABELS[p]}</span>
-    </label>`).join("");
-  openDlg(`员工详情 — ${esc(u.username)}`, `
+  const permTags = perms.length
+    ? perms.map(p => `<span class="tag neutral">${PERM_LABELS[p] || p}</span>`).join(" ")
+    : '<span class="muted">无（仅检索）</span>';
+  openEmpDlg(`员工详情 — ${esc(u.username)}`, `
     <table style="font-size:13px;margin-bottom:8px">
       <tr><td class="muted" style="padding-right:18px">姓名</td>
           <td><b>${esc(u.real_name) || '—'}</b></td></tr>
@@ -390,28 +411,85 @@ async function empDetail(id) {
           <td><b>${esc(u.department) || '—'}</b></td></tr>
       <tr><td class="muted">备注（职责/职位）</td>
           <td>${esc(u.note) || '—'}</td></tr>
+      <tr><td class="muted">前台权限</td><td>${permTags}</td></tr>
       <tr><td class="muted">状态</td><td>${u.status === 'active'
         ? '<span class="tag on">启用</span>' : '<span class="tag off">已停用</span>'}</td></tr>
       <tr><td class="muted">创建时间</td><td>${esc((u.created_at || '').slice(0, 16))}</td></tr>
       <tr><td class="muted">有效令牌</td><td>${d.valid_tokens} 个
         <span class="muted">（吊销请去「访问令牌」页）</span></td></tr>
     </table>
-    <label>编辑姓名</label>
+    <div class="muted">需要修改请用列表里的「编辑」（姓名/备注/权限/状态）
+      或「密码/部门」（重置密码、调整部门）。</div>`);
+}
+
+/* ② 编辑（姓名 · 备注 · 前台权限 · 状态） */
+async function empEdit(id) {
+  empDlgRefresh = () => empEdit(id);
+  let u;
+  try { ({ u } = await _fetchEmp(id)); }
+  catch (e) { toast(e.message, false); return; }
+  const perms = Array.isArray(u.permissions) ? u.permissions : [];
+  const permChecks = Object.keys(PERM_LABELS).map(p => `
+    <label style="display:flex;align-items:center;gap:8px;margin:4px 0">
+      <input type="checkbox" class="perm-check" value="${p}"
+        ${perms.includes(p) ? 'checked' : ''}>
+      <span>${PERM_LABELS[p]}</span>
+    </label>`).join("");
+  openEmpDlg(`编辑员工 — ${esc(u.username)}`, `
+    <label>姓名（展示用，如：王强）</label>
     <div class="row">
-      <input id="emp-name-edit" style="flex:1" value="${esc(u.real_name || '')}"
-        placeholder="如：王强">
-      <button type="button" onclick="empSaveProfile(${u.id})">保存资料</button>
+      <input id="emp-name-edit" style="flex:1" value="${esc(u.real_name || '')}">
+      <button class="gray" type="button" onclick="empSaveProfile(${u.id})">保存姓名/备注</button>
     </div>
-    <label>编辑备注（职责 / 职位）</label>
+    <label>备注（职责 / 职位）</label>
     <div class="row">
       <input id="emp-note-edit" style="flex:1" value="${esc(u.note || '')}"
         placeholder="如：产品经理 / 负责数据标注">
-      <button class="gray" type="button" onclick="empSaveProfile(${u.id})">保存资料</button>
+      <button class="gray" type="button" onclick="empSaveProfile(${u.id})">保存姓名/备注</button>
     </div>
     <label>前台权限（默认无——员工仅可检索；勾选后登录可见对应功能页）</label>
     <div style="margin:2px 0 10px">${permChecks}</div>
     <button class="mini gray" type="button" onclick="empSavePerms(${u.id})">保存权限</button>
-    <label>重置密码（已自动生成，重置后吊销其全部令牌）</label>
+    <label>状态</label>
+    <button class="${u.status === 'active' ? 'danger' : 'gray'}" type="button"
+      onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`);
+}
+async function empSaveProfile(uid) {
+  const name = document.querySelector('#emp-name-edit').value.trim();
+  const note = document.querySelector('#emp-note-edit').value.trim();
+  try {
+    await api('POST', `/api/users/${uid}/profile`, { real_name: name, note });
+    toast('姓名/备注已保存');
+    if (empDlgRefresh) empDlgRefresh();
+  } catch (e) { toast(e.message, false); }
+}
+async function empSavePerms(uid) {
+  const perms = [...document.querySelectorAll('.perm-check')]
+    .filter(c => c.checked).map(c => c.value);
+  try {
+    const r = await api('PATCH', `/api/users/${uid}/permissions`, { permissions: perms });
+    toast(`前台权限已保存：${r.permissions.length ? r.permissions.join(' / ') : '无'}`);
+    if (empDlgRefresh) empDlgRefresh();
+  } catch (e) { toast(e.message, false); }
+}
+async function empToggle(uid) {
+  try {
+    const r = await api('POST', `/api/users/${uid}/toggle`);
+    toast(r.status === 'active' ? '已启用' : '已停用');
+    if (empDlgRefresh) empDlgRefresh();
+  } catch (e) { toast(e.message, false); }
+}
+
+/* ③ 密码 · 部门 */
+async function empPwdDep(id) {
+  empDlgRefresh = () => empPwdDep(id);
+  let u, deps;
+  try { ({ u, deps } = await _fetchEmp(id)); }
+  catch (e) { toast(e.message, false); return; }
+  openEmpDlg(`密码 / 部门 — ${esc(u.username)}`, `
+    <label>当前部门</label>
+    <div style="margin:2px 0 10px"><b>${esc(u.department) || '—'}</b></div>
+    <label>重置密码（已自动生成，重置后吊销其全部令牌并需告知本人）</label>
     <div class="row">
       <input id="emp-newpwd" style="flex:1" value="${genPwd()}">
       <button type="button" onclick="empReset(${u.id})">重置</button>
@@ -423,31 +501,7 @@ async function empDetail(id) {
               .map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
       </select>
       <button class="gray" type="button" onclick="empTransfer(${u.id})">调入</button>
-    </div>
-    <label>状态</label>
-    <button class="${u.status === 'active' ? 'danger' : 'gray'}" type="button"
-      onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`,
-    async () => { renderEmps(); }, '关闭');
-  $('#dlg-ok').onclick = () => { closeDlg(); renderEmps(); };
-}
-async function empSaveProfile(uid) {
-  const name = document.querySelector('#emp-name-edit').value.trim();
-  const note = document.querySelector('#emp-note-edit').value.trim();
-  try {
-    await api('POST', `/api/users/${uid}/profile`,
-              { real_name: name, note });
-    toast('姓名/备注已保存');
-    empDetail(uid);
-  } catch (e) { toast(e.message, false); }
-}
-async function empSavePerms(uid) {
-  const perms = [...document.querySelectorAll('.perm-check')]
-    .filter(c => c.checked).map(c => c.value);
-  try {
-    const r = await api('PATCH', `/api/users/${uid}/permissions`, { permissions: perms });
-    toast(`前台权限已保存：${r.permissions.length ? r.permissions.join(' / ') : '无'}`);
-    empDetail(uid);
-  } catch (e) { toast(e.message, false); }
+    </div>`);
 }
 async function empReset(uid) {
   const pwd = document.querySelector('#emp-newpwd').value;
@@ -455,7 +509,7 @@ async function empReset(uid) {
   try {
     const r = await api('POST', `/api/users/${uid}/reset`, { new_password: pwd });
     toast(r.detail);
-    empDetail(uid);
+    if (empDlgRefresh) empDlgRefresh();
   } catch (e) { toast(e.message, false); }
 }
 async function empTransfer(uid) {
@@ -463,14 +517,7 @@ async function empTransfer(uid) {
   try {
     const r = await api('POST', `/api/users/${uid}/department`, { department_id: +dep });
     toast(`已调入「${r.department}」`);
-    empDetail(uid);
-  } catch (e) { toast(e.message, false); }
-}
-async function empToggle(uid) {
-  try {
-    const r = await api('POST', `/api/users/${uid}/toggle`);
-    toast(r.status === 'active' ? '已启用' : '已停用');
-    empDetail(uid);
+    if (empDlgRefresh) empDlgRefresh();
   } catch (e) { toast(e.message, false); }
 }
 function userResetDlg(id, username) {

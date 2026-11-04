@@ -293,7 +293,8 @@ def list_users(department_id: int | None = None,
                is_admin: bool | None = None) -> list[dict]:
     """is_admin=True 只返回管理员，False 只返回员工，None 全部。"""
     sql = ("SELECT u.id, u.username, u.department_id, u.is_admin, u.status, "
-           "u.created_at, u.permissions, d.name AS department FROM users u "
+           "u.created_at, u.permissions, u.real_name, u.note, "
+           "d.name AS department FROM users u "
            "LEFT JOIN departments d ON d.id = u.department_id")
     where, params = [], []
     if department_id is not None:
