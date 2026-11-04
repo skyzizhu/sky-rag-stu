@@ -36,23 +36,24 @@ def browser_context() -> dict:
         return {"user_agent": "", "accept_language": "", "client_ip": ""}
 
 
-def ping_html(reload_parent: bool = False) -> str:
+def ping_html(hostname_part: str, front_host: str) -> str:
     """登录门用的隐藏 iframe：浏览器直连 /auth/ping 写 rip cookie。
 
-    关键：ping 必须与访问前台的**同一主机名**（cookie 不跨主机名——用 127.0.0.1
-    ping 而浏览器从 localhost 访问时，cookie 挂在 127.0.0.1 下，前台读不到）。
-    所以从页面 location.hostname 动态拼 ping 地址，端口取管理后台端口。
-
-    reload_parent=True：ping 完成后刷新父页面——st.context.cookies 读的是
-    WebSocket 握手时的 cookie，ping 新写的 cookie 要重载一次才进得了握手。
+    三个跨域要点（都是实测踩过的）：
+    1. ping 必须与访问前台的**同一主机名**（cookie 不跨主机名），但 iframe
+       （srcdoc，跨域）**读不到** parent.location.href——主机名由服务端从
+       请求 Host 头取好后传进来（hostname_part，不含端口）；
+    2. iframe 对父页面只能"写"location（href 赋值/reload），"读"会抛
+       SecurityError——整个脚本不得读 parent.location；导航目标要带前台
+       **完整 host（含端口）**（front_host），否则协议相对 URL 会落到 80 端口；
+    3. 防刷新循环的标记放 URL（?rip=1，跨刷新持久），不能放 session_state
+       （整页刷新即清零，会无限循环）。
     """
     admin_port = os.environ.get("AUTH_ADMIN_PORT", "8700")
-    reload_js = "parent.location.reload()" if reload_parent else ""
-    tail = f".then(() => {{{reload_js}}}).catch(() => {{{reload_js}}})" \
-        if reload_parent else ".catch(() => {})"
     return (f'<script>'
-            f'fetch(location.protocol + "//" + location.hostname + ":{admin_port}'
-            f'/auth/ping", {{credentials: "include"}}){tail};'
+            f'const go = () => {{ parent.location.href = "//{front_host}/?rip=1"; }};'
+            f'fetch("//{hostname_part}:{admin_port}/auth/ping",'
+            f' {{credentials: "include"}}).then(go).catch(go);'
             f'</script>')
 
 

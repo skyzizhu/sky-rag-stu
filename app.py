@@ -790,13 +790,18 @@ def auth_gate() -> bool:
         rip_cookie = st.context.cookies.get("rip", "")
     except Exception:
         rip_cookie = ""
-    if not rip_cookie:
+    # 防刷新循环：用 URL 参数 ?rip=1 标记"ping 已尝试过"（URL 参数跨整页刷新持久；
+    # session_state 不行——整页刷新会新建会话把计数器清零，导致无限刷新）。
+    # ping 已尝试（无论成败）或已有 cookie，都不再重试，IP 尽力而为。
+    ping_done = st.query_params.get("rip") == "1"
+    if not rip_cookie and not ping_done:
         from streamlit.components.v1 import html as components_html
-        wait_count = st.session_state.get("_rip_wait", 0)
-        if wait_count < 2:
-            st.session_state["_rip_wait"] = wait_count + 1
-            components_html(auth_client.ping_html(reload_parent=True), height=0)
-            st.stop()
+        # 主机名从 Host 请求头取（iframe 跨域读不到 parent.location）；
+        # 父页面导航目标要带完整 host（含前台端口，避免落到 80）
+        host_header = st.context.headers.get("host", "")
+        hostname_part = host_header.split(":")[0]
+        components_html(auth_client.ping_html(hostname_part, host_header), height=0)
+        st.stop()
     boot = auth_client.bootstrap()
     if boot is None:
         st.error(t("auth.api.down"))
