@@ -2051,12 +2051,20 @@ with st.sidebar:
         # V3.7 当前用户标识 + 登出 + 管理后台入口
         _user = st.session_state.get("auth_user") or {}
         if _user:
+            # V3.7.2 姓名（real_name）优先回显；账户名与职责/职位备注作次要信息
+            _display_name = str(_user.get("real_name") or _user.get("username") or "")
             _dep_label = f" · {_user['department']}" if _user.get("department") else ""
             _role_label = " 🛡" if _user.get("is_admin") else ""
+            _note_line = (f'<div style="font-size:.72rem;color:var(--text-muted);'
+                          f'padding:0 4px;">{html.escape(str(_user.get("note") or ""))}</div>'
+                          if _user.get("note") else "")
             st.markdown(
                 f'<div style="font-size:.8rem;padding:2px 4px;">👤 '
-                f'<b>{html.escape(str(_user["username"]))}</b>{_role_label}'
-                f'{html.escape(_dep_label)}</div>',
+                f'<b>{html.escape(_display_name)}</b>{_role_label}'
+                f'{html.escape(_dep_label)}</div>'
+                f'<div style="font-size:.7rem;color:var(--text-muted);padding:0 4px;">'
+                f'@{html.escape(str(_user.get("username") or ""))}</div>'
+                f'{_note_line}',
                 unsafe_allow_html=True,
             )
             _footer_c1, _footer_c2 = st.columns([1, 1])

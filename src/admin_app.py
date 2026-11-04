@@ -274,7 +274,9 @@ def api_users(dep: int | None = None, q: str = "",
     users = auth_db.list_users(department_id=dep, is_admin=is_admin)
     if q:
         ql = q.strip().lower()
-        users = [u for u in users if ql in u["username"].lower()]
+        users = [u for u in users
+                 if ql in u["username"].lower()
+                 or ql in (u.get("real_name") or "").lower()]
     return {"ok": True, "users": users}
 
 
@@ -316,6 +318,8 @@ class UserBody(BaseModel):
     username: str
     password: str
     department_id: int
+    real_name: str = ""
+    note: str = ""
 
 
 @app.post("/api/users")
@@ -323,11 +327,13 @@ def api_user_create(body: UserBody, request: Request,
                     admin: dict = Depends(require_admin_api)):
     try:
         user = auth_db.create_user(body.username, body.password,
-                                   department_id=body.department_id)
+                                   department_id=body.department_id,
+                                   real_name=body.real_name, note=body.note)
     except ValueError as exc:
         return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
     _log_from_admin(request, "employee_create", admin["username"],
-                    detail=f"创建员工 {user['username']}",
+                    detail=f"创建员工 {user['username']}"
+                           f"{f'（{user["real_name"]}）' if user.get('real_name') else ''}",
                     department=user.get("department", ""))
     return {"ok": True, "user": user}
 
@@ -413,6 +419,24 @@ def api_admin_delete(user_id: int, request: Request,
 
 class TransferBody(BaseModel):
     department_id: int
+
+
+class ProfileBody(BaseModel):
+    real_name: str = ""
+    note: str = ""
+
+
+@app.post("/api/users/{user_id}/profile")
+def api_user_profile(user_id: int, body: ProfileBody, request: Request,
+                     admin: dict = Depends(require_admin_api)):
+    user = auth_db.get_user_by_id(user_id)
+    if user is None:
+        return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
+    auth_db.update_user(user_id, real_name=body.real_name, note=body.note)
+    _log_from_admin(request, "profile_update", admin["username"],
+                    detail=f"更新 {user['username']} 的姓名/备注"
+                           f"（{body.real_name or '—'} / {body.note or '—'}）")
+    return {"ok": True, "real_name": body.real_name.strip(), "note": body.note.strip()}
 
 
 @app.post("/api/users/{user_id}/department")

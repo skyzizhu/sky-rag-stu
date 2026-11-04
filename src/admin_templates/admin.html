@@ -280,7 +280,9 @@ async function renderEmps() {
   const rows = d.users.map(u => `
     <tr class="clickable" onclick="empDetail(${u.id})">
       <td>${u.id}</td><td><b>${esc(u.username)}</b></td>
+      <td>${esc(u.real_name) || '—'}</td>
       <td>${esc(u.department) || '—'}</td>
+      <td class="wrap">${esc(u.note) || '—'}</td>
       <td>${u.status === 'active' ? '<span class="tag on">启用</span>'
                                   : '<span class="tag off">已停用</span>'}</td>
       <td class="muted">${esc((u.created_at || '').slice(0, 10))}</td>
@@ -289,19 +291,18 @@ async function renderEmps() {
     </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
-      <h3>员工列表（${d.users.length}）</h3>
       <div class="toolbar">
         <button type="button" onclick="empCreateDlg()">＋ 新增员工</button>
-        <input class="wide" placeholder="搜索账户名…" value="${esc(empFilterQ)}">
+        <input class="wide" placeholder="搜索账户名/姓名…" value="${esc(empFilterQ)}">
         <select onchange="empFilterDep=this.value; renderEmps()">
           <option value="">全部部门</option>
           ${deps.map(x => `<option value="${x.id}" ${String(x.id) === String(empFilterDep)
             ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
         </select>
       </div>
-      <div class="muted" style="margin:10px 0">点击任意员工行进入<b>详情</b>：查看信息、重置密码、停用/启用、调整部门。员工也可以在知识库前台自助注册。</div>
-      <table><tr><th>ID</th><th>账户名</th><th>部门</th><th>状态</th><th>创建</th><th></th></tr>
-      ${rows || '<tr><td colspan="6" class="empty">没有匹配的员工</td></tr>'}</table>
+      <div class="muted" style="margin:10px 0">点击任意员工行进入<b>详情</b>：查看信息、重置密码、停用/启用、调整部门、编辑姓名/备注。员工也可以在知识库前台自助注册。</div>
+      <table><tr><th>ID</th><th>账户名</th><th>姓名</th><th>部门</th><th>备注（职责/职位）</th><th>状态</th><th>创建</th><th></th></tr>
+      ${rows || '<tr><td colspan="8" class="empty">没有匹配的员工</td></tr>'}</table>
     </div>`;
   const search = document.querySelector('.toolbar input');
   search.addEventListener('input', () => {
@@ -328,12 +329,16 @@ async function empCreate(ev) {
 function empCreateDlg() {
   const opts = (window._emp_deps || []);
   openDlg('新增员工', `
-    <label>账户名（2~32 位字母/数字/下划线/中文）</label>
+    <label>账户名（2~32 位字母/数字/下划线/中文，登录用）</label>
     <input id="emp-u">
+    <label>姓名（展示用，如：王强）</label>
+    <input id="emp-name">
     <label>选择部门</label>
     <select id="emp-dep">
       ${opts.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
     </select>
+    <label>备注（职责 / 职位，可选）</label>
+    <input id="emp-note" placeholder="如：产品经理 / 负责数据标注">
     <label>初始密码（≥6 位）</label>
     <input id="emp-p1" type="password" value="${genPwd()}">
     <label>确认密码（再次输入，与上面一致）</label>
@@ -341,15 +346,17 @@ function empCreateDlg() {
     <div class="muted" style="margin-top:6px">创建后可在员工行「详情」里重置密码、调整部门、停用。</div>`,
     async () => {
       const u = document.querySelector('#emp-u').value.trim();
+      const name = document.querySelector('#emp-name').value.trim();
       const dep = document.querySelector('#emp-dep').value;
+      const note = document.querySelector('#emp-note').value.trim();
       const p1 = document.querySelector('#emp-p1').value;
       const p2 = document.querySelector('#emp-p2').value;
       if (!u || !dep) throw new Error('请填写账户名并选择部门');
       if (p1 !== p2) throw new Error('两次输入的密码不一致');
       if (p1.length < 6) throw new Error('密码至少 6 位');
       await api('POST', '/api/users', { username: u, password: p1,
-                                        department_id: +dep });
-      toast(`员工「${u}」已创建`);
+        department_id: +dep, real_name: name, note });
+      toast(`员工「${name || u}」已创建`);
       renderEmps();
     }, '创建');
 }
@@ -358,7 +365,7 @@ function genPwd() {
   return Array.from({length: 10}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-/* 员工详情：重置密码 / 停用启用 / 调整部门 / 前台权限分配 都在这里完成 */
+/* 员工详情：资料编辑（姓名/备注）/ 重置密码 / 停用启用 / 调整部门 / 前台权限分配 */
 const PERM_LABELS = { upload: "📤 上传知识", manage: "🗂 知识管理",
                       settings: "⚙️ 设置", learn: "📖 学习笔记", plugins: "🔌 插件管理" };
 async function empDetail(id) {
@@ -377,14 +384,30 @@ async function empDetail(id) {
     </label>`).join("");
   openDlg(`员工详情 — ${esc(u.username)}`, `
     <table style="font-size:13px;margin-bottom:8px">
-      <tr><td class="muted" style="padding-right:18px">部门</td>
+      <tr><td class="muted" style="padding-right:18px">姓名</td>
+          <td><b>${esc(u.real_name) || '—'}</b></td></tr>
+      <tr><td class="muted">部门</td>
           <td><b>${esc(u.department) || '—'}</b></td></tr>
+      <tr><td class="muted">备注（职责/职位）</td>
+          <td>${esc(u.note) || '—'}</td></tr>
       <tr><td class="muted">状态</td><td>${u.status === 'active'
         ? '<span class="tag on">启用</span>' : '<span class="tag off">已停用</span>'}</td></tr>
       <tr><td class="muted">创建时间</td><td>${esc((u.created_at || '').slice(0, 16))}</td></tr>
       <tr><td class="muted">有效令牌</td><td>${d.valid_tokens} 个
         <span class="muted">（吊销请去「访问令牌」页）</span></td></tr>
     </table>
+    <label>编辑姓名</label>
+    <div class="row">
+      <input id="emp-name-edit" style="flex:1" value="${esc(u.real_name || '')}"
+        placeholder="如：王强">
+      <button type="button" onclick="empSaveProfile(${u.id})">保存资料</button>
+    </div>
+    <label>编辑备注（职责 / 职位）</label>
+    <div class="row">
+      <input id="emp-note-edit" style="flex:1" value="${esc(u.note || '')}"
+        placeholder="如：产品经理 / 负责数据标注">
+      <button class="gray" type="button" onclick="empSaveProfile(${u.id})">保存资料</button>
+    </div>
     <label>前台权限（默认无——员工仅可检索；勾选后登录可见对应功能页）</label>
     <div style="margin:2px 0 10px">${permChecks}</div>
     <button class="mini gray" type="button" onclick="empSavePerms(${u.id})">保存权限</button>
@@ -406,6 +429,16 @@ async function empDetail(id) {
       onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`,
     async () => { renderEmps(); }, '关闭');
   $('#dlg-ok').onclick = () => { closeDlg(); renderEmps(); };
+}
+async function empSaveProfile(uid) {
+  const name = document.querySelector('#emp-name-edit').value.trim();
+  const note = document.querySelector('#emp-note-edit').value.trim();
+  try {
+    await api('POST', `/api/users/${uid}/profile`,
+              { real_name: name, note });
+    toast('姓名/备注已保存');
+    empDetail(uid);
+  } catch (e) { toast(e.message, false); }
 }
 async function empSavePerms(uid) {
   const perms = [...document.querySelectorAll('.perm-check')]

@@ -115,6 +115,8 @@ def init_db() -> None:
         for column_sql in (
             "ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0",
             "ALTER TABLE users ADD COLUMN permissions TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE users ADD COLUMN real_name TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE users ADD COLUMN note TEXT NOT NULL DEFAULT ''",
         ):
             try:
                 conn.execute(column_sql)
@@ -222,7 +224,8 @@ def _validate_password(password: str) -> str:
 
 def create_user(username: str, password: str, department_id: int | None = None,
                 is_admin: bool = False, status: str = "active",
-                permissions: list[str] | None = None) -> dict:
+                permissions: list[str] | None = None,
+                real_name: str = "", note: str = "") -> dict:
     username = _validate_username(username)
     _validate_password(password)
     pw_hash, salt = hash_password(password)
@@ -230,10 +233,12 @@ def create_user(username: str, password: str, department_id: int | None = None,
         with _connect() as conn:
             conn.execute(
                 "INSERT INTO users(username, password_hash, salt, department_id,"
-                " is_admin, status, permissions, created_at) VALUES(?,?,?,?,?,?,?,?)",
+                " is_admin, status, permissions, real_name, note, created_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?)",
                 (username, pw_hash, salt, department_id,
                  1 if is_admin else 0, status,
-                 json.dumps(_valid_permissions(permissions)), _now()),
+                 json.dumps(_valid_permissions(permissions)),
+                 (real_name or "").strip(), (note or "").strip(), _now()),
             )
     except sqlite3.IntegrityError as exc:
         raise ValueError("该账户名已被注册") from exc
@@ -320,7 +325,9 @@ def count_users() -> int:
 
 def update_user(user_id: int, department_id: int | None = ...,
                 status: str | None = None,
-                permissions: list[str] | None = None) -> None:
+                permissions: list[str] | None = None,
+                real_name: str | None = None,
+                note: str | None = None) -> None:
     """... 表示不改部门（区别于改为"无部门"）。"""
     with _connect() as conn:
         if department_id is not ...:
@@ -333,6 +340,12 @@ def update_user(user_id: int, department_id: int | None = ...,
         if permissions is not None:
             conn.execute("UPDATE users SET permissions=? WHERE id=?",
                          (json.dumps(_valid_permissions(permissions)), user_id))
+        if real_name is not None:
+            conn.execute("UPDATE users SET real_name=? WHERE id=?",
+                         ((real_name or "").strip(), user_id))
+        if note is not None:
+            conn.execute("UPDATE users SET note=? WHERE id=?",
+                         ((note or "").strip(), user_id))
 
 
 def reset_password(user_id: int, new_password: str) -> None:
@@ -358,7 +371,8 @@ def authenticate(username: str, password: str) -> tuple[dict | None, str]:
         return None, "该账户已被停用，请联系管理员"
     info = {"username": user["username"], "department": user["department"],
             "department_id": user["department_id"], "is_admin": bool(user["is_admin"]),
-            "permissions": user.get("permissions") or []}
+            "permissions": user.get("permissions") or [],
+            "real_name": user.get("real_name") or "", "note": user.get("note") or ""}
     return info, ""
 
 
