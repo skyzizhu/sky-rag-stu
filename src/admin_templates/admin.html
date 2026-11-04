@@ -7,19 +7,26 @@
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-         margin: 0; background: #f4f6fb; color: #1e2430; }
-  header { background: #2b3a67; color: #fff; padding: 10px 24px;
-           display: flex; align-items: center; gap: 20px; position: sticky; top: 0; z-index: 10; }
-  header .brand { font-weight: 700; font-size: 15px; white-space: nowrap; }
-  header nav { display: flex; gap: 4px; flex-wrap: wrap; }
-  header nav button { background: transparent; color: #cdd6f0; border: 0; font-size: 14px;
-                      padding: 7px 14px; border-radius: 8px; cursor: pointer; }
-  header nav button.active { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
-  header nav button:hover { color: #fff; }
-  header .spacer { flex: 1; }
-  header .who { font-size: 13px; color: #cdd6f0; white-space: nowrap; }
-  header .who a { color: #fff; margin-left: 10px; cursor: pointer; }
-  main { max-width: 1160px; margin: 20px auto; padding: 0 16px 60px; }
+         margin: 0; background: #f4f6fb; color: #1e2430;
+         display: flex; min-height: 100vh; }
+  .sidebar { width: 224px; flex-shrink: 0; background: #2b3a67; color: #fff;
+             display: flex; flex-direction: column; padding: 18px 12px 14px;
+             position: sticky; top: 0; height: 100vh; }
+  .sidebar .brand { font-weight: 700; font-size: 15px; padding: 4px 10px 16px;
+                    border-bottom: 1px solid rgba(255,255,255,.12); line-height: 1.5; }
+  .sidebar .brand span { display: block; font-size: 12px; font-weight: 400; color: #cdd6f0; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; }
+  .sidebar nav button { text-align: left; background: transparent; color: #cdd6f0;
+                        border: 0; font-size: 14px; padding: 9px 14px;
+                        border-radius: 8px; cursor: pointer; }
+  .sidebar nav button.active { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
+  .sidebar nav button:hover { color: #fff; }
+  .sidebar .spacer { flex: 1; }
+  .sidebar .who { font-size: 12.5px; color: #cdd6f0; padding: 12px 10px 0;
+                  border-top: 1px solid rgba(255,255,255,.12); line-height: 1.9; }
+  .sidebar .who b { color: #fff; }
+  .sidebar .who a { color: #fff; cursor: pointer; display: inline-block; }
+  main { flex: 1; min-width: 0; padding: 22px 26px 60px; }
   .stats { display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
   .stat { flex: 1; min-width: 160px; background: #fff; border: 1px solid #e3e8f2;
           border-radius: 10px; padding: 12px 16px; cursor: default; }
@@ -34,7 +41,7 @@
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   th, td { padding: 8px 10px; border-bottom: 1px solid #edf0f6; text-align: left;
            vertical-align: middle; white-space: nowrap; }
-  th { color: #5a6478; font-weight: 600; background: #f8f9fd; position: sticky; top: 56px; }
+  th { color: #5a6478; font-weight: 600; background: #f8f9fd; position: sticky; top: 0; }
   td.wrap { white-space: normal; max-width: 340px; }
   form.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
   input, select { padding: 7px 10px; border: 1px solid #ccd3e0; border-radius: 7px; font-size: 13.5px; }
@@ -57,27 +64,31 @@
   .toast { padding: 10px 16px; border-radius: 9px; font-size: 13.5px; color: #fff;
            max-width: 420px; box-shadow: 0 4px 16px rgba(0,0,0,.18); word-break: break-all; }
   .toast.ok { background: #1f9d55; } .toast.err { background: #d64545; }
-  dialog { border: 0; border-radius: 12px; padding: 22px 24px; width: 400px; }
+  dialog { border: 0; border-radius: 12px; padding: 22px 24px; width: 420px; }
   dialog::backdrop { background: rgba(20,28,50,.45); }
   dialog h3 { margin: 0 0 14px; font-size: 16px; }
   dialog label { display: block; font-size: 12.5px; color: #5a6478; margin: 10px 0 4px; }
   dialog input, dialog select { width: 100%; box-sizing: border-box; }
   dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  dialog .row { display: flex; gap: 8px; align-items: center; }
+  dialog .row input { flex: 1; }
   .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
   .empty { text-align: center; color: #8a93a6; padding: 26px 0; font-size: 13px; }
   .log-detail { background: #f8f9fd; border-radius: 8px; padding: 10px 12px; margin-top: 6px;
                 font-size: 12.5px; white-space: pre-wrap; word-break: break-all; }
   .clickable { cursor: pointer; }
   .clickable:hover td { background: #f6f8ff; }
+  .hidden { display: none; }
 </style>
 </head>
 <body>
-<header>
-  <span class="brand">🛡 Sky Personal RAG · 管理后台</span>
+<aside class="sidebar">
+  <div class="brand">🛡 Sky Personal RAG<span>管理后台</span></div>
   <nav id="tabs"></nav>
   <span class="spacer"></span>
-  <span class="who">👤 {{ admin['username'] }}<a onclick="logout()">退出</a></span>
-</header>
+  <div class="who">👤 <b>{{ admin['username'] }}</b><br>
+    <a onclick="logout()">↩ 退出登录</a></div>
+</aside>
 <main>
   <div id="view"></div>
 </main>
