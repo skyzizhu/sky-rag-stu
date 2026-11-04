@@ -123,12 +123,19 @@ def confirm_logout() -> None:
     c1, c2 = st.columns(2)
     if c1.button(t("auth.logout.confirm.yes"), type="primary", use_container_width=True):
         auth_client.logout(str(_u.get("username") or ""))  # 登出写入登录日志
+        # V3.7.2 同步清除浏览器里的 front_auth Cookie（与登录写入同一机制：
+        # 本域 parent.document.cookie，清除后重载回登录门）。st.stop 让清 Cookie
+        # 脚本先挂载执行，避免 rerun 竞态把组件顶掉。
         from streamlit.components.v1 import html as components_html
-        components_html(auth_client.clear_cookie_html(front_host_global), height=0)
+        components_html(
+            '<script>try{'
+            'parent.document.cookie = "front_auth=; path=/; max-age=0";'
+            'parent.location.reload();'
+            '}catch(e){parent.location.reload();}</script>', height=0)
         st.session_state["auth_user"] = None
         st.session_state["messages"] = []
         st.session_state["session_id"] = new_session_id()
-        st.rerun()
+        st.stop()
     if c2.button(t("auth.logout.confirm.no"), use_container_width=True):
         st.session_state.pop("logout_request", None)
         st.rerun()
@@ -838,19 +845,22 @@ def auth_gate() -> bool:
         return True
 
     def _finish_login(data):
-        """登录成功收尾：写入会话；有 proof 时渲染持久化 iframe
-        （浏览器直连认证服务换 30 天 Cookie，完成后带 ?login=1 重载，
-        重载后由 Cookie 自动恢复登录态——登录持久化的关键一跳）。"""
+        """登录成功收尾：写入会话；并在浏览器本域写入 30 天 front_auth Cookie
+        （前台页面自己写——同主机名无跨域问题），随后页面自动重载一次，
+        重载后 Cookie 进入 WebSocket 握手 → 登录门自动恢复登录态。
+        此后刷新/重启/重开浏览器都保持登录，直到主动退出或清理浏览器。"""
         st.session_state["auth_user"] = data["user"]
-        proof = data.get("login_proof")
-        if proof:
-            from streamlit.components.v1 import html as components_html
-            components_html(auth_client.persist_login_html(
-                data["user"]["username"], proof, front_host), height=0)
-            st.caption(t("auth.persist.note"))
-            st.stop()
-        _apply_user_prefs(data["user"]["username"])
-        st.rerun()
+        username = data["user"]["username"]
+        cookie_val = auth_db.make_session_cookie(username)
+        from streamlit.components.v1 import html as components_html
+        # parent（前台主页面）与本组件同域：直接写 cookie + 重载，无跨域依赖
+        components_html(
+            f'<script>try{{'
+            f'parent.document.cookie = "front_auth={cookie_val}; path=/; max-age={30 * 86400}";'
+            f'parent.location.reload();'
+            f'}}catch(e){{parent.location.reload();}}</script>', height=0)
+        st.caption(t("auth.persist.note"))
+        st.stop()
 
     # V3.7.2 记录真实登录 IP：隐藏组件让浏览器直连认证服务 /auth/ping，认证服务
     # 看到浏览器真实局域网 IP 并写入 rip cookie（localhost 域共享，30 天有效）。
