@@ -338,6 +338,8 @@ html, body, .stApp, .stMarkdown, input, textarea {
   justify-content:center; box-shadow:0 2px 8px rgba(37,99,235,.30); }
 .user-card .u-name { font-weight:700; font-size:.86rem; }
 .user-card .u-sub { color:var(--text-muted, #8a93a6); font-size:.72rem; margin-top:1px; }
+.user-card .u-note { color:var(--text-muted, #8a93a6); font-size:.72rem; margin-top:3px;
+  white-space:normal; word-break:break-all; line-height:1.5; }
 .user-card .u-dept { display:inline-block; padding:1px 8px; margin-left:6px;
   border-radius:9px; font-size:.68rem; background:rgba(99,102,241,.14);
   color:var(--accent-text, #4F46E5); font-weight:600; vertical-align:2px; }
@@ -2088,8 +2090,8 @@ with st.sidebar:
         _dep_label = str(_top_user.get("department") or "")
         _role_label = " 🛡" if _top_user.get("is_admin") else ""
         _avatar_char = html.escape((_display_name or "·")[:1])
-        _note_top = (f'<div class="u-sub">{html.escape(str(_top_user.get("note") or ""))}</div>'
-                     if _top_user.get("note") else "")
+        _note_line = (f'<div class="u-note">{html.escape(str(_top_user.get("note") or ""))}</div>'
+                      if _top_user.get("note") else "")
         with st.container(key="sidebar_userinfo"):
             st.markdown(
                 f'<div class="user-card">'
@@ -2099,7 +2101,8 @@ with st.sidebar:
                 f'<span class="u-dept">{html.escape(str(_top_user.get("department") or ""))}</span>'
                 f'{_role_label}</div>'
                 f'<div class="u-sub">@{html.escape(str(_top_user.get("username") or ""))}</div>'
-                f'</div></div>{_note_top}',
+                f'{_note_line}'
+                f'</div></div>',
                 unsafe_allow_html=True,
             )
 
