@@ -178,12 +178,13 @@ def admin_shell(request: Request, admin: dict = Depends(require_admin)):
 def api_overview(_: dict = Depends(require_admin_api)):
     deps = auth_db.list_departments()
     users = auth_db.list_users()
-    logs = auth_db.list_login_logs(limit=10)
+    logs = auth_db.list_login_logs(limit=10, scope="users")
     return {
         "departments": len(deps),
         "departments_enabled": len([d for d in deps if not d["disabled"]]),
-        "users": len(users),
-        "users_active": len([u for u in users if u["status"] == "active"]),
+        "users": len([u for u in users if not u["is_admin"]]),
+        "users_active": len([u for u in users
+                             if u["status"] == "active" and not u["is_admin"]]),
         "recent_logins": logs,
     }
 
@@ -244,12 +245,24 @@ def api_department_delete(dep_id: int, request: Request,
 # ---------------------------------------------------------------- JSON API：员工
 @app.get("/api/users")
 def api_users(dep: int | None = None, q: str = "",
+              scope: str | None = Query(None),
               _: dict = Depends(require_admin_api)):
-    users = auth_db.list_users(department_id=dep)
+    """scope="admins" 只返回管理员，"employees" 只返回员工。"""
+    is_admin = {"admins": True, "employees": False}.get(scope)
+    users = auth_db.list_users(department_id=dep, is_admin=is_admin)
     if q:
         ql = q.strip().lower()
         users = [u for u in users if ql in u["username"].lower()]
     return {"ok": True, "users": users}
+
+
+@app.get("/api/users/{user_id}")
+def api_user_detail(user_id: int, _: dict = Depends(require_admin_api)):
+    user = auth_db.get_user_by_id(user_id)
+    if user is None:
+        return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
+    return {"ok": True, "user": user,
+            "valid_tokens": auth_db.count_user_tokens(user_id)}
 
 
 class UserBody(BaseModel):
@@ -293,6 +306,8 @@ def api_user_reset(user_id: int, body: ResetPasswordBody, request: Request,
 @app.post("/api/users/{user_id}/toggle")
 def api_user_toggle(user_id: int, request: Request,
                     admin: dict = Depends(require_admin_api)):
+    if user_id == admin["id"]:
+        return JSONResponse({"ok": False, "detail": "不能停用自己的账户"}, status_code=400)
     user = auth_db.get_user_by_id(user_id)
     if user is None:
         return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
@@ -359,18 +374,23 @@ def api_token_revoke(request: Request, admin: dict = Depends(require_admin_api),
 # ---------------------------------------------------------------- JSON API：日志
 @app.get("/api/logs/auth")
 def api_logs_auth(limit: int = 200, username: str = "", action: str = "",
+                  scope: str | None = Query(None),
                   _: dict = Depends(require_admin_api)):
+    """scope="admins"/"users" 分离管理员与员工的日志。"""
     return {"ok": True, "logs": auth_db.list_login_logs(limit=limit,
                                                         username=username,
-                                                        action=action)}
+                                                        action=action,
+                                                        scope=scope)}
 
 
 @app.get("/api/logs/qa")
 def api_logs_qa(limit: int = 100, username: str = "", entry: str = "",
+                scope: str | None = Query(None),
                 _: dict = Depends(require_admin_api)):
     return {"ok": True, "logs": auth_db.list_qa_logs(limit=limit,
                                                      username=username,
-                                                     entry=entry)}
+                                                     entry=entry,
+                                                     scope=scope)}
 
 
 # ---------------------------------------------------------------- 认证 API（Streamlit 前台调用）

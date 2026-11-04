@@ -94,6 +94,7 @@
 
 <script>
 const $ = sel => document.querySelector(sel);
+const me = "{{ admin['username'] }}";  // 当前登录管理员
 const esc = s => String(s ?? "").replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -141,12 +142,13 @@ function confirmDo(title, msg, fn, okText = '确认', danger = false) {
 
 /* ---------- 标签页框架 ---------- */
 const TABS = [
-  { id: 'dash',    name: '工作台',   render: renderDash },
-  { id: 'deps',    name: '部门管理', render: renderDeps },
-  { id: 'emps',    name: '员工管理', render: renderEmps },
-  { id: 'tokens',  name: '访问令牌', render: renderTokens },
-  { id: 'authlog', name: '登录日志', render: renderAuthLog },
-  { id: 'qalog',   name: 'RAG 日志', render: renderQaLog },
+  { id: 'dash',    name: '工作台',     render: renderDash },
+  { id: 'deps',    name: '部门管理',   render: renderDeps },
+  { id: 'emps',    name: '员工管理',   render: renderEmps },
+  { id: 'admins',  name: '管理员',     render: renderAdmins },
+  { id: 'tokens',  name: '访问令牌',   render: renderTokens },
+  { id: 'authlog', name: '登录日志',   render: renderAuthLog },
+  { id: 'qalog',   name: 'RAG 日志',   render: renderQaLog },
 ];
 let current = 'dash';
 
@@ -254,35 +256,24 @@ async function depDelete(id, name, employees) {
     '删除', true);
 }
 
-/* ---------- 员工管理 ---------- */
-let empFilterDep = '', empFilterQ = '', empDebounce = null;
+/* ---------- 员工管理（仅员工；管理员账户在「管理员」标签单独管理） ---------- */
+let empFilterDep = '', empFilterQ = '', empDebounce = null, empRefocus = false;
 async function renderEmps() {
   const deps = (await api('GET', '/api/departments')).departments;
   const q = empFilterQ ? '&q=' + encodeURIComponent(empFilterQ) : '';
-  const d = await api('GET', '/api/users' +
-    (empFilterDep ? '?dep=' + empFilterDep : '') + q);
+  const d = await api('GET', '/api/users?scope=employees' +
+    (empFilterDep ? '&dep=' + empFilterDep : '') + q);
   const opts = deps.filter(x => !x.disabled)
     .map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
-  const depName = id => { const x = deps.find(y => y.id === id); return x ? esc(x.name) : '—'; };
   const rows = d.users.map(u => `
-    <tr>
+    <tr class="clickable" onclick="empDetail(${u.id})">
       <td>${u.id}</td><td><b>${esc(u.username)}</b></td>
-      <td>${u.department || '—'}</td>
-      <td>${u.is_admin ? '<span class="tag admin">管理员</span>' : '<span class="muted">员工</span>'}</td>
+      <td>${esc(u.department) || '—'}</td>
       <td>${u.status === 'active' ? '<span class="tag on">启用</span>'
                                   : '<span class="tag off">已停用</span>'}</td>
       <td class="muted">${esc((u.created_at || '').slice(0, 10))}</td>
-      <td>
-        <button class="mini ghost" onclick="empResetDlg(${u.id}, '${esc(u.username)}')">重置密码</button>
-        ${u.is_admin ? '' : `
-        <button class="mini gray" onclick="empToggle(${u.id})">
-          ${u.status === 'active' ? '停用' : '启用'}</button>
-        <select id="transfer-${u.id}" style="padding:4px 6px;font-size:12px">
-          ${deps.filter(x => !x.disabled && x.id !== u.department_id)
-                .map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
-        </select>
-        <button class="mini gray" onclick="empTransfer(${u.id})">调入</button>`}
-      </td>
+      <td><button class="mini ghost"
+        onclick="event.stopPropagation(); empDetail(${u.id})">详情</button></td>
     </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
@@ -293,34 +284,33 @@ async function renderEmps() {
         <select name="department_id" required><option value="" disabled selected>选择部门</option>${opts}</select>
         <button type="submit">创建</button>
       </form>
-      <div class="muted">员工也可以在知识库前台自助注册（自己选部门）；此处创建适合统一分配账户。重置密码会同时吊销该员工的全部访问令牌。</div>
+      <div class="muted">员工也可以在知识库前台自助注册（自己选部门）。重置密码会同时吊销其全部访问令牌。管理员账户在「管理员」标签单独管理，不与员工混排。</div>
     </div>
     <div class="card">
       <h3>员工列表（${d.users.length}）</h3>
       <div class="toolbar">
-        <input class="wide" placeholder="搜索账户名…" value="${esc(empFilterQ)}"
-          oninput="empSearch(this.value)">
+        <input class="wide" placeholder="搜索账户名…" value="${esc(empFilterQ)}">
         <select onchange="empFilterDep=this.value; renderEmps()">
           <option value="">全部部门</option>
           ${deps.map(x => `<option value="${x.id}" ${String(x.id) === String(empFilterDep)
             ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
         </select>
       </div>
-      <table><tr><th>ID</th><th>账户名</th><th>部门</th><th>角色</th><th>状态</th><th>创建</th><th>操作</th></tr>
-      ${rows || '<tr><td colspan="7" class="empty">没有匹配的员工</td></tr>'}</table>
+      <div class="muted" style="margin:10px 0">点击任意员工行进入<b>详情</b>：查看信息、重置密码、停用/启用、调整部门。</div>
+      <table><tr><th>ID</th><th>账户名</th><th>部门</th><th>状态</th><th>创建</th><th></th></tr>
+      ${rows || '<tr><td colspan="6" class="empty">没有匹配的员工</td></tr>'}</table>
     </div>`;
   const search = document.querySelector('.toolbar input');
-  search.addEventListener('input', function handler() {
+  search.addEventListener('input', () => {
     clearTimeout(empDebounce);
     empDebounce = setTimeout(() => { empFilterQ = search.value; empRefocus = true; renderEmps(); }, 400);
   });
-  if (empRefocus) {  // 重渲染后恢复搜索框焦点与光标位置，避免打字中断
+  if (empRefocus) {
     search.focus();
     search.setSelectionRange(search.value.length, search.value.length);
     empRefocus = false;
-  };
+  }
 }
-let empRefocus = false;
 async function empCreate(ev) {
   ev.preventDefault();
   const f = ev.target;
@@ -332,9 +322,75 @@ async function empCreate(ev) {
   } catch (e) { toast(e.message, false); }
   return false;
 }
-function empResetDlg(id, username) {
+function genPwd() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  return Array.from({length: 10}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+/* 员工详情：重置密码 / 停用启用 / 调整部门 都在这里完成 */
+async function empDetail(id) {
+  let d, deps;
+  try {
+    d = await api('GET', `/api/users/${id}`);
+    deps = (await api('GET', '/api/departments')).departments.filter(x => !x.disabled);
+  } catch (e) { toast(e.message, false); return; }
+  const u = d.user;
+  openDlg(`员工详情 — ${esc(u.username)}`, `
+    <table style="font-size:13px;margin-bottom:8px">
+      <tr><td class="muted" style="padding-right:18px">部门</td>
+          <td><b>${esc(u.department) || '—'}</b></td></tr>
+      <tr><td class="muted">状态</td><td>${u.status === 'active'
+        ? '<span class="tag on">启用</span>' : '<span class="tag off">已停用</span>'}</td></tr>
+      <tr><td class="muted">创建时间</td><td>${esc((u.created_at || '').slice(0, 16))}</td></tr>
+      <tr><td class="muted">有效令牌</td><td>${d.valid_tokens} 个
+        <span class="muted">（吊销请去「访问令牌」页）</span></td></tr>
+    </table>
+    <label>重置密码（已自动生成，重置后吊销其全部令牌）</label>
+    <div class="row">
+      <input id="emp-newpwd" style="flex:1" value="${genPwd()}">
+      <button type="button" onclick="empReset(${u.id})">重置</button>
+    </div>
+    <label>调整部门</label>
+    <div class="row">
+      <select id="emp-transfer" style="flex:1">
+        ${deps.filter(x => x.id !== u.department_id)
+              .map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
+      </select>
+      <button class="gray" type="button" onclick="empTransfer(${u.id})">调入</button>
+    </div>
+    <label>状态</label>
+    <button class="${u.status === 'active' ? 'danger' : 'gray'}" type="button"
+      onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`,
+    async () => { renderEmps(); }, '关闭');
+  $('#dlg-ok').onclick = () => { closeDlg(); renderEmps(); };
+}
+async function empReset(uid) {
+  const pwd = document.querySelector('#emp-newpwd').value;
+  if (pwd.length < 6) { toast('密码至少 6 位', false); return; }
+  try {
+    const r = await api('POST', `/api/users/${uid}/reset`, { new_password: pwd });
+    toast(r.detail);
+    empDetail(uid);
+  } catch (e) { toast(e.message, false); }
+}
+async function empTransfer(uid) {
+  const dep = document.querySelector('#emp-transfer').value;
+  try {
+    const r = await api('POST', `/api/users/${uid}/department`, { department_id: +dep });
+    toast(`已调入「${r.department}」`);
+    empDetail(uid);
+  } catch (e) { toast(e.message, false); }
+}
+async function empToggle(uid) {
+  try {
+    const r = await api('POST', `/api/users/${uid}/toggle`);
+    toast(r.status === 'active' ? '已启用' : '已停用');
+    empDetail(uid);
+  } catch (e) { toast(e.message, false); }
+}
+function userResetDlg(id, username) {
   openDlg(`重置密码 — ${username}`,
-    `<label>新密码（≥6 位，重置后该员工全部访问令牌将被吊销）</label>
+    `<label>新密码（≥6 位，重置后其全部访问令牌将被吊销）</label>
      <input id="newpwd" value="${genPwd()}">`,
     async () => {
       const pwd = document.querySelector('#newpwd').value;
@@ -343,27 +399,39 @@ function empResetDlg(id, username) {
       toast(r.detail);
     }, '重置');
 }
-function genPwd() {
-  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  return Array.from({length: 10}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
-async function empToggle(id) {
-  try { const r = await api('POST', `/api/users/${id}/toggle`);
-        toast(r.status === 'active' ? '已启用' : '已停用'); renderEmps(); }
-  catch (e) { toast(e.message, false); }
-}
-async function empTransfer(id) {
-  const dep = document.querySelector('#transfer-' + id).value;
-  try { const r = await api('POST', `/api/users/${id}/department`,
-                           { department_id: +dep });
-        toast(`已调入「${r.department}」`); renderEmps(); }
-  catch (e) { toast(e.message, false); }
+
+/* ---------- 管理员（独立于员工列表） ---------- */
+async function renderAdmins() {
+  const d = await api('GET', '/api/users?scope=admins');
+  const rows = d.users.map(u => `
+    <tr>
+      <td>${u.id}</td><td><b>${esc(u.username)}</b></td>
+      <td>${esc(u.department) || '—'}</td>
+      <td>${u.status === 'active' ? '<span class="tag on">启用</span>'
+                                  : '<span class="tag off">已停用</span>'}</td>
+      <td class="muted">${esc((u.created_at || '').slice(0, 16))}</td>
+      <td>
+        <button class="mini ghost" onclick="userResetDlg(${u.id}, '${esc(u.username)}')">重置密码</button>
+        <button class="mini danger" ${u.username === me ? 'disabled title="不能停用自己的账户"' : ''}
+          onclick="empToggle(${u.id})">${u.status === 'active' ? '停用' : '启用'}</button>
+      </td>
+    </tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card">
+      <h3>管理员列表（${d.users.length}）</h3>
+      <div class="muted" style="margin:10px 0">
+        管理员登录知识库前台<b>不受部门权限限制</b>（看全库），且只有管理员能登录管理后台。
+        管理员名单独立于员工列表；新管理员由系统初始化产生（首账户），员工不会出现在这里。
+      </div>
+      <table><tr><th>ID</th><th>账户名</th><th>部门</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+      ${rows || '<tr><td colspan="6" class="empty">没有管理员</td></tr>'}</table>
+    </div>`;
 }
 
 /* ---------- 访问令牌 ---------- */
 async function renderTokens() {
   const d = await api('GET', '/api/tokens');
-  const users = (await api('GET', '/api/users')).users;
+  const users = (await api('GET', '/api/users?scope=employees')).users;
   const userOpts = users.map(u => `<option value="${esc(u.username)}">${esc(u.username)}</option>`).join('');
   const rows = d.tokens.map(t => `
     <tr>
@@ -416,13 +484,15 @@ async function tokenRevoke(prefix) {
                   toast('令牌已吊销'); renderTokens(); }, '吊销', true);
 }
 
-/* ---------- 登录日志 ---------- */
-let authLogFilter = { username: '', action: '' };
+/* ---------- 登录日志（员工 / 管理员 分开查看） ---------- */
+let authLogFilter = { username: '', action: '', scope: 'users' };
 async function renderAuthLog() {
   const qs = new URLSearchParams();
+  qs.set('scope', authLogFilter.scope);
   if (authLogFilter.username) qs.set('username', authLogFilter.username);
   if (authLogFilter.action) qs.set('action', authLogFilter.action);
   const d = await api('GET', '/api/logs/auth?' + qs.toString());
+  const who = authLogFilter.scope === 'admins' ? '管理员' : '员工';
   const rows = d.logs.map(l => `
     <tr class="clickable" onclick="this.nextElementSibling.classList.toggle('hidden')">
       <td class="muted">${esc(l.created_at)}</td>
@@ -443,9 +513,13 @@ async function renderAuthLog() {
     </td></tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
-      <h3>登录 / 认证日志（最近 ${d.logs.length} 条）</h3>
+      <h3>登录日志（${who}）—— 最近 ${d.logs.length} 条</h3>
       <div class="toolbar">
-        <input class="wide" placeholder="按账户名过滤…" value="${esc(authLogFilter.username)}"
+        <select onchange="authLogFilter.scope=this.value; renderAuthLog()">
+          <option value="users" ${authLogFilter.scope === 'users' ? 'selected' : ''}>员工登录</option>
+          <option value="admins" ${authLogFilter.scope === 'admins' ? 'selected' : ''}>管理员登录</option>
+        </select>
+        <input class="wide" placeholder="按账户过滤…" value="${esc(authLogFilter.username)}"
           onchange="authLogFilter.username=this.value; renderAuthLog()">
         <select onchange="authLogFilter.action=this.value; renderAuthLog()">
           <option value="">全部动作</option>
@@ -458,11 +532,11 @@ async function renderAuthLog() {
         </select>
         <button class="mini gray" onclick="renderAuthLog()">刷新</button>
       </div>
-      <div class="muted" style="margin-bottom:10px">点击任意行展开浏览器指纹与完整 UA。
-        失败的登录尝试同样完整保留（含原因）。</div>
+      <div class="muted" style="margin-bottom:10px">管理员与员工的日志<b>分开查看</b>（上方切换）。
+        点击任意行展开浏览器指纹与完整 UA。失败的登录尝试同样完整保留（含原因）。</div>
       <table><tr><th>时间</th><th>账户</th><th>动作</th><th>结果</th><th>说明</th>
         <th>部门</th><th>入口</th><th>IP</th></tr>
-      ${rows || '<tr><td colspan="8" class="empty">暂无日志</td></tr>'}</table>
+      ${rows || `<tr><td colspan="8" class="empty">${who}暂无登录日志</td></tr>`}</table>
     </div>`;
 }
 function actionLabel(a) {
@@ -475,15 +549,17 @@ function actionLabel(a) {
   return m[a] || a;
 }
 
-/* ---------- RAG 使用日志 ---------- */
-let qaLogFilter = { username: '', entry: '' };
+/* ---------- RAG 使用日志（员工 / 管理员 分开查看） ---------- */
+let qaLogFilter = { username: '', entry: '', scope: 'users' };
 async function renderQaLog() {
   const qs = new URLSearchParams();
+  qs.set('scope', qaLogFilter.scope);
   if (qaLogFilter.username) qs.set('username', qaLogFilter.username);
   if (qaLogFilter.entry) qs.set('entry', qaLogFilter.entry);
   const d = await api('GET', '/api/logs/qa?' + qs.toString());
   const entryLabel = { web: '知识库问答', manage_summary: '跨文档总结',
                        mcp_http: 'MCP（团队）', mcp_stdio: 'MCP（个人）' };
+  const who = qaLogFilter.scope === 'admins' ? '管理员' : '员工';
   const rows = d.logs.map(l => `
     <tr class="clickable" onclick="this.nextElementSibling.classList.toggle('hidden')">
       <td class="muted">${esc(l.created_at)}</td>
@@ -502,8 +578,12 @@ async function renderQaLog() {
     </td></tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
-      <h3>RAG 使用 / 提问记录（最近 ${d.logs.length} 条）</h3>
+      <h3>RAG 使用 / 提问记录（${who}）—— 最近 ${d.logs.length} 条</h3>
       <div class="toolbar">
+        <select onchange="qaLogFilter.scope=this.value; renderQaLog()">
+          <option value="users" ${qaLogFilter.scope === 'users' ? 'selected' : ''}>员工使用</option>
+          <option value="admins" ${qaLogFilter.scope === 'admins' ? 'selected' : ''}>管理员使用</option>
+        </select>
         <input class="wide" placeholder="按账户过滤…" value="${esc(qaLogFilter.username)}"
           onchange="qaLogFilter.username=this.value; renderQaLog()">
         <select onchange="qaLogFilter.entry=this.value; renderQaLog()">
@@ -513,10 +593,10 @@ async function renderQaLog() {
         </select>
         <button class="mini gray" onclick="renderQaLog()">刷新</button>
       </div>
-      <div class="muted" style="margin-bottom:10px">记录所有入口的检索与提问（知识库问答 / 跨文档总结 / MCP 团队与个人模式），
-        点击行展开回答全文、命中来源与生效的过滤条件（含部门权限域）。</div>
+      <div class="muted" style="margin-bottom:10px">管理员与员工的使用记录<b>分开查看</b>（上方切换）。
+        记录所有入口的检索与提问，点击行展开回答全文、命中来源与生效的过滤条件（含部门权限域）。</div>
       <table><tr><th>时间</th><th>账户</th><th>部门</th><th>入口</th><th>问题</th><th>命中</th><th>耗时</th></tr>
-      ${rows || '<tr><td colspan="7" class="empty">暂无使用记录</td></tr>'}</table>
+      ${rows || `<tr><td colspan="7" class="empty">${who}暂无使用记录</td></tr>`}</table>
     </div>`;
 }
 

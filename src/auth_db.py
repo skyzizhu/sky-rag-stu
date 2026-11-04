@@ -241,14 +241,21 @@ def get_user_by_id(user_id: int) -> dict | None:
     return dict(row) if row else None
 
 
-def list_users(department_id: int | None = None) -> list[dict]:
+def list_users(department_id: int | None = None,
+               is_admin: bool | None = None) -> list[dict]:
+    """is_admin=True 只返回管理员，False 只返回员工，None 全部。"""
     sql = ("SELECT u.id, u.username, u.department_id, u.is_admin, u.status, "
            "u.created_at, d.name AS department FROM users u "
            "LEFT JOIN departments d ON d.id = u.department_id")
-    params: tuple = ()
+    where, params = [], []
     if department_id is not None:
-        sql += " WHERE u.department_id=?"
-        params = (department_id,)
+        where.append("u.department_id=?")
+        params.append(department_id)
+    if is_admin is not None:
+        where.append("u.is_admin=?")
+        params.append(1 if is_admin else 0)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY u.id"
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
@@ -435,18 +442,27 @@ def log_auth_event(action: str, username: str, *, success: bool = True,
 
 
 def list_login_logs(limit: int = 200, username: str = "",
-                    action: str = "") -> list[dict]:
-    sql = "SELECT * FROM login_logs"
+                    action: str = "", scope: str | None = None) -> list[dict]:
+    """scope="admins" 只看管理员的记录，"users" 只看员工/注册者的记录。
+
+    按 username 关联 users.is_admin 判定；日志里不存在于用户表的账户
+    （如登录失败的乱输）一律归入 users 侧。
+    """
+    sql = ("SELECT l.* FROM login_logs l LEFT JOIN users u ON u.username = l.username")
     where, params = [], []
     if username:
-        where.append("username LIKE ?")
+        where.append("l.username LIKE ?")
         params.append(f"%{username}%")
     if action:
-        where.append("action=?")
+        where.append("l.action=?")
         params.append(action)
+    if scope == "admins":
+        where.append("COALESCE(u.is_admin, 0)=1")
+    elif scope == "users":
+        where.append("COALESCE(u.is_admin, 0)=0")
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY id DESC LIMIT ?"
+    sql += " ORDER BY l.id DESC LIMIT ?"
     params.append(max(1, min(int(limit), 500)))
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
@@ -478,18 +494,23 @@ def log_qa_event(username: str, department: str, entry: str, question: str,
 
 
 def list_qa_logs(limit: int = 100, username: str = "",
-                 entry: str = "") -> list[dict]:
-    sql = "SELECT * FROM qa_logs"
+                 entry: str = "", scope: str | None = None) -> list[dict]:
+    """scope="admins"/"users" 按账户角色分离管理员与员工的使用记录。"""
+    sql = ("SELECT l.* FROM qa_logs l LEFT JOIN users u ON u.username = l.username")
     where, params = [], []
     if username:
-        where.append("username LIKE ?")
+        where.append("l.username LIKE ?")
         params.append(f"%{username}%")
     if entry:
-        where.append("entry=?")
+        where.append("l.entry=?")
         params.append(entry)
+    if scope == "admins":
+        where.append("COALESCE(u.is_admin, 0)=1")
+    elif scope == "users":
+        where.append("COALESCE(u.is_admin, 0)=0")
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY id DESC LIMIT ?"
+    sql += " ORDER BY l.id DESC LIMIT ?"
     params.append(max(1, min(int(limit), 300)))
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
@@ -506,3 +527,12 @@ def list_qa_logs(limit: int = 100, username: str = "",
             item["filters"] = {}
         out.append(item)
     return out
+
+
+def count_user_tokens(user_id: int) -> int:
+    """该用户的有效（未吊销）令牌数。"""
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM tokens WHERE user_id=? AND revoked=0",
+            (user_id,)).fetchone()
+    return row["n"]
