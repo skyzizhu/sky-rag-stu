@@ -358,7 +358,9 @@ function genPwd() {
   return Array.from({length: 10}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-/* 员工详情：重置密码 / 停用启用 / 调整部门 都在这里完成 */
+/* 员工详情：重置密码 / 停用启用 / 调整部门 / 前台权限分配 都在这里完成 */
+const PERM_LABELS = { upload: "📤 上传知识", manage: "🗂 知识管理",
+                      settings: "⚙️ 设置", learn: "📖 学习笔记", plugins: "🔌 插件管理" };
 async function empDetail(id) {
   let d, deps;
   try {
@@ -366,6 +368,13 @@ async function empDetail(id) {
     deps = (await api('GET', '/api/departments')).departments.filter(x => !x.disabled);
   } catch (e) { toast(e.message, false); return; }
   const u = d.user;
+  const perms = Array.isArray(u.permissions) ? u.permissions : [];
+  const permChecks = Object.keys(PERM_LABELS).map(p => `
+    <label style="display:flex;align-items:center;gap:8px;margin:4px 0">
+      <input type="checkbox" class="perm-check" value="${p}"
+        ${perms.includes(p) ? 'checked' : ''}>
+      <span>${PERM_LABELS[p]}</span>
+    </label>`).join("");
   openDlg(`员工详情 — ${esc(u.username)}`, `
     <table style="font-size:13px;margin-bottom:8px">
       <tr><td class="muted" style="padding-right:18px">部门</td>
@@ -376,6 +385,9 @@ async function empDetail(id) {
       <tr><td class="muted">有效令牌</td><td>${d.valid_tokens} 个
         <span class="muted">（吊销请去「访问令牌」页）</span></td></tr>
     </table>
+    <label>前台权限（默认无——员工仅可检索；勾选后登录可见对应功能页）</label>
+    <div style="margin:2px 0 10px">${permChecks}</div>
+    <button class="mini gray" type="button" onclick="empSavePerms(${u.id})">保存权限</button>
     <label>重置密码（已自动生成，重置后吊销其全部令牌）</label>
     <div class="row">
       <input id="emp-newpwd" style="flex:1" value="${genPwd()}">
@@ -394,6 +406,15 @@ async function empDetail(id) {
       onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`,
     async () => { renderEmps(); }, '关闭');
   $('#dlg-ok').onclick = () => { closeDlg(); renderEmps(); };
+}
+async function empSavePerms(uid) {
+  const perms = [...document.querySelectorAll('.perm-check')]
+    .filter(c => c.checked).map(c => c.value);
+  try {
+    const r = await api('PATCH', `/api/users/${uid}/permissions`, { permissions: perms });
+    toast(`前台权限已保存：${r.permissions.length ? r.permissions.join(' / ') : '无'}`);
+    empDetail(uid);
+  } catch (e) { toast(e.message, false); }
 }
 async function empReset(uid) {
   const pwd = document.querySelector('#emp-newpwd').value;
@@ -629,9 +650,11 @@ async function renderAuthLog() {
 function actionLabel(a) {
   const m = { login: '登录', logout: '登出', register: '注册',
     bootstrap_admin: '初始化管理员', password_reset: '重置密码',
+    permissions_update: '分配前台权限',
     employee_create: '创建员工', employee_toggle: '停用/启用员工',
     employee_transfer: '调整部门', department_create: '创建部门',
     department_toggle: '停用/启用部门', department_delete: '删除部门',
+    admin_create: '新增管理员', admin_delete: '删除管理员',
     token_create: '签发令牌', token_revoke: '吊销令牌' };
   return m[a] || a;
 }

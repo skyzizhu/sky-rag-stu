@@ -287,6 +287,31 @@ def api_user_detail(user_id: int, _: dict = Depends(require_admin_api)):
             "valid_tokens": auth_db.count_user_tokens(user_id)}
 
 
+class PermissionsBody(BaseModel):
+    permissions: list[str]
+
+
+@app.patch("/api/users/{user_id}/permissions")
+def api_user_permissions(user_id: int, body: PermissionsBody,
+                         request: Request,
+                         admin: dict = Depends(require_admin_api)):
+    """给员工分配前台权限（upload/manage/settings/learn/plugins，默认无）。
+
+    管理员账户不受此约束（看全库、全功能）；超级管理员不可通过此接口降级。
+    """
+    user = auth_db.get_user_by_id(user_id)
+    if user is None:
+        return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
+    if user["is_super"]:
+        return JSONResponse({"ok": False,
+                             "detail": "超级管理员权限固定，不可修改"}, status_code=400)
+    perms = [p for p in body.permissions if p in auth_db.FRONT_PERMISSIONS]
+    auth_db.update_user(user_id, permissions=perms)
+    _log_from_admin(request, "permissions_update", admin["username"],
+                    detail=f"{user['username']} 前台权限 → {perms or '无'}")
+    return {"ok": True, "permissions": perms}
+
+
 class UserBody(BaseModel):
     username: str
     password: str

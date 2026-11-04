@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS users (
     department_id INTEGER REFERENCES departments(id),
     is_admin INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'active',
+    permissions TEXT NOT NULL DEFAULT '[]',
     created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS tokens (
@@ -108,13 +109,17 @@ CREATE INDEX IF NOT EXISTS idx_qa_logs_time ON qa_logs(created_at DESC);
 
 
 def init_db() -> None:
-    """建表（幂等）+ 增量迁移（如 users.is_super）。两服务启动时各调一次。"""
+    """建表（幂等）+ 增量迁移（users.is_super / users.permissions）。两服务启动时各调一次。"""
     with _write_lock, _connect() as conn:
         conn.executescript(_SCHEMA)
-        try:
-            conn.execute("ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0")
-        except sqlite3.OperationalError:
-            pass  # 列已存在
+        for column_sql in (
+            "ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN permissions TEXT NOT NULL DEFAULT '[]'",
+        ):
+            try:
+                conn.execute(column_sql)
+            except sqlite3.OperationalError:
+                pass  # 列已存在
         # 超级管理员迁移：系统已有用户但还没有超级管理员时，
         # 把最早创建的管理员（init_db 引导的首账户）标记为超级管理员
         has_super = conn.execute(
@@ -216,7 +221,8 @@ def _validate_password(password: str) -> str:
 
 
 def create_user(username: str, password: str, department_id: int | None = None,
-                is_admin: bool = False, status: str = "active") -> dict:
+                is_admin: bool = False, status: str = "active",
+                permissions: list[str] | None = None) -> dict:
     username = _validate_username(username)
     _validate_password(password)
     pw_hash, salt = hash_password(password)
@@ -224,15 +230,26 @@ def create_user(username: str, password: str, department_id: int | None = None,
         with _connect() as conn:
             conn.execute(
                 "INSERT INTO users(username, password_hash, salt, department_id,"
-                " is_admin, status, created_at) VALUES(?,?,?,?,?,?,?)",
+                " is_admin, status, permissions, created_at) VALUES(?,?,?,?,?,?,?,?)",
                 (username, pw_hash, salt, department_id,
-                 1 if is_admin else 0, status, _now()),
+                 1 if is_admin else 0, status,
+                 json.dumps(_valid_permissions(permissions)), _now()),
             )
     except sqlite3.IntegrityError as exc:
         raise ValueError("该账户名已被注册") from exc
     user = get_user(username)
     assert user is not None
     return user
+
+
+# 前台可选权限集（员工默认一无所有；查询是人人固有的，不在此列）
+FRONT_PERMISSIONS = ("upload", "manage", "settings", "learn", "plugins")
+
+
+def _valid_permissions(perms: list[str] | None) -> list[str]:
+    if not perms:
+        return []
+    return [p for p in perms if p in FRONT_PERMISSIONS]
 
 
 def get_user(username: str) -> dict | None:
@@ -242,7 +259,13 @@ def get_user(username: str) -> dict | None:
             "LEFT JOIN departments d ON d.id = u.department_id WHERE u.username=?",
             (username,),
         ).fetchone()
-    return dict(row) if row else None
+    user = dict(row) if row else None
+    if user:
+        try:
+            user["permissions"] = json.loads(user.get("permissions") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            user["permissions"] = []
+    return user
 
 
 def get_user_by_id(user_id: int) -> dict | None:
@@ -252,14 +275,20 @@ def get_user_by_id(user_id: int) -> dict | None:
             "LEFT JOIN departments d ON d.id = u.department_id WHERE u.id=?",
             (user_id,),
         ).fetchone()
-    return dict(row) if row else None
+    user = dict(row) if row else None
+    if user:
+        try:
+            user["permissions"] = json.loads(user.get("permissions") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            user["permissions"] = []
+    return user
 
 
 def list_users(department_id: int | None = None,
                is_admin: bool | None = None) -> list[dict]:
     """is_admin=True 只返回管理员，False 只返回员工，None 全部。"""
     sql = ("SELECT u.id, u.username, u.department_id, u.is_admin, u.status, "
-           "u.created_at, d.name AS department FROM users u "
+           "u.created_at, u.permissions, d.name AS department FROM users u "
            "LEFT JOIN departments d ON d.id = u.department_id")
     where, params = [], []
     if department_id is not None:
@@ -273,7 +302,15 @@ def list_users(department_id: int | None = None,
     sql += " ORDER BY u.id"
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
-    return [dict(r) for r in rows]
+    out = []
+    for r in rows:
+        item = dict(r)
+        try:
+            item["permissions"] = json.loads(item.get("permissions") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            item["permissions"] = []
+        out.append(item)
+    return out
 
 
 def count_users() -> int:
@@ -282,7 +319,8 @@ def count_users() -> int:
 
 
 def update_user(user_id: int, department_id: int | None = ...,
-                status: str | None = None) -> None:
+                status: str | None = None,
+                permissions: list[str] | None = None) -> None:
     """... 表示不改部门（区别于改为"无部门"）。"""
     with _connect() as conn:
         if department_id is not ...:
@@ -292,6 +330,9 @@ def update_user(user_id: int, department_id: int | None = ...,
             if status not in ("active", "disabled"):
                 raise ValueError("非法状态")
             conn.execute("UPDATE users SET status=? WHERE id=?", (status, user_id))
+        if permissions is not None:
+            conn.execute("UPDATE users SET permissions=? WHERE id=?",
+                         (json.dumps(_valid_permissions(permissions)), user_id))
 
 
 def reset_password(user_id: int, new_password: str) -> None:
@@ -316,7 +357,8 @@ def authenticate(username: str, password: str) -> tuple[dict | None, str]:
     if user["status"] != "active":
         return None, "该账户已被停用，请联系管理员"
     info = {"username": user["username"], "department": user["department"],
-            "department_id": user["department_id"], "is_admin": bool(user["is_admin"])}
+            "department_id": user["department_id"], "is_admin": bool(user["is_admin"]),
+            "permissions": user.get("permissions") or []}
     return info, ""
 
 

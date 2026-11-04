@@ -1988,7 +1988,10 @@ def page_learning():
 # ── V3.7 登录门：未登录只渲染登录/注册页，到此为止 ──
 auth_gate()
 
-is_admin_view = bool(st.session_state.get("auth_user", {}).get("is_admin"))
+_auth_user = st.session_state.get("auth_user") or {}
+is_admin_view = bool(_auth_user.get("is_admin"))
+# V3.7.2 员工前台权限（管理后台分配，默认无——只有问答）
+_user_perms = set(_auth_user.get("permissions") or [])
 
 chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
 upload_page = st.Page(page_upload, title=t("nav.upload"), icon="📤", url_path="upload")
@@ -2023,10 +2026,23 @@ if is_admin_view:
         ],
     })
 else:
-    # 普通员工：仅知识问答（上传/管理/设置是管理员功能）
-    pg = st.navigation({
-        t("nav.group.knowledge"): [chat_page],
-    })
+    # 员工：问答固有；其余页面按管理后台分配的前台权限出现
+    employee_nav: dict = {t("nav.group.knowledge"): [chat_page]}
+    if "upload" in _user_perms:
+        employee_nav[t("nav.group.knowledge")].append(upload_page)
+    extra_pages = []
+    if "manage" in _user_perms:
+        extra_pages.append(manage_page)
+    if "settings" in _user_perms:
+        extra_pages.extend([general_page, retrieval_page, maintenance_page,
+                            status_page, params_page])
+    if extra_pages:
+        employee_nav[t("nav.group.settings")] = extra_pages
+    if "learn" in _user_perms:
+        employee_nav[t("nav.group.learn")] = [learning_page]
+    if "plugins" in _user_perms:
+        employee_nav[t("nav.group.plugins")] = [plugins_page]
+    pg = st.navigation(employee_nav)
 
 pg.run()
 
