@@ -386,13 +386,24 @@ const PERM_LABELS = { upload: "📤 上传知识", manage: "🗂 知识管理",
 
 let empDlgRefresh = null;  // 当前打开的员工对话框刷新函数（操作成功后就地刷新，不关窗）
 
-function openEmpDlg(title, bodyHtml) {
+function openEmpDlg(title, bodyHtml, onOk) {
   $('#dlg-title').textContent = title;
   $('#dlg-body').innerHTML = bodyHtml;
-  $('#dlg-ok').textContent = '关闭';
-  $('#dlg-ok').onclick = () => { closeDlg(); renderEmps(); };
+  const ok = $('#dlg-ok');
+  if (onOk) {
+    // 编辑类对话框：确认按钮=保存；保存失败（抛错）时对话框保持打开并提示
+    ok.textContent = '保存';
+    ok.onclick = async () => {
+      try { await onOk(); closeDlg(); renderEmps(); }
+      catch (e) { toast(e.message, false); }
+    };
+  } else {
+    // 只读查看类对话框：确认=关闭并刷新列表
+    ok.textContent = '关闭';
+    ok.onclick = () => { closeDlg(); renderEmps(); };
+  }
   const dlg = $('#dlg');
-  if (!dlg.open) dlg.showModal();  // 已打开时只替换内容（就地刷新）
+  if (!dlg.open) dlg.showModal();  // 已打开时仅替换内容（就地刷新）
 }
 
 async function _fetchEmp(id) {
