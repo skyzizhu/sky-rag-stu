@@ -489,24 +489,31 @@ def api_token_revoke(request: Request, admin: dict = Depends(require_admin_api),
 
 # ---------------------------------------------------------------- JSON API：日志
 @app.get("/api/logs/auth")
-def api_logs_auth(limit: int = 200, username: str = "", action: str = "",
+def api_logs_auth(limit: int = Query(20, le=200), page: int = Query(1, ge=1),
+                  username: str = "", action: str = "",
                   scope: str | None = Query(None),
                   _: dict = Depends(require_admin_api)):
-    """scope="admins"/"users" 分离管理员与员工的日志。"""
-    return {"ok": True, "logs": auth_db.list_login_logs(limit=limit,
-                                                        username=username,
-                                                        action=action,
-                                                        scope=scope)}
+    """登录日志：分页（page 从 1 起）；scope="admins"/"users" 分离管理员与员工。"""
+    offset = (page - 1) * limit
+    logs = auth_db.list_login_logs(limit=limit, offset=offset,
+                                   username=username, action=action, scope=scope)
+    total = auth_db.count_login_logs(username=username, action=action, scope=scope)
+    return {"ok": True, "logs": logs, "total": total,
+            "page": page, "page_size": limit}
 
 
 @app.get("/api/logs/qa")
-def api_logs_qa(limit: int = 100, username: str = "", entry: str = "",
+def api_logs_qa(limit: int = Query(20, le=100), page: int = Query(1, ge=1),
+                username: str = "", entry: str = "", department: str = "",
                 scope: str | None = Query(None),
                 _: dict = Depends(require_admin_api)):
-    return {"ok": True, "logs": auth_db.list_qa_logs(limit=limit,
-                                                     username=username,
-                                                     entry=entry,
-                                                     scope=scope)}
+    offset = (page - 1) * limit
+    logs = auth_db.list_qa_logs(limit=limit, offset=offset, username=username,
+                                entry=entry, scope=scope, department=department)
+    total = auth_db.count_qa_logs(username=username, entry=entry,
+                                  scope=scope, department=department)
+    return {"ok": True, "logs": logs, "total": total,
+            "page": page, "page_size": limit}
 
 
 # ---------------------------------------------------------------- 认证 API（Streamlit 前台调用）

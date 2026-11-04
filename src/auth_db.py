@@ -513,14 +513,15 @@ def log_auth_event(action: str, username: str, *, success: bool = True,
         pass
 
 
-def list_login_logs(limit: int = 200, username: str = "",
-                    action: str = "", scope: str | None = None) -> list[dict]:
-    """scope="admins" 只看管理员的记录，"users" 只看员工/注册者的记录。
+def _login_logs_where(username: str, action: str,
+                      scope: str | None) -> tuple[str, list]:
+    """登录日志的公共 WHERE 构造（列表与计数共用，保证分页总数一致）。
 
+    scope="admins" 只看管理员的记录，"users" 只看员工/注册者的记录。
     按 username 关联 users.is_admin 判定；日志里不存在于用户表的账户
     （如登录失败的乱输）一律归入 users 侧。
     """
-    sql = ("SELECT l.* FROM login_logs l LEFT JOIN users u ON u.username = l.username")
+    join = " LEFT JOIN users u ON u.username = l.username"
     where, params = [], []
     if username:
         where.append("l.username LIKE ?")
@@ -532,13 +533,29 @@ def list_login_logs(limit: int = 200, username: str = "",
         where.append("COALESCE(u.is_admin, 0)=1")
     elif scope == "users":
         where.append("COALESCE(u.is_admin, 0)=0")
-    if where:
-        sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY l.id DESC LIMIT ?"
-    params.append(max(1, min(int(limit), 500)))
+    where_sql = (" WHERE " + " AND ".join(where)) if where else ""
+    return (join + where_sql), params
+
+
+def list_login_logs(limit: int = 200, username: str = "",
+                    action: str = "", scope: str | None = None,
+                    offset: int = 0) -> list[dict]:
+    where_sql, params = _login_logs_where(username, action, scope)
+    sql = ("SELECT l.* FROM login_logs l" + where_sql)
+    sql += " ORDER BY l.id DESC LIMIT ? OFFSET ?"
+    params.extend([max(1, min(int(limit), 500)), max(0, int(offset))])
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
     return [dict(r) for r in rows]
+
+
+def count_login_logs(username: str = "", action: str = "",
+                     scope: str | None = None) -> int:
+    where_sql, params = _login_logs_where(username, action, scope)
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM login_logs l" + where_sql, params).fetchone()
+    return row["n"]
 
 
 # ---------------------------------------------------------------- RAG 使用日志
@@ -565,10 +582,9 @@ def log_qa_event(username: str, department: str, entry: str, question: str,
         pass
 
 
-def list_qa_logs(limit: int = 100, username: str = "",
-                 entry: str = "", scope: str | None = None) -> list[dict]:
-    """scope="admins"/"users" 按账户角色分离管理员与员工的使用记录。"""
-    sql = ("SELECT l.* FROM qa_logs l LEFT JOIN users u ON u.username = l.username")
+def _qa_logs_where(username: str, entry: str, scope: str | None,
+                   department: str = "") -> tuple[str, list]:
+    join = " LEFT JOIN users u ON u.username = l.username"
     where, params = [], []
     if username:
         where.append("l.username LIKE ?")
@@ -576,14 +592,27 @@ def list_qa_logs(limit: int = 100, username: str = "",
     if entry:
         where.append("l.entry=?")
         params.append(entry)
+    if department:
+        where.append("l.department=?")
+        params.append(department)
     if scope == "admins":
         where.append("COALESCE(u.is_admin, 0)=1")
     elif scope == "users":
         where.append("COALESCE(u.is_admin, 0)=0")
-    if where:
-        sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY l.id DESC LIMIT ?"
-    params.append(max(1, min(int(limit), 300)))
+    where_sql = (" WHERE " + " AND ".join(where)) if where else ""
+    return (join + where_sql), params
+
+
+def list_qa_logs(limit: int = 100, username: str = "",
+                 entry: str = "", scope: str | None = None,
+                 department: str = "", offset: int = 0) -> list[dict]:
+    """scope="admins"/"users" 按账户角色分离管理员与员工的使用记录。"""
+    # JOIN 由 _qa_logs_where 统一拼接（与 count 共用，保证总数一致）
+    sql = "SELECT l.* FROM qa_logs l"
+    where_sql, params = _qa_logs_where(username, entry, scope, department)
+    sql += where_sql
+    sql += " ORDER BY l.id DESC LIMIT ? OFFSET ?"
+    params.extend([max(1, min(int(limit), 300)), max(0, int(offset))])
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
     out = []
@@ -599,6 +628,15 @@ def list_qa_logs(limit: int = 100, username: str = "",
             item["filters"] = {}
         out.append(item)
     return out
+
+
+def count_qa_logs(username: str = "", entry: str = "", scope: str | None = None,
+                  department: str = "") -> int:
+    where_sql, params = _qa_logs_where(username, entry, scope, department)
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM qa_logs l" + where_sql, params).fetchone()
+    return row["n"]
 
 
 def count_user_tokens(user_id: int) -> int:
