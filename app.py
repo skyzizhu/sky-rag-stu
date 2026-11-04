@@ -324,7 +324,7 @@ html, body, .stApp, .stMarkdown, input, textarea {
 /* V3.7.2 用户信息卡：Logo 下方留出呼吸间距，卡片分层样式 */
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo) {
   order:2 !important;
-  margin: 12px 10px 4px !important;
+  margin: 12px 10px 10px !important;
 }
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo)
   [data-testid="stVerticalBlock"] {gap: 0 !important; padding: 0 !important;}
@@ -343,7 +343,7 @@ html, body, .stApp, .stMarkdown, input, textarea {
 .user-card .u-dept { display:inline-block; padding:1px 8px; margin-left:6px;
   border-radius:9px; font-size:.68rem; background:rgba(99,102,241,.14);
   color:var(--accent-text, #4F46E5); font-weight:600; vertical-align:2px; }
-[data-testid="stSidebarNav"] {order:3 !important;}
+[data-testid="stSidebarNav"] {order:3 !important; margin-top: 6px !important;}
 /* 导航文字颜色跟随主题变量（Streamlit 内置导航用固定主题色，深色下看不清） */
 [data-testid="stSidebarNav"] a,
 [data-testid="stSidebarNav"] a span,
