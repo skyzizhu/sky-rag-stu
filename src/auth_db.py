@@ -247,8 +247,9 @@ def create_user(username: str, password: str, department_id: int | None = None,
     return user
 
 
-# 前台可选权限集（员工默认一无所有；查询是人人固有的，不在此列）
-FRONT_PERMISSIONS = ("upload", "manage", "settings", "learn", "plugins")
+# 前台可选权限集（员工默认一无所有；查询/通用设置/系统状态/参数总览/学习是人人固有的，
+# 不在此列）。检索设置与知识库维护拆分为独立权限（V3.7.2）。
+FRONT_PERMISSIONS = ("upload", "manage", "retrieval_settings", "maintenance", "plugins")
 
 
 def _valid_permissions(perms: list[str] | None) -> list[str]:

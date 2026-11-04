@@ -1099,7 +1099,8 @@ def page_chat():
             if not cfg.llm_api_key:
                 st.error(t("chat.no_api_key"))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.no_api_key.msg")})
-                save_session(st.session_state["session_id"], st.session_state.messages)
+                save_session(st.session_state["session_id"], st.session_state.messages,
+                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
                 return
             try:
                 progress_ph = st.empty()  # 实时进度占位符
@@ -1138,6 +1139,7 @@ def page_chat():
                         history=chat_history,
                         on_progress=_show_progress,
                         user_groups=_user_groups,
+                        username=str((st.session_state.get("auth_user") or {}).get("username") or ""),
                     )
                 progress_ph.empty()
                 answer_ph = st.empty()
@@ -1180,7 +1182,8 @@ def page_chat():
                 st.session_state.messages.append(
                     {"role": "assistant", "content": formatted_answer, "result": result}
                 )
-                save_session(st.session_state["session_id"], st.session_state.messages)
+                save_session(st.session_state["session_id"], st.session_state.messages,
+                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
                 scroll_chat_to_latest(
                     key=f"scroll_answer_{st.session_state['session_id']}_{len(st.session_state.messages)}",
                 )
@@ -1191,10 +1194,12 @@ def page_chat():
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
                 st.error(str(exc))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.error_occurred", err=exc)})
-                save_session(st.session_state["session_id"], st.session_state.messages)
+                save_session(st.session_state["session_id"], st.session_state.messages,
+                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
             except Exception as exc:
                 st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
-                save_session(st.session_state["session_id"], st.session_state.messages)
+                save_session(st.session_state["session_id"], st.session_state.messages,
+                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
 
     # 嵌套在普通容器中，避免 Streamlit 的底部聊天容器在 Expander 展开时强制滚到底部。
     # CSS 仍将该容器固定在页面底部，交互与原聊天输入框一致。
@@ -1838,52 +1843,64 @@ def page_maintenance():
     st.markdown(f'<div class="section-title">{t("maint.title")}</div>', unsafe_allow_html=True)
     st.caption(t("maint.caption"))
 
-    st.markdown(t("maint.kb"))
-    confirm_rebuild = st.checkbox(t("maint.confirm"), key="confirm_rebuild")
-    c1, c2 = st.columns(2)
-    if c1.button(t("maint.rebuild"), disabled=not confirm_rebuild,
-                 width="stretch", type="primary"):
-        with st.spinner(t("maint.rebuilding")):
+    # V3.7.2 权限拆分：知识库维护需要 maintenance 权限；
+    # 缓存管理人人可用（普通员工清自己的问答缓存，管理员/维护权限清全局）
+    _au = st.session_state.get("auth_user") or {}
+    _can_maintain = bool(_au.get("is_admin") or "maintenance" in (_au.get("permissions") or []))
+    _me = str(_au.get("username") or "")
+
+    if _can_maintain:
+        st.markdown(t("maint.kb"))
+        confirm_rebuild = st.checkbox(t("maint.confirm"), key="confirm_rebuild")
+        c1, c2 = st.columns(2)
+        if c1.button(t("maint.rebuild"), disabled=not confirm_rebuild,
+                     width="stretch", type="primary"):
+            with st.spinner(t("maint.rebuilding")):
+                try:
+                    summary = ingest_files(rebuild=True)
+                except (LLMError, VectorStoreError, EmbeddingError) as exc:
+                    st.error(str(exc))
+                    st.stop()
+            if summary.ok_files:
+                st.success(t("maint.rebuild.done", files=summary.ok_files, chunks=summary.total_chunks))
+            else:
+                st.error(t("maint.rebuild.fail"))
+        if c2.button(t("maint.clear_only"), width="stretch"):
             try:
-                summary = ingest_files(rebuild=True)
-            except (LLMError, VectorStoreError, EmbeddingError) as exc:
+                store.clear()
+            except VectorStoreError as exc:
                 st.error(str(exc))
                 st.stop()
-            except Exception as exc:
-                st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
-                st.stop()
-        if summary.ok_files:
-            st.success(t("maint.rebuild.done", files=summary.ok_files, chunks=summary.total_chunks))
-        else:
-            st.error(t("maint.rebuild.fail"))
-    if c2.button(t("maint.clear_only"), width="stretch"):
-        try:
-            store.clear()
-        except VectorStoreError as exc:
-            st.error(str(exc))
-            st.stop()
-        # 向量库清空后必须清问答缓存：否则同问题仍命中缓存返回已删知识的答案
-        from src.pipeline import clear_qa_cache as _cqc
-        from src.keyword_search import invalidate_cache as _ici
-        _cqc()
-        _ici()
-        st.success(t("maint.clear_only.done"))
+            # 向量库清空后必须清问答缓存：否则同问题仍命中缓存返回已删知识的答案
+            from src.pipeline import clear_qa_cache as _cqc
+            from src.keyword_search import invalidate_cache as _ici
+            _cqc()
+            _ici()
+            st.success(t("maint.clear_only.done"))
+        st.divider()
 
-    st.divider()
-
+    # V3.7.2 缓存管理：人人可用。普通员工清自己的问答缓存（按用户名归属）；
+    # 有维护权限/管理员额外可见全局缓存（问答全量 + BM25 索引）清理
     st.markdown(t("maint.cache"))
-    from src.pipeline import _qa_cache, clear_qa_cache
+    from src.pipeline import _qa_cache, _qa_cache_owner, clear_qa_cache
     from src.keyword_search import _bm25_cache, invalidate_cache
 
-    cache_col1, cache_col2 = st.columns(2)
-    cache_col1.metric(t("maint.cache.qa"), t("maint.cache.unit", n=len(_qa_cache)))
-    cache_col2.metric(t("maint.cache.bm25"), t("maint.cache.unit.group", n=len(_bm25_cache)))
-
-    if st.button(t("maint.cache.clear"), width="stretch", type="primary"):
-        clear_qa_cache()
-        invalidate_cache()
-        st.success(t("maint.cache.clear.done"))
-        st.rerun()
+    if _can_maintain:
+        cache_col1, cache_col2 = st.columns(2)
+        cache_col1.metric(t("maint.cache.qa"), t("maint.cache.unit", n=len(_qa_cache)))
+        cache_col2.metric(t("maint.cache.bm25"), t("maint.cache.unit.group", n=len(_bm25_cache)))
+        if st.button(t("maint.cache.clear"), width="stretch", type="primary"):
+            clear_qa_cache()
+            invalidate_cache()
+            st.success(t("maint.cache.clear.done"))
+            st.rerun()
+    else:
+        my_n = sum(1 for owner in _qa_cache_owner.values() if owner == _me)
+        st.metric(t("maint.cache.mine"), t("maint.cache.unit", n=my_n))
+        if st.button(t("maint.cache.mine.clear"), width="stretch"):
+            clear_qa_cache(username=_me)
+            st.success(t("maint.cache.mine.clear.done"))
+            st.rerun()
 
 
 # ---------------------------------------------------------------- 页面 7：系统状态
@@ -1946,7 +1963,10 @@ with st.sidebar:
 # ---------------------------------------------------------------- 页面 9：插件管理
 def page_plugins():
     st.markdown(f'<div class="section-title">{t("plugin.title")}</div>', unsafe_allow_html=True)
-    st.caption(t("plugin.caption"))
+    # V3.7.2 插件管理权限：人人可查看；安装/卸载需要 plugins 权限（管理员天然有）
+    _pu = st.session_state.get("auth_user") or {}
+    can_manage_plugins = bool(_pu.get("is_admin") or "plugins" in (_pu.get("permissions") or []))
+    st.caption(t("plugin.caption") if can_manage_plugins else t("plugin.caption.viewonly"))
 
     installed = get_installed_plugins()
 
@@ -1958,13 +1978,15 @@ def page_plugins():
 
             c1, c2 = st.columns(2)
             if is_on:
-                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", use_container_width=True):
+                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", use_container_width=True,
+                             disabled=not can_manage_plugins):
                     uninstall_plugin(pid)
                     st.rerun()
                 if c1.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
                     pass
             else:
-                if c1.button(t("plugin.install"), key=f"install_{pid}", use_container_width=True, type="primary"):
+                if c1.button(t("plugin.install"), key=f"install_{pid}", use_container_width=True,
+                             type="primary", disabled=not can_manage_plugins):
                     install_plugin(pid)
                     st.rerun()
                 if c2.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
@@ -1990,7 +2012,8 @@ auth_gate()
 
 _auth_user = st.session_state.get("auth_user") or {}
 is_admin_view = bool(_auth_user.get("is_admin"))
-# V3.7.2 员工前台权限（管理后台分配，默认无——只有问答）
+# V3.7.2 员工前台权限（管理后台分配，默认无）：检索设置/知识库维护/插件管理需权限；
+# 通用设置/系统状态/参数总览/学习人人可见
 _user_perms = set(_auth_user.get("permissions") or [])
 
 chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
@@ -2026,22 +2049,23 @@ if is_admin_view:
         ],
     })
 else:
-    # 员工：问答固有；其余页面按管理后台分配的前台权限出现
+    # 员工：问答固有；其余页面按管理后台分配的前台权限出现。
+    # 人人固有：通用设置 / 系统状态 / 参数总览 / 学习 / 插件管理（只读）/
+    #           维护操作页（其中"缓存管理"是个人缓存）；权限只管检索设置/知识库维护/上传/知识管理
     employee_nav: dict = {t("nav.group.knowledge"): [chat_page]}
     if "upload" in _user_perms:
         employee_nav[t("nav.group.knowledge")].append(upload_page)
-    extra_pages = []
     if "manage" in _user_perms:
-        extra_pages.append(manage_page)
-    if "settings" in _user_perms:
-        extra_pages.extend([general_page, retrieval_page, maintenance_page,
-                            status_page, params_page])
-    if extra_pages:
-        employee_nav[t("nav.group.settings")] = extra_pages
-    if "learn" in _user_perms:
-        employee_nav[t("nav.group.learn")] = [learning_page]
-    if "plugins" in _user_perms:
-        employee_nav[t("nav.group.plugins")] = [plugins_page]
+        employee_nav[t("nav.group.knowledge")].append(manage_page)
+    settings_pages = [general_page]
+    if "retrieval_settings" in _user_perms:
+        settings_pages.append(retrieval_page)
+    # 维护操作页人人可达（页内"知识库维护"区块按权限显隐；缓存管理是个人功能）
+    settings_pages.append(maintenance_page)
+    settings_pages.extend([status_page, params_page])
+    employee_nav[t("nav.group.settings")] = settings_pages
+    employee_nav[t("nav.group.learn")] = [learning_page]
+    employee_nav[t("nav.group.plugins")] = [plugins_page]
     pg = st.navigation(employee_nav)
 
 pg.run()
@@ -2077,7 +2101,10 @@ with st.sidebar:
             if _user.get("is_admin"):
                 _footer_c2.link_button(t("auth.admin.console"), auth_client.BASE + "/admin/login",
                                        width="stretch")
-        sessions = list_sessions(10)
+        _sidebar_user = st.session_state.get("auth_user") or {}
+        sessions = list_sessions(10,
+                                 username=str(_sidebar_user.get("username") or "") or None,
+                                 is_admin=bool(_sidebar_user.get("is_admin")))
         keep_history_expanded = st.session_state.pop("keep_history_expanded_once", False)
         with st.expander(
             t("sidebar.history", n=len(sessions)),

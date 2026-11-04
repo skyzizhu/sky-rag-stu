@@ -61,6 +61,12 @@ def _current_user_groups() -> list[str] | None:
     return _request_groups.get()
 
 
+def _current_username() -> str:
+    """HTTP 模式返回令牌属主（缓存归属按人）；stdio 个人模式记 local。"""
+    user = _request_user.get()
+    return str(user.get("username") or "local") if user else "local"
+
+
 def _log_qa(question: str, result, top_k: int, elapsed: float) -> None:
     """RAG 使用记录：MCP 调用同样落 SQLite。日志失败不影响回答。"""
     from src import auth_db
@@ -157,6 +163,7 @@ def knowledge_qa(
         filters=_filters(domain, status),
         history=_history(history),
         user_groups=_current_user_groups(),
+        username=_current_username(),
     )
     _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0)
     return json.dumps(
@@ -206,6 +213,7 @@ def knowledge_search(
         use_llm=False,  # 仅检索：不调用生成模型
         filters=_filters(domain, status),
         user_groups=_current_user_groups(),
+        username=_current_username(),
     )
     _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0)
     return json.dumps(
@@ -253,6 +261,7 @@ def knowledge_digest(topic: str) -> str:
         "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
         top_k=10,
         user_groups=_current_user_groups(),
+        username=_current_username(),
     )
     _log_qa(topic.strip(), result, 10, time.time() - _t0)
     return json.dumps(
