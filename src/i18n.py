@@ -196,6 +196,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
         # 系统状态徽章
         "status.embedding": "向量化模型",
+        "status.missing": "缺少 {model}",
         "status.vectordb": "向量数据库",
         "status.llm": "大模型",
         "status.cards": "{n} 张卡片",
@@ -570,6 +571,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "dialog.remove.files": "查看將處理的 {n} 個文件",
 
         "status.embedding": "向量化模型",
+        "status.missing": "缺少 {model}",
         "status.vectordb": "向量資料庫",
         "status.llm": "大模型",
         "status.cards": "{n} 張卡片",
@@ -929,6 +931,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "dialog.remove.files": "Show the {n} files to process",
 
         "status.embedding": "Embedding model",
+        "status.missing": "missing {model}",
         "status.vectordb": "Vector database",
         "status.llm": "LLM",
         "status.cards": "{n} cards",
@@ -1288,6 +1291,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "dialog.remove.files": "処理対象の {n} 件のファイルを表示",
 
         "status.embedding": "埋め込みモデル",
+        "status.missing": "{model} が見つかりません",
         "status.vectordb": "ベクトルデータベース",
         "status.llm": "大規模言語モデル",
         "status.cards": "{n} 枚のカード",
@@ -1600,6 +1604,11 @@ _DYNAMIC: dict[str, str] = {
     "已触发": "dyn.status.triggered",
     "本轮无历史（首轮提问）": "dyn.status.no_history",
     "回退（解析失败，使用原始问题检索）": "dyn.status.qu_fallback",
+    "未启用（可在 检索设置 或 .env QUERY_UNDERSTANDING 开启）": "dyn.status.qu_off",
+    "未启用（可在 检索设置 或 .env RERANK_ENABLED 开启）": "dyn.status.rerank_off",
+    "未配置 ❌": "dyn.status.unconfigured",
+    "（没有可拼接的相邻卡片）": "dyn.status.context_no_adjacent",
+    "（没有需要丢弃的卡片）": "dyn.status.context_no_drop",
 }
 
 # 动态文本的目录（四语言）
@@ -1626,6 +1635,11 @@ _DYNAMIC_CATALOG: dict[str, dict[str, str]] = {
         "dyn.status.hit": "已命中",
         "dyn.status.triggered": "已触发",
         "dyn.status.no_history": "本轮无历史（首轮提问）",
+        "dyn.status.qu_off": "未启用（可在 检索设置 或 .env QUERY_UNDERSTANDING 开启）",
+        "dyn.status.rerank_off": "未启用（可在 检索设置 或 .env RERANK_ENABLED 开启）",
+        "dyn.status.unconfigured": "未配置 ❌",
+        "dyn.status.context_no_adjacent": "（没有可拼接的相邻卡片）",
+        "dyn.status.context_no_drop": "（没有需要丢弃的卡片）",
         "dyn.status.qu_fallback": "回退（解析失败，使用原始问题检索）",
     },
     "zh-TW": {
@@ -1650,6 +1664,11 @@ _DYNAMIC_CATALOG: dict[str, dict[str, str]] = {
         "dyn.status.hit": "已命中",
         "dyn.status.triggered": "已觸發",
         "dyn.status.no_history": "本輪無歷史（首輪提問）",
+        "dyn.status.qu_off": "未啟用（可在 檢索設置 或 .env QUERY_UNDERSTANDING 開啟）",
+        "dyn.status.rerank_off": "未啟用（可在 檢索設置 或 .env RERANK_ENABLED 開啟）",
+        "dyn.status.unconfigured": "未配置 ❌",
+        "dyn.status.context_no_adjacent": "（沒有可拼接的相鄰卡片）",
+        "dyn.status.context_no_drop": "（沒有需要丟棄的卡片）",
         "dyn.status.qu_fallback": "回退（解析失敗，使用原始問題檢索）",
     },
     "en": {
@@ -1674,6 +1693,11 @@ _DYNAMIC_CATALOG: dict[str, dict[str, str]] = {
         "dyn.status.hit": "Cache hit",
         "dyn.status.triggered": "Triggered",
         "dyn.status.no_history": "No history this turn (first question)",
+        "dyn.status.qu_off": "Disabled (enable in Retrieval Settings or .env QUERY_UNDERSTANDING)",
+        "dyn.status.rerank_off": "Disabled (enable in Retrieval Settings or .env RERANK_ENABLED)",
+        "dyn.status.unconfigured": "Not configured ❌",
+        "dyn.status.context_no_adjacent": "(no adjacent cards to join)",
+        "dyn.status.context_no_drop": "(no cards needed to be dropped)",
         "dyn.status.qu_fallback": "Fallback (parse failed; searching with the original question)",
     },
     "ja": {
@@ -1698,6 +1722,11 @@ _DYNAMIC_CATALOG: dict[str, dict[str, str]] = {
         "dyn.status.hit": "キャッシュヒット",
         "dyn.status.triggered": "トリガー済み",
         "dyn.status.no_history": "このターンは履歴なし（最初の質問）",
+        "dyn.status.qu_off": "無効（検索設定 または .env QUERY_UNDERSTANDING で有効化）",
+        "dyn.status.rerank_off": "無効（検索設定 または .env RERANK_ENABLED で有効化）",
+        "dyn.status.unconfigured": "未設定 ❌",
+        "dyn.status.context_no_adjacent": "（連結できる隣接カードなし）",
+        "dyn.status.context_no_drop": "（破棄が必要なカードなし）",
         "dyn.status.qu_fallback": "フォールバック（解析失敗、元の質問で検索）",
     },
 }

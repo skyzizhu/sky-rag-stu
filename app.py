@@ -786,7 +786,8 @@ def system_status(lang: str = "zh-CN") -> dict[str, tuple[bool, str]]:
     status: dict[str, tuple[bool, str]] = {}
     try:
         ok = services["embedding"].model_available()
-        status[t("status.embedding")] = (ok, cfg.embedding_model if ok else f"缺少 {cfg.embedding_model}")
+        status[t("status.embedding")] = (ok, cfg.embedding_model if ok
+                                         else t("status.missing", model=cfg.embedding_model))
     except Exception as exc:
         status[t("status.embedding")] = (False, str(exc)[:40])
     try:
@@ -1187,7 +1188,7 @@ def show_answer_sources(result) -> None:
         st.code(t("sources.copy_answer") + "\n" + (result.answer or ""), language=None)
         st.code(t("sources.copy_list") + "\n" + "\n".join(
             f"[{s['rank']}] {s['source']}（{t('sources.relevance')} {s['score']:.3f}）"
-            + (f" 章节: {s['section']}" if s.get("section") else "")
+            + (t("sources.section", v=s["section"]) if s.get("section") else "")
             for s in result.sources), language=None)
 
     if st.session_state.get("debug_mode"):
