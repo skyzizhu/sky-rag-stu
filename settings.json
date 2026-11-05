@@ -6,6 +6,7 @@
   "query_understanding": true,
   "hybrid_search": true,
   "rerank": true,
+  "answer_eval": true,
   "theme": "system",
   "language": "system",
   "installed_plugins": [
