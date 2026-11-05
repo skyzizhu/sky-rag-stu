@@ -833,10 +833,10 @@ def build_filters() -> dict:
 def require_perm(perm: str) -> bool:
     """页面级权限守卫（纵深防御）：无权限渲染拒绝提示并 st.stop()。
 
-    管理员天然全通过；员工按管理后台分配的前台权限。
+    管理员已不能登录前台（硬性规则）；员工按管理后台分配的前台权限。
     """
     _au = st.session_state.get("auth_user") or {}
-    if _au.get("is_admin") or perm in (_au.get("permissions") or []):
+    if perm in (_au.get("permissions") or []):
         return True
     st.error(t("perm.denied"))
     st.stop()
@@ -873,7 +873,6 @@ def try_restore_session() -> bool:
         "username": restored["username"],
         "department": restored.get("department"),
         "department_id": restored.get("department_id"),
-        "is_admin": bool(restored.get("is_admin")),
         "permissions": restored.get("permissions") or [],
         "real_name": restored.get("real_name") or "",
         "note": restored.get("note") or "",
@@ -924,6 +923,39 @@ def auth_gate() -> bool:
         st.caption(t("auth.persist.note"))
         st.stop()
 
+    def _render_register_tab(tab, boot: dict) -> None:
+        """注册表单（登录门与"只有注册"模式共用）。"""
+        with tab:
+            departments = boot.get("departments") or []
+            if not departments:
+                st.info(t("auth.no_departments"))
+            else:
+                with st.form("register_form", clear_on_submit=False):
+                    u = st.text_input(t("auth.username"), key="reg_user")
+                    dep = st.selectbox(
+                        t("auth.department"), departments,
+                        format_func=lambda d: d["name"],
+                    )
+                    p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
+                    p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
+                    submitted = st.form_submit_button(t("auth.register.btn"), type="primary",
+                                                      width="stretch")
+                    if submitted:
+                        if p1 != p2:
+                            st.error(t("auth.pwd.mismatch"))
+                        elif len(p1) < 6:
+                            st.error(t("auth.pwd.short"))
+                        else:
+                            data, err = auth_client.register(u.strip(), p1, p2, dep["id"])
+                            if err:
+                                st.error(err)
+                            else:
+                                data2, err2 = auth_client.login(u.strip(), p1)
+                                if data2:
+                                    _finish_login(data2)
+                                else:
+                                    st.success(t("auth.register.ok"))
+
     # V3.7.2 记录真实登录 IP：隐藏组件让浏览器直连认证服务 /auth/ping，认证服务
     # 看到浏览器真实局域网 IP 并写入 rip cookie（localhost 域共享，30 天有效）。
     # 注意 st.context.cookies 读的是页面加载（WebSocket 握手）时的 cookie——
@@ -963,7 +995,7 @@ def auth_gate() -> bool:
     # 点击按钮时最后一个输入框的值可能还没提交到会话，处理器读到旧值，
     # 出现"两次密码明明一致却提示不一致"（登录偶尔要点两次也是这个根源）。
     # form 的字段值在点击提交按钮那一刻原子落地，竞态不可能发生。
-    if not boot.get("has_users"):
+    if not boot.get("has_admins"):
         st.markdown(f'<div class="section-title">{t("auth.init.title")}</div>',
                     unsafe_allow_html=True)
         st.caption(t("auth.init.note"))
@@ -983,12 +1015,17 @@ def auth_gate() -> bool:
                     if err:
                         st.error(err)
                     else:
-                        data2, err2 = auth_client.login(u.strip(), p1)
-                        if data2:
-                            _finish_login(data2)
-                        else:
-                            st.success(t("auth.init.ok"))
+                        # 硬性规则：管理员不能登录前台——创建成功后不自动登录，
+                        # 指引到管理后台使用
+                        st.success(t("auth.init.ok"))
         return False
+
+    if not boot.get("has_users"):
+        # 有管理员但没有员工：只显示注册（员工自助注册，或管理员在后台创建）
+        st.info(t("auth.no_users"))
+        _tab_register = st.tabs([t("auth.tab.register")])[0]
+        _render_register_tab(_tab_register, boot)
+        st.stop()
 
     tab_login, tab_register = st.tabs([t("auth.tab.login"), t("auth.tab.register")])
     with tab_login:
@@ -1003,6 +1040,9 @@ def auth_gate() -> bool:
                     st.error(err)
                 else:
                     _finish_login(data)
+
+    _render_register_tab(tab_register, boot)
+    st.stop()
 
     with tab_register:
         departments = boot.get("departments") or []
@@ -1274,12 +1314,10 @@ def page_chat():
                         for m in st.session_state.messages[:-1]
                         if m.get("role") in ("user", "assistant") and m.get("content")
                     ][-6:]  # 最近 3 轮
-                    # V3.7 权限：普通员工注入可见部门（服务端强制，UI 改不掉）；
-                    # 管理员不注入（看全库）
+                    # V3.7 权限：登录者注入可见部门（服务端强制，UI 改不掉）；
+                    # 无部门的员工只能看 all 域
                     _au = st.session_state.get("auth_user") or {}
-                    if _au.get("is_admin"):
-                        _user_groups = None
-                    elif _au.get("department"):
+                    if _au.get("department"):
                         _user_groups = [_au["department"]]
                     else:
                         _user_groups = ["all"]
@@ -1658,11 +1696,9 @@ def page_manage():
         )
         if st.button(t("manage.sum.button"), disabled=not sum_topic.strip(), type="primary"):
             with st.spinner(t("manage.sum.spinner")):
-                # V3.7.2 权限：跨文档总结同样按登录者部门过滤（管理员看全库）
+                # V3.7.2 权限：跨文档总结同样按登录者部门过滤
                 _sum_au = st.session_state.get("auth_user") or {}
-                if _sum_au.get("is_admin"):
-                    _sum_groups = None
-                elif _sum_au.get("department"):
+                if _sum_au.get("department"):
                     _sum_groups = [_sum_au["department"]]
                 else:
                     _sum_groups = ["all"]
@@ -2020,7 +2056,7 @@ def page_maintenance():
     # V3.7.2 权限拆分：知识库维护需要 maintenance 权限；
     # 缓存管理人人可用（普通员工清自己的问答缓存，管理员/维护权限清全局）
     _au = st.session_state.get("auth_user") or {}
-    _can_maintain = bool(_au.get("is_admin") or "maintenance" in (_au.get("permissions") or []))
+    _can_maintain = "maintenance" in (_au.get("permissions") or [])
     _me = str(_au.get("username") or "")
 
     if _can_maintain:
@@ -2141,7 +2177,7 @@ with st.sidebar:
     if _top_user:
         _display_name = str(_top_user.get("real_name") or _top_user.get("username") or "")
         _dep_label = str(_top_user.get("department") or "")
-        _role_label = " 🛡" if _top_user.get("is_admin") else ""
+        _role_label = ""
         _avatar_char = html.escape((_display_name or "·")[:1])
         _note_line = (f'<div class="u-note">{html.escape(str(_top_user.get("note") or ""))}</div>'
                       if _top_user.get("note") else "")
@@ -2162,9 +2198,9 @@ with st.sidebar:
 # ---------------------------------------------------------------- 页面 9：插件管理
 def page_plugins():
     st.markdown(f'<div class="section-title">{t("plugin.title")}</div>', unsafe_allow_html=True)
-    # V3.7.2 插件管理权限：人人可查看；安装/卸载需要 plugins 权限（管理员天然有）
+    # V3.7.2 插件管理权限：人人可查看；安装/卸载需要 plugins 权限
     _pu = st.session_state.get("auth_user") or {}
-    can_manage_plugins = bool(_pu.get("is_admin") or "plugins" in (_pu.get("permissions") or []))
+    can_manage_plugins = "plugins" in (_pu.get("permissions") or [])
     st.caption(t("plugin.caption") if can_manage_plugins else t("plugin.caption.viewonly"))
 
     installed = get_installed_plugins()
@@ -2210,9 +2246,9 @@ def page_learning():
 auth_gate()
 
 _auth_user = st.session_state.get("auth_user") or {}
-is_admin_view = bool(_auth_user.get("is_admin"))
 # V3.7.2 员工前台权限（管理后台分配，默认无）：检索设置/知识库维护/插件管理需权限；
-# 通用设置/系统状态/参数总览/学习人人可见
+# 通用设置/系统状态/参数总览/学习人人固有。
+# V3.8：管理员已与员工分表且禁止登录前台——前台导航只有员工一种形态。
 _user_perms = set(_auth_user.get("permissions") or [])
 
 chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
@@ -2226,46 +2262,24 @@ params_page = st.Page(page_params_overview, title=t("nav.params"), icon="🧾", 
 plugins_page = st.Page(page_plugins, title=t("nav.plugins"), icon="🔌", url_path="plugins")
 learning_page = st.Page(page_learning, title=t("nav.learning"), icon="📖", url_path="learn")
 
-if is_admin_view:
-    pg = st.navigation({
-        t("nav.group.knowledge"): [
-            chat_page,
-            upload_page,
-            manage_page,
-        ],
-        t("nav.group.settings"): [
-            general_page,
-            retrieval_page,
-            maintenance_page,
-            status_page,
-            params_page,
-        ],
-        t("nav.group.learn"): [
-            learning_page,
-        ],
-        t("nav.group.plugins"): [
-            plugins_page,
-        ],
-    })
-else:
-    # 员工：问答固有；其余页面按管理后台分配的前台权限出现。
-    # 人人固有：通用设置 / 系统状态 / 参数总览 / 学习 / 插件管理（只读）/
-    #           维护操作页（其中"缓存管理"是个人缓存）；权限只管检索设置/知识库维护/上传/知识管理
-    employee_nav: dict = {t("nav.group.knowledge"): [chat_page]}
-    if "upload" in _user_perms:
-        employee_nav[t("nav.group.knowledge")].append(upload_page)
-    if "manage" in _user_perms:
-        employee_nav[t("nav.group.knowledge")].append(manage_page)
-    settings_pages = [general_page]
-    if "retrieval_settings" in _user_perms:
-        settings_pages.append(retrieval_page)
-    # 维护操作页人人可达（页内"知识库维护"区块按权限显隐；缓存管理是个人功能）
-    settings_pages.append(maintenance_page)
-    settings_pages.extend([status_page, params_page])
-    employee_nav[t("nav.group.settings")] = settings_pages
-    employee_nav[t("nav.group.learn")] = [learning_page]
-    employee_nav[t("nav.group.plugins")] = [plugins_page]
-    pg = st.navigation(employee_nav)
+# 员工：问答固有；其余页面按管理后台分配的前台权限出现。
+# 人人固有：通用设置 / 系统状态 / 参数总览 / 学习 / 插件管理（只读）/
+#           维护操作页（其中"缓存管理"是个人缓存）；权限只管检索设置/知识库维护/上传/知识管理
+employee_nav: dict = {t("nav.group.knowledge"): [chat_page]}
+if "upload" in _user_perms:
+    employee_nav[t("nav.group.knowledge")].append(upload_page)
+if "manage" in _user_perms:
+    employee_nav[t("nav.group.knowledge")].append(manage_page)
+settings_pages = [general_page]
+if "retrieval_settings" in _user_perms:
+    settings_pages.append(retrieval_page)
+# 维护操作页人人可达（页内"知识库维护"区块按权限显隐；缓存管理是个人功能）
+settings_pages.append(maintenance_page)
+settings_pages.extend([status_page, params_page])
+employee_nav[t("nav.group.settings")] = settings_pages
+employee_nav[t("nav.group.learn")] = [learning_page]
+employee_nav[t("nav.group.plugins")] = [plugins_page]
+pg = st.navigation(employee_nav)
 
 pg.run()
 
@@ -2273,8 +2287,7 @@ with st.sidebar:
     with st.container(key="sidebar_footer"):
         _sidebar_user = st.session_state.get("auth_user") or {}
         sessions = list_sessions(10,
-                                 username=str(_sidebar_user.get("username") or "") or None,
-                                 is_admin=bool(_sidebar_user.get("is_admin")))
+                                 username=str(_sidebar_user.get("username") or "") or None)
         keep_history_expanded = st.session_state.pop("keep_history_expanded_once", False)
         with st.expander(
             t("sidebar.history", n=len(sessions)),

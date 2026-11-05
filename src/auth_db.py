@@ -1,9 +1,14 @@
 """V3.7：用户体系数据层（SQLite）。
 
 FastAPI 管理后台（8700）与 Streamlit 前台共用同一份数据与逻辑：
-- departments / users / tokens / user_prefs 四张表
+- departments / users / admins / tokens / user_prefs 五张表 +
+  user_login_logs / admin_login_logs / qa_logs 三张日志表
+- V3.8 硬性规则：管理员与员工彻底分表——admins 独立存储，users 只放员工；
+  管理员禁止登录前台（authenticate 只查员工表，前台登录入口显式拒绝管理员账户名）；
+  登录日志按身份分表（user_login_logs / admin_login_logs，按 entry 路由）
 - 每次操作独立短连接 + WAL（多线程两服务并发写安全）
 - 密码 pbkdf2_hmac(sha256, 200_000 轮) + secrets 盐；令牌只存 SHA-256 哈希
+- 账户名全局唯一：admins 与 users 不允许重名（否则前台登录会被管理员拦截规则挡住）
 - 约定：卡片 allowed_groups 存**部门名**列表；部门不支持改名（name 是稳定标识）
 """
 
@@ -45,6 +50,22 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
+_LOG_COLS = """
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    action TEXT NOT NULL,            -- login / logout / register / bootstrap_admin
+    username TEXT NOT NULL DEFAULT '',
+    success INTEGER NOT NULL DEFAULT 1,
+    detail TEXT NOT NULL DEFAULT '',
+    department TEXT NOT NULL DEFAULT '',
+    entry TEXT NOT NULL DEFAULT '',  -- web（员工侧）/ admin（管理后台侧）
+    ip TEXT NOT NULL DEFAULT '',
+    user_agent TEXT NOT NULL DEFAULT '',
+    browser TEXT NOT NULL DEFAULT '',
+    os_name TEXT NOT NULL DEFAULT '',
+    fingerprint TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+"""
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS departments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,15 +74,27 @@ CREATE TABLE IF NOT EXISTS departments (
     disabled INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    is_super INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'active',
+    real_name TEXT NOT NULL DEFAULT '',
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     salt TEXT NOT NULL,
     department_id INTEGER REFERENCES departments(id),
-    is_admin INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'active',
     permissions TEXT NOT NULL DEFAULT '[]',
+    real_name TEXT NOT NULL DEFAULT '',
+    note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS tokens (
@@ -77,22 +110,12 @@ CREATE TABLE IF NOT EXISTS user_prefs (
     username TEXT PRIMARY KEY,
     settings_json TEXT NOT NULL DEFAULT '{}'
 );
-CREATE TABLE IF NOT EXISTS login_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    action TEXT NOT NULL,            -- login / logout / register / bootstrap_admin
-    username TEXT NOT NULL DEFAULT '',
-    success INTEGER NOT NULL DEFAULT 1,
-    detail TEXT NOT NULL DEFAULT '',
-    department TEXT NOT NULL DEFAULT '',
-    entry TEXT NOT NULL DEFAULT '',  -- web / admin
-    ip TEXT NOT NULL DEFAULT '',
-    user_agent TEXT NOT NULL DEFAULT '',
-    browser TEXT NOT NULL DEFAULT '',
-    os_name TEXT NOT NULL DEFAULT '',
-    fingerprint TEXT NOT NULL DEFAULT '',
-    created_at TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS user_login_logs (""" + _LOG_COLS + """
 );
-CREATE INDEX IF NOT EXISTS idx_login_logs_time ON login_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_login_logs_time ON user_login_logs(created_at DESC);
+CREATE TABLE IF NOT EXISTS admin_login_logs (""" + _LOG_COLS + """
+);
+CREATE INDEX IF NOT EXISTS idx_admin_login_logs_time ON admin_login_logs(created_at DESC);
 CREATE TABLE IF NOT EXISTS qa_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL DEFAULT '',
@@ -111,29 +134,61 @@ CREATE INDEX IF NOT EXISTS idx_qa_logs_time ON qa_logs(created_at DESC);
 
 
 def init_db() -> None:
-    """建表（幂等）+ 增量迁移（users.is_super / users.permissions）。两服务启动时各调一次。"""
+    """建表（幂等）+ 存量迁移。两服务启动时各调一次。
+
+    V3.8 分表迁移（一次性，事务内原子完成）：
+    1. users.is_admin=1 的行 → 迁入 admins 表（密码哈希原样携带，登录不受影响），
+       其访问令牌一并清除（管理员不再持有前台/MCP 令牌），随后从 users 删除；
+    2. users 表 DROP 掉 is_admin / is_super 列（员工表不再有管理员概念）；
+    3. 旧 login_logs 按 entry 拆入 user_login_logs / admin_login_logs 后删表；
+    4. qa_logs 中管理员账户的历史记录清除（RAG 使用日志只反映员工行为）。
+    """
     with _write_lock, _connect() as conn:
         conn.executescript(_SCHEMA)
-        for column_sql in (
-            "ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0",
-            "ALTER TABLE users ADD COLUMN permissions TEXT NOT NULL DEFAULT '[]'",
-            "ALTER TABLE users ADD COLUMN real_name TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE users ADD COLUMN note TEXT NOT NULL DEFAULT ''",
-        ):
-            try:
-                conn.execute(column_sql)
-            except sqlite3.OperationalError:
-                pass  # 列已存在
-        # 超级管理员迁移：系统已有用户但还没有超级管理员时，
-        # 把最早创建的管理员（init_db 引导的首账户）标记为超级管理员
-        has_super = conn.execute(
-            "SELECT COUNT(*) AS n FROM users WHERE is_super=1").fetchone()["n"]
-        if has_super == 0:
-            first_admin = conn.execute(
-                "SELECT id FROM users WHERE is_admin=1 ORDER BY id LIMIT 1").fetchone()
-            if first_admin:
-                conn.execute("UPDATE users SET is_super=1 WHERE id=?",
-                             (first_admin["id"],))
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(users)")}
+        if "is_admin" in cols:  # 旧库：管理员还在 users 表里
+            admins_rows = conn.execute(
+                "SELECT * FROM users WHERE is_admin=1 ORDER BY id").fetchall()
+            for r in admins_rows:
+                conn.execute(
+                    "INSERT OR IGNORE INTO admins(username, password_hash, salt,"
+                    " is_super, status, real_name, note, created_at)"
+                    " VALUES(?,?,?,?,?,?,?,?)",
+                    (r["username"], r["password_hash"], r["salt"],
+                     r["is_super"] if "is_super" in cols else 0, r["status"],
+                     r["real_name"] if "real_name" in cols else "",
+                     r["note"] if "note" in cols else "", r["created_at"]))
+                conn.execute("DELETE FROM tokens WHERE user_id=?", (r["id"],))
+            conn.execute("DELETE FROM users WHERE is_admin=1")
+            for column_sql in ("ALTER TABLE users DROP COLUMN is_admin",
+                               "ALTER TABLE users DROP COLUMN is_super"):
+                try:
+                    conn.execute(column_sql)
+                except sqlite3.OperationalError:
+                    pass
+        # 迁移兜底：如果还没有任何超级管理员，把最早的管理员标记为超级管理员
+        if conn.execute("SELECT COUNT(*) AS n FROM admins WHERE is_super=1"
+                        ).fetchone()["n"] == 0:
+            first = conn.execute(
+                "SELECT id FROM admins ORDER BY id LIMIT 1").fetchone()
+            if first:
+                conn.execute("UPDATE admins SET is_super=1 WHERE id=?",
+                             (first["id"],))
+        # 登录日志拆表：按 entry 归入员工/管理员两张表，完成后删除旧表
+        legacy = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+            " AND name='login_logs'").fetchone()
+        if legacy:
+            conn.execute(
+                "INSERT OR IGNORE INTO user_login_logs SELECT * FROM login_logs "
+                "WHERE entry != 'admin'")
+            conn.execute(
+                "INSERT OR IGNORE INTO admin_login_logs SELECT * FROM login_logs "
+                "WHERE entry = 'admin'")
+            conn.execute("DROP TABLE login_logs")
+        # RAG 使用日志只保留员工行为（管理员已不能登录前台/MCP）
+        conn.execute(
+            "DELETE FROM qa_logs WHERE username IN (SELECT username FROM admins)")
 
 
 # ---------------------------------------------------------------- 密码与令牌
@@ -224,21 +279,33 @@ def _validate_password(password: str) -> str:
     return password
 
 
+def _ensure_username_free(username: str) -> None:
+    """账户名全局唯一（admins 与 users 不允许重名）：
+
+    前台登录会先拦截管理员账户名——若两张表重名，该员工的员工账户将永远无法登录。
+    """
+    with _connect() as conn:
+        clash = conn.execute(
+            "SELECT 1 FROM admins WHERE username=?", (username,)).fetchone()
+    if clash:
+        raise ValueError("该账户名已被管理员占用")
+
+
 def create_user(username: str, password: str, department_id: int | None = None,
-                is_admin: bool = False, status: str = "active",
+                status: str = "active",
                 permissions: list[str] | None = None,
                 real_name: str = "", note: str = "") -> dict:
     username = _validate_username(username)
     _validate_password(password)
+    _ensure_username_free(username)
     pw_hash, salt = hash_password(password)
     try:
         with _connect() as conn:
             conn.execute(
                 "INSERT INTO users(username, password_hash, salt, department_id,"
-                " is_admin, status, permissions, real_name, note, created_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?)",
-                (username, pw_hash, salt, department_id,
-                 1 if is_admin else 0, status,
+                " status, permissions, real_name, note, created_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?)",
+                (username, pw_hash, salt, department_id, status,
                  json.dumps(_valid_permissions(permissions)),
                  (real_name or "").strip(), (note or "").strip(), _now()),
             )
@@ -292,10 +359,9 @@ def get_user_by_id(user_id: int) -> dict | None:
     return user
 
 
-def list_users(department_id: int | None = None,
-               is_admin: bool | None = None) -> list[dict]:
-    """is_admin=True 只返回管理员，False 只返回员工，None 全部。"""
-    sql = ("SELECT u.id, u.username, u.department_id, u.is_admin, u.status, "
+def list_users(department_id: int | None = None) -> list[dict]:
+    """员工列表（users 表只放员工；管理员在 admins 表，见 list_admins）。"""
+    sql = ("SELECT u.id, u.username, u.department_id, u.status, "
            "u.created_at, u.permissions, u.real_name, u.note, "
            "d.name AS department FROM users u "
            "LEFT JOIN departments d ON d.id = u.department_id")
@@ -303,9 +369,6 @@ def list_users(department_id: int | None = None,
     if department_id is not None:
         where.append("u.department_id=?")
         params.append(department_id)
-    if is_admin is not None:
-        where.append("u.is_admin=?")
-        params.append(1 if is_admin else 0)
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY u.id"
@@ -365,7 +428,11 @@ def reset_password(user_id: int, new_password: str) -> None:
 
 
 def authenticate(username: str, password: str) -> tuple[dict | None, str]:
-    """登录验证。返回 (用户信息, 错误信息)；成功时错误信息为空串。"""
+    """前台登录验证（只查员工表）。返回 (用户信息, 错误信息)；成功时错误信息为空串。
+
+    管理员不在 users 表里，天然登不上前台——但为给出明确提示，
+    /auth/login 入口会用 admin_exists() 显式拦截（见 admin_app）。
+    """
     user = get_user((username or "").strip())
     if user is None:
         return None, "账户或密码不正确"
@@ -374,10 +441,128 @@ def authenticate(username: str, password: str) -> tuple[dict | None, str]:
     if user["status"] != "active":
         return None, "该账户已被停用，请联系管理员"
     info = {"username": user["username"], "department": user["department"],
-            "department_id": user["department_id"], "is_admin": bool(user["is_admin"]),
+            "department_id": user["department_id"],
             "permissions": user.get("permissions") or [],
             "real_name": user.get("real_name") or "", "note": user.get("note") or ""}
     return info, ""
+
+
+# ---------------------------------------------------------------- 管理员（独立于员工）
+def admin_exists(username: str) -> bool:
+    """前台登录硬性规则的判定入口：该账户名是否属于管理员。"""
+    with _connect() as conn:
+        return conn.execute("SELECT 1 FROM admins WHERE username=?",
+                            ((username or "").strip(),)).fetchone() is not None
+
+
+def create_admin(username: str, password: str, is_super: bool = False,
+                 real_name: str = "", note: str = "") -> dict:
+    username = _validate_username(username)
+    _validate_password(password)
+    _ensure_username_free_admin_side(username)
+    pw_hash, salt = hash_password(password)
+    try:
+        with _connect() as conn:
+            conn.execute(
+                "INSERT INTO admins(username, password_hash, salt, is_super,"
+                " status, real_name, note, created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (username, pw_hash, salt, 1 if is_super else 0, "active",
+                 (real_name or "").strip(), (note or "").strip(), _now()),
+            )
+    except sqlite3.IntegrityError as exc:
+        raise ValueError("该账户名已被占用") from exc
+    admin = get_admin(username)
+    assert admin is not None
+    return admin
+
+
+def _ensure_username_free_admin_side(username: str) -> None:
+    with _connect() as conn:
+        clash = conn.execute("SELECT 1 FROM users WHERE username=?",
+                             (username,)).fetchone()
+    if clash:
+        raise ValueError("该账户名已被员工使用")
+
+
+def _admin_info(row) -> dict:
+    return {"id": row["id"], "username": row["username"],
+            "is_super": bool(row["is_super"]), "status": row["status"],
+            "real_name": row["real_name"] or "", "note": row["note"] or "",
+            "created_at": row["created_at"]}
+
+
+def get_admin(username: str) -> dict | None:
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM admins WHERE username=?",
+                           ((username or "").strip(),)).fetchone()
+    return _admin_info(row) if row else None
+
+
+def get_admin_by_id(admin_id: int) -> dict | None:
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM admins WHERE id=?",
+                           (admin_id,)).fetchone()
+    return _admin_info(row) if row else None
+
+
+def list_admins() -> list[dict]:
+    with _connect() as conn:
+        rows = conn.execute("SELECT * FROM admins ORDER BY id").fetchall()
+    return [_admin_info(r) for r in rows]
+
+
+def count_admins() -> int:
+    with _connect() as conn:
+        return conn.execute("SELECT COUNT(*) AS n FROM admins").fetchone()["n"]
+
+
+def update_admin(admin_id: int, status: str | None = None,
+                 real_name: str | None = None, note: str | None = None) -> None:
+    with _connect() as conn:
+        if status is not None:
+            if status not in ("active", "disabled"):
+                raise ValueError("非法状态")
+            conn.execute("UPDATE admins SET status=? WHERE id=?", (status, admin_id))
+        if real_name is not None:
+            conn.execute("UPDATE admins SET real_name=? WHERE id=?",
+                         ((real_name or "").strip(), admin_id))
+        if note is not None:
+            conn.execute("UPDATE admins SET note=? WHERE id=?",
+                         ((note or "").strip(), admin_id))
+
+
+def reset_admin_password(admin_id: int, new_password: str) -> None:
+    _validate_password(new_password)
+    pw_hash, salt = hash_password(new_password)
+    with _connect() as conn:
+        cur = conn.execute("UPDATE admins SET password_hash=?, salt=? WHERE id=?",
+                           (pw_hash, salt, admin_id))
+        if cur.rowcount == 0:
+            raise ValueError("管理员不存在")
+
+
+def authenticate_admin(username: str, password: str) -> tuple[dict | None, str]:
+    """管理后台登录验证（只查 admins 表）。"""
+    admin = get_admin((username or "").strip())
+    if admin is None:
+        return None, "账户或密码不正确"
+    row_pw = None
+    with _connect() as conn:
+        row_pw = conn.execute(
+            "SELECT password_hash, salt FROM admins WHERE username=?",
+            ((username or "").strip(),)).fetchone()
+    if not verify_password(password, row_pw["salt"], row_pw["password_hash"]):
+        return None, "账户或密码不正确"
+    if admin["status"] != "active":
+        return None, "该管理员账户已被停用"
+    return admin, ""
+
+
+def delete_admin(admin_id: int) -> None:
+    with _connect() as conn:
+        cur = conn.execute("DELETE FROM admins WHERE id=?", (admin_id,))
+        if cur.rowcount == 0:
+            raise ValueError("管理员不存在")
 
 
 # ---------------------------------------------------------------- 访问令牌
@@ -395,7 +580,10 @@ def create_token(user_id: int, name: str = "") -> str:
 
 
 def verify_token(plaintext: str) -> dict | None:
-    """验证 PAT：返回 {user, department, token_row}；无效/吊销/停用返回 None。"""
+    """验证 PAT：返回 {username, department, token_name}；无效/吊销/停用返回 None。
+
+    令牌只发给员工（admins 表没有令牌）——MCP 身份永远按部门过滤。
+    """
     row = None
     with _connect() as conn:
         row = conn.execute("SELECT * FROM tokens WHERE token_hash=?",
@@ -409,7 +597,7 @@ def verify_token(plaintext: str) -> dict | None:
         conn.execute("UPDATE tokens SET last_used=? WHERE token_hash=?",
                      (_now(), row["token_hash"]))
     return {"username": user["username"], "department": user["department"],
-            "is_admin": bool(user["is_admin"]), "token_name": row["name"]}
+            "token_name": row["name"]}
 
 
 def list_tokens() -> list[dict]:
@@ -497,14 +685,16 @@ def log_auth_event(action: str, username: str, *, success: bool = True,
                    accept_language: str = "") -> None:
     """记录一条认证事件（登录成功/失败、注册、登出、初始化管理员）。
 
-    日志失败绝不抛出——认证主流程不能被日志拖垮。
+    按身份分表：entry="admin"（管理后台）写 admin_login_logs，其余（前台）
+    写 user_login_logs。日志失败绝不抛出——认证主流程不能被日志拖垮。
     """
     browser, os_name = parse_user_agent(user_agent)
     fp = make_fingerprint(user_agent, accept_language, ip)
+    table = "admin_login_logs" if entry == "admin" else "user_login_logs"
     try:
         with _connect() as conn:
             conn.execute(
-                "INSERT INTO login_logs(action, username, success, detail, department,"
+                f"INSERT INTO {table}(action, username, success, detail, department,"
                 " entry, ip, user_agent, browser, os_name, fingerprint, created_at)"
                 " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                 (action, username or "", 1 if success else 0, detail or "",
@@ -515,36 +705,31 @@ def log_auth_event(action: str, username: str, *, success: bool = True,
         pass
 
 
-def _login_logs_where(username: str, action: str,
-                      scope: str | None) -> tuple[str, list]:
-    """登录日志的公共 WHERE 构造（列表与计数共用，保证分页总数一致）。
+def _log_table(scope: str | None) -> str:
+    """scope → 登录日志表：admins 侧查 admin_login_logs，其余查 user_login_logs。"""
+    return "admin_login_logs" if scope == "admins" else "user_login_logs"
 
-    scope="admins" 只看管理员的记录，"users" 只看员工/注册者的记录。
-    按 username 关联 users.is_admin 判定；日志里不存在于用户表的账户
-    （如登录失败的乱输）一律归入 users 侧。
-    """
-    join = " LEFT JOIN users u ON u.username = l.username"
+
+def _login_logs_where(username: str, action: str) -> tuple[str, list]:
+    """登录日志的公共 WHERE 构造（列表与计数共用，保证分页总数一致）。"""
     where, params = [], []
     if username:
-        where.append("l.username LIKE ?")
+        where.append("username LIKE ?")
         params.append(f"%{username}%")
     if action:
-        where.append("l.action=?")
+        where.append("action=?")
         params.append(action)
-    if scope == "admins":
-        where.append("COALESCE(u.is_admin, 0)=1")
-    elif scope == "users":
-        where.append("COALESCE(u.is_admin, 0)=0")
     where_sql = (" WHERE " + " AND ".join(where)) if where else ""
-    return (join + where_sql), params
+    return where_sql, params
 
 
 def list_login_logs(limit: int = 200, username: str = "",
                     action: str = "", scope: str | None = None,
                     offset: int = 0) -> list[dict]:
-    where_sql, params = _login_logs_where(username, action, scope)
-    sql = ("SELECT l.* FROM login_logs l" + where_sql)
-    sql += " ORDER BY l.id DESC LIMIT ? OFFSET ?"
+    """scope="admins" 读管理员登录日志表，"users"/None 读员工表（分表后无 JOIN）。"""
+    where_sql, params = _login_logs_where(username, action)
+    sql = f"SELECT * FROM {_log_table(scope)}" + where_sql
+    sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
     params.extend([max(1, min(int(limit), 500)), max(0, int(offset))])
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
@@ -553,10 +738,11 @@ def list_login_logs(limit: int = 200, username: str = "",
 
 def count_login_logs(username: str = "", action: str = "",
                      scope: str | None = None) -> int:
-    where_sql, params = _login_logs_where(username, action, scope)
+    where_sql, params = _login_logs_where(username, action)
     with _connect() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) AS n FROM login_logs l" + where_sql, params).fetchone()
+            f"SELECT COUNT(*) AS n FROM {_log_table(scope)}" + where_sql,
+            params).fetchone()
     return row["n"]
 
 
@@ -584,36 +770,29 @@ def log_qa_event(username: str, department: str, entry: str, question: str,
         pass
 
 
-def _qa_logs_where(username: str, entry: str, scope: str | None,
+def _qa_logs_where(username: str, entry: str,
                    department: str = "") -> tuple[str, list]:
-    join = " LEFT JOIN users u ON u.username = l.username"
     where, params = [], []
     if username:
-        where.append("l.username LIKE ?")
+        where.append("username LIKE ?")
         params.append(f"%{username}%")
     if entry:
-        where.append("l.entry=?")
+        where.append("entry=?")
         params.append(entry)
     if department:
-        where.append("l.department=?")
+        where.append("department=?")
         params.append(department)
-    if scope == "admins":
-        where.append("COALESCE(u.is_admin, 0)=1")
-    elif scope == "users":
-        where.append("COALESCE(u.is_admin, 0)=0")
     where_sql = (" WHERE " + " AND ".join(where)) if where else ""
-    return (join + where_sql), params
+    return where_sql, params
 
 
 def list_qa_logs(limit: int = 100, username: str = "",
-                 entry: str = "", scope: str | None = None,
+                 entry: str = "",
                  department: str = "", offset: int = 0) -> list[dict]:
-    """scope="admins"/"users" 按账户角色分离管理员与员工的使用记录。"""
-    # JOIN 由 _qa_logs_where 统一拼接（与 count 共用，保证总数一致）
-    sql = "SELECT l.* FROM qa_logs l"
-    where_sql, params = _qa_logs_where(username, entry, scope, department)
-    sql += where_sql
-    sql += " ORDER BY l.id DESC LIMIT ? OFFSET ?"
+    """RAG 使用日志（只有员工会产生——管理员已不能登录前台/MCP）。"""
+    where_sql, params = _qa_logs_where(username, entry, department)
+    sql = "SELECT * FROM qa_logs" + where_sql
+    sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
     params.extend([max(1, min(int(limit), 300)), max(0, int(offset))])
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
@@ -632,12 +811,12 @@ def list_qa_logs(limit: int = 100, username: str = "",
     return out
 
 
-def count_qa_logs(username: str = "", entry: str = "", scope: str | None = None,
+def count_qa_logs(username: str = "", entry: str = "",
                   department: str = "") -> int:
-    where_sql, params = _qa_logs_where(username, entry, scope, department)
+    where_sql, params = _qa_logs_where(username, entry, department)
     with _connect() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) AS n FROM qa_logs l" + where_sql, params).fetchone()
+            "SELECT COUNT(*) AS n FROM qa_logs" + where_sql, params).fetchone()
     return row["n"]
 
 

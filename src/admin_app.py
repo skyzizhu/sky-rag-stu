@@ -71,14 +71,14 @@ def _read_cookie(value: str | None) -> str | None:
 
 
 def current_admin(request: Request) -> dict | None:
-    """从 Cookie 解析当前管理员；非管理员/未登录返回 None。"""
+    """从 Cookie 解析当前管理员（查 admins 表）；未登录/已停用返回 None。"""
     username = _read_cookie(request.cookies.get(_SESSION_COOKIE))
     if not username:
         return None
-    user = auth_db.get_user(username)
-    if user is None or not user["is_admin"] or user["status"] != "active":
+    admin = auth_db.get_admin(username)
+    if admin is None or admin["status"] != "active":
         return None
-    return user
+    return admin
 
 
 def require_admin(request: Request) -> dict:
@@ -143,15 +143,14 @@ async def login_action(request: Request):
         form = await request.form()
         username = str(form.get("username", ""))
         password = str(form.get("password", ""))
-    info, err = auth_db.authenticate(username, password)
-    if err or not info or not info.get("is_admin"):
-        msg = err or "该账户不是管理员"
+    info, err = auth_db.authenticate_admin(username, password)
+    if err or info is None:
         _log_from_admin(request, "login", username, success=False,
-                        detail=msg or "非管理员", department=info.get("department", "") if info else "")
+                        detail=err or "登录失败")
         return templates.TemplateResponse(request, "login.html",
-                                          {"err": msg, "msg": ""}, status_code=401)
-    _log_from_admin(request, "login", info["username"], success=True,
-                    department=info.get("department", ""))
+                                          {"err": err or "登录失败", "msg": ""},
+                                          status_code=401)
+    _log_from_admin(request, "login", info["username"], success=True)
     resp = RedirectResponse("/admin", status_code=303)
     resp.set_cookie(_SESSION_COOKIE, _make_cookie(info["username"]),
                     httponly=True, samesite="lax")
@@ -180,14 +179,13 @@ def admin_shell(request: Request, admin: dict = Depends(require_admin)):
 def api_overview(_: dict = Depends(require_admin_api)):
     deps = auth_db.list_departments()
     users = auth_db.list_users()
-    admins = [u for u in users if u["is_admin"]]
+    admins = auth_db.list_admins()
     logs = auth_db.list_login_logs(limit=10, scope="users")
     return {
         "departments": len(deps),
         "departments_enabled": len([d for d in deps if not d["disabled"]]),
-        "users": len([u for u in users if not u["is_admin"]]),
-        "users_active": len([u for u in users
-                             if u["status"] == "active" and not u["is_admin"]]),
+        "users": len(users),
+        "users_active": len([u for u in users if u["status"] == "active"]),
         "admins": len(admins),
         "admins_active": len([a for a in admins if a["status"] == "active"]),
         "recent_logins": logs,
@@ -250,13 +248,11 @@ def api_department_delete(dep_id: int, request: Request,
 # ---------------------------------------------------------------- JSON API：员工
 @app.get("/api/users")
 def api_users(dep: int | None = None, q: str = "",
-              scope: str | None = Query(None),
               page: int = Query(1, ge=1), page_size: int = Query(0, le=200),
               _: dict = Depends(require_admin_api)):
-    """scope="admins" 只返回管理员，"employees" 只返回员工。
+    """员工列表（users 表只放员工；管理员走 /api/admins）。
     page_size=0 表示不分页（下拉框等场景取全量）。"""
-    is_admin = {"admins": True, "employees": False}.get(scope)
-    users = auth_db.list_users(department_id=dep, is_admin=is_admin)
+    users = auth_db.list_users(department_id=dep)
     if q:
         ql = q.strip().lower()
         users = [u for u in users
@@ -286,16 +282,10 @@ class PermissionsBody(BaseModel):
 def api_user_permissions(user_id: int, body: PermissionsBody,
                          request: Request,
                          admin: dict = Depends(require_admin_api)):
-    """给员工分配前台权限（upload/manage/settings/learn/plugins，默认无）。
-
-    管理员账户不受此约束（看全库、全功能）；超级管理员不可通过此接口降级。
-    """
+    """给员工分配前台权限（upload/manage/retrieval_settings/maintenance/plugins，默认无）。"""
     user = auth_db.get_user_by_id(user_id)
     if user is None:
         return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
-    if user["is_super"]:
-        return JSONResponse({"ok": False,
-                             "detail": "超级管理员权限固定，不可修改"}, status_code=400)
     perms = [p for p in body.permissions if p in auth_db.FRONT_PERMISSIONS]
     auth_db.update_user(user_id, permissions=perms)
     _log_from_admin(request, "permissions_update", admin["username"],
@@ -348,14 +338,9 @@ def api_user_reset(user_id: int, body: ResetPasswordBody, request: Request,
 @app.post("/api/users/{user_id}/toggle")
 def api_user_toggle(user_id: int, request: Request,
                     admin: dict = Depends(require_admin_api)):
-    if user_id == admin["id"]:
-        return JSONResponse({"ok": False, "detail": "不能停用自己的账户"}, status_code=400)
     user = auth_db.get_user_by_id(user_id)
     if user is None:
         return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
-    if user["is_super"]:
-        return JSONResponse({"ok": False,
-                             "detail": "超级管理员不能被停用"}, status_code=400)
     new_status = "disabled" if user["status"] == "active" else "active"
     auth_db.update_user(user_id, status=new_status)
     state = "启用" if new_status == "active" else "停用"
@@ -364,12 +349,16 @@ def api_user_toggle(user_id: int, request: Request,
     return {"ok": True, "status": new_status}
 
 
-# ---------------------------------------------------------------- JSON API：管理员（与员工分列）
+# ---------------------------------------------------------------- JSON API：管理员（admins 表，与员工分列）
+@app.get("/api/admins")
+def api_admins_list(_: dict = Depends(require_admin_api)):
+    return {"ok": True, "admins": auth_db.list_admins()}
+
+
 class AdminBody(BaseModel):
     username: str
     password: str
     password_confirm: str
-    department_id: int | None = None
 
 
 @app.post("/api/admins")
@@ -378,31 +367,64 @@ def api_admin_create(body: AdminBody, request: Request,
     if body.password != body.password_confirm:
         return JSONResponse({"ok": False, "detail": "两次输入的密码不一致"}, status_code=400)
     try:
-        user = auth_db.create_user(body.username, body.password,
-                                   department_id=body.department_id, is_admin=True)
+        created = auth_db.create_admin(body.username, body.password)
     except ValueError as exc:
         return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
     _log_from_admin(request, "admin_create", admin["username"],
-                    detail=f"新增管理员 {user['username']}")
-    return {"ok": True, "user": user}
+                    detail=f"新增管理员 {created['username']}")
+    return {"ok": True, "admin": created}
 
 
-@app.delete("/api/admins/{user_id}")
-def api_admin_delete(user_id: int, request: Request,
+@app.post("/api/admins/{admin_id}/toggle")
+def api_admin_toggle(admin_id: int, request: Request,
                      admin: dict = Depends(require_admin_api)):
-    user = auth_db.get_user_by_id(user_id)
-    if user is None:
-        return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
-    if user["is_super"]:
+    if admin_id == admin["id"]:
+        return JSONResponse({"ok": False, "detail": "不能停用自己的账户"}, status_code=400)
+    target = auth_db.get_admin_by_id(admin_id)
+    if target is None:
+        return JSONResponse({"ok": False, "detail": "管理员不存在"}, status_code=404)
+    if target["is_super"]:
+        return JSONResponse({"ok": False,
+                             "detail": "超级管理员不能被停用"}, status_code=400)
+    new_status = "disabled" if target["status"] == "active" else "active"
+    auth_db.update_admin(admin_id, status=new_status)
+    state = "启用" if new_status == "active" else "停用"
+    _log_from_admin(request, "admin_toggle", admin["username"],
+                    detail=f"{target['username']} → {state}")
+    return {"ok": True, "status": new_status}
+
+
+@app.post("/api/admins/{admin_id}/reset")
+def api_admin_reset(admin_id: int, body: ResetPasswordBody, request: Request,
+                    admin: dict = Depends(require_admin_api)):
+    try:
+        auth_db.reset_admin_password(admin_id, body.new_password)
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    target = auth_db.get_admin_by_id(admin_id)
+    name = target["username"] if target else str(admin_id)
+    _log_from_admin(request, "admin_password_reset", admin["username"],
+                    detail=f"重置管理员 {name} 的密码")
+    return {"ok": True, "detail": f"管理员「{name}」的密码已重置"}
+
+
+@app.delete("/api/admins/{admin_id}")
+def api_admin_delete(admin_id: int, request: Request,
+                     admin: dict = Depends(require_admin_api)):
+    target = auth_db.get_admin_by_id(admin_id)
+    if target is None:
+        return JSONResponse({"ok": False, "detail": "管理员不存在"}, status_code=404)
+    if target["is_super"]:
         return JSONResponse({"ok": False,
                              "detail": "超级管理员（admin）不能删除"}, status_code=400)
-    if user_id == admin["id"]:
+    if admin_id == admin["id"]:
         return JSONResponse({"ok": False, "detail": "不能删除自己的账户"}, status_code=400)
-    with auth_db._connect() as conn:
-        conn.execute("DELETE FROM tokens WHERE user_id=?", (user_id,))
-        conn.execute("DELETE FROM users WHERE id=?", (user_id,))
+    try:
+        auth_db.delete_admin(admin_id)
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
     _log_from_admin(request, "admin_delete", admin["username"],
-                    detail=f"删除管理员 {user['username']}")
+                    detail=f"删除管理员 {target['username']}")
     return {"ok": True}
 
 
@@ -494,13 +516,13 @@ def api_logs_auth(limit: int = Query(20, le=200), page: int = Query(1, ge=1),
 @app.get("/api/logs/qa")
 def api_logs_qa(limit: int = Query(20, le=100), page: int = Query(1, ge=1),
                 username: str = "", entry: str = "", department: str = "",
-                scope: str | None = Query(None),
                 _: dict = Depends(require_admin_api)):
+    """RAG 使用日志（只产生于员工——管理员已不能登录前台/MCP）。"""
     offset = (page - 1) * limit
     logs = auth_db.list_qa_logs(limit=limit, offset=offset, username=username,
-                                entry=entry, scope=scope, department=department)
+                                entry=entry, department=department)
     total = auth_db.count_qa_logs(username=username, entry=entry,
-                                  scope=scope, department=department)
+                                  department=department)
     return {"ok": True, "logs": logs, "total": total,
             "page": page, "page_size": limit}
 
@@ -538,6 +560,11 @@ def _web_ip(request: Request) -> str:
 
 @app.post("/auth/register")
 def api_register(body: RegisterBody, request: Request):
+    # 账户名全局唯一：与管理员重名的注册请求直接拒绝（否则前台登录会被
+    # 管理员拦截规则挡住，员工账户形同虚设）
+    if auth_db.admin_exists((body.username or "").strip()):
+        return JSONResponse({"ok": False, "detail": "该账户名已被管理员占用"},
+                            status_code=400)
     if body.password != body.password_confirm:
         auth_db.log_auth_event("register", body.username, success=False,
                                detail="两次密码不一致", entry="web",
@@ -570,7 +597,19 @@ def api_register(body: RegisterBody, request: Request):
 
 @app.post("/auth/login")
 def api_login(body: LoginBody, request: Request):
-    info, err = auth_db.authenticate(body.username, body.password)
+    username = (body.username or "").strip()
+    # 硬性规则：管理员账户禁止登录前台（无论密码对错，一律拒绝）
+    if auth_db.admin_exists(username):
+        auth_db.log_auth_event("login", username, success=False,
+                               detail="管理员账户禁止在前端登录", entry="web",
+                               ip=(body.client_ip or _web_ip(request)),
+                               user_agent=body.user_agent,
+                               accept_language=body.accept_language)
+        return JSONResponse(
+            {"ok": False,
+             "detail": "管理员账户不能登录前台，请使用管理后台（8700 端口）"},
+            status_code=403)
+    info, err = auth_db.authenticate(username, body.password)
     ip = _web_ip(request)
     if err or info is None:
         auth_db.log_auth_event("login", body.username, success=False,
@@ -601,8 +640,9 @@ def api_logout(body: LogoutBody, request: Request):
 
 @app.get("/auth/bootstrap")
 def api_bootstrap():
-    """Streamlit 登录门的引导信息：是否需要初始化管理员 + 可注册部门。"""
+    """Streamlit 登录门的引导信息：是否有管理员/员工 + 可注册部门。"""
     return {"has_users": auth_db.count_users() > 0,
+            "has_admins": auth_db.count_admins() > 0,
             "departments": [{"id": d["id"], "name": d["name"]}
                             for d in auth_db.list_departments(include_disabled=False)]}
 
@@ -615,23 +655,24 @@ class BootstrapAdminBody(ContextFields):
 
 @app.post("/auth/bootstrap-admin")
 def api_bootstrap_admin(body: BootstrapAdminBody, request: Request):
-    """仅当系统中还没有任何用户时可用（首启初始化管理员）。"""
-    if auth_db.count_users() > 0:
+    """仅当系统中还没有任何管理员时可用（首启初始化管理员，写入 admins 表）。
+
+    初始化的管理员不能登录前台（硬性规则）——请到管理后台（8700）使用。
+    """
+    if auth_db.count_admins() > 0:
         return JSONResponse({"ok": False,
-                             "detail": "系统已有用户，初始化入口已关闭"}, status_code=400)
+                             "detail": "系统已有管理员，初始化入口已关闭"}, status_code=400)
     if body.password != body.password_confirm:
         return JSONResponse({"ok": False, "detail": "两次输入的密码不一致"}, status_code=400)
     try:
-        user = auth_db.create_user(body.username, body.password, is_admin=True)
+        admin = auth_db.create_admin(body.username, body.password, is_super=True)
     except ValueError as exc:
         return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
-    with auth_db._connect() as conn:
-        conn.execute("UPDATE users SET is_super=1 WHERE id=?", (user["id"],))
-    auth_db.log_auth_event("bootstrap_admin", user["username"], success=True,
-                           entry="web", ip=(body.client_ip or _web_ip(request)),
+    auth_db.log_auth_event("bootstrap_admin", admin["username"], success=True,
+                           entry="admin", ip=(body.client_ip or _web_ip(request)),
                            user_agent=body.user_agent,
                            accept_language=body.accept_language)
-    return {"ok": True, "username": user["username"], "is_admin": True}
+    return {"ok": True, "username": admin["username"]}
 
 
 class PrefsBody(BaseModel):

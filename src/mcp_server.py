@@ -310,7 +310,8 @@ class _TokenAuthMiddleware:
     """ASGI 中间件：校验 Authorization: Bearer mcp_pat_...
 
     通过验证 → 把调用者的可见部门写入 contextvar（工具内读取并注入检索过滤）；
-    无效/缺失令牌 → 401。is_admin 的令牌不注入（与 Web 管理员同语义：看全库）。
+    无效/缺失令牌 → 401。令牌只发给员工（admins 表无令牌）——
+    MCP 身份永远按部门过滤，没有"看全库"的特例。
     """
 
     async def __call__(self, scope, receive, send):
@@ -336,12 +337,7 @@ class _TokenAuthMiddleware:
                                     (b"www-authenticate", b"Bearer")]})
             await send({"type": "http.response.body", "body": payload})
             return
-        if ident["is_admin"]:
-            groups = None
-        elif ident["department"]:
-            groups = [ident["department"]]
-        else:
-            groups = ["all"]
+        groups = [ident["department"]] if ident["department"] else ["all"]
         _request_groups.set(groups)
         _request_user.set({"username": ident["username"],
                            "department": ident["department"]})
