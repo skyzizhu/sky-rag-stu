@@ -19,10 +19,11 @@ from src.config import AppConfig, get_config
 from src.chunker import Chunk
 
 # 建立 Payload Index 的字段：给 Metadata Filter 查询提速
-# （topic / tags 是列表字段，Qdrant 的 keyword 索引对「任一元素匹配」生效）
+# （topic / tags / allowed_groups 是列表字段，Qdrant 的 keyword 索引对「任一元素匹配」生效）
 INDEXED_FIELDS = [
     "document_id", "source", "domain", "category",
     "topic", "tags", "status", "version", "file_type",
+    "allowed_groups",  # V3.7 权限：可见部门列表
 ]
 # 时间字段：建立 datetime 索引，支持范围过滤（如"最近三个月的笔记"）
 INDEXED_DATETIME_FIELDS = ["created_at", "updated_at"]
@@ -249,7 +250,7 @@ class VectorStore:
                 limit=256,
                 offset=offset,
                 with_payload=["document_id", "source", "path", "domain", "category",
-                              "topic", "version", "status"],
+                              "topic", "version", "status", "allowed_groups"],
             )
             for point in points:
                 payload = point.payload or {}
@@ -264,6 +265,7 @@ class VectorStore:
                         "domain": payload.get("domain") or "?",
                         "category": payload.get("category") or "?",
                         "topic": payload.get("topic") or [],
+                        "allowed_groups": payload.get("allowed_groups") or ["all"],
                         "version": key[1],
                         "status": key[2],
                         "chunks": 0,

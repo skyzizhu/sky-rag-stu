@@ -22,6 +22,8 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.app_settings import SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
+from src import auth_client  # noqa: E402  # V3.7 登录/注册/偏好（FastAPI 认证服务 8700）
+from src import auth_db  # noqa: E402  # V3.7 部门列表（上传可见性选项）
 from src.answer_format import format_answer_markdown  # noqa: E402
 from src.config import get_config  # noqa: E402
 from src.chat_scroll import scroll_chat_to_latest, scroll_follow_stream  # noqa: E402
@@ -111,6 +113,31 @@ def confirm_session_delete() -> None:
         # 删除后会话数量变化会让 Expander 以新组件重建；下一次渲染强制保持展开。
         st.session_state["keep_history_expanded_once"] = True
         st.session_state.pop("delete_session_request", None)
+        st.rerun()
+
+
+@st.dialog(t("auth.logout.confirm.title"), width="small")
+def confirm_logout() -> None:
+    st.write(t("auth.logout.confirm.msg"))
+    _u = st.session_state.get("auth_user") or {}
+    c1, c2 = st.columns(2)
+    if c1.button(t("auth.logout.confirm.yes"), type="primary", use_container_width=True):
+        auth_client.logout(str(_u.get("username") or ""))  # 登出写入登录日志
+        # V3.7.2 同步清除浏览器里的 front_auth Cookie（与登录写入同一机制：
+        # 本域 parent.document.cookie，清除后重载回登录门）。st.stop 让清 Cookie
+        # 脚本先挂载执行，避免 rerun 竞态把组件顶掉。
+        from streamlit.components.v1 import html as components_html
+        components_html(
+            '<script>try{'
+            'parent.document.cookie = "front_auth=; path=/; max-age=0";'
+            'parent.location.reload();'
+            '}catch(e){parent.location.reload();}</script>', height=0)
+        st.session_state["auth_user"] = None
+        st.session_state["messages"] = []
+        st.session_state["session_id"] = new_session_id()
+        st.stop()
+    if c2.button(t("auth.logout.confirm.no"), use_container_width=True):
+        st.session_state.pop("logout_request", None)
         st.rerun()
 
 
@@ -294,7 +321,44 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebarUserContent"] > *,
 [data-testid="stSidebarUserContent"] > * > [data-testid="stVerticalBlock"] {display:contents !important;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_brand) {order:1 !important;}
-[data-testid="stSidebarNav"] {order:2 !important;}
+/* V3.7.2 用户信息卡：Logo 下方留出呼吸间距，卡片分层样式 */
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo) {
+  order:2 !important;
+  margin: 12px 10px 10px 0 !important;
+}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo)
+  [data-testid="stVerticalBlock"] {gap: 0 !important; padding: 0 !important;}
+.user-card { display:flex; align-items:center; gap:10px; padding:9px 12px;
+  background: var(--bg-secondary, rgba(148,163,184,.10));
+  border: 1px solid var(--border-subtle, rgba(148,163,184,.25));
+  border-radius: 12px; }
+.user-card .avatar { width:38px; height:38px; border-radius:50%; flex:none;
+  background:linear-gradient(135deg,#2563EB,#4F46E5); color:#fff;
+  font-weight:700; font-size:.95rem; display:flex; align-items:center;
+  justify-content:center; box-shadow:0 2px 8px rgba(37,99,235,.30); }
+.user-card .u-name { font-weight:700; font-size:.86rem; }
+.user-card .u-sub { color:var(--text-muted, #8a93a6); font-size:.72rem; margin-top:1px; }
+.user-card .u-note { color:var(--text-muted, #8a93a6); font-size:.72rem; margin-top:3px;
+  white-space:normal; word-break:break-all; line-height:1.5; }
+/* V3.7.2 表单控件全局加清晰边框：下拉/输入/多选未聚焦时也有明确可点击边界 */
+.stApp [data-baseweb="select"],
+.stApp [data-baseweb="tag-list"],
+.stApp [data-baseweb="text-input"] > div,
+.stApp [data-baseweb="text-area"] > div {
+  border: 1px solid rgba(100,116,139,.45) !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+}
+.stApp [data-baseweb="select"] > div:hover,
+.stApp [data-baseweb="select"]:hover,
+.stApp [data-baseweb="tag-list"]:hover,
+.stApp [data-baseweb="text-input"] > div:hover {
+  border-color: #2563EB !important;
+}
+.user-card .u-dept { display:inline-block; padding:1px 8px; margin-left:6px;
+  border-radius:9px; font-size:.68rem; background:rgba(99,102,241,.14);
+  color:var(--accent-text, #4F46E5); font-weight:600; vertical-align:2px; }
+[data-testid="stSidebarNav"] {order:3 !important; margin-top: 6px !important;}
 /* 导航文字颜色跟随主题变量（Streamlit 内置导航用固定主题色，深色下看不清） */
 [data-testid="stSidebarNav"] a,
 [data-testid="stSidebarNav"] a span,
@@ -307,7 +371,12 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebarNav"] a[aria-current="page"] span,
 [data-testid="stSidebarNav"] a[aria-current="page"] p {
   color: var(--accent-text) !important; font-weight: 600;}
-[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_footer) {order:3 !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_footer) {order:4 !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_logout) {
+  order:5 !important; margin-top:auto !important; padding: 4px 6px 2px !important;
+  border-top: 1px solid var(--border-subtle) !important;}
+[data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_logout) button {
+  width: 100% !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label {border-radius: 10px; padding: 4px 12px;
   margin: 1px 0; transition: all .2s; font-weight: 500; font-size: .82rem; color: var(--text-secondary) !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {background: rgba(99,102,241,.08); color: #C7D2FE !important;}
@@ -666,10 +735,15 @@ def persist_app_settings() -> None:
 
     必须整包带上 installed_plugins（它不在 session_state 里，读取走 src/plugin），
     否则任何一次覆盖式保存都会把它（或 language）从 settings.json 里丢掉。
+    V3.7：登录用户额外把偏好按人存入 SQLite（不同用户语言/主题互不影响）。
     """
     data = {k: st.session_state[k] for k in SETTINGS_KEYS if k in st.session_state}
     data["installed_plugins"] = get_installed_plugins()
     save_app_settings(data)
+    user = st.session_state.get("auth_user")
+    if user:
+        prefs = {k: v for k, v in data.items() if k != "installed_plugins"}
+        auth_client.save_prefs(user["username"], prefs)
 
 
 def _sync_setting(canonical_key: str, widget_key: str):
@@ -712,7 +786,8 @@ def system_status(lang: str = "zh-CN") -> dict[str, tuple[bool, str]]:
     status: dict[str, tuple[bool, str]] = {}
     try:
         ok = services["embedding"].model_available()
-        status[t("status.embedding")] = (ok, cfg.embedding_model if ok else f"缺少 {cfg.embedding_model}")
+        status[t("status.embedding")] = (ok, cfg.embedding_model if ok
+                                         else t("status.missing", model=cfg.embedding_model))
     except Exception as exc:
         status[t("status.embedding")] = (False, str(exc)[:40])
     try:
@@ -753,6 +828,268 @@ def build_filters() -> dict:
     elif scope == "archive":
         filters["status"] = "archive"
     return filters
+
+
+# ---------------------------------------------------------------- V3.7 登录门
+def require_perm(perm: str) -> bool:
+    """页面级权限守卫（纵深防御）：无权限渲染拒绝提示并 st.stop()。
+
+    管理员已不能登录前台（硬性规则）；员工按管理后台分配的前台权限。
+    """
+    _au = st.session_state.get("auth_user") or {}
+    if perm in (_au.get("permissions") or []):
+        return True
+    st.error(t("perm.denied"))
+    st.stop()
+    return False
+
+
+def group_write_options(current: list[str] | None = None) -> list[str]:
+    """写入侧（上传归属 / 管理编辑）允许的可见域选项：全员域 + 自己部门。
+
+    检索侧按部门强制过滤，写入侧不能成为绕过口——若员工能把文档标成
+    他部门可见，等于开了条横向数据外泄通道（hr 员工把资料标成 develop
+    可见）。current 传文档现有可见域（编辑场景）：并入选项但员工改不掉，
+    只能保留管理员此前设置的更宽范围。
+    """
+    _au = st.session_state.get("auth_user") or {}
+    dept = _au.get("department")
+    opts = ["all"] + ([dept] if dept else [])
+    return list(dict.fromkeys(opts + [g for g in (current or []) if g]))
+
+
+def _apply_user_prefs(username: str) -> None:
+    """登录后把该用户的界面偏好套到 session（覆盖默认值）。"""
+    prefs = auth_client.get_prefs(username) or {}
+    for key, value in prefs.items():
+        if key in SETTINGS_KEYS and key != "installed_plugins":
+            st.session_state[key] = value
+
+
+front_host_global = "localhost:8501"  # 由 auth_gate 每次渲染时更新
+
+
+def try_restore_session() -> bool:
+    """front_auth Cookie（30 天）里若还有有效登录态，恢复 auth_user（含偏好）。
+
+    必须在侧边栏渲染之前调用——恢复当帧的用户信息卡才能带上身份。
+    """
+    try:
+        cookie_val = st.context.cookies.get("front_auth", "")
+    except Exception:
+        return False
+    restored_username = auth_db.verify_session_cookie(cookie_val)
+    if not restored_username:
+        return False
+    restored = auth_db.get_user(restored_username)
+    if not restored or restored["status"] != "active":
+        return False
+    st.session_state["auth_user"] = {
+        "username": restored["username"],
+        "department": restored.get("department"),
+        "department_id": restored.get("department_id"),
+        "permissions": restored.get("permissions") or [],
+        "real_name": restored.get("real_name") or "",
+        "note": restored.get("note") or "",
+    }
+    _apply_user_prefs(restored["username"])
+    return True
+
+
+front_host_global = "localhost:8501"  # 由 auth_gate 每次渲染时更新
+
+
+def auth_gate() -> bool:
+    """V3.7 登录门。返回 True = 已登录，继续渲染应用；否则渲染登录/注册页。
+
+    - 系统没有任何用户 → 只显示"初始化管理员"表单（首账户自动成为管理员）
+    - 已有用户 → 登录 / 注册 两个标签页（注册需选择部门，密码两次确认）
+    - 认证服务（8700）未启动 → 显示提示并停止
+    """
+    if st.session_state.get("auth_user"):
+        return True
+
+    # 浏览器访问前台的 host（含端口）——供持久化 iframe 拼认证服务地址
+    global front_host_global
+    try:
+        front_host = st.context.headers.get("host", "localhost:8501")
+        front_host_global = front_host
+    except Exception:
+        front_host = front_host_global
+
+    if try_restore_session():
+        return True
+
+    def _finish_login(data):
+        """登录成功收尾：写入会话；并在浏览器本域写入 30 天 front_auth Cookie
+        （前台页面自己写——同主机名无跨域问题），随后页面自动重载一次，
+        重载后 Cookie 进入 WebSocket 握手 → 登录门自动恢复登录态。
+        此后刷新/重启/重开浏览器都保持登录，直到主动退出或清理浏览器。"""
+        st.session_state["auth_user"] = data["user"]
+        username = data["user"]["username"]
+        cookie_val = auth_db.make_session_cookie(username)
+        from streamlit.components.v1 import html as components_html
+        # parent（前台主页面）与本组件同域：直接写 cookie + 重载，无跨域依赖
+        components_html(
+            f'<script>try{{'
+            f'parent.document.cookie = "front_auth={cookie_val}; path=/; max-age={30 * 86400}";'
+            f'parent.location.reload();'
+            f'}}catch(e){{parent.location.reload();}}</script>', height=0)
+        st.caption(t("auth.persist.note"))
+        st.stop()
+
+    def _render_register_tab(tab, boot: dict) -> None:
+        """注册表单（登录门与"只有注册"模式共用）。"""
+        with tab:
+            departments = boot.get("departments") or []
+            if not departments:
+                st.info(t("auth.no_departments"))
+            else:
+                with st.form("register_form", clear_on_submit=False):
+                    u = st.text_input(t("auth.username"), key="reg_user")
+                    dep = st.selectbox(
+                        t("auth.department"), departments,
+                        format_func=lambda d: d["name"],
+                    )
+                    p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
+                    p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
+                    submitted = st.form_submit_button(t("auth.register.btn"), type="primary",
+                                                      width="stretch")
+                    if submitted:
+                        if p1 != p2:
+                            st.error(t("auth.pwd.mismatch"))
+                        elif len(p1) < 6:
+                            st.error(t("auth.pwd.short"))
+                        else:
+                            data, err = auth_client.register(u.strip(), p1, p2, dep["id"])
+                            if err:
+                                st.error(err)
+                            else:
+                                data2, err2 = auth_client.login(u.strip(), p1)
+                                if data2:
+                                    _finish_login(data2)
+                                else:
+                                    st.success(t("auth.register.ok"))
+
+    # V3.7.2 记录真实登录 IP：隐藏组件让浏览器直连认证服务 /auth/ping，认证服务
+    # 看到浏览器真实局域网 IP 并写入 rip cookie（localhost 域共享，30 天有效）。
+    # 注意 st.context.cookies 读的是页面加载（WebSocket 握手）时的 cookie——
+    # 首次渲染时还没有，所以先 ping 后自动重载一次；重载后 cookie 进入握手即可用。
+    # 计数器防死循环：ping 不生效（服务没起等）最多重载 2 次后照常登录（IP 留空）。
+    try:
+        rip_cookie = st.context.cookies.get("rip", "")
+        _host_header = st.context.headers.get("host", "localhost:8501")
+    except Exception:
+        rip_cookie = ""
+        _host_header = "localhost:8501"
+    # 防刷新循环：用 URL 参数 ?rip=1 标记"ping 已尝试过"（URL 参数跨整页刷新持久；
+    # session_state 不行——整页刷新会新建会话把计数器清零，导致无限刷新）。
+    # ping 已尝试（无论成败）或已有 cookie，都不再重试，IP 尽力而为。
+    ping_done = st.query_params.get("rip") == "1"
+    if not rip_cookie and not ping_done:
+        from streamlit.components.v1 import html as components_html
+        # 主机名从 Host 请求头取（iframe 跨域读不到 parent.location）；
+        # 父页面导航目标要带完整 host（含前台端口，避免落到 80）
+        host_header = st.context.headers.get("host", "")
+        hostname_part = host_header.split(":")[0]
+        components_html(auth_client.ping_html(hostname_part, host_header), height=0)
+        st.stop()
+    boot = auth_client.bootstrap()
+    if boot is None:
+        st.error(t("auth.api.down"))
+        st.stop()
+    st.markdown(
+        f'<div style="text-align:center;margin:7vh 0 6px;">'
+        f'<div style="font-size:40px">🧠</div>'
+        f'<h1 style="margin:8px 0 4px;">{t("auth.title")}</h1>'
+        f'<div style="color:var(--text-muted)">{t("auth.subtitle")}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    # 三个表单全部用 st.form 原子提交：裸 text_input+button 有值同步竞态——
+    # 点击按钮时最后一个输入框的值可能还没提交到会话，处理器读到旧值，
+    # 出现"两次密码明明一致却提示不一致"（登录偶尔要点两次也是这个根源）。
+    # form 的字段值在点击提交按钮那一刻原子落地，竞态不可能发生。
+    if not boot.get("has_admins"):
+        st.markdown(f'<div class="section-title">{t("auth.init.title")}</div>',
+                    unsafe_allow_html=True)
+        st.caption(t("auth.init.note"))
+        with st.form("init_admin_form", clear_on_submit=False):
+            u = st.text_input(t("auth.username"), key="init_user")
+            p1 = st.text_input(t("auth.password"), type="password", key="init_pw1")
+            p2 = st.text_input(t("auth.password.confirm"), type="password", key="init_pw2")
+            submitted = st.form_submit_button(t("auth.init.btn"), type="primary",
+                                              width="stretch")
+            if submitted:
+                if p1 != p2:
+                    st.error(t("auth.pwd.mismatch"))
+                elif len(p1) < 6:
+                    st.error(t("auth.pwd.short"))
+                else:
+                    data, err = auth_client.bootstrap_admin(u.strip(), p1, p2)
+                    if err:
+                        st.error(err)
+                    else:
+                        # 硬性规则：管理员不能登录前台——创建成功后不自动登录，
+                        # 指引到管理后台使用
+                        st.success(t("auth.init.ok"))
+        return False
+
+    if not boot.get("has_users"):
+        # 有管理员但没有员工：只显示注册（员工自助注册，或管理员在后台创建）
+        st.info(t("auth.no_users"))
+        _tab_register = st.tabs([t("auth.tab.register")])[0]
+        _render_register_tab(_tab_register, boot)
+        st.stop()
+
+    tab_login, tab_register = st.tabs([t("auth.tab.login"), t("auth.tab.register")])
+    with tab_login:
+        with st.form("login_form", clear_on_submit=False):
+            u = st.text_input(t("auth.username"), key="login_user")
+            p = st.text_input(t("auth.password"), type="password", key="login_pw")
+            submitted = st.form_submit_button(t("auth.login.btn"), type="primary",
+                                              width="stretch")
+            if submitted:
+                data, err = auth_client.login(u.strip(), p)
+                if err:
+                    st.error(err)
+                else:
+                    _finish_login(data)
+
+    _render_register_tab(tab_register, boot)
+    st.stop()
+
+    with tab_register:
+        departments = boot.get("departments") or []
+        if not departments:
+            st.info(t("auth.no_departments"))
+        else:
+            with st.form("register_form", clear_on_submit=False):
+                u = st.text_input(t("auth.username"), key="reg_user")
+                dep = st.selectbox(
+                    t("auth.department"), departments,
+                    format_func=lambda d: d["name"],
+                )
+                p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
+                p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
+                submitted = st.form_submit_button(t("auth.register.btn"), type="primary",
+                                                  width="stretch")
+                if submitted:
+                    if p1 != p2:
+                        st.error(t("auth.pwd.mismatch"))
+                    elif len(p1) < 6:
+                        st.error(t("auth.pwd.short"))
+                    else:
+                        data, err = auth_client.register(u.strip(), p1, p2, dep["id"])
+                        if err:
+                            st.error(err)
+                        else:
+                            data2, err2 = auth_client.login(u.strip(), p1)
+                            if data2:
+                                _finish_login(data2)
+                            else:
+                                st.success(t("auth.register.ok"))
+    st.stop()
 
 
 def _render_eval_card(evaluation: dict) -> None:
@@ -851,7 +1188,7 @@ def show_answer_sources(result) -> None:
         st.code(t("sources.copy_answer") + "\n" + (result.answer or ""), language=None)
         st.code(t("sources.copy_list") + "\n" + "\n".join(
             f"[{s['rank']}] {s['source']}（{t('sources.relevance')} {s['score']:.3f}）"
-            + (f" 章节: {s['section']}" if s.get("section") else "")
+            + (t("sources.section", v=s["section"]) if s.get("section") else "")
             for s in result.sources), language=None)
 
     if st.session_state.get("debug_mode"):
@@ -971,7 +1308,8 @@ def page_chat():
             if not cfg.llm_api_key:
                 st.error(t("chat.no_api_key"))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.no_api_key.msg")})
-                save_session(st.session_state["session_id"], st.session_state.messages)
+                save_session(st.session_state["session_id"], st.session_state.messages,
+                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
                 return
             try:
                 progress_ph = st.empty()  # 实时进度占位符
@@ -991,6 +1329,13 @@ def page_chat():
                         for m in st.session_state.messages[:-1]
                         if m.get("role") in ("user", "assistant") and m.get("content")
                     ][-6:]  # 最近 3 轮
+                    # V3.7 权限：登录者注入可见部门（服务端强制，UI 改不掉）；
+                    # 无部门的员工只能看 all 域
+                    _au = st.session_state.get("auth_user") or {}
+                    if _au.get("department"):
+                        _user_groups = [_au["department"]]
+                    else:
+                        _user_groups = ["all"]
                     result, deltas = answer_stream(
                         question,
                         top_k=st.session_state["top_k"],
@@ -1000,6 +1345,8 @@ def page_chat():
                         use_rerank=st.session_state["rerank"],
                         history=chat_history,
                         on_progress=_show_progress,
+                        user_groups=_user_groups,
+                        username=str((st.session_state.get("auth_user") or {}).get("username") or ""),
                     )
                 progress_ph.empty()
                 answer_ph = st.empty()
@@ -1011,6 +1358,19 @@ def page_chat():
                 answer_ph.markdown(formatted_answer)
                 progress_ph.markdown(t("chat.done"))
                 result.answer = formatted_answer or None
+                # V3.7.1 使用记录：本次问答落 SQLite（回答完成才写，失败不影响主流程）
+                _qa_user = st.session_state.get("auth_user") or {}
+                auth_db.log_qa_event(
+                    username=str(_qa_user.get("username") or "local"),
+                    department=str(_qa_user.get("department") or ""),
+                    entry="web",
+                    question=question,
+                    answer=result.answer or "",
+                    sources=result.sources,
+                    filters=result.filters,
+                    top_k=st.session_state.get("top_k", 5),
+                    elapsed=float(result.elapsed.get("total", 0)),
+                )
                 # V3.6 回答质量评估：回答完成后才执行（不阻塞流式输出），
                 # 失败降级为仅结构信号，绝不影响问答主流程
                 if st.session_state.get("answer_eval", True):
@@ -1029,7 +1389,8 @@ def page_chat():
                 st.session_state.messages.append(
                     {"role": "assistant", "content": formatted_answer, "result": result}
                 )
-                save_session(st.session_state["session_id"], st.session_state.messages)
+                save_session(st.session_state["session_id"], st.session_state.messages,
+                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
                 scroll_chat_to_latest(
                     key=f"scroll_answer_{st.session_state['session_id']}_{len(st.session_state.messages)}",
                 )
@@ -1040,10 +1401,12 @@ def page_chat():
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
                 st.error(str(exc))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.error_occurred", err=exc)})
-                save_session(st.session_state["session_id"], st.session_state.messages)
+                save_session(st.session_state["session_id"], st.session_state.messages,
+                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
             except Exception as exc:
                 st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
-                save_session(st.session_state["session_id"], st.session_state.messages)
+                save_session(st.session_state["session_id"], st.session_state.messages,
+                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
 
     # 嵌套在普通容器中，避免 Streamlit 的底部聊天容器在 Expander 展开时强制滚到底部。
     # CSS 仍将该容器固定在页面底部，交互与原聊天输入框一致。
@@ -1055,6 +1418,7 @@ def page_chat():
 
 # ---------------------------------------------------------------- 页面 2：上传文档
 def page_upload():
+    require_perm('upload')
     st.markdown(f'<div class="section-title">{t("upload.title")}</div>', unsafe_allow_html=True)
     st.caption(t("upload.caption", types=", ".join("." + x for x in SUPPORTED_UPLOAD_TYPES)))
 
@@ -1068,30 +1432,45 @@ def page_upload():
     tab_web = _tab_objs[2] if _has_web else None
 
     with tab_files:
-        col1, col2 = st.columns(2)
-        with col1:
-            upload_domain = st.selectbox(t("upload.domain"), DOMAINS,
-                                         format_func=domain_label, index=DOMAINS.index("learning"))
-        with col2:
-            upload_category = st.text_input(t("upload.category"), value="",
-                                            help=t("upload.category.help"))
+        # V3.7.2 归属设置卡片：领域/分类/可见部门收进带边框容器，视觉上分组清晰
+        with st.container(border=True):
+            st.markdown(f'<div class="section-title">{t("upload.attribution")}</div>',
+                        unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                upload_domain = st.selectbox(t("upload.domain"), DOMAINS,
+                                             format_func=domain_label, index=DOMAINS.index("learning"))
+            with col2:
+                upload_category = st.text_input(t("upload.category"), value="",
+                                                help=t("upload.category.help"))
+            # V3.7 权限：可见部门多选（默认全员）；写入侧只能选 全员 + 自己部门
+            _dep_options = group_write_options()
+            upload_groups = st.multiselect(t("upload.groups"), _dep_options,
+                                           default=["all"], help=t("upload.groups.help"))
         uploads = st.file_uploader(t("upload.dropzone"),
                                    type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
         if uploads:
             st.caption(t("upload.selected", n=len(uploads), kb=f"{sum(u.size for u in uploads) / 1024:.0f}"))
         if st.button(t("upload.start"), disabled=not uploads, use_container_width=True, type="primary"):
-            _do_upload(uploads, upload_domain, upload_category)
+            _do_upload(uploads, upload_domain, upload_category, upload_groups)
 
     with tab_dir:
         st.markdown(t("dir.title"))
         st.caption(t("dir.caption"))
-        dir_domain = st.selectbox(
-            t("dir.target"),
-            DOMAINS,
-            format_func=domain_label,
-            index=DOMAINS.index("learning"),
-            key="directory_domain",
-        )
+        # V3.7.2 归属设置卡片：领域与可见部门收进带边框容器
+        with st.container(border=True):
+            dir_domain = st.selectbox(
+                t("dir.target"),
+                DOMAINS,
+                format_func=domain_label,
+                index=DOMAINS.index("learning"),
+                key="directory_domain",
+            )
+            # V3.7 权限：本批目录导入的可见部门（默认全员）；写入侧限自己部门
+            _dep_options_dir = group_write_options()
+            dir_groups = st.multiselect(t("upload.groups"), _dep_options_dir,
+                                        default=["all"], key="dir_groups",
+                                        help=t("upload.groups.help"))
         directory_mode = st.segmented_control(
             t("dir.mode"),
             ["drop", "native"],
@@ -1157,7 +1536,7 @@ def page_upload():
             type="primary",
             key="import_directory",
         ):
-            _do_directory_upload(decoded_entries, dir_domain, batch_id)
+            _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups)
 
     # ---------- 🌐 添加网页 Tab ----------
     if _has_web:
@@ -1167,12 +1546,18 @@ def page_upload():
 
             web_url = st.text_input(t("web.url"), placeholder="https://example.com/article",
                                     help=t("web.url.help"))
-            col_w1, col_w2 = st.columns(2)
-            with col_w1:
-                web_domain = st.selectbox(t("common.domain"), DOMAINS,
-                                          format_func=domain_label, index=DOMAINS.index("reference"))
-            with col_w2:
-                web_category = st.text_input(t("web.category"), value="webpages")
+            # V3.7.2 归属设置卡片：领域/分类/可见部门收进带边框容器
+            with st.container(border=True):
+                col_w1, col_w2 = st.columns(2)
+                with col_w1:
+                    web_domain = st.selectbox(t("common.domain"), DOMAINS,
+                                              format_func=domain_label, index=DOMAINS.index("reference"))
+                with col_w2:
+                    web_category = st.text_input(t("web.category"), value="webpages")
+                web_groups = st.multiselect(t("upload.groups"),
+                                            group_write_options(),
+                                            default=["all"], key="web_groups",
+                                            help=t("upload.groups.help"))
 
             if st.button(t("web.ingest"), disabled=not web_url.strip(), use_container_width=True, type="primary"):
                 from src.manage import ingest_web_page
@@ -1185,6 +1570,7 @@ def page_upload():
                             web_url.strip(), domain=web_domain,
                             category=web_category.strip().lower() or "webpages",
                             on_progress=lambda msg: st.write(tr(msg)),
+                            default_groups=web_groups,
                         )
                     status.update(label=t("web.status.done"), state="complete", expanded=False)
                     st.success(f"🎉 {result['message']}")
@@ -1192,7 +1578,7 @@ def page_upload():
                     st.error(t("web.failed", err=exc))
 
 
-def _do_upload(uploads, upload_domain, upload_category):
+def _do_upload(uploads, upload_domain, upload_category, groups=None):
     cfg.knowledge_dir.mkdir(exist_ok=True)
     target_dir = cfg.knowledge_dir / upload_domain / (upload_category.strip().lower() or "general")
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -1208,7 +1594,7 @@ def _do_upload(uploads, upload_domain, upload_category):
         saved_paths.append(target)
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=saved_paths)
+            summary = ingest_files(paths=saved_paths, default_groups=groups)
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1218,7 +1604,7 @@ def _do_upload(uploads, upload_domain, upload_category):
     _show_ingest_result(summary)
 
 
-def _do_directory_upload(entries, dir_domain, batch_id):
+def _do_directory_upload(entries, dir_domain, batch_id, groups=None):
     """把浏览器选中的目录完整复制为领域目录的子目录，然后增量入库。"""
     domain_dir = cfg.knowledge_dir / dir_domain
     domain_dir.mkdir(parents=True, exist_ok=True)
@@ -1256,7 +1642,7 @@ def _do_directory_upload(entries, dir_domain, batch_id):
               roots="、".join(copied_roots), docs=len(ingest_paths)))
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=ingest_paths)
+            summary = ingest_files(paths=ingest_paths, default_groups=groups)
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1308,6 +1694,7 @@ def _show_ingest_result(summary):
 
 # ---------------------------------------------------------------- 页面 3：知识管理台
 def page_manage():
+    require_perm('manage')
     st.markdown(f'<div class="section-title">{t("manage.title")}</div>', unsafe_allow_html=True)
     st.caption(t("manage.caption"))
     if notice := st.session_state.pop("manage_action_notice", None):
@@ -1324,11 +1711,31 @@ def page_manage():
         )
         if st.button(t("manage.sum.button"), disabled=not sum_topic.strip(), type="primary"):
             with st.spinner(t("manage.sum.spinner")):
+                # V3.7.2 权限：跨文档总结同样按登录者部门过滤
+                _sum_au = st.session_state.get("auth_user") or {}
+                if _sum_au.get("department"):
+                    _sum_groups = [_sum_au["department"]]
+                else:
+                    _sum_groups = ["all"]
                 result = answer_question(
                     f"请综合知识库中与「{sum_topic.strip()}」相关的全部内容，"
                     "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
                     top_k=10,
+                    user_groups=_sum_groups,
                 )
+            # V3.7.1 使用记录：跨文档总结同样落库（管理员操作）
+            _sum_user = st.session_state.get("auth_user") or {}
+            auth_db.log_qa_event(
+                username=str(_sum_user.get("username") or "local"),
+                department=str(_sum_user.get("department") or ""),
+                entry="manage_summary",
+                question=str(sum_topic.strip()),
+                answer=result.answer or "",
+                sources=result.sources,
+                filters=result.filters,
+                top_k=10,
+                elapsed=float(result.elapsed.get("total", 0)),
+            )
             st.markdown(result.answer or t("manage.sum.empty"))
             if result.sources:
                 st.caption(t("manage.sum.sources",
@@ -1409,7 +1816,9 @@ def page_manage():
     rows = [{"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
              t("manage.col.file"): d["source"], t("manage.col.path"): d["path"],
              "Domain": d["domain"], "Category": d["category"],
-             "Topic": ", ".join(d["topic"]) or "-", "Version": d["version"],
+             "Topic": ", ".join(d["topic"]) or "-",
+             "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
+             "Version": d["version"],
              "Status": d["status"], t("manage.col.chunks"): d["chunks"]} for d in filtered]
     edited = st.data_editor(
         rows,
@@ -1422,7 +1831,7 @@ def page_manage():
                                                                     help=t("manage.col.select.help")),
         },
         disabled=[t("manage.col.file"), t("manage.col.path"), "Domain", "Category", "Topic",
-                  "Version", "Status", t("manage.col.chunks")],
+                  "Groups", "Version", "Status", t("manage.col.chunks")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
     selected_ids = {row["_id"] for row in records if row.get(t("manage.col.select"))}
@@ -1530,12 +1939,20 @@ def page_manage():
                                      key=f"ed_cat_{_ed_suffix}")
         new_topic = st.text_input(t("manage.edit.topic"), value=", ".join(d["topic"]),
                                   key=f"ed_topic_{_ed_suffix}")
+        # V3.7 权限：可见部门多选（空 = 全员可见）；写入侧限 全员+自己部门，
+        # 文档现有可见域并入选项（只能保留管理员设的更宽范围，不能改成别的部门）
+        _group_options = group_write_options(current=d.get("allowed_groups") or ["all"])
+        new_groups = st.multiselect(t("manage.edit.groups"), _group_options,
+                                    default=d.get("allowed_groups") or ["all"],
+                                    key=f"ed_groups_{_ed_suffix}",
+                                    help=t("manage.edit.groups.help"))
         new_version = st.text_input(t("manage.edit.version"), value=d["version"],
                                     key=f"ed_ver_{_ed_suffix}")
         if st.button(t("manage.edit.save"), type="primary"):
             updates = {"title": new_title, "category": new_category,
                        "topic": [t.strip() for t in new_topic.split(",") if t.strip()],
-                       "version": new_version}
+                       "version": new_version,
+                       "allowed_groups": new_groups}
             try:
                 info = __import__("src.manage", fromlist=["update_metadata"]).update_metadata(d["path"], updates)
                 st.toast(info["message"], icon="✅")
@@ -1598,6 +2015,7 @@ def page_general_settings():
 
 # ---------------------------------------------------------------- 页面 5：检索设置
 def page_retrieval_settings():
+    require_perm('retrieval_settings')
     st.markdown(f'<div class="section-title">{t("set.retrieval.title")}</div>', unsafe_allow_html=True)
     st.caption(t("set.retrieval.caption"))
 
@@ -1650,52 +2068,64 @@ def page_maintenance():
     st.markdown(f'<div class="section-title">{t("maint.title")}</div>', unsafe_allow_html=True)
     st.caption(t("maint.caption"))
 
-    st.markdown(t("maint.kb"))
-    confirm_rebuild = st.checkbox(t("maint.confirm"), key="confirm_rebuild")
-    c1, c2 = st.columns(2)
-    if c1.button(t("maint.rebuild"), disabled=not confirm_rebuild,
-                 width="stretch", type="primary"):
-        with st.spinner(t("maint.rebuilding")):
+    # V3.7.2 权限拆分：知识库维护需要 maintenance 权限；
+    # 缓存管理人人可用（普通员工清自己的问答缓存，管理员/维护权限清全局）
+    _au = st.session_state.get("auth_user") or {}
+    _can_maintain = "maintenance" in (_au.get("permissions") or [])
+    _me = str(_au.get("username") or "")
+
+    if _can_maintain:
+        st.markdown(t("maint.kb"))
+        confirm_rebuild = st.checkbox(t("maint.confirm"), key="confirm_rebuild")
+        c1, c2 = st.columns(2)
+        if c1.button(t("maint.rebuild"), disabled=not confirm_rebuild,
+                     width="stretch", type="primary"):
+            with st.spinner(t("maint.rebuilding")):
+                try:
+                    summary = ingest_files(rebuild=True)
+                except (LLMError, VectorStoreError, EmbeddingError) as exc:
+                    st.error(str(exc))
+                    st.stop()
+            if summary.ok_files:
+                st.success(t("maint.rebuild.done", files=summary.ok_files, chunks=summary.total_chunks))
+            else:
+                st.error(t("maint.rebuild.fail"))
+        if c2.button(t("maint.clear_only"), width="stretch"):
             try:
-                summary = ingest_files(rebuild=True)
-            except (LLMError, VectorStoreError, EmbeddingError) as exc:
+                store.clear()
+            except VectorStoreError as exc:
                 st.error(str(exc))
                 st.stop()
-            except Exception as exc:
-                st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
-                st.stop()
-        if summary.ok_files:
-            st.success(t("maint.rebuild.done", files=summary.ok_files, chunks=summary.total_chunks))
-        else:
-            st.error(t("maint.rebuild.fail"))
-    if c2.button(t("maint.clear_only"), width="stretch"):
-        try:
-            store.clear()
-        except VectorStoreError as exc:
-            st.error(str(exc))
-            st.stop()
-        # 向量库清空后必须清问答缓存：否则同问题仍命中缓存返回已删知识的答案
-        from src.pipeline import clear_qa_cache as _cqc
-        from src.keyword_search import invalidate_cache as _ici
-        _cqc()
-        _ici()
-        st.success(t("maint.clear_only.done"))
+            # 向量库清空后必须清问答缓存：否则同问题仍命中缓存返回已删知识的答案
+            from src.pipeline import clear_qa_cache as _cqc
+            from src.keyword_search import invalidate_cache as _ici
+            _cqc()
+            _ici()
+            st.success(t("maint.clear_only.done"))
+        st.divider()
 
-    st.divider()
-
+    # V3.7.2 缓存管理：人人可用。普通员工清自己的问答缓存（按用户名归属）；
+    # 有维护权限/管理员额外可见全局缓存（问答全量 + BM25 索引）清理
     st.markdown(t("maint.cache"))
-    from src.pipeline import _qa_cache, clear_qa_cache
+    from src.pipeline import _qa_cache, _qa_cache_owner, clear_qa_cache
     from src.keyword_search import _bm25_cache, invalidate_cache
 
-    cache_col1, cache_col2 = st.columns(2)
-    cache_col1.metric(t("maint.cache.qa"), t("maint.cache.unit", n=len(_qa_cache)))
-    cache_col2.metric(t("maint.cache.bm25"), t("maint.cache.unit.group", n=len(_bm25_cache)))
-
-    if st.button(t("maint.cache.clear"), width="stretch", type="primary"):
-        clear_qa_cache()
-        invalidate_cache()
-        st.success(t("maint.cache.clear.done"))
-        st.rerun()
+    if _can_maintain:
+        cache_col1, cache_col2 = st.columns(2)
+        cache_col1.metric(t("maint.cache.qa"), t("maint.cache.unit", n=len(_qa_cache)))
+        cache_col2.metric(t("maint.cache.bm25"), t("maint.cache.unit.group", n=len(_bm25_cache)))
+        if st.button(t("maint.cache.clear"), width="stretch", type="primary"):
+            clear_qa_cache()
+            invalidate_cache()
+            st.success(t("maint.cache.clear.done"))
+            st.rerun()
+    else:
+        my_n = sum(1 for owner in _qa_cache_owner.values() if owner == _me)
+        st.metric(t("maint.cache.mine"), t("maint.cache.unit", n=my_n))
+        if st.button(t("maint.cache.mine.clear"), width="stretch"):
+            clear_qa_cache(username=_me)
+            st.success(t("maint.cache.mine.clear.done"))
+            st.rerun()
 
 
 # ---------------------------------------------------------------- 页面 7：系统状态
@@ -1735,6 +2165,9 @@ def page_params_overview():
 # ---------------------------------------------------------------- 布局组装：左侧菜单 + 右侧页面
 # 品牌区（Logo + Slogan）通过 CSS order 固定在导航上方；
 # 系统状态通过 order + margin-top:auto 固定在侧边栏最底部。
+# Cookie 恢复必须在侧边栏渲染之前，否则恢复当帧的用户信息卡会缺失
+try_restore_session()
+
 with st.sidebar:
     with st.container(key="sidebar_brand"):
         st.markdown(
@@ -1754,11 +2187,36 @@ with st.sidebar:
             """,
             unsafe_allow_html=True,
         )
+    # V3.7.2 用户信息卡：紧跟 Logo 下方一行（姓名/部门 + @账户 + 职责备注）
+    _top_user = st.session_state.get("auth_user") or {}
+    if _top_user:
+        _display_name = str(_top_user.get("real_name") or _top_user.get("username") or "")
+        _dep_label = str(_top_user.get("department") or "")
+        _role_label = ""
+        _avatar_char = html.escape((_display_name or "·")[:1])
+        _note_line = (f'<div class="u-note">{html.escape(str(_top_user.get("note") or ""))}</div>'
+                      if _top_user.get("note") else "")
+        with st.container(key="sidebar_userinfo"):
+            st.markdown(
+                f'<div class="user-card">'
+                f'<div class="avatar">{_avatar_char}</div>'
+                f'<div style="min-width:0;">'
+                f'<div class="u-name">{html.escape(_display_name)}'
+                f'<span class="u-dept">{html.escape(str(_top_user.get("department") or ""))}</span>'
+                f'{_role_label}</div>'
+                f'<div class="u-sub">@{html.escape(str(_top_user.get("username") or ""))}</div>'
+                f'{_note_line}'
+                f'</div></div>',
+                unsafe_allow_html=True,
+            )
 
 # ---------------------------------------------------------------- 页面 9：插件管理
 def page_plugins():
     st.markdown(f'<div class="section-title">{t("plugin.title")}</div>', unsafe_allow_html=True)
-    st.caption(t("plugin.caption"))
+    # V3.7.2 插件管理权限：人人可查看；安装/卸载需要 plugins 权限
+    _pu = st.session_state.get("auth_user") or {}
+    can_manage_plugins = "plugins" in (_pu.get("permissions") or [])
+    st.caption(t("plugin.caption") if can_manage_plugins else t("plugin.caption.viewonly"))
 
     installed = get_installed_plugins()
 
@@ -1770,13 +2228,15 @@ def page_plugins():
 
             c1, c2 = st.columns(2)
             if is_on:
-                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", use_container_width=True):
+                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", use_container_width=True,
+                             disabled=not can_manage_plugins):
                     uninstall_plugin(pid)
                     st.rerun()
                 if c1.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
                     pass
             else:
-                if c1.button(t("plugin.install"), key=f"install_{pid}", use_container_width=True, type="primary"):
+                if c1.button(t("plugin.install"), key=f"install_{pid}", use_container_width=True,
+                             type="primary", disabled=not can_manage_plugins):
                     install_plugin(pid)
                     st.rerun()
                 if c2.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
@@ -1797,6 +2257,15 @@ def page_learning():
         st.info(t("learn.missing"))
 
 
+# ── V3.7 登录门：未登录只渲染登录/注册页，到此为止 ──
+auth_gate()
+
+_auth_user = st.session_state.get("auth_user") or {}
+# V3.7.2 员工前台权限（管理后台分配，默认无）：检索设置/知识库维护/插件管理需权限；
+# 通用设置/系统状态/参数总览/学习人人固有。
+# V3.8：管理员已与员工分表且禁止登录前台——前台导航只有员工一种形态。
+_user_perms = set(_auth_user.get("permissions") or [])
+
 chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
 upload_page = st.Page(page_upload, title=t("nav.upload"), icon="📤", url_path="upload")
 manage_page = st.Page(page_manage, title=t("nav.manage"), icon="🗂", url_path="manage")
@@ -1808,32 +2277,32 @@ params_page = st.Page(page_params_overview, title=t("nav.params"), icon="🧾", 
 plugins_page = st.Page(page_plugins, title=t("nav.plugins"), icon="🔌", url_path="plugins")
 learning_page = st.Page(page_learning, title=t("nav.learning"), icon="📖", url_path="learn")
 
-pg = st.navigation({
-    t("nav.group.knowledge"): [
-        chat_page,
-        upload_page,
-        manage_page,
-    ],
-    t("nav.group.settings"): [
-        general_page,
-        retrieval_page,
-        maintenance_page,
-        status_page,
-        params_page,
-    ],
-    t("nav.group.learn"): [
-        learning_page,
-    ],
-    t("nav.group.plugins"): [
-        plugins_page,
-    ],
-})
+# 员工：问答固有；其余页面按管理后台分配的前台权限出现。
+# 人人固有：通用设置 / 系统状态 / 参数总览 / 学习 / 插件管理（只读）/
+#           维护操作页（其中"缓存管理"是个人缓存）；权限只管检索设置/知识库维护/上传/知识管理
+employee_nav: dict = {t("nav.group.knowledge"): [chat_page]}
+if "upload" in _user_perms:
+    employee_nav[t("nav.group.knowledge")].append(upload_page)
+if "manage" in _user_perms:
+    employee_nav[t("nav.group.knowledge")].append(manage_page)
+settings_pages = [general_page]
+if "retrieval_settings" in _user_perms:
+    settings_pages.append(retrieval_page)
+# 维护操作页人人可达（页内"知识库维护"区块按权限显隐；缓存管理是个人功能）
+settings_pages.append(maintenance_page)
+settings_pages.extend([status_page, params_page])
+employee_nav[t("nav.group.settings")] = settings_pages
+employee_nav[t("nav.group.learn")] = [learning_page]
+employee_nav[t("nav.group.plugins")] = [plugins_page]
+pg = st.navigation(employee_nav)
 
 pg.run()
 
 with st.sidebar:
     with st.container(key="sidebar_footer"):
-        sessions = list_sessions(10)
+        _sidebar_user = st.session_state.get("auth_user") or {}
+        sessions = list_sessions(10,
+                                 username=str(_sidebar_user.get("username") or "") or None)
         keep_history_expanded = st.session_state.pop("keep_history_expanded_once", False)
         with st.expander(
             t("sidebar.history", n=len(sessions)),
@@ -1892,7 +2361,18 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
 
+    # V3.7.2 登出按钮：独立容器吸附侧边栏最底部（CSS margin-top:auto），
+    # 点击后弹确认框（confirm_logout），确认才真正退出
+    if st.session_state.get("auth_user"):
+        with st.container(key="sidebar_logout"):
+            if st.button(t("auth.logout"), key="auth_logout_btn",
+                         width="stretch", icon=":material/logout:"):
+                st.session_state["logout_request"] = True
+                st.rerun()
+
 if st.session_state.get("delete_session_request"):
     confirm_session_delete()
 elif st.session_state.get("manage_remove_request"):
     confirm_manage_remove()
+elif st.session_state.get("logout_request"):
+    confirm_logout()

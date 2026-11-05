@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理员登录 · Sky Personal RAG</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: #2b3a67; margin: 0; display: flex; align-items: center;
+         justify-content: center; min-height: 100vh; }
+  .box { background: #fff; border-radius: 12px; padding: 36px 40px; width: 360px; }
+  h1 { font-size: 18px; margin: 0 0 6px; }
+  p.sub { color: #8a93a6; font-size: 13px; margin: 0 0 22px; }
+  label { display: block; font-size: 13px; color: #5a6478; margin: 12px 0 4px; }
+  input { width: 100%; padding: 9px 12px; border: 1px solid #ccd3e0;
+          border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+  button { width: 100%; margin-top: 20px; padding: 10px; border: 0; border-radius: 8px;
+           background: #3d5af1; color: #fff; font-size: 15px; cursor: pointer; }
+  .flash { padding: 9px 12px; border-radius: 8px; margin-bottom: 14px; font-size: 13px; }
+  .flash.err { background: #fdeaea; color: #a12622; }
+  .flash.msg { background: #e6f7e9; color: #176b32; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🛡 管理后台</h1>
+  <p class="sub">Sky Personal RAG · 仅限管理员账户</p>
+  {% if err %}<div class="flash err">{{ err }}</div>{% endif %}
+  {% if msg %}<div class="flash msg">{{ msg }}</div>{% endif %}
+  <form id="login-form">
+    <label>账户名</label>
+    <input name="username" autocomplete="username" required>
+    <label>密码</label>
+    <input name="password" type="password" autocomplete="current-password" required>
+    <button type="submit">登录</button>
+  </form>
+</div>
+<script>
+// fetch JSON 提交：原生 urlencoded 表单在此环境对中文账户会按 Latin-1 解码（乱码），
+// JSON 请求体不受影响；失败原因就地展示
+document.getElementById('login-form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const f = ev.target;
+  const errBox = document.querySelector('.flash.err');
+  if (errBox) errBox.remove();
+  try {
+    const resp = await fetch('/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: f.username.value.trim(),
+                             password: f.password.value }),
+    });
+    if (resp.ok || resp.status === 303) { location.href = '/admin'; return; }
+    const data = await resp.json().catch(() => ({}));
+    const box = document.createElement('div');
+    box.className = 'flash err';
+    box.textContent = data.detail || '登录失败';
+    f.prepend(box);
+  } catch (e) {
+    const box = document.createElement('div');
+    box.className = 'flash err';
+    box.textContent = '网络错误，请重试';
+    f.prepend(box);
+  }
+});
+</script>
+</body>
+</html>

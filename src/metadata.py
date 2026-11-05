@@ -64,6 +64,8 @@ DEFAULTS = {
     "tags": [],
     "version": "1.0",
     "status": "active",
+    # V3.7 权限：可见部门名列表；["all"] = 全员可见；空值一律落为 ["all"]
+    "allowed_groups": ["all"],
 }
 
 _FRONT_MATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
@@ -195,6 +197,11 @@ def build_document_metadata(
     topic = _as_list(fm.get("topic")) or path_info["topic"] or []
     tags = _as_list(fm.get("tags"))
 
+    # V3.7 权限：FM 显式声明的可见部门 > 默认全员（规范化：空列表落为 ["all"]）
+    allowed_groups = [g.strip() for g in _as_list(fm.get("allowed_groups")) if str(g).strip()]
+    if not allowed_groups:
+        allowed_groups = list(DEFAULTS["allowed_groups"])
+
     # status：archive 目录强制；其余 FM > 目录默认
     if path_info["status"] == "archive":
         status = "archive"
@@ -233,6 +240,8 @@ def build_document_metadata(
         "category": category,
         "topic": topic,
         "tags": tags,
+        # V3.7 权限字段
+        "allowed_groups": allowed_groups,
         # 生命周期字段
         "version": version,
         "status": status,

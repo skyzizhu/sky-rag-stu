@@ -75,18 +75,22 @@ def ingest_files(
     embedding_client: EmbeddingClient | None = None,
     store: VectorStore | None = None,
     skip_unchanged: bool = False,
+    default_groups: list[str] | None = None,
 ) -> IngestSummary:
     """把文件送进知识库。paths 为空时扫描整个知识目录。
 
     增量判断（V3.1）：全库扫描始终做指纹跳过；显式传 paths 默认是强制
     重新入库（管理台「重新入库」按钮的语义），skip_unchanged=True 可让
     显式路径同样做指纹跳过（网页入库等"内容没变就别重跑"的场景）。
+    default_groups（V3.7）：本批文件的默认可见部门（上传表单的"可见部门"选择）。
+    优先级：Front Matter 显式声明 > 表单选择 > 默认全员；空列表一律落为 ["all"]。
     """
     # 多标签页并发点入库会互相覆盖台账/向量数据，入库全程串行化（单用户无感知）
     with _ingest_lock:
         return _ingest_files_impl(paths=paths, rebuild=rebuild, config=config,
                                   embedding_client=embedding_client, store=store,
-                                  skip_unchanged=skip_unchanged)
+                                  skip_unchanged=skip_unchanged,
+                                  default_groups=default_groups)
 
 
 def _ingest_files_impl(
@@ -96,6 +100,7 @@ def _ingest_files_impl(
     embedding_client: EmbeddingClient | None = None,
     store: VectorStore | None = None,
     skip_unchanged: bool = False,
+    default_groups: list[str] | None = None,
 ) -> IngestSummary:
     """把文件送进知识库。paths 为空时扫描整个知识目录。
 
@@ -222,8 +227,14 @@ def _ingest_files_impl(
         # V3.4 档案编辑：台账里的覆盖设置优先级最高（高于 Front Matter 与目录推断）
         overrides = state.get(rel, {}).get("overrides", {})
         for key, value in overrides.items():
-            if key in ("title", "category", "topic", "tags", "version", "status") and value:
+            if key in ("title", "category", "topic", "tags", "version", "status",
+                       "allowed_groups") and value:
                 parsed.metadata[key] = value
+        # V3.7 权限：上传表单的"可见部门"作为批级默认——只在 Front Matter 未显式
+        # 声明（即仍为默认全员）时生效，不覆盖档案的显式设置
+        if default_groups is not None and parsed.metadata.get("allowed_groups") == ["all"]:
+            groups = [str(g).strip() for g in default_groups if str(g).strip()]
+            parsed.metadata["allowed_groups"] = groups or ["all"]
         docs.append(parsed)
     summary.ok_files = len(docs)
     print(f"   成功 {len(docs)} 个，失败 {len(summary.failed_files)} 个")
@@ -324,6 +335,9 @@ def _ingest_files_impl(
 # ---------------------------------------------------------------- Q→A 缓存
 # 简单内存缓存：同一问题 + 同一配置 → 直接返回上次结果（不重跑流水线）
 _qa_cache: dict[str, QAResult] = {}
+# V3.7.2 缓存归属：键 → 用户名（多用户下"清空我的缓存"只清自己的条目；
+# 未登录的个人模式/离线评测条目 owner 为空串，仅"清空全部"能触及）
+_qa_cache_owner: dict[str, str] = {}
 _QA_CACHE_MAX = 50  # 最多缓存 50 条问答
 # Streamlit 多标签页 = 多线程：入库/缓存读写需要锁保护，
 # 否则驱逐点与并发清空可竞态崩溃，台账也会互相覆盖
@@ -341,9 +355,16 @@ def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool,
             f"|qu={qu}|hy={hybrid}|rr={rerank}|h={hist_sig}")
 
 
-def clear_qa_cache() -> None:
-    """入库/删除知识后调用，清空问答缓存。"""
-    _qa_cache.clear()
+def clear_qa_cache(username: str | None = None) -> None:
+    """清空问答缓存。username 传入时只清该用户的条目（"清空我的缓存"）；
+    None 清全部（入库/删除知识后的系统级清理）。"""
+    if username is None:
+        _qa_cache.clear()
+        _qa_cache_owner.clear()
+        return
+    for key in [k for k, owner in _qa_cache_owner.items() if owner == username]:
+        _qa_cache.pop(key, None)
+        _qa_cache_owner.pop(key, None)
 
 
 # ---------------------------------------------------------------- 问答
@@ -358,6 +379,8 @@ def answer_stream(
     history: list[dict] | None = None,
     on_progress=None,
     config: AppConfig | None = None,
+    user_groups: list[str] | None = None,
+    username: str | None = None,
 ):
     def _p(msg):
         if on_progress:
@@ -373,6 +396,13 @@ def answer_stream(
     """
     cfg = config or get_config()
     top_k = top_k or cfg.top_k
+
+    # V3.7 权限：把可见部门并入 filters 的本地副本（服务端强制注入——
+    # 此后 merged_filters / 渐进式放宽的 manual_filters / 两级缓存键全部自动带上，
+    # 调用方在界面上改任何过滤条件都绕不开它）。None = 不限制（个人模式/离线评测）。
+    if user_groups is not None:
+        filters = {**(filters or {}),
+                   "allowed_groups": sorted({*user_groups, "all"})}
 
     # Q→A 缓存：同一问题+同一配置+同一对话上下文直接返回上次结果；
     # 仅检索模式（use_llm=False）不读缓存——它要的是检索结果而非缓存的 LLM 答案
@@ -805,6 +835,7 @@ def answer_stream(
                     if not _qa_cache:
                         break
                 _qa_cache[cache_key] = result
+                _qa_cache_owner[cache_key] = username or ""
 
     return result, _generate()
 
@@ -819,13 +850,16 @@ def answer_question(
     use_rerank: bool = True,
     history: list[dict] | None = None,
     config: AppConfig | None = None,
+    user_groups: list[str] | None = None,
+    username: str | None = None,
 ) -> QAResult:
     """完整问答链路（一次性返回完整答案）。use_llm=False 时只做检索（不花钱）。"""
     result, deltas = answer_stream(
         question, top_k=top_k, use_llm=use_llm, filters=filters,
         use_query_understanding=use_query_understanding,
         use_hybrid=use_hybrid, use_rerank=use_rerank,
-        history=history, config=config,
+        history=history, config=config, user_groups=user_groups,
+        username=username,
     )
     for _ in deltas:  # 消费生成器，把答案收集完整
         pass

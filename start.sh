@@ -17,6 +17,7 @@ export no_proxy=localhost,127.0.0.1
 # 清理残留进程
 pkill -9 qdrant 2>/dev/null || true
 pkill -f "streamlit run" 2>/dev/null || true
+pkill -f "uvicorn src.admin_app" 2>/dev/null || true
 sleep 2
 
 # 激活虚拟环境
@@ -31,7 +32,7 @@ echo "🧠 Sky Personal RAG · 启动中"
 echo "────────────────────────────────"
 
 # ---------- 启动 Qdrant ----------
-echo "  [1/3] 启动 Qdrant 向量数据库…"
+echo "  [1/4] 启动 Qdrant 向量数据库…"
 QDRANT__STORAGE__STORAGE_PATH="$ROOT/storage/qdrant_data"   nohup "$ROOT/tools/qdrant/qdrant" > "$ROOT/storage/qdrant.log" 2>&1 &
 
 # 等待 Qdrant 就绪（最多 15 秒）
@@ -48,7 +49,7 @@ for i in $(seq 1 15); do
 done
 
 # ---------- 检查 Ollama ----------
-echo "  [2/3] 检查 Ollama…"
+echo "  [2/4] 检查 Ollama…"
 if curl -s --max-time 3 http://localhost:11434/api/tags >/dev/null 2>&1; then
     echo "  ✅ Ollama 运行中"
 else
@@ -62,11 +63,38 @@ else
     fi
 fi
 
+# ---------- 启动管理后台（FastAPI，8700）----------
+echo "  [3/4] 启动管理后台…"
+nohup "$ROOT/.venv/bin/python" -m uvicorn src.admin_app:app \
+      --host 0.0.0.0 --port 8700 > "$ROOT/storage/admin.log" 2>&1 &
+for i in $(seq 1 10); do
+    if curl -s --max-time 2 http://localhost:8700/admin/login >/dev/null 2>&1; then
+        echo "  ✅ 管理后台就绪 (http://localhost:8700/admin/login)"
+        break
+    fi
+    if [ "$i" = "10" ]; then
+        echo "  ❌ 管理后台启动超时，请检查 storage/admin.log"
+        exit 1
+    fi
+    sleep 1
+done
+
+# ---------- 可选：MCP HTTP 传输（团队共享，PAT 鉴权，端口 8760） ----------
+# 默认不启动（stdio 个人模式）。需要时：export MCP_TRANSPORT=streamable-http 后再跑 start.sh
+if [ "$MCP_TRANSPORT" = "streamable-http" ]; then
+    echo "  [extra] 启动 MCP HTTP 服务（PAT 鉴权，8760）…"
+    nohup env MCP_TRANSPORT=streamable-http \
+          "$ROOT/.venv/bin/python" -m src.mcp_server > "$ROOT/storage/mcp_http.log" 2>&1 &
+    sleep 2
+    echo "  ✅ MCP HTTP: http://localhost:8760/mcp"
+fi
+
 # ---------- 启动 Streamlit ----------
-echo "  [3/3] 启动 Web 界面…"
+echo "  [4/4] 启动 Web 界面…"
 echo ""
-echo "  📍 地址：http://localhost:8501"
-echo "  🛑 停止：Ctrl+C（Qdrant 继续后台运行）"
+echo "  📍 知识库前台：http://localhost:8501"
+echo "  📍 管理后台：http://localhost:8700/admin/login"
+echo "  🛑 停止：Ctrl+C（Qdrant/管理后台继续后台运行）"
 echo ""
 
 exec streamlit run app.py --server.headless false --server.port 8501

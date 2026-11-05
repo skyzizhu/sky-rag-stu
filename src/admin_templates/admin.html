@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理后台 · Sky Personal RAG</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         margin: 0; background: #f4f6fb; color: #1e2430;
+         display: flex; min-height: 100vh; }
+  .sidebar { width: 224px; flex-shrink: 0; background: #2b3a67; color: #fff;
+             display: flex; flex-direction: column; padding: 18px 12px 14px;
+             position: sticky; top: 0; height: 100vh; }
+  .sidebar .brand { font-weight: 700; font-size: 15px; padding: 4px 10px 16px;
+                    border-bottom: 1px solid rgba(255,255,255,.12); line-height: 1.5; }
+  .sidebar .brand span { display: block; font-size: 12px; font-weight: 400; color: #cdd6f0; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; }
+  .sidebar nav button { text-align: left; background: transparent; color: #cdd6f0;
+                        border: 0; font-size: 14px; padding: 9px 14px;
+                        border-radius: 8px; cursor: pointer; }
+  .sidebar nav button.active { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
+  .sidebar nav button:hover { color: #fff; }
+  .sidebar .spacer { flex: 1; }
+  .sidebar .who { font-size: 12.5px; color: #cdd6f0; padding: 12px 10px 0;
+                  border-top: 1px solid rgba(255,255,255,.12); line-height: 1.9; }
+  .sidebar .who b { color: #fff; }
+  .sidebar .who a { color: #fff; cursor: pointer; display: inline-block; }
+  main { flex: 1; min-width: 0; padding: 22px 26px 60px; }
+  .stats { display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 160px; background: #fff; border: 1px solid #e3e8f2;
+          border-radius: 10px; padding: 12px 16px; cursor: default; }
+  .stat b { font-size: 24px; display: block; }
+  .stat span { color: #5a6478; font-size: 12px; }
+  .card { background: #fff; border: 1px solid #e3e8f2; border-radius: 10px;
+          padding: 16px 18px; margin-bottom: 18px; }
+  .card h3 { margin: 0 0 12px; font-size: 15px; }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .toolbar input, .toolbar select { padding: 7px 10px; border: 1px solid #ccd3e0;
+                                    border-radius: 7px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #edf0f6; text-align: left;
+           vertical-align: middle; white-space: nowrap; }
+  th { color: #5a6478; font-weight: 600; background: #f8f9fd; position: sticky; top: 0; }
+  td.wrap { white-space: normal; max-width: 340px; }
+  form.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  input, select { padding: 7px 10px; border: 1px solid #ccd3e0; border-radius: 7px; font-size: 13.5px; }
+  input.wide { width: 260px; }
+  button { padding: 7px 14px; border: 0; border-radius: 7px; background: #3d5af1;
+           color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  button.gray { background: #7a869e; }
+  button.danger { background: #d64545; }
+  button.ghost { background: transparent; color: #3d5af1; border: 1px solid #c3cdF5; }
+  button.mini { padding: 4px 10px; font-size: 12.5px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .tag.on  { background: #e6f7e9; color: #176b32; }
+  .tag.off { background: #fdeaea; color: #a12622; }
+  .tag.admin { background: #eceafe; color: #4534ae; }
+  .tag.neutral { background: #eef1f8; color: #45516b; }
+  .muted { color: #8a93a6; font-size: 12px; }
+  .toasts { position: fixed; right: 18px; bottom: 18px; display: flex;
+            flex-direction: column; gap: 8px; z-index: 99; }
+  .toast { padding: 10px 16px; border-radius: 9px; font-size: 13.5px; color: #fff;
+           max-width: 420px; box-shadow: 0 4px 16px rgba(0,0,0,.18); word-break: break-all; }
+  .toast.ok { background: #1f9d55; } .toast.err { background: #d64545; }
+  dialog { border: 0; border-radius: 12px; padding: 22px 24px; width: 420px; }
+  dialog::backdrop { background: rgba(20,28,50,.45); }
+  dialog h3 { margin: 0 0 14px; font-size: 16px; }
+  dialog label { display: block; font-size: 12.5px; color: #5a6478; margin: 10px 0 4px; }
+  dialog input, dialog select { width: 100%; box-sizing: border-box; }
+  dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  dialog .row { display: flex; gap: 8px; align-items: center; }
+  dialog .row input { flex: 1; }
+  /* 前台权限勾选列表：复选框不继承 width:100%，行内左对齐 */
+  dialog .perm-list { border: 1px solid #e3e8f2; border-radius: 8px;
+                      padding: 2px 12px; margin: 2px 0 10px; }
+  dialog .perm-item { display: flex; align-items: center; gap: 10px;
+                      padding: 7px 2px; font-size: 13.5px; }
+  dialog .perm-item + .perm-item { border-top: 1px dashed #eef1f8; }
+  dialog .perm-item input[type="checkbox"] { width: auto; margin: 0; }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+  .empty { text-align: center; color: #8a93a6; padding: 26px 0; font-size: 13px; }
+  .log-detail { background: #f8f9fd; border-radius: 8px; padding: 10px 12px; margin-top: 6px;
+                font-size: 12.5px; white-space: pre-wrap; word-break: break-all; }
+  .clickable { cursor: pointer; }
+  .clickable:hover td { background: #f6f8ff; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">🛡 Sky Personal RAG<span>管理后台</span></div>
+  <nav id="tabs"></nav>
+  <span class="spacer"></span>
+  <div class="who">👤 <b>{{ admin['username'] }}</b><br>
+    <a onclick="logout()">↩ 退出登录</a></div>
+</aside>
+<main>
+  <div id="view"></div>
+</main>
+<div class="toasts" id="toasts"></div>
+
+<dialog id="dlg">
+  <h3 id="dlg-title"></h3>
+  <div id="dlg-body"></div>
+  <div class="actions">
+    <button class="gray" onclick="closeDlg()">取消</button>
+    <button id="dlg-ok" type="button">确认</button>
+  </div>
+</dialog>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const me = "{{ admin['username'] }}";  // 当前登录管理员
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg, ok = true) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + (ok ? 'ok' : 'err');
+  el.textContent = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), ok ? 3200 : 5200);
+}
+
+async function api(method, path, body) {
+  const opt = { method, headers: {} };
+  if (body !== undefined) { opt.headers['Content-Type'] = 'application/json';
+                            opt.body = JSON.stringify(body); }
+  const resp = await fetch(path, opt);
+  if (resp.status === 401) { location.href = '/admin/login?err=' +
+    encodeURIComponent('会话已过期，请重新登录'); throw new Error('unauthorized'); }
+  let data = {};
+  try { data = await resp.json(); } catch (e) {}
+  if (!resp.ok || data.ok === false) {
+    throw new Error(data.detail || ('请求失败（' + resp.status + '）'));
+  }
+  return data;
+}
+
+/* ---------- 对话框 ---------- */
+let dlgConfirm = null;
+function openDlg(title, bodyHtml, onOk, okText = '确认') {
+  $('#dlg-title').textContent = title;
+  $('#dlg-body').innerHTML = bodyHtml;
+  const ok = $('#dlg-ok');
+  ok.textContent = okText;
+  ok.onclick = async () => { try { await onOk(); closeDlg(); }
+                             catch (e) { toast(e.message, false); } };
+  const dlg = $('#dlg');
+  if (!dlg.open) dlg.showModal();  // 已打开时仅替换内容（员工对话框就地刷新用）
+}
+function closeDlg() { $('#dlg').close(); dlgConfirm = null; }
+
+function confirmDo(title, msg, fn, okText = '确认', danger = false) {
+  openDlg(title, `<div class="log-detail">${esc(msg)}</div>`, fn,
+          okText);
+  if (danger) $('#dlg-ok').className = 'danger'; else $('#dlg-ok').className = '';
+}
+
+/* ---------- 标签页框架 ---------- */
+const TABS = [
+  { id: 'dash',    name: '工作台',     render: renderDash },
+  { id: 'deps',    name: '部门管理',   render: renderDeps },
+  { id: 'emps',    name: '员工管理',   render: renderEmps },
+  { id: 'admins',  name: '管理员',     render: renderAdmins },
+  { id: 'tokens',  name: '访问令牌',   render: renderTokens },
+  { id: 'authlog', name: '登录日志',   render: renderAuthLog },
+  { id: 'qalog',   name: 'RAG 日志',   render: renderQaLog },
+];
+let current = 'dash';
+
+function switchTab(id) {
+  current = id;
+  document.querySelectorAll('#tabs button').forEach(b =>
+    b.classList.toggle('active', b.dataset.id === id));
+  const tab = TABS.find(t => t.id === id);
+  $('#view').innerHTML = '<div class="empty">加载中…</div>';
+  tab.render().catch(e => { $('#view').innerHTML =
+    `<div class="empty">加载失败：${esc(e.message)}</div>`; });
+}
+
+async function logout() {
+  // 退出前确认：防误触（登录日志会完整记录本次登出）
+  openDlg('确认退出登录', '<div class="log-detail">退出后需要重新输入账户密码才能再次进入管理后台。确认退出吗？</div>',
+    async () => { await fetch('/admin/logout'); location.href = '/admin/login'; },
+    '确认退出');
+}
+
+/* ---------- 工作台 ---------- */
+function logTableHTML(logs) {
+  const rows = logs.map(l => `
+    <tr>
+      <td class="muted">${esc(l.created_at)}</td>
+      <td><b>${esc(l.username) || '—'}</b></td>
+      <td>${actionLabel(l.action)}</td>
+      <td>${l.success ? '<span class="tag on">成功</span>'
+                      : '<span class="tag off">失败</span>'}</td>
+      <td>${esc(l.browser)} / ${esc(l.os_name)}</td>
+      <td class="muted">${esc(l.ip || '—')}</td>
+    </tr>`).join('');
+  return `<table><tr><th>时间</th><th>账户</th><th>动作</th><th>结果</th><th>设备</th><th>IP</th></tr>
+    ${rows || '<tr><td colspan="6" class="empty">暂无记录</td></tr>'}</table>`;
+}
+
+async function renderDash() {
+  const d = await api('GET', '/api/overview');
+  $('#view').innerHTML = `
+    <div class="stats">
+      <div class="stat"><b>${d.departments}</b><span>部门（启用 ${d.departments_enabled}）</span></div>
+      <div class="stat"><b>${d.users}</b><span>员工账户（启用 ${d.users_active}）</span></div>
+      <div class="stat"><b>${d.admins}</b><span>管理员账户（启用 ${d.admins_active}）</span></div>
+    </div>
+    <div class="card"><h3>最近登录（员工侧）</h3><div id="dash-log"></div></div>
+    <div class="card"><h3>使用说明</h3>
+      <div class="muted">① 部门管理里创建部门 → ② 员工在知识库前台自助注册（选部门），或在此处创建账户
+      → ③ 员工登录知识库后只能检索本部门与全员可见的知识；管理员与员工分表存储，管理员不能登录前台，只使用本管理后台。
+      ④ 「访问令牌」页可为员工签发 MCP 调用凭证（mcp_pat_…）。
+      管理员的登录日志在「管理员」标签下方查看（与员工日志分表存储）。</div></div>`;
+  $('#dash-log').innerHTML = logTableHTML(d.recent_logins);
+}
+
+/* ---------- 部门管理 ---------- */
+async function renderDeps() {
+  const d = await api('GET', '/api/departments');
+  const rows = d.departments.map(dep => `
+    <tr>
+      <td>${dep.id}</td><td><b>${esc(dep.name)}</b></td>
+      <td class="wrap">${esc(dep.description) || '—'}</td>
+      <td>${dep.employees}</td>
+      <td>${dep.disabled ? '<span class="tag off">已停用</span>'
+                         : '<span class="tag on">启用中</span>'}</td>
+      <td>
+        <button class="mini gray" onclick="depToggle(${dep.id})">
+          ${dep.disabled ? '启用' : '停用'}</button>
+        <button class="mini danger" ${dep.employees > 0
+          ? 'disabled title="该部门下仍有员工，请先转移"' : ''}
+          onclick="depDelete(${dep.id}, '${esc(dep.name)}', ${dep.employees})">删除</button>
+      </td>
+    </tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card">
+      <h3>新增部门</h3>
+      <form class="row" onsubmit="return depCreate(event)">
+        <input name="name" class="wide" placeholder="部门名（如 hr / develop，创建后不可修改）" required>
+        <input name="description" style="width:280px" placeholder="备注（可选）">
+        <button type="submit">创建</button>
+      </form>
+      <div class="muted">部门名是知识可见性的稳定标识，创建后不可改名；停用后不再出现在注册与上传选项中。</div>
+    </div>
+    <div class="card">
+      <h3>部门列表（${d.departments.length}）</h3>
+      <table><tr><th>ID</th><th>部门名</th><th>备注</th><th>员工数</th><th>状态</th><th>操作</th></tr>
+      ${rows || '<tr><td colspan="6" class="empty">还没有部门</td></tr>'}</table>
+    </div>`;
+}
+async function depCreate(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  try {
+    await api('POST', '/api/departments',
+              { name: f.name.value.trim(), description: f.description.value.trim() });
+    toast(`部门「${f.name.value.trim()}」已创建`);
+    renderDeps();
+  } catch (e) { toast(e.message, false); }
+  return false;
+}
+async function depToggle(id) {
+  try { const r = await api('POST', `/api/departments/${id}/toggle`);
+        toast(r.disabled ? '已停用' : '已启用'); renderDeps(); }
+  catch (e) { toast(e.message, false); }
+}
+async function depDelete(id, name, employees) {
+  confirmDo('删除部门', `确认删除部门「${name}」？${employees > 0
+    ? `该部门下有 ${employees} 名员工，需先转移。` : '此操作不可撤销。'}`,
+    async () => { await api('DELETE', `/api/departments/${id}`);
+                  toast(`部门「${name}」已删除`); renderDeps(); },
+    '删除', true);
+}
+
+/* ---------- 员工管理（仅员工；管理员账户在「管理员」标签单独管理） ---------- */
+let empFilterDep = '', empSearchInput = '', empPage = 1;
+const EMP_PAGE_SIZE = 20;
+async function renderEmps() {
+  const deps = (await api('GET', '/api/departments')).departments;
+  const qs = new URLSearchParams();
+  if (empFilterDep) qs.set('dep', empFilterDep);
+  if (empSearchInput) qs.set('q', encodeURIComponent(empSearchInput));
+  qs.set('page', empPage);
+  qs.set('page_size', EMP_PAGE_SIZE);
+  const d = await api('GET', '/api/users?' + qs.toString());
+  const totalPages = Math.max(1, Math.ceil(d.total / EMP_PAGE_SIZE));
+  const rows = d.users.map(u => `
+    <tr class="clickable" onclick="empView(${u.id})">
+      <td>${u.id}</td><td><b>${esc(u.username)}</b></td>
+      <td>${esc(u.real_name) || '—'}</td>
+      <td>${esc(u.department) || '—'}</td>
+      <td class="wrap">${esc(u.note) || '—'}</td>
+      <td>${u.status === 'active' ? '<span class="tag on">启用</span>'
+                                  : '<span class="tag off">已停用</span>'}</td>
+      <td class="muted">${esc((u.created_at || '').slice(0, 10))}</td>
+      <td style="white-space:nowrap">
+        <button class="mini ghost" onclick="event.stopPropagation(); empView(${u.id})">详情</button>
+        <button class="mini gray" onclick="event.stopPropagation(); empEdit(${u.id})">编辑</button>
+        <button class="mini gray" onclick="event.stopPropagation(); empPwdDep(${u.id})">密码/部门</button>
+      </td>
+    </tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card">
+      <div class="toolbar">
+        <button type="button" onclick="empCreateDlg()">＋ 新增员工</button>
+        <input id="emp-search-input" class="wide"
+          placeholder="搜索账户名 / 姓名…" value="${esc(empSearchInput)}">
+        <button type="button" onclick="empDoSearch()">🔍 搜索</button>
+        <button class="mini gray" type="button"
+          onclick="empSearchInput=''; empPage=1; renderEmps()">清空</button>
+        <select onchange="empFilterDep=this.value; empPage=1; renderEmps()">
+          <option value="">全部部门</option>
+          ${deps.map(x => `<option value="${x.id}" ${String(x.id) === String(empFilterDep)
+            ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="muted" style="margin:10px 0">输入账户名或姓名后点「🔍 搜索」（支持回车）。
+        点击任意员工行进入<b>详情</b>；「编辑」改姓名/备注/权限/状态；「密码/部门」重置密码与调部门。</div>
+      <table><tr><th>ID</th><th>账户名</th><th>姓名</th><th>部门</th><th>备注（职责/职位）</th><th>状态</th><th>创建</th><th>操作</th></tr>
+      ${rows || '<tr><td colspan="8" class="empty">没有匹配的员工</td></tr>'}</table>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+        <button class="mini gray" ${empPage <= 1 ? 'disabled' : ''}
+          onclick="empPage--; renderEmps()">上一页</button>
+        <span class="muted">第 ${empPage} / ${totalPages} 页（共 ${d.total} 名）</span>
+        <button class="mini gray" ${empPage >= totalPages ? 'disabled' : ''}
+          onclick="empPage++; renderEmps()">下一页</button>
+      </div>
+    </div>`;
+  const search = document.querySelector('#emp-search-input');
+  search.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { empSearchInput = search.value.trim(); empPage = 1; renderEmps(); }
+  });
+}
+function empDoSearch() { empPage = 1; renderEmps(); }
+function empCreateDlg() {
+  const opts = (window._emp_deps || []);
+  openDlg('新增员工', `
+    <label>账户名（2~32 位字母/数字/下划线/中文，登录用）</label>
+    <input id="emp-u">
+    <label>姓名（展示用，如：王强）</label>
+    <input id="emp-name">
+    <label>选择部门</label>
+    <select id="emp-dep">
+      ${opts.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
+    </select>
+    <label>备注（职责 / 职位，可选）</label>
+    <input id="emp-note" placeholder="如：产品经理 / 负责数据标注">
+    <label>初始密码（≥6 位）</label>
+    <input id="emp-p1" type="password" value="${genPwd()}">
+    <label>确认密码（再次输入，与上面一致）</label>
+    <input id="emp-p2" type="password">
+    <div class="muted" style="margin-top:6px">创建后可在员工行「详情」里重置密码、调整部门、停用。</div>`,
+    async () => {
+      const u = document.querySelector('#emp-u').value.trim();
+      const name = document.querySelector('#emp-name').value.trim();
+      const dep = document.querySelector('#emp-dep').value;
+      const note = document.querySelector('#emp-note').value.trim();
+      const p1 = document.querySelector('#emp-p1').value;
+      const p2 = document.querySelector('#emp-p2').value;
+      if (!u || !dep) throw new Error('请填写账户名并选择部门');
+      if (p1 !== p2) throw new Error('两次输入的密码不一致');
+      if (p1.length < 6) throw new Error('密码至少 6 位');
+      await api('POST', '/api/users', { username: u, password: p1,
+        department_id: +dep, real_name: name, note });
+      toast(`员工「${name || u}」已创建`);
+      renderEmps();
+    }, '创建');
+}
+function genPwd() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  return Array.from({length: 10}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+/* 员工三类操作拆分为三个独立对话框：
+   empView（详情只读）/ empEdit（编辑：姓名·备注·权限·状态）/ empPwdDep（密码·部门） */
+const PERM_LABELS = { upload: "📤 上传知识", manage: "🗂 知识管理",
+                      retrieval_settings: "🔍 检索设置", maintenance: "🧹 知识库维护",
+                      plugins: "🔌 插件管理（安装/卸载）" };
+
+let empDlgRefresh = null;  // 当前打开的员工对话框刷新函数（操作成功后就地刷新，不关窗）
+
+function openEmpDlg(title, bodyHtml, onOk) {
+  $('#dlg-title').textContent = title;
+  $('#dlg-body').innerHTML = bodyHtml;
+  const ok = $('#dlg-ok');
+  if (onOk) {
+    // 编辑类对话框：确认按钮=保存；保存失败（抛错）时对话框保持打开并提示
+    ok.textContent = '保存';
+    ok.onclick = async () => {
+      try { await onOk(); closeDlg(); renderEmps(); }
+      catch (e) { toast(e.message, false); }
+    };
+  } else {
+    // 只读查看类对话框：确认=关闭并刷新列表
+    ok.textContent = '关闭';
+    ok.onclick = () => { closeDlg(); renderEmps(); };
+  }
+  const dlg = $('#dlg');
+  if (!dlg.open) dlg.showModal();  // 已打开时仅替换内容（就地刷新）
+}
+
+async function _fetchEmp(id) {
+  const d = await api('GET', `/api/users/${id}`);
+  const deps = (await api('GET', '/api/departments')).departments.filter(x => !x.disabled);
+  return { u: d.user, d, deps };
+}
+
+/* ① 详情（只读） */
+async function empView(id) {
+  empDlgRefresh = () => empView(id);
+  let u, d;
+  try { ({ u, d } = await _fetchEmp(id)); }
+  catch (e) { toast(e.message, false); return; }
+  const perms = Array.isArray(u.permissions) ? u.permissions : [];
+  const permTags = perms.length
+    ? perms.map(p => `<span class="tag neutral">${PERM_LABELS[p] || p}</span>`).join(" ")
+    : '<span class="muted">无（仅检索）</span>';
+  openEmpDlg(`员工详情 — ${esc(u.username)}`, `
+    <table style="font-size:13px;margin-bottom:8px">
+      <tr><td class="muted" style="padding-right:18px">姓名</td>
+          <td><b>${esc(u.real_name) || '—'}</b></td></tr>
+      <tr><td class="muted">部门</td>
+          <td><b>${esc(u.department) || '—'}</b></td></tr>
+      <tr><td class="muted">备注（职责/职位）</td>
+          <td>${esc(u.note) || '—'}</td></tr>
+      <tr><td class="muted">前台权限</td><td>${permTags}</td></tr>
+      <tr><td class="muted">状态</td><td>${u.status === 'active'
+        ? '<span class="tag on">启用</span>' : '<span class="tag off">已停用</span>'}</td></tr>
+      <tr><td class="muted">创建时间</td><td>${esc((u.created_at || '').slice(0, 16))}</td></tr>
+      <tr><td class="muted">有效令牌</td><td>${d.valid_tokens} 个
+        <span class="muted">（吊销请去「访问令牌」页）</span></td></tr>
+    </table>
+    <div class="muted">需要修改请用列表里的「编辑」（姓名/备注/权限/状态）
+      或「密码/部门」（重置密码、调整部门）。</div>`);
+}
+
+/* ② 编辑（姓名 · 备注 · 前台权限 · 状态）——一个保存按钮管全部 */
+async function empEdit(id) {
+  empDlgRefresh = () => empEdit(id);
+  let u;
+  try { ({ u } = await _fetchEmp(id)); }
+  catch (e) { toast(e.message, false); return; }
+  const perms = Array.isArray(u.permissions) ? u.permissions : [];
+  const permItems = Object.keys(PERM_LABELS).map(p => `
+    <label class="perm-item">
+      <input type="checkbox" class="perm-check" value="${p}"
+        ${perms.includes(p) ? 'checked' : ''}>
+      <span>${PERM_LABELS[p]}</span>
+    </label>`).join("");
+  openEmpDlg(`编辑员工 — ${esc(u.username)}`, `
+    <label>姓名（展示用，如：王强）</label>
+    <input id="emp-name-edit" value="${esc(u.real_name || '')}">
+    <label>备注（职责 / 职位）</label>
+    <input id="emp-note-edit" value="${esc(u.note || '')}"
+      placeholder="如：产品经理 / 负责数据标注">
+    <label>前台权限（默认无——员工仅可检索；勾选后登录可见对应功能页）</label>
+    <div class="perm-list">${permItems}</div>
+    <label>状态</label>
+    <button class="${u.status === 'active' ? 'danger' : 'gray'}" type="button"
+      onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`,
+    async () => {
+      const name = document.querySelector('#emp-name-edit').value.trim();
+      const note = document.querySelector('#emp-note-edit').value.trim();
+      const perms = [...document.querySelectorAll('.perm-check')]
+        .filter(c => c.checked).map(c => c.value);
+      await api('POST', `/api/users/${id}/profile`, { real_name: name, note });
+      const r = await api('PATCH', `/api/users/${id}/permissions`, { permissions: perms });
+      toast(`已保存：${name || '@' + u.username} ｜ 前台权限 ${r.permissions.length} 项`);
+      renderEmps();
+    }, '保存全部');
+}
+async function empToggle(uid) {
+  try {
+    const r = await api('POST', `/api/users/${uid}/toggle`);
+    toast(r.status === 'active' ? '已启用' : '已停用');
+    if (empDlgRefresh) empDlgRefresh();
+  } catch (e) { toast(e.message, false); }
+}
+
+/* ③ 密码 · 部门 */
+async function empPwdDep(id) {
+  empDlgRefresh = () => empPwdDep(id);
+  let u, deps;
+  try { ({ u, deps } = await _fetchEmp(id)); }
+  catch (e) { toast(e.message, false); return; }
+  openEmpDlg(`密码 / 部门 — ${esc(u.username)}`, `
+    <label>当前部门</label>
+    <div style="margin:2px 0 10px"><b>${esc(u.department) || '—'}</b></div>
+    <label>重置密码（已自动生成，重置后吊销其全部令牌并需告知本人）</label>
+    <div class="row">
+      <input id="emp-newpwd" style="flex:1" value="${genPwd()}">
+      <button type="button" onclick="empReset(${u.id})">重置</button>
+    </div>
+    <label>调整部门</label>
+    <div class="row">
+      <select id="emp-transfer" style="flex:1">
+        ${deps.filter(x => x.id !== u.department_id)
+              .map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
+      </select>
+      <button class="gray" type="button" onclick="empTransfer(${u.id})">调入</button>
+    </div>`);
+}
+async function empReset(uid) {
+  const pwd = document.querySelector('#emp-newpwd').value;
+  if (pwd.length < 6) { toast('密码至少 6 位', false); return; }
+  try {
+    const r = await api('POST', `/api/users/${uid}/reset`, { new_password: pwd });
+    toast(r.detail);
+    if (empDlgRefresh) empDlgRefresh();
+  } catch (e) { toast(e.message, false); }
+}
+async function empTransfer(uid) {
+  const dep = document.querySelector('#emp-transfer').value;
+  try {
+    const r = await api('POST', `/api/users/${uid}/department`, { department_id: +dep });
+    toast(`已调入「${r.department}」`);
+    if (empDlgRefresh) empDlgRefresh();
+  } catch (e) { toast(e.message, false); }
+}
+function userResetDlg(id, username) {
+  openDlg(`重置密码 — ${username}`,
+    `<label>新密码（≥6 位，重置后其全部访问令牌将被吊销）</label>
+     <input id="newpwd" value="${genPwd()}">`,
+    async () => {
+      const pwd = document.querySelector('#newpwd').value;
+      if (pwd.length < 6) throw new Error('密码至少 6 位');
+      const r = await api('POST', `/api/users/${id}/reset`, { new_password: pwd });
+      toast(r.detail);
+    }, '重置');
+}
+
+/* ---------- 管理员（admins 表，与员工分列分表） ---------- */
+async function renderAdmins() {
+  const d = await api('GET', '/api/admins');
+  const logs = (await api('GET', '/api/logs/auth?scope=admins&limit=20')).logs;
+  const rows = d.admins.map(u => `
+    <tr>
+      <td>${u.id}</td>
+      <td><b>${esc(u.username)}</b>
+        ${u.is_super ? '<span class="tag admin">🦸 超级管理员</span>' : ''}</td>
+      <td>${u.status === 'active' ? '<span class="tag on">启用</span>'
+                                  : '<span class="tag off">已停用</span>'}</td>
+      <td class="muted">${esc((u.created_at || '').slice(0, 16))}</td>
+      <td>
+        <button class="mini ghost" onclick="admResetDlg(${u.id}, '${esc(u.username)}')">重置密码</button>
+        <button class="mini danger" ${u.is_super || u.username === me
+          ? 'disabled title="超级管理员与当前登录账户不能停用"' : ''}
+          onclick="admToggle(${u.id})">${u.status === 'active' ? '停用' : '启用'}</button>
+        <button class="mini danger" ${u.is_super ? 'disabled title="超级管理员不能删除"' : ''}
+          onclick="admDelete(${u.id}, '${esc(u.username)}')">删除</button>
+      </td>
+    </tr>`).join('');
+  const logRows = logs.map(l => `
+    <tr>
+      <td class="muted">${esc(l.created_at)}</td>
+      <td><b>${esc(l.username)}</b></td>
+      <td>${l.success ? '<span class="tag on">成功</span>'
+                      : '<span class="tag off">失败</span>'}</td>
+      <td>${esc(l.browser)} / ${esc(l.os_name)}</td>
+      <td class="muted">${esc(l.ip || '—')}</td>
+    </tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card">
+      <h3>管理员列表（${d.admins.length}）</h3>
+      <div class="toolbar">
+        <button type="button" onclick="admCreateDlg()">＋ 新增管理员</button>
+      </div>
+      <div class="muted" style="margin:10px 0">
+        管理员与员工<b>分表存储</b>，且<b>禁止登录知识库前台</b>——管理员只使用本管理后台。
+        <b>admin 是超级管理员</b>：不能停用、不能删除。其他管理员可停用/删除。
+        账户名全局唯一：管理员的账户名不会与员工重复。
+      </div>
+      <table><tr><th>ID</th><th>账户名</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+      ${rows || '<tr><td colspan="5" class="empty">没有管理员</td></tr>'}</table>
+    </div>
+    <div class="card">
+      <h3>管理员登录日志（最近 ${logs.length} 条）</h3>
+      <table><tr><th>时间</th><th>账户</th><th>结果</th><th>设备</th><th>IP</th></tr>
+      ${logRows || '<tr><td colspan="5" class="empty">暂无登录记录</td></tr>'}</table>
+      <div class="muted" style="margin-top:8px">员工登录日志在「登录日志」标签单独查看（与这里的日志分表存储）。</div>
+    </div>`;
+}
+function admCreateDlg() {
+  openDlg('新增管理员', `
+    <label>账户名（2~32 位字母/数字/下划线/中文）</label>
+    <input id="adm-u">
+    <label>初始密码（≥6 位）</label>
+    <input id="adm-p1" type="password" value="${genPwd()}">
+    <label>确认密码（再次输入，与上面一致）</label>
+    <input id="adm-p2" type="password">
+    <div class="muted" style="margin-top:6px">管理员只登录本管理后台，不能登录知识库前台；账户名不能与员工重复。</div>`,
+    async () => {
+      const u = document.querySelector('#adm-u').value.trim();
+      const p1 = document.querySelector('#adm-p1').value;
+      const p2 = document.querySelector('#adm-p2').value;
+      if (!u) throw new Error('请填写账户名');
+      if (p1 !== p2) throw new Error('两次输入的密码不一致');
+      if (p1.length < 6) throw new Error('密码至少 6 位');
+      await api('POST', '/api/admins', { username: u, password: p1,
+        password_confirm: p2 });
+      toast(`管理员「${u}」已创建`);
+      renderAdmins();
+    }, '创建');
+}
+async function admToggle(id) {
+  const r = await api('POST', `/api/admins/${id}/toggle`);
+  toast(r.status === 'active' ? '已启用' : '已停用');
+  renderAdmins();
+}
+function admResetDlg(id, username) {
+  openDlg(`重置管理员「${username}」的密码`, `
+    <label>新密码（≥6 位）</label>
+    <input id="adm-rp" type="password" value="${genPwd()}">`,
+    async () => {
+      const pwd = document.querySelector('#adm-rp').value;
+      if (pwd.length < 6) throw new Error('密码至少 6 位');
+      const r = await api('POST', `/api/admins/${id}/reset`, { new_password: pwd });
+      toast(r.detail);
+    }, '重置');
+}
+async function admDelete(id, username) {
+  confirmDo('删除管理员', `确认删除管理员「${username}」？此操作不可撤销。`,
+    async () => { await api('DELETE', `/api/admins/${id}`);
+                  toast(`管理员「${username}」已删除`); renderAdmins(); },
+    '删除', true);
+}
+
+/* ---------- 访问令牌 ---------- */
+async function renderTokens() {
+  const d = await api('GET', '/api/tokens');
+  const users = (await api('GET', '/api/users')).users;
+  const userOpts = users.map(u => `<option value="${esc(u.username)}">${esc(u.username)}</option>`).join('');
+  const rows = d.tokens.map(t => `
+    <tr>
+      <td class="mono">${esc(t.token_prefix)}…</td>
+      <td>${esc(t.username || '—')}</td>
+      <td>${esc(t.name) || '—'}</td>
+      <td class="muted">${esc(t.created_at)}</td>
+      <td class="muted">${esc(t.last_used || '从未使用')}</td>
+      <td>${t.revoked ? '<span class="tag off">已吊销</span>'
+                      : '<span class="tag on">有效</span>'}</td>
+      <td>${t.revoked ? '' :
+        `<button class="mini danger" onclick="tokenRevoke('${esc(t.token_prefix)}')">吊销</button>`}</td>
+    </tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card">
+      <h3>签发新令牌</h3>
+      <form class="row" onsubmit="return tokenCreate(event)">
+        <select name="username" required>${userOpts}</select>
+        <input name="name" placeholder="用途备注（如：ZCode 接入）" style="width:240px">
+        <button type="submit">签发</button>
+      </form>
+      <div class="muted">令牌明文只在签发时显示一次。员工把它配置进自己 Agent 的 MCP
+        Authorization 头（Bearer mcp_pat_…），调用时即按其部门过滤知识。吊销后立即失效。</div>
+      ${lastToken ? `<div class="log-detail" style="margin-top:12px"><b>刚签发的令牌（仅此一次）：</b><br>
+        <span class="mono">${esc(lastToken)}</span></div>` : ''}
+    </div>
+    <div class="card">
+      <h3>令牌列表（${d.tokens.length}）</h3>
+      <table><tr><th>前缀</th><th>属主</th><th>备注</th><th>创建</th><th>最后使用</th><th>状态</th><th>操作</th></tr>
+      ${rows || '<tr><td colspan="7" class="empty">还没有令牌</td></tr>'}</table>
+    </div>`;
+  lastToken = '';
+}
+let lastToken = '';
+async function tokenCreate(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  try {
+    const r = await api('POST', '/api/tokens', { username: f.username.value,
+                                                 name: f.name.value.trim() });
+    lastToken = r.plaintext;
+    toast('令牌已签发，请立即复制保存');
+    renderTokens();
+  } catch (e) { toast(e.message, false); }
+  return false;
+}
+async function tokenRevoke(prefix) {
+  confirmDo('吊销令牌', `确认吊销令牌 ${prefix}…？该 Agent 接入将立即失效。`,
+    async () => { await api('POST', '/api/tokens/revoke?token_prefix=' + encodeURIComponent(prefix));
+                  toast('令牌已吊销'); renderTokens(); }, '吊销', true);
+}
+
+/* ---------- 登录日志（员工专属；管理员的在「管理员」标签下查看） ---------- */
+let authLogFilter = { username: '', action: '', page: 1 };
+const AUTH_PAGE_SIZE = 20;
+async function renderAuthLog() {
+  const qs = new URLSearchParams();
+  qs.set('scope', 'users');
+  qs.set('page', authLogFilter.page);
+  qs.set('limit', AUTH_PAGE_SIZE);
+  if (authLogFilter.username) qs.set('username', authLogFilter.username);
+  if (authLogFilter.action) qs.set('action', authLogFilter.action);
+  const d = await api('GET', '/api/logs/auth?' + qs.toString());
+  const totalPages = Math.max(1, Math.ceil(d.total / AUTH_PAGE_SIZE));
+  const rows = d.logs.map(l => `
+    <tr class="clickable" onclick="this.nextElementSibling.classList.toggle('hidden')">
+      <td class="muted">${esc(l.created_at)}</td>
+      <td><b>${esc(l.username) || '—'}</b></td>
+      <td>${actionLabel(l.action)}</td>
+      <td>${l.success ? '<span class="tag on">成功</span>'
+                      : '<span class="tag off">失败</span>'}</td>
+      <td class="wrap">${esc(l.detail) || '—'}</td>
+      <td>${esc(l.department) || '—'}</td>
+      <td>${l.entry === 'admin' ? '<span class="tag neutral">管理后台</span>'
+                                : '<span class="tag neutral">前台</span>'}</td>
+      <td class="muted">${esc(l.ip || '—')}</td>
+    </tr>
+    <tr class="hidden"><td colspan="8">
+      <div class="log-detail">🖥 ${esc(l.browser)} / ${esc(l.os_name)}
+        ｜ 指纹 <span class="mono">${esc(l.fingerprint)}</span>
+        ｜ UA ${esc(l.user_agent) || '—'}</div>
+    </td></tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card">
+      <h3>员工登录日志（共 ${d.total} 条）</h3>
+      <div class="toolbar">
+        <input class="wide" placeholder="按账户过滤…" value="${esc(authLogFilter.username)}"
+          onchange="authLogFilter.username=this.value; authLogFilter.page=1; renderAuthLog()">
+        <select onchange="authLogFilter.username=this.value; authLogFilter.page=1; renderAuthLog()">
+          <option value="">全部员工</option>
+          ${(await api('GET', '/api/users')).users
+            .map(u => `<option value="${esc(u.username)}" ${u.username === authLogFilter.username
+              ? 'selected' : ''}>${esc(u.username)}${u.real_name ? '（' + esc(u.real_name) + '）' : ''}</option>`).join('')}
+        </select>
+        <select onchange="authLogFilter.action=this.value; authLogFilter.page=1; renderAuthLog()">
+          <option value="">全部动作</option>
+          ${['login','logout','register','bootstrap_admin','password_reset',
+             'employee_create','employee_toggle','employee_transfer',
+             'department_create','department_toggle','department_delete',
+             'token_create','token_revoke']
+            .map(a => `<option value="${a}" ${a === authLogFilter.action
+              ? 'selected' : ''}>${actionLabel(a)}</option>`).join('')}
+        </select>
+        <button class="mini gray" onclick="renderAuthLog()">刷新</button>
+      </div>
+      <div class="muted" style="margin-bottom:10px">本页只记录<b>员工</b>的登录与相关操作
+        （管理员日志在「管理员」标签下方）。IP 为浏览器真实局域网地址（登录门已直连认证服务获取）。
+        点击任意行展开浏览器指纹与完整 UA，失败的登录尝试同样完整保留（含原因）。</div>
+      <div class="pager" style="display:flex;gap:8px;align-items:center;margin:0 0 10px">
+        <button class="mini gray" ${authLogFilter.page <= 1 ? 'disabled' : ''}
+          onclick="authLogFilter.page--; renderAuthLog()">上一页</button>
+        <span class="muted">第 ${authLogFilter.page} / ${totalPages} 页（共 ${d.total} 条）</span>
+        <button class="mini gray" ${authLogFilter.page >= totalPages ? 'disabled' : ''}
+          onclick="authLogFilter.page++; renderAuthLog()">下一页</button>
+      </div>
+      <table><tr><th>时间</th><th>账户</th><th>动作</th><th>结果</th><th>说明</th>
+        <th>部门</th><th>入口</th><th>IP</th></tr>
+      ${rows || '<tr><td colspan="8" class="empty">暂无登录日志</td></tr>'}</table>
+    </div>`;
+}
+function actionLabel(a) {
+  const m = { login: '登录', logout: '登出', register: '注册',
+    bootstrap_admin: '初始化管理员', password_reset: '重置密码',
+    permissions_update: '分配前台权限',
+    employee_create: '创建员工', employee_toggle: '停用/启用员工',
+    employee_transfer: '调整部门', department_create: '创建部门',
+    department_toggle: '停用/启用部门', department_delete: '删除部门',
+    admin_create: '新增管理员', admin_delete: '删除管理员',
+    token_create: '签发令牌', token_revoke: '吊销令牌' };
+  return m[a] || a;
+}
+
+/* ---------- RAG 使用日志（只有员工会产生——管理员不能登录前台/MCP） ---------- */
+let qaLogFilter = { username: '', entry: '', department: '', page: 1 };
+const QA_PAGE_SIZE = 20;
+async function renderQaLog() {
+  const qs = new URLSearchParams();
+  qs.set('page', qaLogFilter.page);
+  qs.set('limit', QA_PAGE_SIZE);
+  if (qaLogFilter.username) qs.set('username', qaLogFilter.username);
+  if (qaLogFilter.entry) qs.set('entry', qaLogFilter.entry);
+  if (qaLogFilter.department) qs.set('department', qaLogFilter.department);
+  const d = await api('GET', '/api/logs/qa?' + qs.toString());
+  const totalPages = Math.max(1, Math.ceil(d.total / QA_PAGE_SIZE));
+  const users = (await api('GET', '/api/users')).users;
+  const entryLabel = { web: '知识库问答', manage_summary: '跨文档总结',
+                       mcp_http: 'MCP（团队）', mcp_stdio: 'MCP（个人）' };
+  const rows = d.logs.map(l => `
+    <tr class="clickable" onclick="this.nextElementSibling.classList.toggle('hidden')">
+      <td class="muted">${esc(l.created_at)}</td>
+      <td><b>${esc(l.username) || '—'}</b></td>
+      <td>${esc(l.department) || '—'}</td>
+      <td><span class="tag neutral">${esc(entryLabel[l.entry] || l.entry)}</span></td>
+      <td class="wrap">${esc(l.question)}</td>
+      <td>${l.sources.length} 个来源</td>
+      <td class="muted">${l.elapsed.toFixed(1)}s</td>
+    </tr>
+    <tr class="hidden"><td colspan="7">
+      <div class="log-detail"><b>回答：</b>${esc((l.answer || '（仅检索，无生成）').slice(0, 600))}
+        ${l.answer && l.answer.length > 600 ? '……' : ''}
+        <br><b>来源：</b>${esc(l.sources.map(s => s.source).join('、') || '无')}
+        <br><b>过滤：</b>${esc(JSON.stringify(l.filters))}</div>
+    </td></tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card">
+      <h3>RAG 使用 / 提问记录（员工）—— 共 ${d.total} 条</h3>
+      <div class="toolbar">
+        <select onchange="qaLogFilter.department=this.value; qaLogFilter.page=1; renderQaLog()">
+          <option value="">全部部门</option>
+          ${(await api('GET', '/api/departments')).departments
+            .map(x => `<option value="${esc(x.name)}" ${x.name === qaLogFilter.department
+              ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
+        </select>
+        <select onchange="qaLogFilter.username=this.value; qaLogFilter.page=1; renderQaLog()">
+          <option value="">全部员工</option>
+          ${users.map(u => `<option value="${esc(u.username)}" ${u.username === qaLogFilter.username
+            ? 'selected' : ''}>${esc(u.username)}${u.real_name ? '（' + esc(u.real_name) + '）' : ''}</option>`).join('')}
+        </select>
+        <select onchange="qaLogFilter.entry=this.value; renderQaLog()">
+          <option value="">全部入口</option>
+          ${Object.keys(entryLabel).map(k =>
+            `<option value="${k}" ${k === qaLogFilter.entry ? 'selected' : ''}>${entryLabel[k]}</option>`).join('')}
+        </select>
+        <button class="mini gray" onclick="renderQaLog()">刷新</button>
+      </div>
+      <div class="muted" style="margin-bottom:10px">只有员工会产生使用记录（管理员不能登录前台/MCP）。
+        记录所有入口的检索与提问，点击行展开回答全文、命中来源与生效的过滤条件（含部门权限域）。</div>
+      <div class="pager" style="display:flex;gap:8px;align-items:center;margin:0 0 10px">
+        <button class="mini gray" ${qaLogFilter.page <= 1 ? 'disabled' : ''}
+          onclick="qaLogFilter.page--; renderQaLog()">上一页</button>
+        <span class="muted">第 ${qaLogFilter.page} / ${totalPages} 页（共 ${d.total} 条）</span>
+        <button class="mini gray" ${qaLogFilter.page >= totalPages ? 'disabled' : ''}
+          onclick="qaLogFilter.page++; renderQaLog()">下一页</button>
+      </div>
+      <table><tr><th>时间</th><th>账户</th><th>部门</th><th>入口</th><th>问题</th><th>命中</th><th>耗时</th></tr>
+      ${rows || `<tr><td colspan="7" class="empty">暂无使用记录</td></tr>`}</table>
+    </div>`;
+}
+
+/* ---------- 启动 ---------- */
+$('#tabs').innerHTML = TABS.map(t =>
+  `<button data-id="${t.id}" onclick="switchTab('${t.id}')">${t.name}</button>`).join('');
+switchTab('dash');
+</script>
+</body>
+</html>

@@ -47,8 +47,13 @@ def _session_path(session_id: str) -> Path | None:
     return SESSIONS_DIR / session_id[:10] / f"{session_id}.json"
 
 
-def save_session(session_id: str, messages: list[dict], title: str = "") -> str:
-    """保存一个会话。消息里的 result 对象转为普通字典。"""
+def save_session(session_id: str, messages: list[dict], title: str = "",
+                 username: str | None = None) -> str:
+    """保存一个会话。消息里的 result 对象转为普通字典。
+
+    username（V3.7.2）：会话归属的用户——多用户下历史会话按人隔离，
+    list_sessions 按它过滤；未登录的个人模式存 None（不做过滤）。
+    """
     now = datetime.now()
     if not _SESSION_ID_RE.fullmatch(session_id or ""):
         session_id = new_session_id()
@@ -64,6 +69,7 @@ def save_session(session_id: str, messages: list[dict], title: str = "") -> str:
     data = {
         "session_id": session_id,
         "title": title,
+        "username": username or "",
         "updated_at": now.strftime("%Y-%m-%d %H:%M:%S"),
         "messages": plain_messages,
     }
@@ -86,18 +92,27 @@ def load_session(session_id: str) -> dict | None:
         return None
 
 
-def list_sessions(limit: int = 50) -> list[dict]:
-    """列出所有会话（按更新时间倒序）：[{session_id, title, updated_at, date, count}]。"""
+def list_sessions(limit: int = 50, username: str | None = None,
+                  is_admin: bool = False) -> list[dict]:
+    """列出会话（按更新时间倒序）：[{session_id, title, updated_at, date, count}]。
+
+    username=None（个人模式）不过滤；传入用户名则按人隔离：
+    只显示 owner==username 的会话；V3.7 之前的存量会话（无归属）仅管理员可见。
+    """
     out = []
     if not SESSIONS_DIR.exists():
         return out
-    for path in sorted(SESSIONS_DIR.rglob("*.json"), reverse=True)[:limit]:
+    for path in sorted(SESSIONS_DIR.rglob("*.json"), reverse=True):
         if path.suffix != ".json" or path.stem.endswith(".tmp"):
             continue
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
+        if username is not None:
+            owner = data.get("username") or ""
+            if owner != username and not (is_admin and not owner):
+                continue
         sid = data.get("session_id", path.stem)
         out.append({
             "session_id": sid,
@@ -106,6 +121,8 @@ def list_sessions(limit: int = 50) -> list[dict]:
             "date": sid[:10],
             "count": len(data.get("messages", [])),
         })
+        if len(out) >= limit:
+            break
     return out
 
 
