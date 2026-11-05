@@ -959,68 +959,81 @@ def auth_gate() -> bool:
         unsafe_allow_html=True,
     )
 
+    # 三个表单全部用 st.form 原子提交：裸 text_input+button 有值同步竞态——
+    # 点击按钮时最后一个输入框的值可能还没提交到会话，处理器读到旧值，
+    # 出现"两次密码明明一致却提示不一致"（登录偶尔要点两次也是这个根源）。
+    # form 的字段值在点击提交按钮那一刻原子落地，竞态不可能发生。
     if not boot.get("has_users"):
         st.markdown(f'<div class="section-title">{t("auth.init.title")}</div>',
                     unsafe_allow_html=True)
         st.caption(t("auth.init.note"))
-        u = st.text_input(t("auth.username"), key="init_user")
-        p1 = st.text_input(t("auth.password"), type="password", key="init_pw1")
-        p2 = st.text_input(t("auth.password.confirm"), type="password", key="init_pw2")
-        if st.button(t("auth.init.btn"), type="primary", width="stretch"):
-            if p1 != p2:
-                st.error(t("auth.pwd.mismatch"))
-            elif len(p1) < 6:
-                st.error(t("auth.pwd.short"))
-            else:
-                data, err = auth_client.bootstrap_admin(u, p1, p2)
-                if err:
-                    st.error(err)
+        with st.form("init_admin_form", clear_on_submit=False):
+            u = st.text_input(t("auth.username"), key="init_user")
+            p1 = st.text_input(t("auth.password"), type="password", key="init_pw1")
+            p2 = st.text_input(t("auth.password.confirm"), type="password", key="init_pw2")
+            submitted = st.form_submit_button(t("auth.init.btn"), type="primary",
+                                              width="stretch")
+            if submitted:
+                if p1 != p2:
+                    st.error(t("auth.pwd.mismatch"))
+                elif len(p1) < 6:
+                    st.error(t("auth.pwd.short"))
                 else:
-                    data2, err2 = auth_client.login(u, p1)
-                    if data2:
-                        _finish_login(data2)
+                    data, err = auth_client.bootstrap_admin(u.strip(), p1, p2)
+                    if err:
+                        st.error(err)
                     else:
-                        st.success(t("auth.init.ok"))
+                        data2, err2 = auth_client.login(u.strip(), p1)
+                        if data2:
+                            _finish_login(data2)
+                        else:
+                            st.success(t("auth.init.ok"))
         return False
 
     tab_login, tab_register = st.tabs([t("auth.tab.login"), t("auth.tab.register")])
     with tab_login:
-        u = st.text_input(t("auth.username"), key="login_user")
-        p = st.text_input(t("auth.password"), type="password", key="login_pw")
-        if st.button(t("auth.login.btn"), type="primary", width="stretch"):
-            data, err = auth_client.login(u, p)
-            if err:
-                st.error(err)
-            else:
-                _finish_login(data)
+        with st.form("login_form", clear_on_submit=False):
+            u = st.text_input(t("auth.username"), key="login_user")
+            p = st.text_input(t("auth.password"), type="password", key="login_pw")
+            submitted = st.form_submit_button(t("auth.login.btn"), type="primary",
+                                              width="stretch")
+            if submitted:
+                data, err = auth_client.login(u.strip(), p)
+                if err:
+                    st.error(err)
+                else:
+                    _finish_login(data)
 
     with tab_register:
         departments = boot.get("departments") or []
         if not departments:
             st.info(t("auth.no_departments"))
         else:
-            u = st.text_input(t("auth.username"), key="reg_user")
-            dep = st.selectbox(
-                t("auth.department"), departments,
-                format_func=lambda d: d["name"],
-            )
-            p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
-            p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
-            if st.button(t("auth.register.btn"), type="primary", width="stretch"):
-                if p1 != p2:
-                    st.error(t("auth.pwd.mismatch"))
-                elif len(p1) < 6:
-                    st.error(t("auth.pwd.short"))
-                else:
-                    data, err = auth_client.register(u, p1, p2, dep["id"])
-                    if err:
-                        st.error(err)
+            with st.form("register_form", clear_on_submit=False):
+                u = st.text_input(t("auth.username"), key="reg_user")
+                dep = st.selectbox(
+                    t("auth.department"), departments,
+                    format_func=lambda d: d["name"],
+                )
+                p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
+                p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
+                submitted = st.form_submit_button(t("auth.register.btn"), type="primary",
+                                                  width="stretch")
+                if submitted:
+                    if p1 != p2:
+                        st.error(t("auth.pwd.mismatch"))
+                    elif len(p1) < 6:
+                        st.error(t("auth.pwd.short"))
                     else:
-                        data2, err2 = auth_client.login(u, p1)
-                        if data2:
-                            _finish_login(data2)
+                        data, err = auth_client.register(u.strip(), p1, p2, dep["id"])
+                        if err:
+                            st.error(err)
                         else:
-                            st.success(t("auth.register.ok"))
+                            data2, err2 = auth_client.login(u.strip(), p1)
+                            if data2:
+                                _finish_login(data2)
+                            else:
+                                st.success(t("auth.register.ok"))
     st.stop()
 
 

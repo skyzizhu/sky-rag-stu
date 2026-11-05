@@ -690,6 +690,20 @@ def api_clear_front_cookie():
     return resp
 
 
+@app.get("/auth/clear-front-cookie")
+def api_clear_front_cookie_get(request: Request, back: str = Query("")):
+    """顶层导航版（与 persist-login GET 对应）：删除 Cookie 后导航回前台。
+    back 须以 / 开头（防开放重定向）；缺省回前台首页。"""
+    from urllib.parse import unquote
+    front_host = request.headers.get("referer", "").split("/")[2] if "://" \
+        in request.headers.get("referer", "") else "localhost:8501"
+    target = unquote(back or f"//{front_host}/")
+    target = target if target.startswith("/") else "/"
+    resp = HTMLResponse(f'<script>window.location.href = "{target}";</script>')
+    resp.delete_cookie("front_auth", samesite="lax")
+    return resp
+
+
 @app.get("/auth/ping")
 def api_ping(request: Request):
     """登录门的隐藏组件直连本端点：让浏览器记下自己的真实局域网 IP（rip cookie，

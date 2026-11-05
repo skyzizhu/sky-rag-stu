@@ -78,12 +78,14 @@ def persist_login_html(username: str, proof: str, front_host: str) -> str:
 
 
 def clear_cookie_html(front_host: str) -> str:
-    """退出登录时渲染的隐藏 iframe：删除 front_auth Cookie。"""
+    """退出登录时渲染的隐藏 iframe：删除 front_auth Cookie 后回跳前台。"""
     admin_port = os.environ.get("AUTH_ADMIN_PORT", "8700")
     hostname = front_host.split(":")[0]
+    from urllib.parse import quote
+    back = quote(f"//{front_host}/?logout=1")
     return (f'<script>'
             f'parent.location.href = "//{hostname}:{admin_port}'
-            f'/auth/clear-front-cookie";</script>')
+            f'/auth/clear-front-cookie?back={back}";</script>')
 
 
 def _post_json(path: str, body: dict) -> tuple[dict | None, str]:
