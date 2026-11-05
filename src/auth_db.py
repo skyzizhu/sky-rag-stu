@@ -35,6 +35,10 @@ SECRET_PATH = AUTH_DIR / "admin_secret.key"
 _PBKDF2_ROUNDS = 200_000
 _USERNAME_RE = re.compile(r"^[\w\u4e00-\u9fa5]{2,32}$", re.UNICODE)
 _write_lock = threading.Lock()  # 建表等初始化写用；常规读写靠 WAL + 短事务
+# 账户名全局唯一（admins+users 两张表）：跨表"检查+插入"必须原子，否则并发创建
+# 可能在两张表各插入同名账户（各自表内 UNIQUE 拦不住跨表重名）。
+# 所有写入都发生在 8700 单进程内，进程级锁即可。
+_username_lock = threading.Lock()
 
 
 def _now() -> str:
@@ -297,20 +301,21 @@ def create_user(username: str, password: str, department_id: int | None = None,
                 real_name: str = "", note: str = "") -> dict:
     username = _validate_username(username)
     _validate_password(password)
-    _ensure_username_free(username)
     pw_hash, salt = hash_password(password)
-    try:
-        with _connect() as conn:
-            conn.execute(
-                "INSERT INTO users(username, password_hash, salt, department_id,"
-                " status, permissions, real_name, note, created_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?)",
-                (username, pw_hash, salt, department_id, status,
-                 json.dumps(_valid_permissions(permissions)),
-                 (real_name or "").strip(), (note or "").strip(), _now()),
-            )
-    except sqlite3.IntegrityError as exc:
-        raise ValueError("该账户名已被注册") from exc
+    with _username_lock:  # 跨表重名检查+插入原子化
+        _ensure_username_free(username)
+        try:
+            with _connect() as conn:
+                conn.execute(
+                    "INSERT INTO users(username, password_hash, salt, department_id,"
+                    " status, permissions, real_name, note, created_at)"
+                    " VALUES(?,?,?,?,?,?,?,?,?)",
+                    (username, pw_hash, salt, department_id, status,
+                     json.dumps(_valid_permissions(permissions)),
+                     (real_name or "").strip(), (note or "").strip(), _now()),
+                )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("该账户名已被注册") from exc
     user = get_user(username)
     assert user is not None
     return user
@@ -459,18 +464,19 @@ def create_admin(username: str, password: str, is_super: bool = False,
                  real_name: str = "", note: str = "") -> dict:
     username = _validate_username(username)
     _validate_password(password)
-    _ensure_username_free_admin_side(username)
     pw_hash, salt = hash_password(password)
-    try:
-        with _connect() as conn:
-            conn.execute(
-                "INSERT INTO admins(username, password_hash, salt, is_super,"
-                " status, real_name, note, created_at) VALUES(?,?,?,?,?,?,?,?)",
-                (username, pw_hash, salt, 1 if is_super else 0, "active",
-                 (real_name or "").strip(), (note or "").strip(), _now()),
-            )
-    except sqlite3.IntegrityError as exc:
-        raise ValueError("该账户名已被占用") from exc
+    with _username_lock:  # 跨表重名检查+插入原子化
+        _ensure_username_free_admin_side(username)
+        try:
+            with _connect() as conn:
+                conn.execute(
+                    "INSERT INTO admins(username, password_hash, salt, is_super,"
+                    " status, real_name, note, created_at) VALUES(?,?,?,?,?,?,?,?)",
+                    (username, pw_hash, salt, 1 if is_super else 0, "active",
+                     (real_name or "").strip(), (note or "").strip(), _now()),
+                )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("该账户名已被占用") from exc
     admin = get_admin(username)
     assert admin is not None
     return admin

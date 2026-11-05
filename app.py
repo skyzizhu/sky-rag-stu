@@ -843,6 +843,20 @@ def require_perm(perm: str) -> bool:
     return False
 
 
+def group_write_options(current: list[str] | None = None) -> list[str]:
+    """写入侧（上传归属 / 管理编辑）允许的可见域选项：全员域 + 自己部门。
+
+    检索侧按部门强制过滤，写入侧不能成为绕过口——若员工能把文档标成
+    他部门可见，等于开了条横向数据外泄通道（hr 员工把资料标成 develop
+    可见）。current 传文档现有可见域（编辑场景）：并入选项但员工改不掉，
+    只能保留管理员此前设置的更宽范围。
+    """
+    _au = st.session_state.get("auth_user") or {}
+    dept = _au.get("department")
+    opts = ["all"] + ([dept] if dept else [])
+    return list(dict.fromkeys(opts + [g for g in (current or []) if g]))
+
+
 def _apply_user_prefs(username: str) -> None:
     """登录后把该用户的界面偏好套到 session（覆盖默认值）。"""
     prefs = auth_client.get_prefs(username) or {}
@@ -1428,8 +1442,8 @@ def page_upload():
             with col2:
                 upload_category = st.text_input(t("upload.category"), value="",
                                                 help=t("upload.category.help"))
-            # V3.7 权限：可见部门多选（默认全员）；选项 = 全部 + 管理后台已建部门
-            _dep_options = ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)]
+            # V3.7 权限：可见部门多选（默认全员）；写入侧只能选 全员 + 自己部门
+            _dep_options = group_write_options()
             upload_groups = st.multiselect(t("upload.groups"), _dep_options,
                                            default=["all"], help=t("upload.groups.help"))
         uploads = st.file_uploader(t("upload.dropzone"),
@@ -1451,8 +1465,8 @@ def page_upload():
                 index=DOMAINS.index("learning"),
                 key="directory_domain",
             )
-            # V3.7 权限：本批目录导入的可见部门（默认全员）
-            _dep_options_dir = ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)]
+            # V3.7 权限：本批目录导入的可见部门（默认全员）；写入侧限自己部门
+            _dep_options_dir = group_write_options()
             dir_groups = st.multiselect(t("upload.groups"), _dep_options_dir,
                                         default=["all"], key="dir_groups",
                                         help=t("upload.groups.help"))
@@ -1540,7 +1554,7 @@ def page_upload():
                 with col_w2:
                     web_category = st.text_input(t("web.category"), value="webpages")
                 web_groups = st.multiselect(t("upload.groups"),
-                                            ["all"] + [d["name"] for d in auth_db.list_departments(include_disabled=False)],
+                                            group_write_options(),
                                             default=["all"], key="web_groups",
                                             help=t("upload.groups.help"))
 
@@ -1924,9 +1938,9 @@ def page_manage():
                                      key=f"ed_cat_{_ed_suffix}")
         new_topic = st.text_input(t("manage.edit.topic"), value=", ".join(d["topic"]),
                                   key=f"ed_topic_{_ed_suffix}")
-        # V3.7 权限：可见部门多选（空 = 全员可见）
-        _group_options = list(dict.fromkeys(
-            ["all"] + [x["name"] for x in auth_db.list_departments(include_disabled=False)]))
+        # V3.7 权限：可见部门多选（空 = 全员可见）；写入侧限 全员+自己部门，
+        # 文档现有可见域并入选项（只能保留管理员设的更宽范围，不能改成别的部门）
+        _group_options = group_write_options(current=d.get("allowed_groups") or ["all"])
         new_groups = st.multiselect(t("manage.edit.groups"), _group_options,
                                     default=d.get("allowed_groups") or ["all"],
                                     key=f"ed_groups_{_ed_suffix}",

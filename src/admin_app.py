@@ -563,6 +563,11 @@ def api_register(body: RegisterBody, request: Request):
     # 账户名全局唯一：与管理员重名的注册请求直接拒绝（否则前台登录会被
     # 管理员拦截规则挡住，员工账户形同虚设）
     if auth_db.admin_exists((body.username or "").strip()):
+        auth_db.log_auth_event("register", body.username, success=False,
+                               detail="该账户名已被管理员占用", entry="web",
+                               ip=(body.client_ip or _web_ip(request)),
+                               user_agent=body.user_agent,
+                               accept_language=body.accept_language)
         return JSONResponse({"ok": False, "detail": "该账户名已被管理员占用"},
                             status_code=400)
     if body.password != body.password_confirm:
