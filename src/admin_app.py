@@ -13,6 +13,8 @@ V3.7.1 重构：管理页面从"服务端渲染多页 + 表单跳转"重构为**
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 import time
 from pathlib import Path
@@ -44,8 +46,8 @@ _SESSION_TTL = 7 * 24 * 3600
 # ---------------------------------------------------------------- 会话签名（共享 auth_db 密钥）
 def _sign(payload: str) -> str:
     import hmac
-    return auth_db.hmac.new(auth_db.get_secret(), payload.encode(),
-                            hashlib.sha256).hexdigest()
+    return hmac.new(auth_db.get_secret(), payload.encode(),
+                    auth_db.hashlib.sha256).hexdigest()
 
 
 def _make_cookie(username: str) -> str:
