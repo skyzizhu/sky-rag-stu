@@ -335,6 +335,9 @@ def _ingest_files_impl(
 # ---------------------------------------------------------------- Q→A 缓存
 # 简单内存缓存：同一问题 + 同一配置 → 直接返回上次结果（不重跑流水线）
 _qa_cache: dict[str, QAResult] = {}
+# V3.7.2 缓存归属：键 → 用户名（多用户下"清空我的缓存"只清自己的条目；
+# 未登录的个人模式/离线评测条目 owner 为空串，仅"清空全部"能触及）
+_qa_cache_owner: dict[str, str] = {}
 _QA_CACHE_MAX = 50  # 最多缓存 50 条问答
 # Streamlit 多标签页 = 多线程：入库/缓存读写需要锁保护，
 # 否则驱逐点与并发清空可竞态崩溃，台账也会互相覆盖
@@ -352,9 +355,16 @@ def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool,
             f"|qu={qu}|hy={hybrid}|rr={rerank}|h={hist_sig}")
 
 
-def clear_qa_cache() -> None:
-    """入库/删除知识后调用，清空问答缓存。"""
-    _qa_cache.clear()
+def clear_qa_cache(username: str | None = None) -> None:
+    """清空问答缓存。username 传入时只清该用户的条目（"清空我的缓存"）；
+    None 清全部（入库/删除知识后的系统级清理）。"""
+    if username is None:
+        _qa_cache.clear()
+        _qa_cache_owner.clear()
+        return
+    for key in [k for k, owner in _qa_cache_owner.items() if owner == username]:
+        _qa_cache.pop(key, None)
+        _qa_cache_owner.pop(key, None)
 
 
 # ---------------------------------------------------------------- 问答
@@ -370,6 +380,7 @@ def answer_stream(
     on_progress=None,
     config: AppConfig | None = None,
     user_groups: list[str] | None = None,
+    username: str | None = None,
 ):
     def _p(msg):
         if on_progress:
@@ -824,6 +835,7 @@ def answer_stream(
                     if not _qa_cache:
                         break
                 _qa_cache[cache_key] = result
+                _qa_cache_owner[cache_key] = username or ""
 
     return result, _generate()
 
@@ -839,6 +851,7 @@ def answer_question(
     history: list[dict] | None = None,
     config: AppConfig | None = None,
     user_groups: list[str] | None = None,
+    username: str | None = None,
 ) -> QAResult:
     """完整问答链路（一次性返回完整答案）。use_llm=False 时只做检索（不花钱）。"""
     result, deltas = answer_stream(
@@ -846,6 +859,7 @@ def answer_question(
         use_query_understanding=use_query_understanding,
         use_hybrid=use_hybrid, use_rerank=use_rerank,
         history=history, config=config, user_groups=user_groups,
+        username=username,
     )
     for _ in deltas:  # 消费生成器，把答案收集完整
         pass
