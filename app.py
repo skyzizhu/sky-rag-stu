@@ -341,17 +341,18 @@ html, body, .stApp, .stMarkdown, input, textarea {
 .user-card .u-note { color:var(--text-muted, #8a93a6); font-size:.72rem; margin-top:3px;
   white-space:normal; word-break:break-all; line-height:1.5; }
 /* V3.7.2 表单控件全局加清晰边框：下拉/输入/多选未聚焦时也有明确可点击边界 */
-.stApp [data-baseweb="select"] > div,
+.stApp [data-baseweb="select"],
 .stApp [data-baseweb="tag-list"],
 .stApp [data-baseweb="text-input"] > div,
 .stApp [data-baseweb="text-area"] > div {
   border: 1px solid rgba(100,116,139,.45) !important;
   border-radius: 8px !important;
+  background: #fff !important;
 }
 .stApp [data-baseweb="select"] > div:hover,
+.stApp [data-baseweb="select"]:hover,
 .stApp [data-baseweb="tag-list"]:hover,
-.stApp [data-baseweb="text-input"] > div:hover,
-.stApp [data-baseweb="text-area"] > div:hover {
+.stApp [data-baseweb="text-input"] > div:hover {
   border-color: #2563EB !important;
 }
 .user-card .u-dept { display:inline-block; padding:1px 8px; margin-left:6px;
