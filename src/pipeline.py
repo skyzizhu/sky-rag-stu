@@ -124,14 +124,24 @@ def _ingest_files_impl(
             {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf"}
         )
     summary.total_files = len(files)
-    if not files:
-        print(f"⚠️ 没有找到可入库的文件（知识目录：{cfg.knowledge_dir}）")
-        return summary
-    print(f"① 找到 {len(files)} 个待入库文件")
-
-    # ①.5 增量判断（V3.1）：内容指纹没变的文件跳过；台账里有但文件已删除的，向量同步清理
     from src import index_state as istate
 
+    if not files:
+        print(f"⚠️ 没有找到可入库的文件（知识目录：{cfg.knowledge_dir}）")
+        if rebuild:
+            # 重建 + 空目录 = 清空知识库：否则旧卡片永远留在检索里
+            vector_store.clear()
+            istate.save_state({})
+            clear_qa_cache()
+            from src.keyword_search import invalidate_cache
+            invalidate_cache()
+            return summary
+        # 不能提前返回：删光目录里最后一个文件时，台账里它的向量仍需在下方
+        # 「已删除文件同步清理」中清掉（此前在这里 return，残留向量永远参与检索）
+    else:
+        print(f"① 找到 {len(files)} 个待入库文件")
+
+    # ①.5 增量判断（V3.1）：内容指纹没变的文件跳过；台账里有但文件已删除的，向量同步清理
     state = {} if rebuild else istate.load_state()
     paths_to_process: list[Path] = []
     processed: list[tuple[Path, str, str]] = []  # (路径, 相对路径, 哈希)
@@ -400,9 +410,8 @@ def answer_stream(
     # V3.7 权限：把可见部门并入 filters 的本地副本（服务端强制注入——
     # 此后 merged_filters / 渐进式放宽的 manual_filters / 两级缓存键全部自动带上，
     # 调用方在界面上改任何过滤条件都绕不开它）。None = 不限制（个人模式/离线评测）。
-    if user_groups is not None:
-        filters = {**(filters or {}),
-                   "allowed_groups": sorted({*user_groups, "all"})}
+    from src.permissions import scope_filters
+    filters = scope_filters(filters, user_groups)
 
     # Q→A 缓存：同一问题+同一配置+同一对话上下文直接返回上次结果；
     # 仅检索模式（use_llm=False）不读缓存——它要的是检索结果而非缓存的 LLM 答案

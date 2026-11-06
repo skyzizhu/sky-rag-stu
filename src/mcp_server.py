@@ -337,7 +337,8 @@ class _TokenAuthMiddleware:
                                     (b"www-authenticate", b"Bearer")]})
             await send({"type": "http.response.body", "body": payload})
             return
-        groups = [ident["department"]] if ident["department"] else ["all"]
+        from src.permissions import visible_groups
+        groups = visible_groups(ident["department"])
         _request_groups.set(groups)
         _request_user.set({"username": ident["username"],
                            "department": ident["department"]})

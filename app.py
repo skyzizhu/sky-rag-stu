@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.app_settings import SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
 from src import auth_client  # noqa: E402  # V3.7 登录/注册/偏好（FastAPI 认证服务 8700）
 from src import auth_db  # noqa: E402  # V3.7 部门列表（上传可见性选项）
+from src.permissions import visible_groups, write_group_options  # noqa: E402  # V3.8 权限规则
 from src.answer_format import format_answer_markdown  # noqa: E402
 from src.config import get_config  # noqa: E402
 from src.chat_scroll import scroll_chat_to_latest, scroll_follow_stream  # noqa: E402
@@ -726,8 +727,11 @@ def get_services():
     return {"embedding": get_embedding_client(), "store": get_vector_store()}
 
 
-services = get_services()
-store = services["store"]
+# V3.8：services / store 在登录门之后才初始化（见文件末尾 auth_gate() 之后）——
+# 此前在这里初始化，Qdrant 一挂连登录页都打不开，还会把带服务器路径的报错栈
+# 直接显示给访客。所有使用方都在页面函数内，登录后才会被调用。
+services: dict = {}
+store = None
 
 
 def persist_app_settings() -> None:
@@ -847,15 +851,10 @@ def require_perm(perm: str) -> bool:
 def group_write_options(current: list[str] | None = None) -> list[str]:
     """写入侧（上传归属 / 管理编辑）允许的可见域选项：全员域 + 自己部门。
 
-    检索侧按部门强制过滤，写入侧不能成为绕过口——若员工能把文档标成
-    他部门可见，等于开了条横向数据外泄通道（hr 员工把资料标成 develop
-    可见）。current 传文档现有可见域（编辑场景）：并入选项但员工改不掉，
-    只能保留管理员此前设置的更宽范围。
+    规则本体在 src/permissions.write_group_options（纯函数，有单测）。
     """
     _au = st.session_state.get("auth_user") or {}
-    dept = _au.get("department")
-    opts = ["all"] + ([dept] if dept else [])
-    return list(dict.fromkeys(opts + [g for g in (current or []) if g]))
+    return write_group_options(_au.get("department"), current)
 
 
 def _apply_user_prefs(username: str) -> None:
@@ -1330,12 +1329,9 @@ def page_chat():
                         if m.get("role") in ("user", "assistant") and m.get("content")
                     ][-6:]  # 最近 3 轮
                     # V3.7 权限：登录者注入可见部门（服务端强制，UI 改不掉）；
-                    # 无部门的员工只能看 all 域
+                    # 规则统一在 src/permissions.visible_groups
                     _au = st.session_state.get("auth_user") or {}
-                    if _au.get("department"):
-                        _user_groups = [_au["department"]]
-                    else:
-                        _user_groups = ["all"]
+                    _user_groups = visible_groups(_au.get("department"))
                     result, deltas = answer_stream(
                         question,
                         top_k=st.session_state["top_k"],
@@ -1711,12 +1707,9 @@ def page_manage():
         )
         if st.button(t("manage.sum.button"), disabled=not sum_topic.strip(), type="primary"):
             with st.spinner(t("manage.sum.spinner")):
-                # V3.7.2 权限：跨文档总结同样按登录者部门过滤
+                # V3.7.2 权限：跨文档总结同样按登录者部门过滤（规则同问答）
                 _sum_au = st.session_state.get("auth_user") or {}
-                if _sum_au.get("department"):
-                    _sum_groups = [_sum_au["department"]]
-                else:
-                    _sum_groups = ["all"]
+                _sum_groups = visible_groups(_sum_au.get("department"))
                 result = answer_question(
                     f"请综合知识库中与「{sum_topic.strip()}」相关的全部内容，"
                     "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
@@ -2259,6 +2252,16 @@ def page_learning():
 
 # ── V3.7 登录门：未登录只渲染登录/注册页，到此为止 ──
 auth_gate()
+
+# ── V3.8 知识库服务在登录之后初始化：Qdrant / Ollama 不可用时登录页照常可用，
+# 登录后给出友好提示；完整异常只写服务端日志，不把报错栈与服务器路径暴露给浏览器 ──
+try:
+    services = get_services()
+    store = services["store"]
+except Exception as _svc_exc:  # VectorStoreError / 连接异常等
+    print(f"⚠️ 知识库服务初始化失败：{type(_svc_exc).__name__}: {_svc_exc}")
+    st.error(t("services.unavailable"))
+    st.stop()
 
 _auth_user = st.session_state.get("auth_user") or {}
 # V3.7.2 员工前台权限（管理后台分配，默认无）：检索设置/知识库维护/插件管理需权限；

@@ -18,26 +18,41 @@ import hmac
 import os
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src import auth_db
 
 app = FastAPI(title="Sky Personal RAG · 管理后台", docs_url=None, redoc_url=None)
-# V3.7：允许知识库前台（8501）的浏览器直接 ping 本服务以记录真实客户端 IP
-# （Cookie 不区分端口，ping 写下的 rip cookie 会被浏览器带给 8501，Streamlit 读取后随登录请求传回）
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=".*",
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
+# V3.8 安全收紧：不再挂全局 CORS（原 allow_origin_regex=".*" + allow_credentials，
+# 等于允许任何来源带着管理员会话调用管理接口）。浏览器端唯一的跨域调用是登录门
+# iframe 对 /auth/ping 的探测，CORS 头只在该端点单独下发（见 api_ping）。
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "admin_templates"))
+
+_STATE_CHANGING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+@app.middleware("http")
+async def _same_origin_guard(request: Request, call_next):
+    """管理 API 写操作的同源校验（防同站跨端口 CSRF）。
+
+    SameSite=Lax 只挡「跨站」，不挡「同站」：同一主机其他端口的网页与本服务同站，
+    浏览器会带上 admin_sess Cookie。像停用账户、吊销令牌这类无请求体的 POST，
+    请求发出即生效，CORS 拦不住。这里要求浏览器带来的 Origin 与本服务 Host 一致；
+    没有 Origin 头的请求（curl、Streamlit 服务端调用）不是浏览器 CSRF，放行。
+    """
+    if request.method in _STATE_CHANGING_METHODS and request.url.path.startswith("/api/"):
+        origin = request.headers.get("origin")
+        if origin is not None:
+            allowed = {h for h in (request.headers.get("host"),
+                                   request.headers.get("x-forwarded-host")) if h}
+            if urlsplit(origin).netloc not in allowed:
+                return JSONResponse({"ok": False, "detail": "跨站请求被拒绝"}, status_code=403)
+    return await call_next(request)
 
 _SESSION_COOKIE = "admin_sess"
 _SESSION_TTL = 7 * 24 * 3600
@@ -757,6 +772,13 @@ def api_ping(request: Request):
     ip = request.client.host if request.client else ""
     resp = JSONResponse({"ok": True, "ip": ip})
     resp.set_cookie("rip", ip, samesite="lax", max_age=86400 * 30)
+    # CORS 只对本端点开放：调用方是 srcdoc iframe（Origin: null），需带凭证；
+    # 响应只含调用者自己的 IP，无敏感信息，回显 Origin 无风险
+    origin = request.headers.get("origin")
+    if origin:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers["Vary"] = "Origin"
     return resp
 
 
