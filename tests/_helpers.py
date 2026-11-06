@@ -91,6 +91,10 @@ class FakeEmbedding:
             vectors.append(vec)
         return vectors
 
+    def embed_query(self, text: str) -> list[float]:
+        """检索流水线对单条查询向量化走这个方法（与真实 EmbeddingClient 接口一致）。"""
+        return self.embed_texts([text])[0]
+
 
 class IngestHarness(unittest.TestCase):
     """入库全流程夹具：临时知识目录 + 临时台账 + 内存 Qdrant + 假向量化（关闭自动打标签）。"""
@@ -113,6 +117,12 @@ class IngestHarness(unittest.TestCase):
         patcher = mock.patch.object(istate, "STATE_PATH", root / "index_state.json")
         patcher.start()
         self.addCleanup(patcher.stop)
+        # 领域注册表同样隔离到临时文件：测试结果不能依赖真实 storage/domains.json
+        from src import domains
+
+        reg_patcher = mock.patch.object(domains, "REGISTRY_PATH", root / "domains.json")
+        reg_patcher.start()
+        self.addCleanup(reg_patcher.stop)
         self.addCleanup(self._tmp.cleanup)
 
     def ingest(self, paths=None, **kwargs):

@@ -113,6 +113,12 @@ def restore(archived_relative_path: str) -> dict:
     if len(parts) == 2:  # 直接放在 archive/ 根目录的文件，没有原始目录可回
         target = knowledge_dir / "reference" / "documents" / parts[1]
     else:
+        # V3.8：原领域必须仍已登记——否则文件落进未登记目录，入库时会被悄悄兜底归到 reference
+        from src.domains import all_codes
+
+        if parts[1].lower() not in all_codes():
+            raise ManageError(f"原领域「{parts[1]}」已不存在（可能已在领域管理中删除），"
+                              "请先在领域管理中重新创建该领域再恢复。")
         target = knowledge_dir / original
     # 复检目标仍在 knowledge/ 内：构造的 archive/../x 路径不能把文件移出知识库
     try:

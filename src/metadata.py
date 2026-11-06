@@ -22,16 +22,11 @@ from pathlib import Path
 
 import yaml
 
+from src.domains import all_codes as domain_codes
+
 # ---------------- 规范常量 ----------------
-DOMAINS = ["work", "learning", "life", "projects", "reference", "archive"]
-DOMAIN_LABELS = {
-    "work": "工作",
-    "learning": "学习",
-    "life": "生活",
-    "projects": "项目",
-    "reference": "参考资料",
-    "archive": "归档",
-}
+# V3.8：领域不再写死——编号由 src/domains.py 的注册表维护（前台「领域管理」页增删改），
+# 这里只认编号；显示名称只在界面层使用，不进任何元数据。
 
 STATUSES = ["active", "archive", "expired"]
 
@@ -133,9 +128,11 @@ def infer_from_path(relative_path: str) -> dict:
 
     dirs = parts[:-1]  # 最后一段是文件名，其余才是目录链
     domain = dirs[0].strip().lower()
-    if domain not in DOMAINS:
-        # 目录名不是合法领域枚举时回退默认值：否则这些文档按领域筛选永远筛不出来
-        print(f"⚠️ 目录「{dirs[0]}」不是合法领域（{'/'.join(DOMAINS)}），按 {DEFAULTS['domain']} 处理")
+    known = domain_codes()  # 注册表里的全部编号（含停用：停用只拦新上传，已有数据照常有效）
+    if domain not in known:
+        # 目录名不是已登记领域时回退默认值：否则这些文档按领域筛选永远筛不出来
+        # （前台「领域管理」页会把这类目录列为「未登记目录」，可一键登记）
+        print(f"⚠️ 目录「{dirs[0]}」不是已登记领域（{'/'.join(known)}），按 {DEFAULTS['domain']} 处理")
         domain = DEFAULTS["domain"]
     category = normalize_category(dirs[1]) if len(dirs) >= 2 else DEFAULTS["category"]
 
@@ -154,7 +151,7 @@ def _valid_domain(raw) -> str | None:
     if raw is None:
         return None
     value = str(raw).strip().lower()
-    return value if value in DOMAINS else None
+    return value if value in domain_codes() else None
 
 
 def _valid_status(raw) -> str | None:
@@ -216,7 +213,7 @@ def build_document_metadata(
 
     warn = []
     if fm.get("domain") is not None and _valid_domain(fm.get("domain")) is None:
-        warn.append(f"Front Matter domain 非法：{fm.get('domain')}（已忽略，枚举仅限 {DOMAINS}）")
+        warn.append(f"Front Matter domain 非法：{fm.get('domain')}（已忽略，可用编号：{domain_codes()}）")
     if fm.get("status") is not None and _valid_status(fm.get("status")) is None:
         warn.append(f"Front Matter status 非法：{fm.get('status')}（已忽略，枚举仅限 {STATUSES}）")
     for message in warn:
