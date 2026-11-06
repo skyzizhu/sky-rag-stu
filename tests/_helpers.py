@@ -117,9 +117,14 @@ class IngestHarness(unittest.TestCase):
         patcher = mock.patch.object(istate, "STATE_PATH", root / "index_state.json")
         patcher.start()
         self.addCleanup(patcher.stop)
-        from src import index_epoch, keyword_search, pipeline
+        # 领域注册表同样隔离到临时文件：测试结果不能依赖真实 storage/domains.json
+        from src import domains, index_epoch, keyword_search, pipeline
         from src.retriever import get_retriever
 
+        for target, value in ((domains, root / "domains.json"),):
+            reg_patcher = mock.patch.object(target, "REGISTRY_PATH", value)
+            reg_patcher.start()
+            self.addCleanup(reg_patcher.stop)
         epoch_patcher = mock.patch.object(index_epoch, "EPOCH_PATH", root / "index_epoch")
         epoch_patcher.start()
         self.addCleanup(epoch_patcher.stop)

@@ -38,11 +38,13 @@ from src.llm import LLMError  # noqa: E402
 from src.manage import (  # noqa: E402
     ManageError,
     archive as archive_file,
+    refetch_web_page,
     reingest as reingest_file,
     remove_documents,
     restore as restore_file,
 )
-from src.metadata import DOMAINS  # noqa: E402
+from src.web_fetcher import read_snapshot_origin  # noqa: E402  # 识别网页快照（管理页）
+from src import domains as domain_reg  # noqa: E402  # V3.8 领域注册表（编号=数据身份，名称仅显示）
 from src.i18n import (  # noqa: E402
     FOLLOW_SYSTEM,
     LANGUAGE_ORDER,
@@ -765,8 +767,18 @@ def _sync_setting(canonical_key: str, widget_key: str):
 
 
 def domain_label(domain: str) -> str:
-    """「code · 本地化标签」；随界面语言切换。"""
-    return domain_label_i18n(domain)
+    """「code · 名称」；名称优先用领域管理里设置的，未设置时用内置多语言标签。
+
+    纯显示：编号才是数据身份（卡片 payload / 过滤条件 / 缓存键都只认编号），
+    改名称不影响任何检索。
+    """
+    name = domain_reg.display_name(domain)
+    return f"{domain} · {name}" if name else domain_label_i18n(domain)
+
+
+def _domain_index(codes: list[str], preferred: str) -> int:
+    """下拉框默认选中项：首选领域被停用 / 删除时退回第一项。"""
+    return codes.index(preferred) if preferred in codes else 0
 
 
 def _clean_directory_name(name: str) -> str:
@@ -819,8 +831,10 @@ def tag(text: str, color: str = "blue") -> str:
 def build_filters() -> dict:
     """把设置页的检索设置翻译成 Metadata Filter（值为语言无关的代码）。"""
     filters: dict = {}
-    if st.session_state["domain_choice"] != "all":
-        filters["domain"] = st.session_state["domain_choice"]
+    # V3.8：已保存的领域选择若已被删除，回落为全部——否则过滤条件永远检索不到内容
+    domain_choice = domain_reg.sanitize_choice(st.session_state["domain_choice"])
+    if domain_choice != "all":
+        filters["domain"] = domain_choice
     scope = st.session_state["scope_choice"]
     if scope == "all":
         filters["status"] = "all"
@@ -1429,8 +1443,10 @@ def page_upload():
                         unsafe_allow_html=True)
             col1, col2 = st.columns(2)
             with col1:
-                upload_domain = st.selectbox(t("upload.domain"), DOMAINS,
-                                             format_func=domain_label, index=DOMAINS.index("learning"))
+                _up_codes = domain_reg.enabled_codes()  # 停用的领域不再接收新上传
+                upload_domain = st.selectbox(t("upload.domain"), _up_codes,
+                                             format_func=domain_label,
+                                             index=_domain_index(_up_codes, "learning"))
             with col2:
                 upload_category = st.text_input(t("upload.category"), value="",
                                                 help=t("upload.category.help"))
@@ -1452,11 +1468,12 @@ def page_upload():
         st.caption(t("dir.caption"))
         # V3.7.2 归属设置卡片：领域与可见部门收进带边框容器
         with st.container(border=True):
+            _dir_codes = domain_reg.enabled_codes()
             dir_domain = st.selectbox(
                 t("dir.target"),
-                DOMAINS,
+                _dir_codes,
                 format_func=domain_label,
-                index=DOMAINS.index("learning"),
+                index=_domain_index(_dir_codes, "learning"),
                 key="directory_domain",
             )
             # V3.7 权限：本批目录导入的可见部门（默认全员）；写入侧限自己部门
@@ -1553,10 +1570,10 @@ def page_upload():
             with st.container(border=True):
                 col_w1, col_w2 = st.columns(2)
                 with col_w1:
-                    _web_codes = [c for c in DOMAINS if c != "archive"]
+                    _web_codes = [c for c in domain_reg.enabled_codes() if c != "archive"]
                     web_domain = st.selectbox(t("common.domain"), _web_codes,
                                               format_func=domain_label,
-                                              index=_web_codes.index("reference"))
+                                              index=_domain_index(_web_codes, "reference"))
                 with col_w2:
                     web_category = st.text_input(t("web.category"), value="webpages")
                 web_groups = st.multiselect(t("upload.groups"),
@@ -1743,7 +1760,7 @@ def _show_ingest_result(summary):
                      updated=len(summary.updated_files), skipped=len(summary.skipped_files)))
     if summary.file_rows:
         st.dataframe(
-            [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): r["domain"],
+            [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): domain_label(r["domain"]),
               t("ingest.col.category"): r["category"],
               t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"]}
              for r in summary.file_rows],
@@ -1761,7 +1778,8 @@ def _show_ingest_result(summary):
             first = p.relative_to(cfg.knowledge_dir).parts[0]
             by_domain[first] = by_domain.get(first, 0) + 1
         st.markdown(
-            "　".join(tag(f"{domain_label(d)} · {n}", "blue") for d, n in sorted(by_domain.items())),
+            # tag() 不转义、这里又允许 HTML：领域名称是用户填的，必须先转义
+            "　".join(tag(f"{html.escape(domain_label(d))} · {n}", "blue") for d, n in sorted(by_domain.items())),
             unsafe_allow_html=True,
         )
         with st.expander(t("ingest.view_all", n=len(existing))):
@@ -1836,27 +1854,40 @@ def page_manage():
     m1, m2, m3, m4 = st.columns(4)
     m1.metric(t("manage.metric.files"), len(documents))
     m2.metric(t("manage.metric.chunks"), total_chunks)
-    m3.metric(t("manage.metric.domains"), f"{domains_covered} / {len(DOMAINS)}")
+    m3.metric(t("manage.metric.domains"), f"{domains_covered} / {len(domain_reg.all_codes())}")
     m4.metric(t("manage.metric.archived"), archived)
 
     st.divider()
 
-    f1, f2, f3 = st.columns([3, 1.2, 1.2])
+    f1, f2, f3, f4 = st.columns([3, 1.2, 1.2, 1.2])
     keyword = f1.text_input(t("manage.search"), placeholder=t("manage.search.ph"))
-    dom_codes = ["all"] + DOMAINS
+    dom_codes = ["all"] + domain_reg.all_codes()  # 含停用领域：其数据仍可检索与管理
     dom_filter = f2.selectbox(t("common.domain"), dom_codes,
                               format_func=lambda c: t("common.all") if c == "all" else domain_label(c))
     status_codes = ["all", "active", "archive"]
     status_filter = f3.selectbox(t("common.status"), status_codes,
                                  format_func=lambda s: t("common.all") if s == "all" else s,
                                  key="manage_status_select")
+    origin_types = ["all", "web", "file"]
+    origin_filter = f4.selectbox(t("manage.col.origin"), origin_types,
+                                 format_func=lambda o: t("manage.origin.web") if o == "web"
+                                 else t("manage.origin.file") if o == "file" else t("common.all"),
+                                 key="manage_origin_select")
 
-    filtered = [
-        d for d in documents
-        if (not keyword or keyword.lower() in d["path"].lower())
-        and (dom_filter == "all" or d["domain"] == dom_filter)
-        and (status_filter == "all" or d["status"] == status_filter)
-    ]
+    # V3.7.1：网页快照带上原文网址 / 标题，搜索和「来源」筛选都能用（只读快照文件头，不动卡片）
+    origins = {d["path"]: read_snapshot_origin(cfg.knowledge_dir / d["path"]) for d in documents}
+
+    def _match(d) -> bool:
+        hay = " ".join([d["path"], d["source"],
+                        (origins.get(d["path"]) or {}).get("url") or "",
+                        (origins.get(d["path"]) or {}).get("title") or ""]).lower()
+        is_web = bool(origins.get(d["path"]))
+        return ((not keyword or keyword.lower() in hay)
+                and (dom_filter == "all" or d["domain"] == dom_filter)
+                and (status_filter == "all" or d["status"] == status_filter)
+                and (origin_filter == "all" or is_web == (origin_filter == "web")))
+
+    filtered = [d for d in documents if _match(d)]
 
     if not filtered:
         st.info(t("manage.no_match"))
@@ -1892,25 +1923,40 @@ def page_manage():
         on_click=_clear_visible_documents,
     )
 
-    rows = [{"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
-             t("manage.col.file"): d["source"], t("manage.col.path"): d["path"],
-             "Domain": d["domain"], "Category": d["category"],
-             "Topic": ", ".join(d["topic"]) or "-",
-             "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
-             "Version": d["version"],
-             "Status": d["status"], t("manage.col.chunks"): d["chunks"]} for d in filtered]
+    def _row(d) -> dict:
+        origin = origins.get(d["path"]) or {}
+        file_cell = ("🌐 " if origin else "") + str(d["source"])
+        return {"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
+                t("manage.col.file"): file_cell, t("manage.col.type"): "web" if origin
+                else str(d.get("file_type") or "").upper(),
+                t("manage.col.path"): d["path"],
+                "Domain": domain_label(d["domain"]), "Category": d["category"],
+                "Topic": ", ".join(d["topic"]) or "-",
+                "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
+                "Version": d["version"],
+                "Status": d["status"], t("manage.col.chunks"): d["chunks"],
+                t("manage.col.url"): (origin.get("url") or None)}
+
+    rows = [_row(d) for d in filtered]
     edited = st.data_editor(
         rows,
         width="stretch",
+        # 默认高度只显示约 10 行，更多的要在表格里再滚动——排在后面的网页因此被当成"看不到"。
+        # 最多 15 行内全部直接展开（行高 35px + 表头）
+        height=(min(len(rows), 15) + 1) * 35 + 3,
         hide_index=True,
         key=f"manage_document_table_{st.session_state.get('manage_table_revision', 0)}",
         column_config={
             "_id": None,
             t("manage.col.select"): st.column_config.CheckboxColumn(t("manage.col.select"),
                                                                     help=t("manage.col.select.help")),
+            t("manage.col.type"): st.column_config.TextColumn(t("manage.col.type"), width="small"),
+            t("manage.col.url"): st.column_config.LinkColumn(t("manage.col.url"), width="medium",
+                                                             help=t("manage.col.url.help")),
         },
-        disabled=[t("manage.col.file"), t("manage.col.path"), "Domain", "Category", "Topic",
-                  "Groups", "Version", "Status", t("manage.col.chunks")],
+        disabled=[t("manage.col.file"), t("manage.col.path"), t("manage.col.type"), "Domain",
+                  "Category", "Topic", "Groups", "Version", "Status", t("manage.col.chunks"),
+                  t("manage.col.url")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
     selected_ids = {row["_id"] for row in records if row.get(t("manage.col.select"))}
@@ -1969,21 +2015,30 @@ def page_manage():
 
     head_l, head_r = st.columns([2.2, 1])
     with head_l:
+        origin = origins.get(d["path"]) or {}
         status_tag = tag("✅ active", "green") if d["status"] == "active" else tag("🗄 archive", "amber")
         st.markdown(
-            f"### 📄 {html.escape(str(d['source']))}　{status_tag}"
-            + tag(f"🗂 {html.escape(str(d['domain']))}", "blue")
+            f"### {('🌐' if origin else '📄')} {html.escape(str(d['source']))}　{status_tag}"
+            + tag(f"🗂 {html.escape(domain_label(str(d['domain'])))}", "blue")
             + tag(f"📁 {html.escape(str(d['category']))}", "blue")
             + (tag("🏷 " + html.escape(" / ".join(d["topic"]))) if d["topic"] else "")
             + tag(f"v{html.escape(str(d['version']))}", "green"),
             unsafe_allow_html=True,
         )
         st.caption(t("manage.detail.cards", id=d["document_id"], n=d["chunks"]))
+        if origin:
+            if origin.get("title") and origin["title"] != d["source"]:
+                st.caption(f"{t('manage.col.url')}：{html.escape(origin['title'])}")
+            st.markdown(f"原文：[{html.escape(origin['url'])}]({html.escape(origin['url'])})",
+                        unsafe_allow_html=True)
     with head_r:
         is_archived = d["path"].split("/")[0] == "archive"
-        btn1, btn2 = st.columns(2)
+        btn1, btn2, btn3 = st.columns(3)
         reingest_btn = btn1.button(t("manage.act.reingest"), width="stretch", key="act_reingest",
                                    help=t("manage.act.reingest.help"))
+        refetch_btn = (btn1.button(t("manage.act.refetch"), width="stretch", key="act_refetch",
+                                   disabled=is_archived, help=t("manage.act.refetch.help"))
+                       if origin else None)
         archive_btn = btn2.button(t("manage.act.archive"), width="stretch", key="act_archive",
                                   disabled=is_archived, help=t("manage.act.archive.help"))
         restore_btn = btn2.button(t("manage.act.restore"), width="stretch", key="act_restore",
@@ -1994,6 +2049,8 @@ def page_manage():
             (archive_btn, lambda: archive_file(d["path"])),
             (restore_btn, lambda: restore_file(d["path"])),
         ]
+        if refetch_btn:
+            actions.append((refetch_btn, lambda: refetch_web_page(d["path"])))
         for btn, fn in actions:
             if btn:
                 try:
@@ -2098,7 +2155,7 @@ def page_retrieval_settings():
     st.markdown(f'<div class="section-title">{t("set.retrieval.title")}</div>', unsafe_allow_html=True)
     st.caption(t("set.retrieval.caption"))
 
-    domain_codes = ["all"] + DOMAINS
+    domain_codes = ["all"] + domain_reg.all_codes()  # 含停用领域：其数据仍可检索
     scope_codes = ["active", "all", "archive"]
 
     # 值保存语言无关的代码（all/work/…、active/all/archive），显示时本地化；
@@ -2325,6 +2382,135 @@ def page_plugins():
     st.caption(t("plugin.footer"))
 
 
+# ---------------------------------------------------------------- 页面：领域管理（V3.8）
+@st.dialog(t("dommgr.delete.confirm.title"), width="small")
+def confirm_domain_delete() -> None:
+    code = st.session_state.get("domain_delete_request")
+    if not code:
+        return
+    st.write(t("dommgr.delete.confirm.msg", code=code))
+    c1, c2 = st.columns(2)
+    if c1.button(t("common.cancel"), width="stretch"):
+        st.session_state.pop("domain_delete_request", None)
+        st.rerun()
+    if c2.button(t("dommgr.delete.confirm.yes"), type="primary", width="stretch"):
+        # 点确认时重新统计：确认框打开期间若有人往该领域上传了文件，同样拒绝删除
+        try:
+            stat = domain_reg.usage_by_domain(cfg.knowledge_dir, istate.load_state(),
+                                              store.list_documents()).get(code)
+            domain_reg.delete_domain(code, stat, cfg.knowledge_dir)
+        except (domain_reg.DomainError, VectorStoreError) as exc:
+            st.error(str(exc))
+            return
+        st.session_state.pop("domain_delete_request", None)
+        st.toast(t("dommgr.delete.ok", code=code), icon="✅")
+        st.rerun()
+
+
+def page_domains():
+    """领域管理：增 / 改名称与描述 / 启停 / 删除（只能删空领域）/ 登记未登记目录。
+
+    铁律：编号是数据身份，创建后不可改；名称只用于显示——改名不碰文件、卡片、向量与过滤条件。
+    """
+    require_perm("domains")
+    st.markdown(f'<div class="section-title">{t("dommgr.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("dommgr.caption"))
+
+    try:
+        documents = store.list_documents()
+    except VectorStoreError as exc:
+        st.error(str(exc))
+        return
+    usage = domain_reg.usage_by_domain(cfg.knowledge_dir, istate.load_state(), documents)
+
+    # ① 新增领域
+    with st.expander(t("dommgr.add.title")):
+        with st.form("domain_add_form", clear_on_submit=True):
+            c1, c2 = st.columns(2)
+            new_code = c1.text_input(t("dommgr.field.code"), help=t("dommgr.field.code.help"))
+            new_name = c2.text_input(t("dommgr.field.name"))
+            new_desc = st.text_input(t("dommgr.field.desc"))
+            if st.form_submit_button(t("dommgr.add.btn"), type="primary", width="stretch"):
+                try:
+                    created = domain_reg.create_domain(new_code, new_name, new_desc, store=store)
+                except domain_reg.DomainError as exc:
+                    st.error(str(exc))
+                else:
+                    st.toast(t("dommgr.add.ok", code=created["code"]), icon="✅")
+                    st.rerun()
+
+    # ② 领域列表
+    for d in domain_reg.load_domains():
+        code = d["code"]
+        stat = usage.get(code) or {}
+        reserved = code in domain_reg.RESERVED_CODES
+        enabled = d.get("enabled", True)
+        header = (f"{domain_label(code)}　"
+                  f"{t('dommgr.status.on') if enabled else t('dommgr.status.off')}"
+                  f"{'　' + t('dommgr.badge.system') if reserved else ''}　"
+                  f"{t('dommgr.stat.short', files=stat.get('files', 0), cards=stat.get('cards', 0))}")
+        with st.expander(header):
+            if d.get("description"):
+                st.caption(d["description"])
+            st.caption(t("dommgr.stat.detail", files=stat.get("files", 0),
+                         archived=stat.get("archived", 0), documents=stat.get("documents", 0),
+                         cards=stat.get("cards", 0)))
+            with st.form(f"domain_edit_{code}"):
+                name_val = st.text_input(
+                    t("dommgr.field.name"), value=d.get("name", ""),
+                    placeholder=domain_label_i18n(code, with_code=False) if d.get("builtin") else "",
+                    help=t("dommgr.field.name.builtin_help") if d.get("builtin") else None)
+                desc_val = st.text_input(t("dommgr.field.desc"), value=d.get("description", ""))
+                if st.form_submit_button(t("dommgr.edit.btn"), width="stretch"):
+                    try:
+                        domain_reg.update_domain(code, name=name_val, description=desc_val)
+                    except domain_reg.DomainError as exc:
+                        st.error(str(exc))
+                    else:
+                        st.toast(t("dommgr.edit.ok"), icon="✅")
+                        st.rerun()
+            col_toggle, col_delete = st.columns(2)
+            if enabled:
+                if col_toggle.button(t("dommgr.disable.btn"), key=f"dom_off_{code}", width="stretch",
+                                     disabled=reserved,
+                                     help=t("dommgr.reserved.help") if reserved else t("dommgr.disable.help")):
+                    domain_reg.update_domain(code, enabled=False)
+                    st.rerun()
+            elif col_toggle.button(t("dommgr.enable.btn"), key=f"dom_on_{code}", width="stretch"):
+                domain_reg.update_domain(code, enabled=True)
+                st.rerun()
+            blocked = reserved or domain_reg.has_data(stat)
+            if col_delete.button(t("dommgr.delete.btn"), key=f"dom_del_{code}", width="stretch",
+                                 disabled=blocked,
+                                 help=(t("dommgr.reserved.help") if reserved
+                                       else t("dommgr.delete.has_data") if blocked else None)):
+                st.session_state["domain_delete_request"] = code
+                st.rerun()
+
+    # ③ 未登记目录：有文件却没登记为领域的文件夹（入库时被兜底归到 reference）
+    unregistered = domain_reg.unregistered_dirs(cfg.knowledge_dir)
+    if unregistered:
+        st.divider()
+        st.markdown(t("dommgr.unreg.title"))
+        st.caption(t("dommgr.unreg.caption"))
+        for u in unregistered:
+            c1, c2 = st.columns([3, 1])
+            c1.markdown(t("dommgr.unreg.row", folder=u["folder"], files=u["files"]))
+            if c2.button(t("dommgr.unreg.btn"), key=f"dom_reg_{u['folder']}", width="stretch",
+                         disabled=not u["valid_code"],
+                         help=None if u["valid_code"] else t("dommgr.unreg.invalid")):
+                try:
+                    created = domain_reg.register_directory(u["folder"], u["folder"], store)
+                except domain_reg.DomainError as exc:
+                    st.error(str(exc))
+                else:
+                    st.toast(t("dommgr.unreg.ok", code=created["code"]), icon="✅")
+                    st.rerun()
+
+    if st.session_state.get("domain_delete_request"):
+        confirm_domain_delete()
+
+
 # ---------------------------------------------------------------- 页面 10：学习笔记
 def page_learning():
     st.markdown(f'<div class="section-title">{t("learn.title")}</div>', unsafe_allow_html=True)
@@ -2358,6 +2544,7 @@ _user_perms = set(_auth_user.get("permissions") or [])
 chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
 upload_page = st.Page(page_upload, title=t("nav.upload"), icon="📤", url_path="upload")
 manage_page = st.Page(page_manage, title=t("nav.manage"), icon="🗂", url_path="manage")
+domains_page = st.Page(page_domains, title=t("nav.domains"), icon="🧭", url_path="domains")
 general_page = st.Page(page_general_settings, title=t("nav.general"), icon="⚙️", url_path="settings-general")
 retrieval_page = st.Page(page_retrieval_settings, title=t("nav.retrieval"), icon="🔍", url_path="settings-retrieval")
 maintenance_page = st.Page(page_maintenance, title=t("nav.maintenance"), icon="🧹", url_path="settings-maintenance")
@@ -2374,6 +2561,8 @@ if "upload" in _user_perms:
     employee_nav[t("nav.group.knowledge")].append(upload_page)
 if "manage" in _user_perms:
     employee_nav[t("nav.group.knowledge")].append(manage_page)
+if "domains" in _user_perms:  # V3.8 领域管理：独立权限（管理后台分配）
+    employee_nav[t("nav.group.knowledge")].append(domains_page)
 settings_pages = [general_page]
 if "retrieval_settings" in _user_perms:
     settings_pages.append(retrieval_page)

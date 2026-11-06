@@ -244,6 +244,25 @@ class VectorStore:
         )
         index_epoch.bump()
 
+    def reassign_domain(self, document_ids: list[str], domain: str) -> None:
+        """把指定文档全部卡片（含历史版本）的 domain 字段就地改写——只改 payload，
+        不重新向量化。用于把「未登记目录」登记为领域（此前被兜底归到 reference）。"""
+        if not document_ids or not self.collection_exists():
+            return
+        self.client.set_payload(
+            collection_name=self.cfg.qdrant_collection,
+            payload={"domain": domain},
+            points=models.FilterSelector(
+                filter=models.Filter(
+                    must=[models.FieldCondition(
+                        key="document_id", match=models.MatchAny(any=document_ids)
+                    )]
+                )
+            ),
+            wait=True,
+        )
+        index_epoch.bump()  # 卡片数不变的写操作：必须显式通知所有进程的检索缓存
+
     def list_documents(self) -> list[dict]:
         """按 document_id 盘点所有入库文件：路径、分类、状态、卡片数。"""
         if not self.collection_exists():
@@ -256,7 +275,7 @@ class VectorStore:
                 limit=256,
                 offset=offset,
                 with_payload=["document_id", "source", "path", "domain", "category",
-                              "topic", "version", "status", "allowed_groups"],
+                              "topic", "version", "status", "allowed_groups", "file_type"],
             )
             for point in points:
                 payload = point.payload or {}
@@ -272,6 +291,7 @@ class VectorStore:
                         "category": payload.get("category") or "?",
                         "topic": payload.get("topic") or [],
                         "allowed_groups": payload.get("allowed_groups") or ["all"],
+                        "file_type": payload.get("file_type") or "",
                         "version": key[1],
                         "status": key[2],
                         "chunks": 0,
