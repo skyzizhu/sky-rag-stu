@@ -90,3 +90,53 @@ class FakeEmbedding:
             vec = [b / 255.0 + 0.01 for b in digest[: self.DIM]]
             vectors.append(vec)
         return vectors
+
+
+class IngestHarness(unittest.TestCase):
+    """入库全流程夹具：临时知识目录 + 临时台账 + 内存 Qdrant + 假向量化（关闭自动打标签）。"""
+
+    def setUp(self) -> None:
+        super().setUp()
+        from dataclasses import replace
+
+        from src import index_state as istate
+        from src.config import get_config
+
+        self._tmp = tempfile.TemporaryDirectory()
+        root = Path(self._tmp.name)
+        self.knowledge = root / "knowledge"
+        (self.knowledge / "learning" / "general").mkdir(parents=True)
+        self.cfg = replace(get_config(), knowledge_dir=self.knowledge, auto_tag=False,
+                           qdrant_collection="test_kb", debug=False)
+        self.store = memory_store(self.cfg)
+        self.embedding = FakeEmbedding()
+        patcher = mock.patch.object(istate, "STATE_PATH", root / "index_state.json")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.addCleanup(self._tmp.cleanup)
+
+    def ingest(self, paths=None, **kwargs):
+        import contextlib
+        import io
+
+        from src.pipeline import ingest_files
+
+        with contextlib.redirect_stdout(io.StringIO()):  # 流水线进度打印不污染测试输出
+            return ingest_files(paths=paths, config=self.cfg, embedding_client=self.embedding,
+                                store=self.store, **kwargs)
+
+    def write_note(self, body: str, name: str = "note.md", folder: str = "learning/general") -> Path:
+        path = self.knowledge / folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"# 笔记\n\n{body}\n", encoding="utf-8")
+        return path
+
+    def versions(self, path_suffix: str | None = None) -> dict[str, str]:
+        """{版本号: 状态}；path_suffix 指定只看某个文档。"""
+        return {d["version"]: d["status"] for d in self.store.list_documents()
+                if path_suffix is None or d["path"].endswith(path_suffix)}
+
+    def ledger(self) -> dict:
+        from src import index_state as istate
+
+        return istate.load_state()

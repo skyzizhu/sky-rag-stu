@@ -10,46 +10,12 @@ from __future__ import annotations
 
 import contextlib
 import io
-import tempfile
 import unittest
-from dataclasses import replace
-from pathlib import Path
 from unittest import mock
 
 from src import index_state as istate
-from src.config import get_config
 from src.pipeline import ingest_files
-from tests._helpers import FakeEmbedding, memory_store
-
-
-class _IngestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        self._tmp = tempfile.TemporaryDirectory()
-        root = Path(self._tmp.name)
-        self.knowledge = root / "knowledge"
-        (self.knowledge / "learning" / "general").mkdir(parents=True)
-        self.cfg = replace(get_config(), knowledge_dir=self.knowledge, auto_tag=False,
-                           qdrant_collection="test_kb", debug=False)
-        self.store = memory_store(self.cfg)
-        self.embedding = FakeEmbedding()
-        patcher = mock.patch.object(istate, "STATE_PATH", root / "index_state.json")
-        patcher.start()
-        self.addCleanup(patcher.stop)
-        self.addCleanup(self._tmp.cleanup)
-
-    def ingest(self, paths=None):
-        with contextlib.redirect_stdout(io.StringIO()):  # 流水线进度打印不污染测试输出
-            return ingest_files(paths=paths, config=self.cfg,
-                                embedding_client=self.embedding, store=self.store)
-
-    def write_note(self, body: str, name: str = "note.md") -> Path:
-        path = self.knowledge / "learning" / "general" / name
-        path.write_text(f"# 笔记\n\n{body}\n", encoding="utf-8")
-        return path
-
-    def versions(self) -> dict[str, str]:
-        """{版本号: 状态}——同一文档的各代卡片。"""
-        return {d["version"]: d["status"] for d in self.store.list_documents()}
+from tests._helpers import IngestHarness as _IngestCase
 
 
 class VectorStoreContractTests(_IngestCase):

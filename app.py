@@ -55,6 +55,12 @@ from src.i18n import (  # noqa: E402
 )
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
+from src import index_state as istate  # noqa: E402  # V3.8 上传冲突预检读入库台账
+from src.upload_plan import (  # noqa: E402  # V3.8 上传/目录导入的重复文档防护
+    COPY, KIND_BATCH_DUPLICATE, KIND_BATCH_SAME_NAME, KIND_DUPLICATE, KIND_SAME_NAME,
+    KIND_SAME_PATH, NEW, NEW_VERSION, SKIP, VERSION_OF, content_hash, execute_uploads,
+    plan_uploads, write_directory_import,
+)
 from src.answer_evaluator import run_evaluation  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import (
@@ -771,17 +777,6 @@ def _clean_directory_name(name: str) -> str:
     return cleaned
 
 
-def _available_directory(parent: Path, preferred_name: str) -> Path:
-    """已有同名目录时创建副本目录，避免静默覆盖用户知识文件。"""
-    candidate = parent / preferred_name
-    if not candidate.exists():
-        return candidate
-    index = 2
-    while (parent / f"{preferred_name}-{index}").exists():
-        index += 1
-    return parent / f"{preferred_name}-{index}"
-
-
 @st.cache_data(ttl=30)
 def system_status(lang: str = "zh-CN") -> dict[str, tuple[bool, str]]:
     """三盏灯检查（30 秒缓存）：Ollama/Qdrant 检查有网络开销，
@@ -1447,8 +1442,10 @@ def page_upload():
                                    type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
         if uploads:
             st.caption(t("upload.selected", n=len(uploads), kb=f"{sum(u.size for u in uploads) / 1024:.0f}"))
+        _upload_target = f"{upload_domain}/{upload_category.strip().lower() or 'general'}"
         if st.button(t("upload.start"), disabled=not uploads, use_container_width=True, type="primary"):
-            _do_upload(uploads, upload_domain, upload_category, upload_groups)
+            _start_upload(uploads, _upload_target, upload_groups)
+        _render_upload_confirmation(uploads, _upload_target, upload_groups)
 
     with tab_dir:
         st.markdown(t("dir.title"))
@@ -1521,6 +1518,16 @@ def page_upload():
             roots = []
             st.info(t("dir.pick_hint"), icon="📁")
 
+        # V3.8 重复导入防护：同名目录已存在时才出现选项，默认合并（按文件增量更新）
+        dir_merge = True
+        _dir_existing = [r for r in roots if (cfg.knowledge_dir / dir_domain / r).exists()]
+        if _dir_existing:
+            _dir_mode = st.radio(
+                t("dir.exists_mode", roots="、".join(_dir_existing)), ["merge", "copy"],
+                format_func=lambda m: t("dir.exists.merge") if m == "merge" else t("dir.exists.copy"),
+                key="dir_exists_mode")
+            dir_merge = _dir_mode == "merge"
+
         if st.button(
             t("dir.start"),
             disabled=(
@@ -1532,7 +1539,7 @@ def page_upload():
             type="primary",
             key="import_directory",
         ):
-            _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups)
+            _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups, merge=dir_merge)
 
     # ---------- 🌐 添加网页 Tab ----------
     if _has_web:
@@ -1574,23 +1581,99 @@ def page_upload():
                     st.error(t("web.failed", err=exc))
 
 
-def _do_upload(uploads, upload_domain, upload_category, groups=None):
-    cfg.knowledge_dir.mkdir(exist_ok=True)
-    target_dir = cfg.knowledge_dir / upload_domain / (upload_category.strip().lower() or "general")
-    target_dir.mkdir(parents=True, exist_ok=True)
-    saved_paths = []
-    for upload in uploads:
-        target = target_dir / upload.name
-        if target.exists():
-            # 同名不同内容 = 静默覆盖用户知识源文件；改名副本保住原文件
-            if target.read_bytes() != upload.getvalue():
-                target = _available_directory(target_dir, Path(upload.name).stem) \
-                    .with_suffix(Path(upload.name).suffix)
-        target.write_bytes(upload.getvalue())
-        saved_paths.append(target)
+def _upload_files(uploads) -> list[tuple[str, bytes]]:
+    return [(u.name, u.getvalue()) for u in uploads or []]
+
+
+def _upload_signature(files: list[tuple[str, bytes]], target_dir: str) -> str:
+    """待确认批次的指纹：所选文件或目标目录一变，旧的确认面板就作废。"""
+    return content_hash(repr([(n, content_hash(d)) for n, d in files] + [target_dir]).encode())
+
+
+def _conflict_reason(d) -> str:
+    if d.kind == KIND_DUPLICATE:
+        return t("upload.conflict.duplicate", paths="、".join(d.existing))
+    if d.kind == KIND_SAME_PATH:
+        return t("upload.conflict.same_path", path=d.target)
+    if d.kind == KIND_SAME_NAME:
+        return t("upload.conflict.same_name", paths="、".join(d.existing))
+    if d.kind == KIND_BATCH_DUPLICATE:
+        return t("upload.conflict.batch_dup")
+    if d.kind == KIND_BATCH_SAME_NAME:
+        return t("upload.conflict.batch_name")
+    return ""
+
+
+def _action_label(action: str) -> str:
+    if action.startswith(VERSION_OF):
+        return t("upload.action.version_of", path=action[len(VERSION_OF):])
+    return t({SKIP: "upload.action.skip", NEW_VERSION: "upload.action.new_version",
+              NEW: "upload.action.new", COPY: "upload.action.copy"}[action])
+
+
+def _start_upload(uploads, target_dir: str, groups) -> None:
+    """V3.8 上传入口：先做冲突预检。全是新文件 → 直接入库（与以前一样不多一步）；
+    有重复 / 同名冲突 → 进确认面板，由用户逐个确认（默认值按已定规则预选好）。"""
+    files = _upload_files(uploads)
+    plan = plan_uploads(files, target_dir, istate.load_state(), cfg.knowledge_dir)
+    if any(d.needs_confirmation for d in plan):
+        st.session_state["upload_pending"] = _upload_signature(files, target_dir)
+    else:
+        _run_upload(files, plan, {}, groups)
+
+
+def _render_upload_confirmation(uploads, target_dir: str, groups) -> None:
+    pending = st.session_state.get("upload_pending")
+    if not pending:
+        return
+    files = _upload_files(uploads)
+    if not files or pending != _upload_signature(files, target_dir):
+        st.session_state.pop("upload_pending", None)  # 选择变了：作废旧的确认
+        return
+    # 预检是确定性的（同样的文件 + 同样的台账），每次重绘重新计算即可，无需缓存文件内容
+    plan = plan_uploads(files, target_dir, istate.load_state(), cfg.knowledge_dir)
+    choices: dict[int, str] = {}
+    with st.container(border=True):
+        st.markdown(f"**{t('upload.conflict.title')}**")
+        for index, d in enumerate(plan):
+            if not d.needs_confirmation:
+                continue
+            st.markdown(f"📄 `{d.name}`")
+            st.caption(_conflict_reason(d))
+            if len(d.options) == 1:
+                st.caption("→ " + _action_label(d.options[0]))
+                continue
+            choices[index] = st.radio(d.name, d.options, index=d.options.index(d.action),
+                                      format_func=_action_label,
+                                      key=f"upl_choice_{index}_{d.digest[:12]}",
+                                      label_visibility="collapsed")
+        n_new = sum(1 for d in plan if not d.needs_confirmation)
+        if n_new:
+            st.caption(t("upload.conflict.new_files", n=n_new))
+        col_ok, col_cancel = st.columns(2)
+        confirmed = col_ok.button(t("upload.conflict.confirm"), type="primary",
+                                  width="stretch", key="upl_confirm")
+        cancelled = col_cancel.button(t("upload.conflict.cancel"),
+                                      width="stretch", key="upl_cancel")
+    if cancelled:
+        st.session_state.pop("upload_pending", None)
+        st.rerun()
+    if confirmed:
+        st.session_state.pop("upload_pending", None)
+        _run_upload(files, plan, choices, groups)
+
+
+def _run_upload(files, plan, choices, groups) -> None:
+    to_ingest, skipped = execute_uploads(plan, files, cfg.knowledge_dir, choices)
+    if skipped:
+        st.info(t("upload.skipped_dup", n=len(skipped), files="、".join(d.name for d in skipped)))
+    if not to_ingest:
+        st.info(t("ingest.nothing_changed"))
+        return
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=saved_paths, default_groups=groups)
+            # skip_unchanged：内容没变的不重跑整条流水线（「重新入库」按钮仍是强制重跑入口）
+            summary = ingest_files(paths=to_ingest, skip_unchanged=True, default_groups=groups)
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1600,8 +1683,12 @@ def _do_upload(uploads, upload_domain, upload_category, groups=None):
     _show_ingest_result(summary)
 
 
-def _do_directory_upload(entries, dir_domain, batch_id, groups=None):
-    """把浏览器选中的目录完整复制为领域目录的子目录，然后增量入库。"""
+def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool = True):
+    """把浏览器选中的目录写入领域目录，然后增量入库。
+
+    V3.8：同名目录已存在时默认合并（merge=True）——没变的跳过、改了的升版本、
+    新增的入库，源目录里已删除的文件保留；merge=False 为另存副本目录（原行为）。
+    """
     domain_dir = cfg.knowledge_dir / dir_domain
     domain_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1614,16 +1701,7 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None):
         st.error(str(exc))
         return
 
-    saved: list[Path] = []
-    copied_roots: list[str] = []
-    for root_name, entries in grouped.items():
-        target_root = _available_directory(domain_dir, root_name)
-        copied_roots.append(target_root.name)
-        for relative_parts, content in entries:
-            destination = target_root.joinpath(*relative_parts)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(content)
-            saved.append(destination)
+    saved, copied_roots = write_directory_import(grouped, domain_dir, merge=merge)
 
     if not saved:
         st.warning(t("dir.no_docs"))
@@ -1638,7 +1716,7 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None):
               roots="、".join(copied_roots), docs=len(ingest_paths)))
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=ingest_paths, default_groups=groups)
+            summary = ingest_files(paths=ingest_paths, skip_unchanged=True, default_groups=groups)
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1653,8 +1731,14 @@ def _show_ingest_result(summary):
     if summary.ok_files:
         st.success(t("ingest.done", ok=summary.ok_files, total=summary.total_files,
                      chunks=summary.total_chunks, secs=f"{summary.elapsed_seconds:.1f}"))
-    else:
+    elif summary.failed_files:
         st.error(t("ingest.fail"))
+    else:
+        # V3.8：全部未变化被跳过不是失败（增量入库的正常结果）
+        st.info(t("ingest.nothing_changed"))
+    if summary.new_files or summary.updated_files or summary.skipped_files:
+        st.caption(t("ingest.breakdown", new=len(summary.new_files),
+                     updated=len(summary.updated_files), skipped=len(summary.skipped_files)))
     if summary.file_rows:
         st.dataframe(
             [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): r["domain"],
