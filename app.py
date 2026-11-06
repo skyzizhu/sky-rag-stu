@@ -38,10 +38,12 @@ from src.llm import LLMError  # noqa: E402
 from src.manage import (  # noqa: E402
     ManageError,
     archive as archive_file,
+    refetch_web_page,
     reingest as reingest_file,
     remove_documents,
     restore as restore_file,
 )
+from src.web_fetcher import read_snapshot_origin  # noqa: E402  # 识别网页快照（管理页）
 from src.metadata import DOMAINS  # noqa: E402
 from src.i18n import (  # noqa: E402
     FOLLOW_SYSTEM,
@@ -1841,7 +1843,7 @@ def page_manage():
 
     st.divider()
 
-    f1, f2, f3 = st.columns([3, 1.2, 1.2])
+    f1, f2, f3, f4 = st.columns([3, 1.2, 1.2, 1.2])
     keyword = f1.text_input(t("manage.search"), placeholder=t("manage.search.ph"))
     dom_codes = ["all"] + DOMAINS
     dom_filter = f2.selectbox(t("common.domain"), dom_codes,
@@ -1850,13 +1852,26 @@ def page_manage():
     status_filter = f3.selectbox(t("common.status"), status_codes,
                                  format_func=lambda s: t("common.all") if s == "all" else s,
                                  key="manage_status_select")
+    origin_types = ["all", "web", "file"]
+    origin_filter = f4.selectbox(t("manage.col.origin"), origin_types,
+                                 format_func=lambda o: t("manage.origin.web") if o == "web"
+                                 else t("manage.origin.file") if o == "file" else t("common.all"),
+                                 key="manage_origin_select")
 
-    filtered = [
-        d for d in documents
-        if (not keyword or keyword.lower() in d["path"].lower())
-        and (dom_filter == "all" or d["domain"] == dom_filter)
-        and (status_filter == "all" or d["status"] == status_filter)
-    ]
+    # V3.7.1：网页快照带上原文网址 / 标题，搜索和「来源」筛选都能用（只读快照文件头，不动卡片）
+    origins = {d["path"]: read_snapshot_origin(cfg.knowledge_dir / d["path"]) for d in documents}
+
+    def _match(d) -> bool:
+        hay = " ".join([d["path"], d["source"],
+                        (origins.get(d["path"]) or {}).get("url") or "",
+                        (origins.get(d["path"]) or {}).get("title") or ""]).lower()
+        is_web = bool(origins.get(d["path"]))
+        return ((not keyword or keyword.lower() in hay)
+                and (dom_filter == "all" or d["domain"] == dom_filter)
+                and (status_filter == "all" or d["status"] == status_filter)
+                and (origin_filter == "all" or is_web == (origin_filter == "web")))
+
+    filtered = [d for d in documents if _match(d)]
 
     if not filtered:
         st.info(t("manage.no_match"))
@@ -1892,25 +1907,36 @@ def page_manage():
         on_click=_clear_visible_documents,
     )
 
-    rows = [{"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
-             t("manage.col.file"): d["source"], t("manage.col.path"): d["path"],
-             "Domain": d["domain"], "Category": d["category"],
-             "Topic": ", ".join(d["topic"]) or "-",
-             "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
-             "Version": d["version"],
-             "Status": d["status"], t("manage.col.chunks"): d["chunks"]} for d in filtered]
+    def _row(d) -> dict:
+        origin = origins.get(d["path"]) or {}
+        file_cell = ("🌐 " if origin else "") + str(d["source"])
+        return {"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
+                t("manage.col.file"): file_cell, t("manage.col.path"): d["path"],
+                "Domain": domain_label(d["domain"]), "Category": d["category"],
+                "Topic": ", ".join(d["topic"]) or "-",
+                "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
+                "Version": d["version"],
+                "Status": d["status"], t("manage.col.chunks"): d["chunks"],
+                t("manage.col.url"): (origin.get("url") or None)}
+
+    rows = [_row(d) for d in filtered]
     edited = st.data_editor(
         rows,
         width="stretch",
+        # 默认高度只显示约 10 行，更多的要在表格里再滚动——排在后面的网页因此被当成"看不到"。
+        # 最多 15 行内全部直接展开（行高 35px + 表头）
+        height=(min(len(rows), 15) + 1) * 35 + 3,
         hide_index=True,
         key=f"manage_document_table_{st.session_state.get('manage_table_revision', 0)}",
         column_config={
             "_id": None,
             t("manage.col.select"): st.column_config.CheckboxColumn(t("manage.col.select"),
                                                                     help=t("manage.col.select.help")),
+            t("manage.col.url"): st.column_config.LinkColumn(t("manage.col.url"), width="medium",
+                                                             help=t("manage.col.url.help")),
         },
         disabled=[t("manage.col.file"), t("manage.col.path"), "Domain", "Category", "Topic",
-                  "Groups", "Version", "Status", t("manage.col.chunks")],
+                  "Groups", "Version", "Status", t("manage.col.chunks"), t("manage.col.url")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
     selected_ids = {row["_id"] for row in records if row.get(t("manage.col.select"))}
@@ -1969,21 +1995,30 @@ def page_manage():
 
     head_l, head_r = st.columns([2.2, 1])
     with head_l:
+        origin = origins.get(d["path"]) or {}
         status_tag = tag("✅ active", "green") if d["status"] == "active" else tag("🗄 archive", "amber")
         st.markdown(
-            f"### 📄 {html.escape(str(d['source']))}　{status_tag}"
-            + tag(f"🗂 {html.escape(str(d['domain']))}", "blue")
+            f"### {('🌐' if origin else '📄')} {html.escape(str(d['source']))}　{status_tag}"
+            + tag(f"🗂 {html.escape(domain_label(str(d['domain'])))}", "blue")
             + tag(f"📁 {html.escape(str(d['category']))}", "blue")
             + (tag("🏷 " + html.escape(" / ".join(d["topic"]))) if d["topic"] else "")
             + tag(f"v{html.escape(str(d['version']))}", "green"),
             unsafe_allow_html=True,
         )
         st.caption(t("manage.detail.cards", id=d["document_id"], n=d["chunks"]))
+        if origin:
+            if origin.get("title") and origin["title"] != d["source"]:
+                st.caption(f"{t('manage.col.url')}：{html.escape(origin['title'])}")
+            st.markdown(f"原文：[{html.escape(origin['url'])}]({html.escape(origin['url'])})",
+                        unsafe_allow_html=True)
     with head_r:
         is_archived = d["path"].split("/")[0] == "archive"
-        btn1, btn2 = st.columns(2)
+        btn1, btn2, btn3 = st.columns(3)
         reingest_btn = btn1.button(t("manage.act.reingest"), width="stretch", key="act_reingest",
                                    help=t("manage.act.reingest.help"))
+        refetch_btn = (btn1.button(t("manage.act.refetch"), width="stretch", key="act_refetch",
+                                   disabled=is_archived, help=t("manage.act.refetch.help"))
+                       if origin else None)
         archive_btn = btn2.button(t("manage.act.archive"), width="stretch", key="act_archive",
                                   disabled=is_archived, help=t("manage.act.archive.help"))
         restore_btn = btn2.button(t("manage.act.restore"), width="stretch", key="act_restore",
@@ -1994,6 +2029,8 @@ def page_manage():
             (archive_btn, lambda: archive_file(d["path"])),
             (restore_btn, lambda: restore_file(d["path"])),
         ]
+        if refetch_btn:
+            actions.append((refetch_btn, lambda: refetch_web_page(d["path"])))
         for btn, fn in actions:
             if btn:
                 try:

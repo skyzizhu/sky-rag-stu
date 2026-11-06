@@ -151,15 +151,42 @@ def _sanitize_single_line(value: str) -> str:
     return re.sub(r"[\r\n]+", " ", value or "").strip()
 
 
+def read_snapshot_origin(path: Path) -> dict | None:
+    """读网页快照文件头里的来源：{url, title, domain, category}；不是网页快照或读不了返回 None。
+
+    网页的原文网址只在快照文件头里（卡片元数据里没有），文件随归档 / 恢复一起移动，
+    所以文件头是网页来源唯一可靠的记录。
+    """
+    from src.metadata import parse_front_matter
+
+    if Path(path).suffix.lower() != ".md":
+        return None
+    try:
+        with open(path, encoding="utf-8", errors="ignore") as fh:
+            head = fh.read(8192)  # 文件头在最前面且很短，不必读全文
+    except OSError:
+        return None
+    front_matter, _ = parse_front_matter(head)
+    url = str(front_matter.get("source_url") or "").strip()
+    if front_matter.get("source_type") != "web" or not url:
+        return None
+    return {"url": url, "title": str(front_matter.get("title") or "").strip(),
+            "domain": str(front_matter.get("domain") or "reference"),
+            "category": str(front_matter.get("category") or "webpages")}
+
+
 def save_web_snapshot(url: str, text: str, title: str, domain: str = "reference",
-                      category: str = "webpages", knowledge_dir: Path | None = None) -> Path:
+                      category: str = "webpages", knowledge_dir: Path | None = None,
+                      target: Path | None = None) -> Path:
     """将网页正文保存为 .md 文件到 knowledge/reference/webpages/ 目录。
 
     这样网页内容就走标准的文件入库流水线，不需要改动任何核心节点。
     界面所选的领域 / 分类写进 Front Matter（优先级高于目录）。不按领域分目录存放：
     换领域重抓同一网址时是同一文档的新版本，而不是多出一份同时生效的副本。
     取默认值时不写入，存量网页的快照内容不变、重抓不会无故升版本。
-    文件名：URL 的 MD5 前 8 位 + 页面标题（截取 30 字）.md
+    文件名：URL 的 MD5 前 8 位 + 页面标题（截取 30 字）.md。同一网址再次抓取时沿用已有快照
+    文件：网页标题变了也还是同一文档（文件名决定 document_id），是新版本而不是新文档。
+    target 指定写入位置（知识库管理页「重新抓取」写回原快照文件）。
     """
     import hashlib
 
@@ -167,10 +194,20 @@ def save_web_snapshot(url: str, text: str, title: str, domain: str = "reference"
     title = _sanitize_single_line(title)
     short_hash = hashlib.md5(url.encode()).hexdigest()[:8]
     safe_title = re.sub(r'[\\/:*?"<>|\s]+', "_", title[:30]) if title else short_hash
-    filename = f"{short_hash}_{safe_title}.md"
-
-    snapshot_dir = (knowledge_dir or PROJECT_ROOT / "knowledge") / "reference" / "webpages"
-    snapshot_dir.mkdir(parents=True, exist_ok=True)
+    root = knowledge_dir or PROJECT_ROOT / "knowledge"
+    snapshot_dir = root / "reference" / "webpages"
+    if target is None:
+        # 文件名前缀只有 8 位哈希，用文件头里的网址再确认一次，避免两个网址撞前缀
+        target = next((p for p in sorted(snapshot_dir.glob(f"{short_hash}_*.md"))
+                       if (read_snapshot_origin(p) or {}).get("url") == url), None) \
+            or snapshot_dir / f"{short_hash}_{safe_title}.md"
+    target = Path(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    filename = target.name
+    try:
+        rel_path = target.resolve().relative_to(Path(root).resolve()).as_posix()
+    except ValueError:
+        rel_path = f"reference/webpages/{filename}"
 
     declared = ""
     if domain != "reference":
@@ -182,7 +219,7 @@ def save_web_snapshot(url: str, text: str, title: str, domain: str = "reference"
     fm = f"""---
 source: {filename}
 title: {title or short_hash}
-path: reference/webpages/{filename}
+path: {rel_path}
 source_type: web
 source_url: {url}
 {declared}---
@@ -192,6 +229,5 @@ source_url: {url}
 {text}
 """
 
-    file_path = snapshot_dir / filename
-    file_path.write_text(fm, encoding="utf-8")
-    return file_path
+    target.write_text(fm, encoding="utf-8")
+    return target

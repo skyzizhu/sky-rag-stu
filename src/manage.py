@@ -294,7 +294,8 @@ def remove_from_index_and_disk(relative_path: str) -> dict:
 
 def ingest_web_page(url: str, domain: str = "reference",
                     category: str = "webpages", on_progress=None,
-                    default_groups: list[str] | None = None) -> dict:
+                    default_groups: list[str] | None = None,
+                    snapshot_path: Path | None = None) -> dict:
     """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
 
     流程：fetch URL → 提取正文 → 保存为 .md 快照（领域 / 分类写进文件头）→ 标准入库
@@ -317,7 +318,7 @@ def ingest_web_page(url: str, domain: str = "reference",
     _report("save")
     file_path = save_web_snapshot(url, result["text"], result.get("title", ""),
                                   domain=domain, category=category,
-                                  knowledge_dir=get_config().knowledge_dir)
+                                  knowledge_dir=get_config().knowledge_dir, target=snapshot_path)
 
     _report("ingest")
     # 入库（走标准流水线）：skip_unchanged 让同 URL 重复抓取时走增量判断，
@@ -344,3 +345,28 @@ def ingest_web_page(url: str, domain: str = "reference",
             "cert_skipped": result.get("cert_skipped", False),
         }
     raise ManageError(f"网页入库失败：{summary.failed_files}")
+
+
+def refetch_web_page(relative_path: str) -> dict:
+    """重新抓取网页：按快照文件头里的原文网址重抓并写回原快照，内容变了生成新版本、没变就跳过。
+
+    领域 / 分类沿用文件头里的声明，可见部门沿用当前卡片——入库时表单选的部门只在卡片里、
+    不在文件头里，不传回去重抓后会变成全员可见。
+    """
+    path, _, _ = _resolve(relative_path)
+    if relative_path.split("/")[0] == "archive":
+        raise ManageError("已归档的网页请先恢复，再重新抓取。")
+    from src.web_fetcher import read_snapshot_origin
+
+    origin = read_snapshot_origin(path)
+    if origin is None:
+        raise ManageError("这个文件不是网页快照（文件头里没有原文网址）。")
+    groups = next((d["allowed_groups"] for d in get_vector_store().list_documents()
+                   if d["path"] == relative_path and d["status"] == "active"), None)
+    try:
+        return ingest_web_page(origin["url"], domain=origin["domain"], category=origin["category"],
+                               default_groups=groups, snapshot_path=path)
+    except ManageError:
+        raise
+    except Exception as exc:  # 网络错误、网站返回异常等：给出可读的提示，不让页面崩溃
+        raise ManageError(f"重新抓取失败：{exc}") from exc
