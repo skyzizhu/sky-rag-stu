@@ -27,3 +27,6 @@ tools/
 .agents/
 .claude/
 knowledge/learning/general/AI_PM交付物深度指南_RAG与Agent.md
+
+# 个人知识文件（隐私）——RAG 数据只保留在本地，不入仓库
+knowledge/
