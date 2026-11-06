@@ -99,14 +99,14 @@ def confirm_session_delete() -> None:
     st.write(t("dialog.delete_session.text", title=request["title"]))
     st.caption(t("dialog.delete_session.caption"))
     cancel_col, confirm_col = st.columns(2)
-    if cancel_col.button(t("common.cancel"), use_container_width=True):
+    if cancel_col.button(t("common.cancel"), width="stretch"):
         st.session_state.pop("delete_session_request", None)
         st.rerun()
     if confirm_col.button(
         t("dialog.delete_session.confirm"),
         type="primary",
         icon=":material/delete:",
-        use_container_width=True,
+        width="stretch",
     ):
         sid = request["session_id"]
         session_file = _session_path(sid)
@@ -128,7 +128,7 @@ def confirm_logout() -> None:
     st.write(t("auth.logout.confirm.msg"))
     _u = st.session_state.get("auth_user") or {}
     c1, c2 = st.columns(2)
-    if c1.button(t("auth.logout.confirm.yes"), type="primary", use_container_width=True):
+    if c1.button(t("auth.logout.confirm.yes"), type="primary", width="stretch"):
         auth_client.logout(str(_u.get("username") or ""))  # 登出写入登录日志
         # V3.7.2 同步清除浏览器里的 front_auth Cookie（与登录写入同一机制：
         # 本域 parent.document.cookie，清除后重载回登录门）。st.stop 让清 Cookie
@@ -143,7 +143,7 @@ def confirm_logout() -> None:
         st.session_state["messages"] = []
         st.session_state["session_id"] = new_session_id()
         st.stop()
-    if c2.button(t("auth.logout.confirm.no"), use_container_width=True):
+    if c2.button(t("auth.logout.confirm.no"), width="stretch"):
         st.session_state.pop("logout_request", None)
         st.rerun()
 
@@ -1443,7 +1443,7 @@ def page_upload():
         if uploads:
             st.caption(t("upload.selected", n=len(uploads), kb=f"{sum(u.size for u in uploads) / 1024:.0f}"))
         _upload_target = f"{upload_domain}/{upload_category.strip().lower() or 'general'}"
-        if st.button(t("upload.start"), disabled=not uploads, use_container_width=True, type="primary"):
+        if st.button(t("upload.start"), disabled=not uploads, width="stretch", type="primary"):
             _start_upload(uploads, _upload_target, upload_groups)
         _render_upload_confirmation(uploads, _upload_target, upload_groups)
 
@@ -1535,7 +1535,7 @@ def page_upload():
                 or not roots
                 or st.session_state.get("processed_directory_batch") == f"{batch_id}@{dir_domain}"
             ),
-            use_container_width=True,
+            width="stretch",
             type="primary",
             key="import_directory",
         ):
@@ -1562,7 +1562,7 @@ def page_upload():
                                             default=["all"], key="web_groups",
                                             help=t("upload.groups.help"))
 
-            if st.button(t("web.ingest"), disabled=not web_url.strip(), use_container_width=True, type="primary"):
+            if st.button(t("web.ingest"), disabled=not web_url.strip(), width="stretch", type="primary"):
                 from src.manage import ingest_web_page
                 try:
                     # st.status 分步显示：抓取 → 保存 → 入库，点击后立刻有反馈，
@@ -1745,7 +1745,7 @@ def _show_ingest_result(summary):
               t("ingest.col.category"): r["category"],
               t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"]}
              for r in summary.file_rows],
-            use_container_width=True, hide_index=True)
+            width="stretch", hide_index=True)
     for f in summary.failed_files:
         st.warning(f)
 
@@ -2305,18 +2305,18 @@ def page_plugins():
 
             c1, c2 = st.columns(2)
             if is_on:
-                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", use_container_width=True,
+                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", width="stretch",
                              disabled=not can_manage_plugins):
                     uninstall_plugin(pid)
                     st.rerun()
-                if c1.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
+                if c1.button(t("plugin.installed"), disabled=True, width="stretch", key=f"inst_{pid}"):
                     pass
             else:
-                if c1.button(t("plugin.install"), key=f"install_{pid}", use_container_width=True,
+                if c1.button(t("plugin.install"), key=f"install_{pid}", width="stretch",
                              type="primary", disabled=not can_manage_plugins):
                     install_plugin(pid)
                     st.rerun()
-                if c2.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
+                if c2.button(t("plugin.installed"), disabled=True, width="stretch", key=f"inst_{pid}"):
                     pass
 
     st.divider()
