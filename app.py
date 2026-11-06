@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.app_settings import SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
 from src import auth_client  # noqa: E402  # V3.7 登录/注册/偏好（FastAPI 认证服务 8700）
 from src import auth_db  # noqa: E402  # V3.7 部门列表（上传可见性选项）
+from src.permissions import visible_groups, write_group_options  # noqa: E402  # V3.8 权限规则
 from src.answer_format import format_answer_markdown  # noqa: E402
 from src.config import get_config  # noqa: E402
 from src.chat_scroll import scroll_chat_to_latest, scroll_follow_stream  # noqa: E402
@@ -54,6 +55,12 @@ from src.i18n import (  # noqa: E402
 )
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
+from src import index_state as istate  # noqa: E402  # V3.8 上传冲突预检读入库台账
+from src.upload_plan import (  # noqa: E402  # V3.8 上传/目录导入的重复文档防护
+    COPY, KIND_BATCH_DUPLICATE, KIND_BATCH_SAME_NAME, KIND_DUPLICATE, KIND_SAME_NAME,
+    KIND_SAME_PATH, NEW, NEW_VERSION, SKIP, VERSION_OF, content_hash, execute_uploads,
+    plan_uploads, write_directory_import,
+)
 from src.answer_evaluator import run_evaluation  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import (
@@ -92,14 +99,14 @@ def confirm_session_delete() -> None:
     st.write(t("dialog.delete_session.text", title=request["title"]))
     st.caption(t("dialog.delete_session.caption"))
     cancel_col, confirm_col = st.columns(2)
-    if cancel_col.button(t("common.cancel"), use_container_width=True):
+    if cancel_col.button(t("common.cancel"), width="stretch"):
         st.session_state.pop("delete_session_request", None)
         st.rerun()
     if confirm_col.button(
         t("dialog.delete_session.confirm"),
         type="primary",
         icon=":material/delete:",
-        use_container_width=True,
+        width="stretch",
     ):
         sid = request["session_id"]
         session_file = _session_path(sid)
@@ -121,7 +128,7 @@ def confirm_logout() -> None:
     st.write(t("auth.logout.confirm.msg"))
     _u = st.session_state.get("auth_user") or {}
     c1, c2 = st.columns(2)
-    if c1.button(t("auth.logout.confirm.yes"), type="primary", use_container_width=True):
+    if c1.button(t("auth.logout.confirm.yes"), type="primary", width="stretch"):
         auth_client.logout(str(_u.get("username") or ""))  # 登出写入登录日志
         # V3.7.2 同步清除浏览器里的 front_auth Cookie（与登录写入同一机制：
         # 本域 parent.document.cookie，清除后重载回登录门）。st.stop 让清 Cookie
@@ -136,7 +143,7 @@ def confirm_logout() -> None:
         st.session_state["messages"] = []
         st.session_state["session_id"] = new_session_id()
         st.stop()
-    if c2.button(t("auth.logout.confirm.no"), use_container_width=True):
+    if c2.button(t("auth.logout.confirm.no"), width="stretch"):
         st.session_state.pop("logout_request", None)
         st.rerun()
 
@@ -726,8 +733,11 @@ def get_services():
     return {"embedding": get_embedding_client(), "store": get_vector_store()}
 
 
-services = get_services()
-store = services["store"]
+# V3.8：services / store 在登录门之后才初始化（见文件末尾 auth_gate() 之后）——
+# 此前在这里初始化，Qdrant 一挂连登录页都打不开，还会把带服务器路径的报错栈
+# 直接显示给访客。所有使用方都在页面函数内，登录后才会被调用。
+services: dict = {}
+store = None
 
 
 def persist_app_settings() -> None:
@@ -765,17 +775,6 @@ def _clean_directory_name(name: str) -> str:
     if not cleaned:
         raise ValueError(f"目录名称无效：{name}")
     return cleaned
-
-
-def _available_directory(parent: Path, preferred_name: str) -> Path:
-    """已有同名目录时创建副本目录，避免静默覆盖用户知识文件。"""
-    candidate = parent / preferred_name
-    if not candidate.exists():
-        return candidate
-    index = 2
-    while (parent / f"{preferred_name}-{index}").exists():
-        index += 1
-    return parent / f"{preferred_name}-{index}"
 
 
 @st.cache_data(ttl=30)
@@ -847,15 +846,10 @@ def require_perm(perm: str) -> bool:
 def group_write_options(current: list[str] | None = None) -> list[str]:
     """写入侧（上传归属 / 管理编辑）允许的可见域选项：全员域 + 自己部门。
 
-    检索侧按部门强制过滤，写入侧不能成为绕过口——若员工能把文档标成
-    他部门可见，等于开了条横向数据外泄通道（hr 员工把资料标成 develop
-    可见）。current 传文档现有可见域（编辑场景）：并入选项但员工改不掉，
-    只能保留管理员此前设置的更宽范围。
+    规则本体在 src/permissions.write_group_options（纯函数，有单测）。
     """
     _au = st.session_state.get("auth_user") or {}
-    dept = _au.get("department")
-    opts = ["all"] + ([dept] if dept else [])
-    return list(dict.fromkeys(opts + [g for g in (current or []) if g]))
+    return write_group_options(_au.get("department"), current)
 
 
 def _apply_user_prefs(username: str) -> None:
@@ -1330,12 +1324,9 @@ def page_chat():
                         if m.get("role") in ("user", "assistant") and m.get("content")
                     ][-6:]  # 最近 3 轮
                     # V3.7 权限：登录者注入可见部门（服务端强制，UI 改不掉）；
-                    # 无部门的员工只能看 all 域
+                    # 规则统一在 src/permissions.visible_groups
                     _au = st.session_state.get("auth_user") or {}
-                    if _au.get("department"):
-                        _user_groups = [_au["department"]]
-                    else:
-                        _user_groups = ["all"]
+                    _user_groups = visible_groups(_au.get("department"))
                     result, deltas = answer_stream(
                         question,
                         top_k=st.session_state["top_k"],
@@ -1451,8 +1442,10 @@ def page_upload():
                                    type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
         if uploads:
             st.caption(t("upload.selected", n=len(uploads), kb=f"{sum(u.size for u in uploads) / 1024:.0f}"))
-        if st.button(t("upload.start"), disabled=not uploads, use_container_width=True, type="primary"):
-            _do_upload(uploads, upload_domain, upload_category, upload_groups)
+        _upload_target = f"{upload_domain}/{upload_category.strip().lower() or 'general'}"
+        if st.button(t("upload.start"), disabled=not uploads, width="stretch", type="primary"):
+            _start_upload(uploads, _upload_target, upload_groups)
+        _render_upload_confirmation(uploads, _upload_target, upload_groups)
 
     with tab_dir:
         st.markdown(t("dir.title"))
@@ -1525,6 +1518,16 @@ def page_upload():
             roots = []
             st.info(t("dir.pick_hint"), icon="📁")
 
+        # V3.8 重复导入防护：同名目录已存在时才出现选项，默认合并（按文件增量更新）
+        dir_merge = True
+        _dir_existing = [r for r in roots if (cfg.knowledge_dir / dir_domain / r).exists()]
+        if _dir_existing:
+            _dir_mode = st.radio(
+                t("dir.exists_mode", roots="、".join(_dir_existing)), ["merge", "copy"],
+                format_func=lambda m: t("dir.exists.merge") if m == "merge" else t("dir.exists.copy"),
+                key="dir_exists_mode")
+            dir_merge = _dir_mode == "merge"
+
         if st.button(
             t("dir.start"),
             disabled=(
@@ -1532,11 +1535,11 @@ def page_upload():
                 or not roots
                 or st.session_state.get("processed_directory_batch") == f"{batch_id}@{dir_domain}"
             ),
-            use_container_width=True,
+            width="stretch",
             type="primary",
             key="import_directory",
         ):
-            _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups)
+            _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups, merge=dir_merge)
 
     # ---------- 🌐 添加网页 Tab ----------
     if _has_web:
@@ -1550,8 +1553,10 @@ def page_upload():
             with st.container(border=True):
                 col_w1, col_w2 = st.columns(2)
                 with col_w1:
-                    web_domain = st.selectbox(t("common.domain"), DOMAINS,
-                                              format_func=domain_label, index=DOMAINS.index("reference"))
+                    _web_codes = [c for c in DOMAINS if c != "archive"]
+                    web_domain = st.selectbox(t("common.domain"), _web_codes,
+                                              format_func=domain_label,
+                                              index=_web_codes.index("reference"))
                 with col_w2:
                     web_category = st.text_input(t("web.category"), value="webpages")
                 web_groups = st.multiselect(t("upload.groups"),
@@ -1559,7 +1564,7 @@ def page_upload():
                                             default=["all"], key="web_groups",
                                             help=t("upload.groups.help"))
 
-            if st.button(t("web.ingest"), disabled=not web_url.strip(), use_container_width=True, type="primary"):
+            if st.button(t("web.ingest"), disabled=not web_url.strip(), width="stretch", type="primary"):
                 from src.manage import ingest_web_page
                 try:
                     # st.status 分步显示：抓取 → 保存 → 入库，点击后立刻有反馈，
@@ -1578,23 +1583,99 @@ def page_upload():
                     st.error(t("web.failed", err=exc))
 
 
-def _do_upload(uploads, upload_domain, upload_category, groups=None):
-    cfg.knowledge_dir.mkdir(exist_ok=True)
-    target_dir = cfg.knowledge_dir / upload_domain / (upload_category.strip().lower() or "general")
-    target_dir.mkdir(parents=True, exist_ok=True)
-    saved_paths = []
-    for upload in uploads:
-        target = target_dir / upload.name
-        if target.exists():
-            # 同名不同内容 = 静默覆盖用户知识源文件；改名副本保住原文件
-            if target.read_bytes() != upload.getvalue():
-                target = _available_directory(target_dir, Path(upload.name).stem) \
-                    .with_suffix(Path(upload.name).suffix)
-        target.write_bytes(upload.getvalue())
-        saved_paths.append(target)
+def _upload_files(uploads) -> list[tuple[str, bytes]]:
+    return [(u.name, u.getvalue()) for u in uploads or []]
+
+
+def _upload_signature(files: list[tuple[str, bytes]], target_dir: str) -> str:
+    """待确认批次的指纹：所选文件或目标目录一变，旧的确认面板就作废。"""
+    return content_hash(repr([(n, content_hash(d)) for n, d in files] + [target_dir]).encode())
+
+
+def _conflict_reason(d) -> str:
+    if d.kind == KIND_DUPLICATE:
+        return t("upload.conflict.duplicate", paths="、".join(d.existing))
+    if d.kind == KIND_SAME_PATH:
+        return t("upload.conflict.same_path", path=d.target)
+    if d.kind == KIND_SAME_NAME:
+        return t("upload.conflict.same_name", paths="、".join(d.existing))
+    if d.kind == KIND_BATCH_DUPLICATE:
+        return t("upload.conflict.batch_dup")
+    if d.kind == KIND_BATCH_SAME_NAME:
+        return t("upload.conflict.batch_name")
+    return ""
+
+
+def _action_label(action: str) -> str:
+    if action.startswith(VERSION_OF):
+        return t("upload.action.version_of", path=action[len(VERSION_OF):])
+    return t({SKIP: "upload.action.skip", NEW_VERSION: "upload.action.new_version",
+              NEW: "upload.action.new", COPY: "upload.action.copy"}[action])
+
+
+def _start_upload(uploads, target_dir: str, groups) -> None:
+    """V3.8 上传入口：先做冲突预检。全是新文件 → 直接入库（与以前一样不多一步）；
+    有重复 / 同名冲突 → 进确认面板，由用户逐个确认（默认值按已定规则预选好）。"""
+    files = _upload_files(uploads)
+    plan = plan_uploads(files, target_dir, istate.load_state(), cfg.knowledge_dir)
+    if any(d.needs_confirmation for d in plan):
+        st.session_state["upload_pending"] = _upload_signature(files, target_dir)
+    else:
+        _run_upload(files, plan, {}, groups)
+
+
+def _render_upload_confirmation(uploads, target_dir: str, groups) -> None:
+    pending = st.session_state.get("upload_pending")
+    if not pending:
+        return
+    files = _upload_files(uploads)
+    if not files or pending != _upload_signature(files, target_dir):
+        st.session_state.pop("upload_pending", None)  # 选择变了：作废旧的确认
+        return
+    # 预检是确定性的（同样的文件 + 同样的台账），每次重绘重新计算即可，无需缓存文件内容
+    plan = plan_uploads(files, target_dir, istate.load_state(), cfg.knowledge_dir)
+    choices: dict[int, str] = {}
+    with st.container(border=True):
+        st.markdown(f"**{t('upload.conflict.title')}**")
+        for index, d in enumerate(plan):
+            if not d.needs_confirmation:
+                continue
+            st.markdown(f"📄 `{d.name}`")
+            st.caption(_conflict_reason(d))
+            if len(d.options) == 1:
+                st.caption("→ " + _action_label(d.options[0]))
+                continue
+            choices[index] = st.radio(d.name, d.options, index=d.options.index(d.action),
+                                      format_func=_action_label,
+                                      key=f"upl_choice_{index}_{d.digest[:12]}",
+                                      label_visibility="collapsed")
+        n_new = sum(1 for d in plan if not d.needs_confirmation)
+        if n_new:
+            st.caption(t("upload.conflict.new_files", n=n_new))
+        col_ok, col_cancel = st.columns(2)
+        confirmed = col_ok.button(t("upload.conflict.confirm"), type="primary",
+                                  width="stretch", key="upl_confirm")
+        cancelled = col_cancel.button(t("upload.conflict.cancel"),
+                                      width="stretch", key="upl_cancel")
+    if cancelled:
+        st.session_state.pop("upload_pending", None)
+        st.rerun()
+    if confirmed:
+        st.session_state.pop("upload_pending", None)
+        _run_upload(files, plan, choices, groups)
+
+
+def _run_upload(files, plan, choices, groups) -> None:
+    to_ingest, skipped = execute_uploads(plan, files, cfg.knowledge_dir, choices)
+    if skipped:
+        st.info(t("upload.skipped_dup", n=len(skipped), files="、".join(d.name for d in skipped)))
+    if not to_ingest:
+        st.info(t("ingest.nothing_changed"))
+        return
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=saved_paths, default_groups=groups)
+            # skip_unchanged：内容没变的不重跑整条流水线（「重新入库」按钮仍是强制重跑入口）
+            summary = ingest_files(paths=to_ingest, skip_unchanged=True, default_groups=groups)
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1604,8 +1685,12 @@ def _do_upload(uploads, upload_domain, upload_category, groups=None):
     _show_ingest_result(summary)
 
 
-def _do_directory_upload(entries, dir_domain, batch_id, groups=None):
-    """把浏览器选中的目录完整复制为领域目录的子目录，然后增量入库。"""
+def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool = True):
+    """把浏览器选中的目录写入领域目录，然后增量入库。
+
+    V3.8：同名目录已存在时默认合并（merge=True）——没变的跳过、改了的升版本、
+    新增的入库，源目录里已删除的文件保留；merge=False 为另存副本目录（原行为）。
+    """
     domain_dir = cfg.knowledge_dir / dir_domain
     domain_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1618,16 +1703,7 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None):
         st.error(str(exc))
         return
 
-    saved: list[Path] = []
-    copied_roots: list[str] = []
-    for root_name, entries in grouped.items():
-        target_root = _available_directory(domain_dir, root_name)
-        copied_roots.append(target_root.name)
-        for relative_parts, content in entries:
-            destination = target_root.joinpath(*relative_parts)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(content)
-            saved.append(destination)
+    saved, copied_roots = write_directory_import(grouped, domain_dir, merge=merge)
 
     if not saved:
         st.warning(t("dir.no_docs"))
@@ -1642,7 +1718,7 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None):
               roots="、".join(copied_roots), docs=len(ingest_paths)))
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=ingest_paths, default_groups=groups)
+            summary = ingest_files(paths=ingest_paths, skip_unchanged=True, default_groups=groups)
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1657,15 +1733,21 @@ def _show_ingest_result(summary):
     if summary.ok_files:
         st.success(t("ingest.done", ok=summary.ok_files, total=summary.total_files,
                      chunks=summary.total_chunks, secs=f"{summary.elapsed_seconds:.1f}"))
-    else:
+    elif summary.failed_files:
         st.error(t("ingest.fail"))
+    else:
+        # V3.8：全部未变化被跳过不是失败（增量入库的正常结果）
+        st.info(t("ingest.nothing_changed"))
+    if summary.new_files or summary.updated_files or summary.skipped_files:
+        st.caption(t("ingest.breakdown", new=len(summary.new_files),
+                     updated=len(summary.updated_files), skipped=len(summary.skipped_files)))
     if summary.file_rows:
         st.dataframe(
             [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): r["domain"],
               t("ingest.col.category"): r["category"],
               t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"]}
              for r in summary.file_rows],
-            use_container_width=True, hide_index=True)
+            width="stretch", hide_index=True)
     for f in summary.failed_files:
         st.warning(f)
 
@@ -1711,12 +1793,9 @@ def page_manage():
         )
         if st.button(t("manage.sum.button"), disabled=not sum_topic.strip(), type="primary"):
             with st.spinner(t("manage.sum.spinner")):
-                # V3.7.2 权限：跨文档总结同样按登录者部门过滤
+                # V3.7.2 权限：跨文档总结同样按登录者部门过滤（规则同问答）
                 _sum_au = st.session_state.get("auth_user") or {}
-                if _sum_au.get("department"):
-                    _sum_groups = [_sum_au["department"]]
-                else:
-                    _sum_groups = ["all"]
+                _sum_groups = visible_groups(_sum_au.get("department"))
                 result = answer_question(
                     f"请综合知识库中与「{sum_topic.strip()}」相关的全部内容，"
                     "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
@@ -2228,18 +2307,18 @@ def page_plugins():
 
             c1, c2 = st.columns(2)
             if is_on:
-                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", use_container_width=True,
+                if c2.button(t("plugin.uninstall"), key=f"uninstall_{pid}", width="stretch",
                              disabled=not can_manage_plugins):
                     uninstall_plugin(pid)
                     st.rerun()
-                if c1.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
+                if c1.button(t("plugin.installed"), disabled=True, width="stretch", key=f"inst_{pid}"):
                     pass
             else:
-                if c1.button(t("plugin.install"), key=f"install_{pid}", use_container_width=True,
+                if c1.button(t("plugin.install"), key=f"install_{pid}", width="stretch",
                              type="primary", disabled=not can_manage_plugins):
                     install_plugin(pid)
                     st.rerun()
-                if c2.button(t("plugin.installed"), disabled=True, use_container_width=True, key=f"inst_{pid}"):
+                if c2.button(t("plugin.installed"), disabled=True, width="stretch", key=f"inst_{pid}"):
                     pass
 
     st.divider()
@@ -2259,6 +2338,16 @@ def page_learning():
 
 # ── V3.7 登录门：未登录只渲染登录/注册页，到此为止 ──
 auth_gate()
+
+# ── V3.8 知识库服务在登录之后初始化：Qdrant / Ollama 不可用时登录页照常可用，
+# 登录后给出友好提示；完整异常只写服务端日志，不把报错栈与服务器路径暴露给浏览器 ──
+try:
+    services = get_services()
+    store = services["store"]
+except Exception as _svc_exc:  # VectorStoreError / 连接异常等
+    print(f"⚠️ 知识库服务初始化失败：{type(_svc_exc).__name__}: {_svc_exc}")
+    st.error(t("services.unavailable"))
+    st.stop()
 
 _auth_user = st.session_state.get("auth_user") or {}
 # V3.7.2 员工前台权限（管理后台分配，默认无）：检索设置/知识库维护/插件管理需权限；

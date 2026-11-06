@@ -13,6 +13,7 @@ from __future__ import annotations
 import jieba
 from rank_bm25 import BM25Okapi
 
+from src import index_epoch
 from src.config import AppConfig, get_config
 from src.vector_store import VectorStore, VectorStoreError, get_vector_store
 
@@ -25,7 +26,7 @@ def tokenize(text: str) -> list[str]:
 
 
 # ---------- BM25 索引缓存 ----------
-# 缓存结构：{cache_key: {"bm25": BM25Okapi, "cards": list, "filter_hash": str}}
+# 缓存结构：{cache_key: {"bm25": BM25Okapi, "cards": list, "epoch": str}}
 # cache_key 由过滤条件生成；库变更时通过 invalidate_cache() 全部清空
 _bm25_cache: dict[str, dict] = {}
 _cache_collection_count = -1  # 上次构建时的集合卡片数，用于检测库变化
@@ -39,7 +40,11 @@ def invalidate_cache() -> None:
 
 
 def _get_cached_index(store: VectorStore, filters: dict | None) -> tuple[BM25Okapi, list[dict]] | None:
-    """获取缓存的 BM25 索引；未命中或库已变化时返回 None。"""
+    """获取缓存的 BM25 索引；未命中或库已变化时返回 None。
+
+    库变化的判定 = 卡片总数变了 或 构建后索引纪元变了。只看卡片数不够：改元数据（可见部门、
+    分类）卡片数不变；而其他进程（前台 ↔ MCP）的写操作只能通过纪元文件感知。
+    """
     global _cache_collection_count
     try:
         current_count = store.count()
@@ -51,7 +56,7 @@ def _get_cached_index(store: VectorStore, filters: dict | None) -> tuple[BM25Oka
         return None
     key = str(sorted((filters or {}).items(), key=lambda kv: kv[0]))
     entry = _bm25_cache.get(key)
-    if entry:
+    if entry and entry["epoch"] == index_epoch.current():
         return entry["bm25"], entry["cards"]
     return None
 
@@ -69,13 +74,14 @@ def _index_text(payload: dict) -> str:
 def _build_and_cache(store: VectorStore, filters: dict | None, cfg: AppConfig) -> tuple[BM25Okapi, list[dict]] | None:
     """构建 BM25 索引并写入缓存。"""
     global _cache_collection_count
+    epoch = index_epoch.current()  # 先取纪元再读卡片：读取期间发生写入时，这份缓存下次就会作废
     cards = store.get_all_cards(filters=filters, limit=_MAX_CARDS)
     if not cards:
         return None
     corpus = [tokenize(_index_text(card["payload"])) for card in cards]
     bm25 = BM25Okapi(corpus)
     key = str(sorted((filters or {}).items(), key=lambda kv: kv[0]))
-    _bm25_cache[key] = {"bm25": bm25, "cards": cards}
+    _bm25_cache[key] = {"bm25": bm25, "cards": cards, "epoch": epoch}
     try:
         _cache_collection_count = store.count()
     except Exception:

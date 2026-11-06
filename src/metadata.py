@@ -157,6 +157,22 @@ def _valid_domain(raw) -> str | None:
     return value if value in DOMAINS else None
 
 
+def resolve_domain(raw) -> str | None:
+    """把外部传入的领域参数解析成编号：编号（不分大小写）或领域的多语言名称。
+
+    解析不出返回 None，由调用方明确报错——直接拿去过滤只会得到空结果，
+    被 Agent 误报成「知识库里没有」。只在入口处用一次，此后全链路只认编号。
+    """
+    value = str(raw or "").strip().lower()
+    if value in DOMAINS:
+        return value
+    from src.i18n import domain_labels_all_languages
+
+    matches = [code for code in DOMAINS
+               if value and value in {name.lower() for name in domain_labels_all_languages(code)}]
+    return matches[0] if len(matches) == 1 else None
+
+
 def _valid_status(raw) -> str | None:
     if raw is None:
         return None
