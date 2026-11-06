@@ -256,7 +256,7 @@ class VectorStore:
                 limit=256,
                 offset=offset,
                 with_payload=["document_id", "source", "path", "domain", "category",
-                              "topic", "version", "status", "allowed_groups"],
+                              "topic", "version", "status", "allowed_groups", "file_type"],
             )
             for point in points:
                 payload = point.payload or {}
@@ -272,6 +272,7 @@ class VectorStore:
                         "category": payload.get("category") or "?",
                         "topic": payload.get("topic") or [],
                         "allowed_groups": payload.get("allowed_groups") or ["all"],
+                        "file_type": payload.get("file_type") or "",
                         "version": key[1],
                         "status": key[2],
                         "chunks": 0,

@@ -1911,7 +1911,9 @@ def page_manage():
         origin = origins.get(d["path"]) or {}
         file_cell = ("🌐 " if origin else "") + str(d["source"])
         return {"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
-                t("manage.col.file"): file_cell, t("manage.col.path"): d["path"],
+                t("manage.col.file"): file_cell, t("manage.col.type"): "web" if origin
+                else str(d.get("file_type") or "").upper(),
+                t("manage.col.path"): d["path"],
                 "Domain": domain_label(d["domain"]), "Category": d["category"],
                 "Topic": ", ".join(d["topic"]) or "-",
                 "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
@@ -1932,11 +1934,13 @@ def page_manage():
             "_id": None,
             t("manage.col.select"): st.column_config.CheckboxColumn(t("manage.col.select"),
                                                                     help=t("manage.col.select.help")),
+            t("manage.col.type"): st.column_config.TextColumn(t("manage.col.type"), width="small"),
             t("manage.col.url"): st.column_config.LinkColumn(t("manage.col.url"), width="medium",
                                                              help=t("manage.col.url.help")),
         },
-        disabled=[t("manage.col.file"), t("manage.col.path"), "Domain", "Category", "Topic",
-                  "Groups", "Version", "Status", t("manage.col.chunks"), t("manage.col.url")],
+        disabled=[t("manage.col.file"), t("manage.col.path"), t("manage.col.type"), "Domain",
+                  "Category", "Topic", "Groups", "Version", "Status", t("manage.col.chunks"),
+                  t("manage.col.url")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
     selected_ids = {row["_id"] for row in records if row.get(t("manage.col.select"))}
