@@ -19,6 +19,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from src import index_epoch
 from src.chunker import clean_and_chunk
 from src.config import AppConfig, get_config
 from src.context import build_context, estimate_tokens
@@ -377,6 +378,21 @@ def clear_qa_cache(username: str | None = None) -> None:
         _qa_cache_owner.pop(key, None)
 
 
+# V3.8：缓存内容对应的索引纪元。知识库被任何进程改过（纪元变了）→ 整个问答缓存作废。
+# 此前只靠本进程内的 clear_qa_cache()：MCP 是独立进程，前台入库新版本后它仍返回旧答案。
+_qa_cache_epoch = ""
+
+
+def _sync_qa_cache_epoch() -> str:
+    global _qa_cache_epoch
+    epoch = index_epoch.current()
+    if epoch != _qa_cache_epoch:
+        _qa_cache.clear()
+        _qa_cache_owner.clear()
+        _qa_cache_epoch = epoch
+    return epoch
+
+
 # ---------------------------------------------------------------- 问答
 def answer_stream(
     question: str,
@@ -417,9 +433,12 @@ def answer_stream(
     # 仅检索模式（use_llm=False）不读缓存——它要的是检索结果而非缓存的 LLM 答案
     cache_key = _cache_key(question, top_k, filters or {}, use_query_understanding,
                            use_hybrid, use_rerank, history=history)
-    if use_llm and cache_key in _qa_cache:
+    epoch_at_start = _sync_qa_cache_epoch()  # 知识库已变 → 旧答案作废
+    # .get 取一次：判断与读取分两步时，并发清空会让第二步抛 KeyError
+    cached_entry = _qa_cache.get(cache_key) if use_llm else None
+    if cached_entry is not None:
         import copy
-        cached = copy.deepcopy(_qa_cache[cache_key])
+        cached = copy.deepcopy(cached_entry)
         # 缓存命中：加一条时间线节点说明（不重跑流水线）
         cached.trace.append(make_node(
             "⚡", "Q→A 缓存命中", time_str=now_str(), status="已命中",
@@ -662,7 +681,8 @@ def answer_stream(
 
     # 渐进式放宽（检索容错）：LLM 推断的过滤条件猜错时可能把正确答案挡在门外——
     # 如果「带推断条件」检索为 0 条，自动去掉推断条件（保留手动设置）重试一次。
-    if not result.retrieved and qu_filters and not filters:
+    # filters 里是手动设置与权限域（V3.7 起登录用户必带），重试时原样保留，不会越权。
+    if not result.retrieved and qu_filters:
         relax_start = now_str()
         t_relax = time.time()
         manual_filters = filters or {}
@@ -836,7 +856,8 @@ def answer_stream(
             ))
             # 只缓存「完整且非空」的回答：LLM 失败（异常）或用户中断（半截答案）不缓存，
             # 否则之后同样的问题永远命中这份坏结果
-            if completed and result.answer:
+            # V3.8：生成期间知识库被改过（纪元变了）→ 这份答案基于旧数据，不能缓存
+            if completed and result.answer and index_epoch.current() == epoch_at_start:
                 # list() 快照 + pop(默认值)：并发 clear 时不抛 StopIteration/KeyError
                 while len(_qa_cache) >= _QA_CACHE_MAX:
                     for oldest in list(_qa_cache)[: len(_qa_cache) - _QA_CACHE_MAX + 1]:

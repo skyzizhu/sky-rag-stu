@@ -135,10 +135,13 @@ def build_context(
     # —— 第二轮：相邻补全 ——
     # 同一文档的卡片先聚合、按序号排序，再找出序号连续的段拼接。
     # （卡片在相关度排序里可能被其他文档的卡片隔开，所以不能只看列表相邻关系）
-    doc_order: list[str] = []
-    by_doc: dict[str, list[RetrievedItem]] = {}
+    # 按「文档 + 版本」分组：检索范围选「全部」时新旧版本会同时召回，
+    # 旧版第 3 张和新版第 4 张序号连续，但内容不连续，拼起来就是一段错误资料
+    doc_order: list[tuple] = []
+    by_doc: dict[tuple, list[RetrievedItem]] = {}
     for item in used:
-        key = item.metadata.get("document_id") or item.metadata.get("source")
+        key = (item.metadata.get("document_id") or item.metadata.get("source"),
+               item.metadata.get("version"))
         if key not in by_doc:
             by_doc[key] = []
             doc_order.append(key)

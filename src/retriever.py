@@ -50,9 +50,10 @@ def effective_filters(filters: dict | None) -> dict:
 
     - 默认强制 status=active（归档内容不参与普通检索）；
     - 用户显式传入 status 时以用户为准；
-    - 传 {"status": "all"} 或 None 值表示不加该条件。
+    - 传 {"status": "all"} 或 None 值表示不加该条件；
+    - 选了归档领域时默认查 archive：归档卡片的状态都是 archive，默认 active 结果永远为空。
     """
-    eff: dict = {"status": "active"}
+    eff: dict = {"status": "archive" if (filters or {}).get("domain") == "archive" else "active"}
     for key, value in (filters or {}).items():
         if value is None or value == "all":
             eff.pop(key, None)

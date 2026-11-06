@@ -185,6 +185,16 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
             ),
             wait=True,
         )
+        # 只改元数据、卡片数不变：必须显式作废检索缓存。漏掉的后果——收窄可见部门后，
+        # 其他部门仍能经 BM25 通道检索到该文档（权限问题）；改分类后按分类过滤结果不变。
+        # 纪元通知所有进程（含 MCP），本进程再立即清一次。
+        from src import index_epoch
+        from src.keyword_search import invalidate_cache
+        from src.pipeline import clear_qa_cache
+
+        index_epoch.bump()
+        invalidate_cache()
+        clear_qa_cache()
 
     # 覆盖设置记入台账：重新入库时由 pipeline 优先应用（优先级高于 Front Matter 与目录）
     from src import index_state as istate
@@ -293,11 +303,17 @@ def ingest_web_page(url: str, domain: str = "reference",
                     default_groups: list[str] | None = None) -> dict:
     """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
 
-    流程：fetch URL → 提取正文 → 保存为 .md 快照到 knowledge/<domain>/<category>/ → 标准入库
+    流程：fetch URL → 提取正文 → 保存为 .md 快照（领域 / 分类写进文件头）→ 标准入库
     on_progress(msg)：每个阶段开始时回调一次（界面用它显示分步进度）。
     default_groups（V3.7）：上传表单选择的可见部门，透传给入库流水线。
     """
+    from src.domains import enabled_codes
     from src.web_fetcher import fetch_and_parse, save_web_snapshot
+
+    # archive 的卡片必须是 archive 状态，而状态由所在目录决定：快照不在 archive/ 下就会
+    # 变成「归档领域里的生效卡片」，所以网页不能直接进归档领域（要归档走知识库管理页）
+    if domain == "archive" or domain not in enabled_codes():
+        raise ManageError(f"网页不能入库到领域「{domain}」（领域不存在、已停用或是归档领域）。")
 
     def _report(msg: str) -> None:
         if on_progress:
@@ -306,7 +322,9 @@ def ingest_web_page(url: str, domain: str = "reference",
     _report("fetch")
     result = fetch_and_parse(url)
     _report("save")
-    file_path = save_web_snapshot(url, result["text"], result.get("title", ""))
+    file_path = save_web_snapshot(url, result["text"], result.get("title", ""),
+                                  domain=domain, category=category,
+                                  knowledge_dir=get_config().knowledge_dir)
 
     _report("ingest")
     # 入库（走标准流水线）：skip_unchanged 让同 URL 重复抓取时走增量判断，

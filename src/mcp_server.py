@@ -82,10 +82,20 @@ def _log_qa(question: str, result, top_k: int, elapsed: float) -> None:
 
 
 def _filters(domain: str | None, status: str | None) -> dict | None:
-    """组装 Metadata 过滤条件；未提供任何过滤时返回 None（检索默认范围）。"""
+    """组装 Metadata 过滤条件；未提供任何过滤时返回 None（检索默认范围）。
+
+    domain 可传编号或显示名称，这里解析成编号（此后全链路只认编号）。识别不了就抛
+    ValueError，由工具层转成明确报错——拿未知值去过滤只会得到空结果，Agent 会误报
+    「知识库里没有」。"all" 表示不限领域。
+    """
     filters: dict = {}
-    if domain:
-        filters["domain"] = domain
+    if domain and str(domain).strip().lower() != "all":
+        from src.domains import all_codes, resolve_code
+
+        code = resolve_code(domain)
+        if code is None:
+            raise ValueError(f"无法识别领域「{domain}」。可用的领域编号：{'、'.join(all_codes())}")
+        filters["domain"] = code
     if status:
         filters["status"] = status
     return filters or None
@@ -166,11 +176,16 @@ def knowledge_qa(
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
     from src.pipeline import answer_question
 
+    try:
+        filters = _filters(domain, status)
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)}, ensure_ascii=False)
+
     _t0 = time.time()
     result = answer_question(
         question.strip(),
         top_k=max(1, min(int(top_k), 10)),
-        filters=_filters(domain, status),
+        filters=filters,
         history=_history(history),
         user_groups=_current_user_groups(),
         username=_current_username(),
@@ -217,12 +232,17 @@ def knowledge_search(
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
     from src.pipeline import answer_question
 
+    try:
+        filters = _filters(domain, status)
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)}, ensure_ascii=False)
+
     _t0 = time.time()
     result = answer_question(
         question.strip(),
         top_k=max(1, min(int(top_k), 10)),
         use_llm=False,  # 仅检索：不调用生成模型
-        filters=_filters(domain, status),
+        filters=filters,
         user_groups=_current_user_groups(),
         username=_current_username(),
     )

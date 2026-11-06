@@ -1568,7 +1568,7 @@ def page_upload():
             with st.container(border=True):
                 col_w1, col_w2 = st.columns(2)
                 with col_w1:
-                    _web_codes = domain_reg.enabled_codes()
+                    _web_codes = [c for c in domain_reg.enabled_codes() if c != "archive"]
                     web_domain = st.selectbox(t("common.domain"), _web_codes,
                                               format_func=domain_label,
                                               index=_domain_index(_web_codes, "reference"))
@@ -1758,7 +1758,7 @@ def _show_ingest_result(summary):
                      updated=len(summary.updated_files), skipped=len(summary.skipped_files)))
     if summary.file_rows:
         st.dataframe(
-            [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): r["domain"],
+            [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): domain_label(r["domain"]),
               t("ingest.col.category"): r["category"],
               t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"]}
              for r in summary.file_rows],
@@ -1776,7 +1776,8 @@ def _show_ingest_result(summary):
             first = p.relative_to(cfg.knowledge_dir).parts[0]
             by_domain[first] = by_domain.get(first, 0) + 1
         st.markdown(
-            "　".join(tag(f"{domain_label(d)} · {n}", "blue") for d, n in sorted(by_domain.items())),
+            # tag() 不转义、这里又允许 HTML：领域名称是用户填的，必须先转义
+            "　".join(tag(f"{html.escape(domain_label(d))} · {n}", "blue") for d, n in sorted(by_domain.items())),
             unsafe_allow_html=True,
         )
         with st.expander(t("ingest.view_all", n=len(existing))):
@@ -1909,7 +1910,7 @@ def page_manage():
 
     rows = [{"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
              t("manage.col.file"): d["source"], t("manage.col.path"): d["path"],
-             "Domain": d["domain"], "Category": d["category"],
+             "Domain": domain_label(d["domain"]), "Category": d["category"],
              "Topic": ", ".join(d["topic"]) or "-",
              "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
              "Version": d["version"],
@@ -1987,7 +1988,7 @@ def page_manage():
         status_tag = tag("✅ active", "green") if d["status"] == "active" else tag("🗄 archive", "amber")
         st.markdown(
             f"### 📄 {html.escape(str(d['source']))}　{status_tag}"
-            + tag(f"🗂 {html.escape(str(d['domain']))}", "blue")
+            + tag(f"🗂 {html.escape(domain_label(str(d['domain'])))}", "blue")
             + tag(f"📁 {html.escape(str(d['category']))}", "blue")
             + (tag("🏷 " + html.escape(" / ".join(d["topic"]))) if d["topic"] else "")
             + tag(f"v{html.escape(str(d['version']))}", "green"),
@@ -2390,7 +2391,7 @@ def page_domains():
             new_desc = st.text_input(t("dommgr.field.desc"))
             if st.form_submit_button(t("dommgr.add.btn"), type="primary", width="stretch"):
                 try:
-                    created = domain_reg.create_domain(new_code, new_name, new_desc)
+                    created = domain_reg.create_domain(new_code, new_name, new_desc, store=store)
                 except domain_reg.DomainError as exc:
                     st.error(str(exc))
                 else:
@@ -2458,7 +2459,7 @@ def page_domains():
                          disabled=not u["valid_code"],
                          help=None if u["valid_code"] else t("dommgr.unreg.invalid")):
                 try:
-                    created = domain_reg.register_directory(u["folder"], u["folder"], store, documents)
+                    created = domain_reg.register_directory(u["folder"], u["folder"], store)
                 except domain_reg.DomainError as exc:
                     st.error(str(exc))
                 else:

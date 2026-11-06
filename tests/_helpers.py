@@ -118,12 +118,58 @@ class IngestHarness(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
         # 领域注册表同样隔离到临时文件：测试结果不能依赖真实 storage/domains.json
-        from src import domains
+        from src import domains, index_epoch, keyword_search, pipeline
+        from src.retriever import get_retriever
 
-        reg_patcher = mock.patch.object(domains, "REGISTRY_PATH", root / "domains.json")
-        reg_patcher.start()
-        self.addCleanup(reg_patcher.stop)
+        for target, value in ((domains, root / "domains.json"),):
+            reg_patcher = mock.patch.object(target, "REGISTRY_PATH", value)
+            reg_patcher.start()
+            self.addCleanup(reg_patcher.stop)
+        epoch_patcher = mock.patch.object(index_epoch, "EPOCH_PATH", root / "index_epoch")
+        epoch_patcher.start()
+        self.addCleanup(epoch_patcher.stop)
+        # 进程级单例与缓存必须每个用例重置：检索器是 lru_cache 单例，不清的话它会一直绑着
+        # 上一个用例的内存向量库，检索测试查的就不是本用例的数据（曾让回归测试形同虚设）
+        for reset in (get_retriever.cache_clear, keyword_search.invalidate_cache,
+                      pipeline.clear_qa_cache):
+            reset()
+            self.addCleanup(reset)
         self.addCleanup(self._tmp.cleanup)
+
+    def use_fakes(self) -> None:
+        """检索 / 管理层的工厂函数全部指向本用例的临时配置、内存向量库与假向量化。"""
+        for target in ("src.config.get_config", "src.pipeline.get_config", "src.retriever.get_config",
+                       "src.keyword_search.get_config", "src.manage.get_config"):
+            self._patch(target, self.cfg)
+        for target in ("src.vector_store.get_vector_store", "src.pipeline.get_vector_store",
+                       "src.retriever.get_vector_store", "src.keyword_search.get_vector_store",
+                       "src.manage.get_vector_store"):
+            self._patch(target, self.store)
+        for target in ("src.embedding.get_embedding_client", "src.pipeline.get_embedding_client",
+                       "src.retriever.get_embedding_client"):
+            self._patch(target, self.embedding)
+
+    def _patch(self, target: str, value) -> None:
+        patcher = mock.patch(target, return_value=value)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def retrieve_hits(self, query: str, domain: str | None = None,
+                      user_groups: list[str] | None = None, top_k: int = 10) -> list[tuple[str, str]]:
+        """走真实检索流水线（向量 + BM25 混合，不调大模型），返回命中的 (文件名, 领域编号)。"""
+        import contextlib
+        import io
+
+        from src.pipeline import answer_question
+        from src.retriever import get_retriever
+
+        self.assertIs(get_retriever().store, self.store, "检索器必须查本用例的向量库")
+        with contextlib.redirect_stdout(io.StringIO()):  # 检索流水线会打印耗时日志
+            result = answer_question(query, top_k=top_k, use_llm=False,
+                                     filters={"domain": domain} if domain else None,
+                                     use_query_understanding=False, use_hybrid=True,
+                                     use_rerank=False, config=self.cfg, user_groups=user_groups)
+        return sorted({(s["source"], s["domain"]) for s in result.sources})
 
     def ingest(self, paths=None, **kwargs):
         import contextlib

@@ -15,6 +15,7 @@ from functools import lru_cache
 
 from qdrant_client import QdrantClient, models
 
+from src import index_epoch
 from src.config import AppConfig, get_config
 from src.chunker import Chunk
 
@@ -107,6 +108,7 @@ class VectorStore:
             total += len(points)
             if self.cfg.debug and len(chunks) > batch_size:
                 print(f"    入库进度：{total}/{len(chunks)}")
+        index_epoch.bump()
         return total
 
     def delete_documents(self, document_ids: list[str]) -> int:
@@ -124,6 +126,7 @@ class VectorStore:
             ),
             wait=True,
         )
+        index_epoch.bump()
         return len(document_ids)
 
     # ---------- 查卡 ----------
@@ -239,6 +242,7 @@ class VectorStore:
             ),
             wait=True,
         )
+        index_epoch.bump()
 
     def reassign_domain(self, document_ids: list[str], domain: str) -> None:
         """把指定文档全部卡片（含历史版本）的 domain 字段就地改写——只改 payload，
@@ -257,6 +261,7 @@ class VectorStore:
             ),
             wait=True,
         )
+        index_epoch.bump()  # 卡片数不变的写操作：必须显式通知所有进程的检索缓存
 
     def list_documents(self) -> list[dict]:
         """按 document_id 盘点所有入库文件：路径、分类、状态、卡片数。"""
@@ -334,6 +339,7 @@ class VectorStore:
         """清空重建：整个档案馆推倒（下次入库会自动重建）。"""
         if self.collection_exists():
             self.client.delete_collection(self.cfg.qdrant_collection)
+            index_epoch.bump()
 
 
 @lru_cache(maxsize=1)

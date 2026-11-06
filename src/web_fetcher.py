@@ -14,6 +14,7 @@ RAG 核心流程不感知网页的存在，它只负责处理文本。
 
 from __future__ import annotations
 
+import json
 import re
 import warnings
 from pathlib import Path
@@ -150,10 +151,14 @@ def _sanitize_single_line(value: str) -> str:
     return re.sub(r"[\r\n]+", " ", value or "").strip()
 
 
-def save_web_snapshot(url: str, text: str, title: str) -> Path:
+def save_web_snapshot(url: str, text: str, title: str, domain: str = "reference",
+                      category: str = "webpages", knowledge_dir: Path | None = None) -> Path:
     """将网页正文保存为 .md 文件到 knowledge/reference/webpages/ 目录。
 
     这样网页内容就走标准的文件入库流水线，不需要改动任何核心节点。
+    界面所选的领域 / 分类写进 Front Matter（优先级高于目录）。不按领域分目录存放：
+    换领域重抓同一网址时是同一文档的新版本，而不是多出一份同时生效的副本。
+    取默认值时不写入，存量网页的快照内容不变、重抓不会无故升版本。
     文件名：URL 的 MD5 前 8 位 + 页面标题（截取 30 字）.md
     """
     import hashlib
@@ -164,8 +169,14 @@ def save_web_snapshot(url: str, text: str, title: str) -> Path:
     safe_title = re.sub(r'[\\/:*?"<>|\s]+', "_", title[:30]) if title else short_hash
     filename = f"{short_hash}_{safe_title}.md"
 
-    snapshot_dir = PROJECT_ROOT / "knowledge" / "reference" / "webpages"
+    snapshot_dir = (knowledge_dir or PROJECT_ROOT / "knowledge") / "reference" / "webpages"
     snapshot_dir.mkdir(parents=True, exist_ok=True)
+
+    declared = ""
+    if domain != "reference":
+        declared += f"domain: {domain}\n"
+    if category and category != "webpages":  # 界面自由输入：JSON 字符串同时是合法 YAML，冒号等不会破坏文件头
+        declared += f"category: {json.dumps(_sanitize_single_line(category), ensure_ascii=False)}\n"
 
     # Front Matter：让入库时自动带上 URL 和来源信息
     fm = f"""---
@@ -174,7 +185,7 @@ title: {title or short_hash}
 path: reference/webpages/{filename}
 source_type: web
 source_url: {url}
----
+{declared}---
 
 # {title or url}
 

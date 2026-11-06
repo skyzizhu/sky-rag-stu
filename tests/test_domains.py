@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-import contextlib
-import io
 import json
 import tempfile
 import unittest
@@ -104,8 +102,9 @@ class RegistryRuleTests(_RegistryCase):
             p.write_text("x")
         usage = domains.usage_by_domain(
             self.kdir, {"finance/a.md": {}, "archive/finance/c.md": {}},
-            [{"path": "finance/a.md", "chunks": 3}, {"path": "finance/a.md", "chunks": 2},
-             {"path": "archive/finance/c.md", "chunks": 1}])
+            [{"path": "finance/a.md", "domain": "finance", "chunks": 3},
+             {"path": "finance/a.md", "domain": "finance", "chunks": 2},
+             {"path": "archive/finance/c.md", "domain": "archive", "chunks": 1}])
         stat = usage["finance"]
         self.assertGreaterEqual(stat["files"], 2)  # 大小写不敏感的文件系统上 Finance 即 finance
         self.assertEqual(stat["archived"], 1)
@@ -149,35 +148,31 @@ class RenameDoesNotAffectRetrievalTests(IngestHarness):
 
     def setUp(self) -> None:
         super().setUp()
-        from src import keyword_search
-
-        for target in ("src.pipeline.get_vector_store", "src.retriever.get_vector_store",
-                       "src.keyword_search.get_vector_store"):
-            p = mock.patch(target, return_value=self.store)
-            p.start()
-            self.addCleanup(p.stop)
-        for target in ("src.pipeline.get_embedding_client", "src.retriever.get_embedding_client"):
-            p = mock.patch(target, return_value=self.embedding)
-            p.start()
-            self.addCleanup(p.stop)
-        keyword_search.invalidate_cache()
-        self.addCleanup(keyword_search.invalidate_cache)
-
+        self.use_fakes()
         domains.create_domain("finance", "财务")
+        # finance 下要有足够多的文档：语料太小时 BM25 词项 IDF ≤ 0、不返回结果，关键词通道就没参与
         self.ingest([self.write_note("报销流程：先填申请单，再找主管审批。", "reimburse.md", "finance"),
                      self.write_note("差旅标准：一线城市住宿上限 500 元。", "travel.md", "finance"),
+                     self.write_note("发票规范：抬头必须与公司名称一致。", "invoice.md", "finance"),
+                     self.write_note("预算编制：每季度滚动调整一次。", "budget.md", "finance"),
                      self.write_note("Python 装饰器的原理与用法。", "python.md", "learning")])
 
     def retrieve(self, domain: str | None) -> list[tuple[str, str]]:
-        """走真实检索流水线（向量 + BM25 混合，不调大模型），返回命中的 (文件名, 领域编号)。"""
+        return self.retrieve_hits("报销 差旅 住宿 审批", domain=domain, top_k=5)
+
+    def retrieve_detail(self, domain: str) -> list[tuple]:
+        """逐条的排名、分数、命中通道：改名前后必须完全一致。"""
+        import contextlib
+        import io
+
         from src.pipeline import answer_question
 
-        with contextlib.redirect_stdout(io.StringIO()):  # 检索流水线会打印耗时日志
+        with contextlib.redirect_stdout(io.StringIO()):
             result = answer_question("报销 差旅 住宿 审批", top_k=5, use_llm=False,
-                                     filters={"domain": domain} if domain else None,
-                                     use_query_understanding=False, use_hybrid=True,
-                                     use_rerank=False, config=self.cfg)
-        return sorted({(s["source"], s["domain"]) for s in result.sources})
+                                     filters={"domain": domain}, use_query_understanding=False,
+                                     use_hybrid=True, use_rerank=False, config=self.cfg)
+        return [(s["rank"], s["source"], s["domain"], s["channels"], round(float(s["score"]), 6))
+                for s in result.sources]
 
     def snapshot(self) -> list:
         """向量库全量快照：每张卡片的 ID、全部元数据、向量。"""
@@ -195,13 +190,17 @@ class RenameDoesNotAffectRetrievalTests(IngestHarness):
 
     def test_rename_changes_nothing_in_retrieval(self):
         before_hits = self.retrieve("finance")
+        before_detail = self.retrieve_detail("finance")
         before_snapshot = self.snapshot()
         before_ledger = self.ledger()
-        self.assertEqual(before_hits, [("reimburse.md", "finance"), ("travel.md", "finance")])
+        self.assertEqual(before_hits, [("budget.md", "finance"), ("invoice.md", "finance"),
+                                       ("reimburse.md", "finance"), ("travel.md", "finance")])
+        self.assertTrue(any("关键词" in row[3] for row in before_detail), "关键词通道必须参与")
 
         domains.update_domain("finance", name="财务与报销资料", description="改个名字试试")
 
         self.assertEqual(self.retrieve("finance"), before_hits)        # 过滤结果不变
+        self.assertEqual(self.retrieve_detail("finance"), before_detail)  # 排名、分数、命中通道不变
         self.assertEqual(self.snapshot(), before_snapshot)             # 卡片 ID / 元数据 / 向量一字不差
         self.assertEqual(self.ledger(), before_ledger)                 # 台账不变
         summary = self.ingest()                                        # 全库扫描：改名不触发重新入库
@@ -265,7 +264,7 @@ class RegisterDirectoryTests(IngestHarness):
                          {"finance/a.md": "reference", "archive/finance/old.md": "archive"})
         before_points = self.store.count()
 
-        domains.register_directory("finance", "财务", self.store, docs)
+        domains.register_directory("finance", "财务", self.store)
 
         after = {d["path"]: d["domain"] for d in self.store.list_documents()}
         self.assertEqual(after["finance/a.md"], "finance")

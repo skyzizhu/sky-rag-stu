@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from qdrant_client import models
 
+from src import index_epoch
 from src.config import get_config
 from src.vector_store import get_vector_store
 
@@ -78,6 +79,8 @@ def main() -> int:
         if offset is None:
             break
 
+    if fixed and not args.dry_run:
+        index_epoch.bump()  # 只改元数据、卡片数不变：通知运行中服务的检索缓存作废
     action = "需要补齐" if args.dry_run else "已补齐"
     print(f"\n完成：扫描 {scanned} 张，{action} {fixed} 张（allowed_groups=['all']）。")
     if args.dry_run and fixed:

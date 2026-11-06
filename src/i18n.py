@@ -106,6 +106,12 @@ def domain_label_i18n(domain: str, with_code: bool = True) -> str:
     return f"{domain} · {label}" if with_code else label
 
 
+def domain_labels_all_languages(domain: str) -> list[str]:
+    """内置领域在全部语言下的标签（把外部传入的名称解析回编号时用，与当前界面语言无关）。"""
+    return [label for lang in LANGUAGE_ORDER
+            if (label := _CATALOG.get(lang, {}).get(f"domain.{domain}"))]
+
+
 # ======================================================================
 # 翻译目录
 # ======================================================================

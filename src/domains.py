@@ -97,6 +97,26 @@ def sanitize_choice(choice: str | None) -> str:
     return choice if choice in all_codes() else "all"
 
 
+def resolve_code(raw: str | None) -> str | None:
+    """把外部传入的领域参数解析成编号：编号（不分大小写）、显示名称、内置领域的多语言名称。
+
+    解析不出或名称有歧义时返回 None，由调用方明确报错——直接拿去过滤只会得到空结果，
+    被 Agent 误报成「知识库里没有」。只在入口处用一次，此后全链路只认编号。
+    """
+    value = str(raw or "").strip().lower()
+    if not value:
+        return None
+    entries = load_domains()
+    if any(d["code"] == value for d in entries):
+        return value
+    from src.i18n import domain_labels_all_languages
+
+    matches = [d["code"] for d in entries
+               if value == (d.get("name") or "").lower()
+               or value in {n.lower() for n in domain_labels_all_languages(d["code"])}]
+    return matches[0] if len(matches) == 1 else None
+
+
 # ---------------------------------------------------------------- 写入
 def _save(items: list[dict]) -> None:
     REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -122,7 +142,11 @@ def _clean_name(name: str | None) -> str:
     return name
 
 
-def create_domain(code: str, name: str, description: str = "") -> dict:
+def create_domain(code: str, name: str, description: str = "", *, store=None) -> dict:
+    """新增领域。传入 store 时顺带纠正已入库卡片的领域字段（见 reconcile_domain_cards）。
+
+    纠正失败会撤销这次新增：否则领域已存在、卡片却没改对，而且没有重试的入口。
+    """
     code = validate_code(code)
     name = _clean_name(name)
     if not name:
@@ -136,7 +160,43 @@ def create_domain(code: str, name: str, description: str = "") -> dict:
                  "created_at": time.strftime("%Y-%m-%dT%H:%M:%S")}
         items.append(entry)
         _save(items)
+    if store is not None:
+        try:
+            reconcile_domain_cards(code, store)
+        except Exception as exc:
+            with _lock:
+                _save([d for d in load_domains() if d["code"] != code])
+            raise DomainError(f"向量库暂不可用，领域未创建，请稍后重试：{exc}") from exc
     return dict(entry)
+
+
+def reconcile_domain_cards(code: str, store) -> int:
+    """把「按当前注册表本该属于 code」的已入库文档的 domain 字段就地改过来，返回文档数。
+
+    这些文档入库时 code 还没登记：目录推断被兜底成 reference，文件头声明被当成非法值忽略；
+    不纠正的话，按新领域过滤永远检索不到它们。判定沿用入库时的优先级（文件头声明 > 目录），
+    所以文件头明确声明了别的领域的不会被改，归档文档（archive/…）也保持原样。
+    只改 payload，不重新向量化——路径、document_id、版本、卡片内容都不变。
+    """
+    from src.metadata import _valid_domain, infer_from_path, parse_front_matter
+
+    knowledge_dir = Path(store.cfg.knowledge_dir)
+    targets: set[str] = set()
+    for doc in store.list_documents():
+        doc_id, rel = doc.get("document_id"), doc.get("path") or ""
+        if not doc_id or doc.get("domain") == code:
+            continue
+        front_matter: dict = {}
+        path = knowledge_dir / rel
+        if path.suffix.lower() == ".md":  # 只有 Markdown 有文件头声明（与解析器一致）
+            try:
+                front_matter, _ = parse_front_matter(path.read_text(encoding="utf-8", errors="ignore"))
+            except OSError:
+                pass
+        if (_valid_domain(front_matter.get("domain")) or infer_from_path(rel)["domain"]) == code:
+            targets.add(doc_id)
+    store.reassign_domain(sorted(targets), code)
+    return len(targets)
 
 
 def update_domain(code: str, *, name: str | None = None, description: str | None = None,
@@ -186,7 +246,9 @@ def usage_by_domain(knowledge_dir: Path, ledger: dict, documents: list[dict]) ->
 
     - files / archived：磁盘上的文件 / 从该领域归档出去的文件
     - ledger：入库台账里的记录
-    - documents / cards：向量库里的文档版本与卡片（含 expired 历史版本）
+    - documents / cards：向量库里的文档版本与卡片（含 expired 历史版本）。按卡片自身的
+      domain 字段统计——它才决定检索归属（文件头可声明与所在目录不同的领域）；从某领域
+      归档出去的文档恢复时会回到原领域，也算原领域的数据
     """
     stats: dict[str, dict] = {}
 
@@ -205,8 +267,12 @@ def usage_by_domain(knowledge_dir: Path, ledger: dict, documents: list[dict]) ->
     for rel in ledger:
         bump(rel, "ledger")
     for d in documents:
-        bump(d.get("path") or "", "documents")
-        bump(d.get("path") or "", "cards", int(d.get("chunks") or 0))
+        owner = _owner(d.get("path") or "")
+        codes = {d.get("domain")} | ({owner[0]} if owner and owner[1] else set())
+        for code in codes - {None, "", "?"}:
+            stat = stats.setdefault(code, _empty_stat())
+            stat["documents"] += 1
+            stat["cards"] += int(d.get("chunks") or 0)
     return stats
 
 
@@ -269,21 +335,6 @@ def unregistered_dirs(knowledge_dir: Path) -> list[dict]:
     return out
 
 
-def register_directory(folder: str, name: str, store, documents: list[dict]) -> dict:
-    """把未登记目录登记为领域，并把它已入库卡片的 domain 字段就地改成新编号。
-
-    这些卡片入库时被兜底归到了 reference；不改的话按新领域过滤会检索不到它们。
-    只改 payload，不重新向量化——路径、document_id、版本、卡片内容都不变。
-    """
-    code = validate_code(folder.strip().lower())
-    entry = create_domain(code, name or folder)
-    # 只改真正位于该目录下的文档；从它归档出去的（archive/<code>/…）必须保持 domain=archive
-    doc_ids = sorted({d["document_id"] for d in documents
-                      if d.get("document_id") and _owner(d.get("path") or "") == (code, False)})
-    if doc_ids:
-        store.reassign_domain(doc_ids, code)
-        from src.keyword_search import invalidate_cache
-        from src.pipeline import clear_qa_cache
-        invalidate_cache()
-        clear_qa_cache()
-    return entry
+def register_directory(folder: str, name: str, store) -> dict:
+    """把未登记目录登记为领域（已入库卡片的领域字段随之纠正，见 create_domain）。"""
+    return create_domain(validate_code(folder.strip().lower()), name or folder, store=store)
