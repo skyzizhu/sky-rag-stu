@@ -33,7 +33,9 @@ echo "────────────────────────�
 
 # ---------- 启动 Qdrant ----------
 echo "  [1/4] 启动 Qdrant 向量数据库…"
-QDRANT__STORAGE__STORAGE_PATH="$ROOT/storage/qdrant_data"   nohup "$ROOT/tools/qdrant/qdrant" > "$ROOT/storage/qdrant.log" 2>&1 &
+# 部署安全：向量库只绑本机（同机部署时局域网无法直连 6333）；需要独立部署时改此变量
+QDRANT_BIND_HOST="${QDRANT_BIND_HOST:-127.0.0.1}"
+QDRANT__SERVICE__HOST="$QDRANT_BIND_HOST" QDRANT__STORAGE__STORAGE_PATH="$ROOT/storage/qdrant_data"   nohup "$ROOT/tools/qdrant/qdrant" > "$ROOT/storage/qdrant.log" 2>&1 &
 
 # 等待 Qdrant 就绪（最多 15 秒）
 for i in $(seq 1 15); do
@@ -66,7 +68,7 @@ fi
 # ---------- 启动管理后台（FastAPI，8700）----------
 echo "  [3/4] 启动管理后台…"
 nohup "$ROOT/.venv/bin/python" -m uvicorn src.admin_app:app \
-      --host 0.0.0.0 --port 8700 > "$ROOT/storage/admin.log" 2>&1 &
+      --host 0.0.0.0 --port 8700 --proxy-headers --forwarded-allow-ips="127.0.0.1" > "$ROOT/storage/admin.log" 2>&1 &
 for i in $(seq 1 10); do
     if curl -s --max-time 2 http://localhost:8700/admin/login >/dev/null 2>&1; then
         echo "  ✅ 管理后台就绪 (http://localhost:8700/admin/login)"
