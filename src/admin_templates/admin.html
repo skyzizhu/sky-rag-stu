@@ -744,16 +744,16 @@ async function renderAuthLog() {
       <div class="muted" style="margin-bottom:10px">本页只记录<b>员工</b>的登录与相关操作
         （管理员日志在「管理员」标签下方）。IP 为浏览器真实局域网地址（登录门已直连认证服务获取）。
         点击任意行展开浏览器指纹与完整 UA，失败的登录尝试同样完整保留（含原因）。</div>
-      <div class="pager" style="display:flex;gap:8px;align-items:center;margin:0 0 10px">
+      <table><tr><th>时间</th><th>账户</th><th>动作</th><th>结果</th><th>说明</th>
+        <th>部门</th><th>入口</th><th>IP</th></tr>
+      ${rows || '<tr><td colspan="8" class="empty">暂无登录日志</td></tr>'}</table>
+      <div class="pager" style="display:flex;gap:8px;align-items:center;margin:10px 0 0">
         <button class="mini gray" ${authLogFilter.page <= 1 ? 'disabled' : ''}
           onclick="authLogFilter.page--; renderAuthLog()">上一页</button>
         <span class="muted">第 ${authLogFilter.page} / ${totalPages} 页（共 ${d.total} 条）</span>
         <button class="mini gray" ${authLogFilter.page >= totalPages ? 'disabled' : ''}
           onclick="authLogFilter.page++; renderAuthLog()">下一页</button>
       </div>
-      <table><tr><th>时间</th><th>账户</th><th>动作</th><th>结果</th><th>说明</th>
-        <th>部门</th><th>入口</th><th>IP</th></tr>
-      ${rows || '<tr><td colspan="8" class="empty">暂无登录日志</td></tr>'}</table>
     </div>`;
 }
 function actionLabel(a) {
@@ -823,15 +823,15 @@ async function renderQaLog() {
       </div>
       <div class="muted" style="margin-bottom:10px">只有员工会产生使用记录（管理员不能登录前台/MCP）。
         记录所有入口的检索与提问，点击行展开回答全文、命中来源与生效的过滤条件（含部门权限域）。</div>
-      <div class="pager" style="display:flex;gap:8px;align-items:center;margin:0 0 10px">
+      <table><tr><th>时间</th><th>账户</th><th>部门</th><th>入口</th><th>问题</th><th>命中</th><th>耗时</th></tr>
+      ${rows || `<tr><td colspan="7" class="empty">暂无使用记录</td></tr>`}</table>
+      <div class="pager" style="display:flex;gap:8px;align-items:center;margin:10px 0 0">
         <button class="mini gray" ${qaLogFilter.page <= 1 ? 'disabled' : ''}
           onclick="qaLogFilter.page--; renderQaLog()">上一页</button>
         <span class="muted">第 ${qaLogFilter.page} / ${totalPages} 页（共 ${d.total} 条）</span>
         <button class="mini gray" ${qaLogFilter.page >= totalPages ? 'disabled' : ''}
           onclick="qaLogFilter.page++; renderQaLog()">下一页</button>
       </div>
-      <table><tr><th>时间</th><th>账户</th><th>部门</th><th>入口</th><th>问题</th><th>命中</th><th>耗时</th></tr>
-      ${rows || `<tr><td colspan="7" class="empty">暂无使用记录</td></tr>`}</table>
     </div>`;
 }
 
