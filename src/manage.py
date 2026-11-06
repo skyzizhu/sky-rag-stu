@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 from src.config import AppConfig, get_config
-from src.metadata import DOMAINS, document_id_for
+from src.metadata import document_id_for
 from src.pipeline import ingest_files
 from src.vector_store import get_vector_store
 
@@ -113,6 +113,12 @@ def restore(archived_relative_path: str) -> dict:
     if len(parts) == 2:  # 直接放在 archive/ 根目录的文件，没有原始目录可回
         target = knowledge_dir / "reference" / "documents" / parts[1]
     else:
+        # V3.8：原领域必须仍已登记——否则文件落进未登记目录，入库时会被悄悄兜底归到 reference
+        from src.domains import all_codes
+
+        if parts[1].lower() not in all_codes():
+            raise ManageError(f"原领域「{parts[1]}」已不存在（可能已在领域管理中删除），"
+                              "请先在领域管理中重新创建该领域再恢复。")
         target = knowledge_dir / original
     # 复检目标仍在 knowledge/ 内：构造的 archive/../x 路径不能把文件移出知识库
     try:
@@ -302,12 +308,13 @@ def ingest_web_page(url: str, domain: str = "reference",
     on_progress(msg)：每个阶段开始时回调一次（界面用它显示分步进度）。
     default_groups（V3.7）：上传表单选择的可见部门，透传给入库流水线。
     """
+    from src.domains import enabled_codes
     from src.web_fetcher import fetch_and_parse, save_web_snapshot
 
     # archive 的卡片必须是 archive 状态，而状态由所在目录决定：快照不在 archive/ 下就会
     # 变成「归档领域里的生效卡片」，所以网页不能直接进归档领域（要归档走知识库管理页）
-    if domain == "archive" or domain not in DOMAINS:
-        raise ManageError(f"网页不能入库到领域「{domain}」（领域不存在或是归档领域）。")
+    if domain == "archive" or domain not in enabled_codes():
+        raise ManageError(f"网页不能入库到领域「{domain}」（领域不存在、已停用或是归档领域）。")
 
     def _report(msg: str) -> None:
         if on_progress:

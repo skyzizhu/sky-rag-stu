@@ -84,17 +84,17 @@ def _log_qa(question: str, result, top_k: int, elapsed: float) -> None:
 def _filters(domain: str | None, status: str | None) -> dict | None:
     """组装 Metadata 过滤条件；未提供任何过滤时返回 None（检索默认范围）。
 
-    domain 可传编号或领域名称，这里解析成编号（此后全链路只认编号）。识别不了就抛
+    domain 可传编号或显示名称，这里解析成编号（此后全链路只认编号）。识别不了就抛
     ValueError，由工具层转成明确报错——拿未知值去过滤只会得到空结果，Agent 会误报
     「知识库里没有」。"all" 表示不限领域。
     """
     filters: dict = {}
     if domain and str(domain).strip().lower() != "all":
-        from src.metadata import DOMAINS, resolve_domain
+        from src.domains import all_codes, resolve_code
 
-        code = resolve_domain(domain)
+        code = resolve_code(domain)
         if code is None:
-            raise ValueError(f"无法识别领域「{domain}」。可用的领域编号：{'、'.join(DOMAINS)}")
+            raise ValueError(f"无法识别领域「{domain}」。可用的领域编号：{'、'.join(all_codes())}")
         filters["domain"] = code
     if status:
         filters["status"] = status
@@ -130,7 +130,20 @@ def _sources_payload(sources: list[dict]) -> list[dict]:
     ]
 
 
+def _with_domain_codes(fn):
+    """V3.8：工具说明里的领域编号从注册表生成（服务启动时取值）。
+
+    新增领域需重启 MCP 服务才会出现在说明里；但按编号过滤是实时生效的。
+    只放编号——显示名称不进任何检索参数。
+    """
+    from src.domains import all_codes
+
+    fn.__doc__ = (fn.__doc__ or "").replace("{DOMAIN_CODES}", "/".join(all_codes()))
+    return fn
+
+
 @mcp.tool()
+@_with_domain_codes
 def knowledge_qa(
     question: str,
     top_k: int = 5,
@@ -155,7 +168,7 @@ def knowledge_qa(
     Args:
         question: 用户问题（不可为空）
         top_k: 召回知识卡片数量，默认 5，范围 1~10
-        domain: 可选，限定知识领域（work/learning/life/projects/reference/archive）
+        domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active=生效 / archive=已归档 / expired=历史版本）
         history: 可选，最近对话 [{"role":"user/assistant","content":"..."}]，最多取 6 条
     """
@@ -191,6 +204,7 @@ def knowledge_qa(
 
 
 @mcp.tool()
+@_with_domain_codes
 def knowledge_search(
     question: str,
     top_k: int = 5,
@@ -211,7 +225,7 @@ def knowledge_search(
     Args:
         question: 检索问题或关键词
         top_k: 返回片段数量，默认 5，范围 1~10
-        domain: 可选，限定知识领域（work/learning/life/projects/reference/archive）
+        domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active/archive/expired）
     """
     if not question or not question.strip():
