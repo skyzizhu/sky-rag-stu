@@ -228,7 +228,9 @@ class VectorStore:
         self.client.set_payload(
             collection_name=self.cfg.qdrant_collection,
             payload={"status": "expired"},
-            points_selector=models.FilterSelector(
+            # qdrant-client ≥1.10：set_payload 的过滤选择器参数由 points_selector
+            # 统一改名为 points（delete 仍叫 points_selector，勿混淆）
+            points=models.FilterSelector(
                 filter=models.Filter(
                     must=[models.FieldCondition(
                         key="document_id", match=models.MatchValue(value=document_id)
