@@ -43,7 +43,7 @@ def _get_cached_index(store: VectorStore, filters: dict | None) -> tuple[BM25Oka
     """获取缓存的 BM25 索引；未命中或库已变化时返回 None。
 
     库变化的判定 = 卡片总数变了 或 构建后索引纪元变了。只看卡片数不够：改元数据（可见部门、
-    分类、领域）卡片数不变；而其他进程（前台 ↔ MCP）的写操作只能通过纪元文件感知。
+    分类）卡片数不变；而其他进程（前台 ↔ MCP）的写操作只能通过纪元文件感知。
     """
     global _cache_collection_count
     try:

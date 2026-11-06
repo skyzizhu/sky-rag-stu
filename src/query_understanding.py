@@ -25,9 +25,8 @@ from datetime import datetime
 from dataclasses import dataclass, field
 
 from src.config import AppConfig, get_config
-from src.domains import all_codes as domain_codes
 from src.llm import LLMClient
-from src.metadata import STATUSES
+from src.metadata import DOMAINS, STATUSES
 
 # filters 里允许 LLM 推断的键。
 # 实测教训（2026-08-29）：让 LLM 按语义推断 domain/category 会与个人目录分类错位
@@ -65,7 +64,7 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
    无法解析出时间范围时省略该字段。"""
 
 QU_USER_PROMPT_TEMPLATE = """【当前时间】{current_time}
-【知识库领域枚举】{domains}
+【知识库领域枚举】work / learning / life / projects / reference / archive
 【知识库现有分类】{categories}
 {history_section}【用户原始问题】{question}
 
@@ -126,7 +125,7 @@ def _valid_filters(raw: dict) -> tuple[dict, list[str]]:
             continue
         if key == "domain":
             value = str(value).strip().lower()
-            if value not in domain_codes():
+            if value not in DOMAINS:
                 warnings.append(f"domain 非法值 {value}，已忽略")
                 continue
         if key == "status":
@@ -170,7 +169,6 @@ def understand_query(
         question=question,
         current_time=datetime.now().strftime("%Y-%m-%d %H:%M %A"),
         history_section=history_section,
-        domains=" / ".join(domain_codes()),  # 只给编号，显示名称不进提示词
     )
     messages = [
         {"role": "system", "content": qu.system_prompt},
