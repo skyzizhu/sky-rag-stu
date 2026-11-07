@@ -212,6 +212,15 @@ async function renderDash() {
       <div class="stat"><b>${d.users}</b><span>员工账户（启用 ${d.users_active}）</span></div>
       <div class="stat"><b>${d.admins}</b><span>管理员账户（启用 ${d.admins_active}）</span></div>
     </div>
+    <div class="card"><h3>快速操作</h3>
+      <div class="toolbar">
+        <button type="button" onclick="switchTab('deps')">＋ 创建部门</button>
+        <button type="button" onclick="switchTab('emps'); empCreateDlg()">＋ 创建员工</button>
+        <button type="button" onclick="switchTab('tokens')">🔑 签发访问令牌</button>
+        <button type="button" onclick="switchTab('qalog')">📄 查看 RAG 使用情况</button>
+      </div>
+      <div class="muted" style="margin-top:8px">常用操作一键直达；也可从左侧标签页进入。</div>
+    </div>
     <div class="card"><h3>最近登录（员工侧）</h3><div id="dash-log"></div></div>
     <div class="card"><h3>使用说明</h3>
       <div class="muted">① 部门管理里创建部门 → ② 员工在知识库前台自助注册（选部门），或在此处创建账户
@@ -839,6 +848,8 @@ async function renderQaLog() {
 $('#tabs').innerHTML = TABS.map(t =>
   `<button data-id="${t.id}" onclick="switchTab('${t.id}')">${t.name}</button>`).join('');
 switchTab('dash');
+// 部门下拉缓存：工作台快速入口「创建员工」不走员工管理页，启动时预取一次
+api('GET', '/api/departments').then(d => { window._emp_deps = d.departments; }).catch(() => {});
 </script>
 </body>
 </html>
