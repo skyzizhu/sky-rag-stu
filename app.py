@@ -2038,7 +2038,8 @@ def page_manage():
         if origin:
             if origin.get("title") and origin["title"] != d["source"]:
                 st.caption(f"{t('manage.col.url')}：{html.escape(origin['title'])}")
-            st.markdown(f"原文：[{html.escape(origin['url'])}]({html.escape(origin['url'])})",
+            st.markdown(f'{t("manage.detail.origin")}'
+                        f'[({html.escape(origin["url"])})]({html.escape(origin["url"])})',
                         unsafe_allow_html=True)
     with head_r:
         is_archived = d["path"].split("/")[0] == "archive"
