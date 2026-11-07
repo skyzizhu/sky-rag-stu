@@ -1262,6 +1262,13 @@ def page_chat():
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
+    # V3.7.1 空会话引导：示例问题一键提问（点击后走与手输完全相同的问答流程）
+    if not st.session_state.messages:
+        ex_cols = st.columns(3)
+        for i, ex_key in enumerate(("chat.ex.1", "chat.ex.2", "chat.ex.3")):
+            if ex_cols[i].button(t(ex_key), key=f"chat_example_{i}", width="stretch"):
+                st.session_state["chat_ask_example"] = t(ex_key)
+
     if st.session_state.messages:
         c1, c2 = st.columns([4, 1])
         with c2:
@@ -1417,6 +1424,8 @@ def page_chat():
     # CSS 仍将该容器固定在页面底部，交互与原聊天输入框一致。
     with st.container(key="chat_composer"):
         question = st.chat_input(t("chat.input"), key="chat_question")
+    # 示例问题与手输入口合并路由（示例按钮先入 session，这里消费）
+    question = question or st.session_state.pop("chat_ask_example", None)
     if question:
         _process_question(question)
 
