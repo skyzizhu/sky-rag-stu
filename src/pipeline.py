@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import threading
 import time
+from collections import Counter
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -28,6 +29,7 @@ from src.embedding import EmbeddingClient, get_embedding_client
 from src.llm import LLMClient, get_llm_client, strip_think_tags
 from src.metadata import build_document_metadata, document_id_for
 from src.parser import ParsedDocument, parse_file
+from src.answer_language import resolve_answer_language
 from src.prompt import build_messages
 from src.query_understanding import understand_query
 from src.reranker import rerank as rerank_items
@@ -36,8 +38,8 @@ from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
 
 # V3.8.1 枚举通道参数（列举/计数类提问专用——目标是"全"而不是"精"）：
-# 召回池与上下文名额扩到 30（容纳单文档全量卡片）、跳过精排（省一次 LLM 调用）、
-# token 预算放宽到 6000（全量卡片进上下文）。支持 .env 覆盖。
+# 召回池 50、上下文名额 40（容纳单文档全量卡片）、跳过精排（省一次 LLM 调用）、
+# token 预算放宽到 12000（全量卡片进上下文）。支持 .env 覆盖。
 ENUM_RECALL_K = int(os.getenv("ENUM_RECALL_K", "50"))
 ENUM_CTX_ITEMS = int(os.getenv("ENUM_CTX_ITEMS", "40"))
 ENUM_CTX_TOKENS = int(os.getenv("ENUM_CTX_TOKENS", "12000"))
@@ -363,6 +365,124 @@ _QA_CACHE_MAX = 50  # 最多缓存 50 条问答
 _ingest_lock = threading.Lock()
 
 
+def merge_sub_query_results(per_sq_results: list[list[RetrievedItem]],
+                            pool_cap: int = 20) -> tuple[list[RetrievedItem], int]:
+    """复合问题拆分检索的合并（V3.4 查询拆分）：各子查询结果合并去重成一个候选池。
+
+    口径：按「名次」而不是 item.score 比较——各子查询结果已按融合名次排好序，但
+    item.score 是各通道的原始分（向量相似度 0~1、BM25 可达数十），量级不同、不能混排。
+    此前按原始分挑保底名额，召回加深（枚举模式 50 条）且跳过精排时，BM25 高分卡片
+    挤掉了向量通道第 1 名的证据（复合题「心得」类子问题整体丢失）。
+
+    规则：名次换算可比分 1/(60+名次)（与 RRF 同口径），同卡多子查询命中取最好名次；
+    每个子查询先按自身名次保底取前 N 条（N = 合并池上限 // 子查询数，至少 3），
+    保证每个子问题的证据不被其他主题挤掉；剩余名额按可比分补足；
+    最终按可比分排序（各子查询的第 1 名在前、依次交替）并重新编号。
+
+    返回 (候选池, 每个子查询的保底名额)。
+    """
+    def card_key(it: RetrievedItem) -> str:
+        return (it.metadata.get("chunk_id")
+                or f'{it.metadata.get("source", "?")}|{(it.text or "")[:40]}')
+
+    best: dict[str, tuple[float, RetrievedItem]] = {}
+    for sub_items in per_sq_results:
+        for pos, it in enumerate(sub_items, start=1):
+            key, rank_score = card_key(it), 1.0 / (60 + pos)
+            if key not in best or rank_score > best[key][0]:
+                best[key] = (rank_score, it)
+
+    quota = max(3, pool_cap // max(len(per_sq_results), 1))
+    selected_keys: set[str] = set()
+    selected: list[RetrievedItem] = []
+    for sub_items in per_sq_results:
+        picked = 0
+        for it in sub_items:  # 已按融合名次排序
+            key = card_key(it)
+            if key not in selected_keys and len(selected) < pool_cap:
+                selected_keys.add(key)
+                selected.append(best[key][1])
+                picked += 1
+            if picked >= quota:
+                break
+    for key, (_, it) in sorted(best.items(), key=lambda kv: -kv[1][0]):
+        if key not in selected_keys and len(selected) < pool_cap:
+            selected_keys.add(key)
+            selected.append(it)
+
+    pool = sorted(selected, key=lambda it: -best[card_key(it)][0])[:pool_cap]
+    for i, it in enumerate(pool, start=1):
+        it.rank = i
+    return pool, quota
+
+
+def expand_dominant_documents(items: list[RetrievedItem], filters: dict | None,
+                              min_cards: int = 4, max_docs: int = 2,
+                              max_doc_cards: int = 40, keep_top: int = 10
+                              ) -> tuple[list[RetrievedItem], list[str]]:
+    """枚举模式的文档展开（父文档检索思路）：列举题要的是「某一文档的全部条目」。
+
+    按相关度召回（哪怕 50 条）只能接近、不能保证全量——跨语言时（中文问英文网页）
+    部分条目卡片会排到召回上限之外（实测 Xtools 15 项功能有 2~3 项落在 50 名外）。
+    规则：
+    - 在整个候选池里卡片数 ≥ min_cards、且在前 keep_top 名里出现过的文档（同版本）中，取卡片
+      最多的 max_docs 篇视为「被列举的文档」——数量按整池统计：跨语言时目标文档名次偏后，
+      但数量依然最多；同时要求进过前排，排除小知识库里凑巧卡片多、实则无关的文档；
+    - 只展开装得下的文档（全文 ≤ max_doc_cards 张，即上下文名额）：装不下的长文档谈不上
+      「补齐全部」，展开只会把噪声塞满名额（实测 79 张的长文档被展开后，把只有 1 张卡片的
+      「心得」从前排挤到第 94 位而落选）；
+    - 候选池原有的前 keep_top 名位置不动，展开文档的其余卡片排在其后（已召回的保持原顺序，
+      补入的按卡片序号），其余候选随后——最相关的证据永远不被展开挤掉；
+    - 补卡沿用本次检索的过滤条件（权限 / 状态，不越权），再加 document_id + version。
+
+    返回 (新候选池, 展开说明)；没有满足条件的文档时原样返回。
+    """
+    def doc_key(it: RetrievedItem) -> tuple:
+        return (it.metadata.get("document_id"), it.metadata.get("version"))
+
+    counts = Counter(doc_key(it) for it in items if it.metadata.get("document_id"))
+    top_docs = {doc_key(it) for it in items[:keep_top]}
+    # 还要在前 keep_top 名里出现过：只展开「确实最相关」的文档，而不是小知识库里凑巧卡片多的文档
+    dominant = [key for key, n in counts.most_common() if n >= min_cards and key in top_docs][:max_docs]
+    if not dominant:
+        return items, []
+
+    store = get_vector_store()
+    seen = {it.metadata.get("chunk_id") for it in items}
+    head = items[:keep_top]                      # 原有前排：位置不动
+    head_ids = {id(it) for it in head}
+    middle: list[RetrievedItem] = []             # 展开文档的其余卡片
+    notes: list[str] = []
+    for doc_id, version in dominant:
+        in_pool = [it for it in items if doc_key(it) == (doc_id, version)]
+        source = in_pool[0].metadata.get("source", "?")
+        doc_filters = {**(filters or {}), "document_id": doc_id}
+        if version:
+            doc_filters["version"] = version
+        cards = store.get_all_cards(filters=doc_filters, limit=max_doc_cards + 1)
+        if len(cards) > max_doc_cards:
+            notes.append(f"{source}：全文超过 {max_doc_cards} 张、上下文装不下，不展开")
+            continue
+        added: list[RetrievedItem] = []
+        for card in sorted(cards, key=lambda c: str(c["payload"].get("chunk_id") or "")):
+            payload = card["payload"]
+            if payload.get("chunk_id") in seen:
+                continue
+            seen.add(payload.get("chunk_id"))
+            added.append(RetrievedItem(rank=0, score=0.0, text=payload.get("text", ""),
+                                       metadata={k: v for k, v in payload.items() if k != "text"},
+                                       channels="文档展开"))
+        middle += [it for it in in_pool if id(it) not in head_ids] + added
+        notes.append(f"{source}：候选池中 {counts[(doc_id, version)]} 张 → "
+                     f"补入其余 {len(added)} 张（全文 {len(cards)} 张进入候选）")
+
+    placed = head_ids | {id(it) for it in middle}
+    expanded = head + middle + [it for it in items if id(it) not in placed]
+    for i, it in enumerate(expanded, start=1):
+        it.rank = i
+    return expanded, notes
+
+
 def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool, rerank: bool,
                history: list[dict] | None = None) -> str:
     # 对话历史参与键：同样的短追问（"继续""展开讲讲"）在不同上下文里答案完全不同，
@@ -370,8 +490,11 @@ def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool,
     hist_sig = "|".join(
         f"{m.get('role')}:{(m.get('content') or '')[:60]}" for m in (history or [])
     )
+    # 回答语言参与键（B14.1）：判断不出语言的追问会沿用历史提问的语言，而 hist_sig 只取前 60 字，
+    # 显式带上判定结果，保证同一键永远对应同一回答语言
+    answer_lang = resolve_answer_language(question, history)
     return (f"{question.strip().lower()}|k={top_k}|f={sorted((filters or {}).items())}"
-            f"|qu={qu}|hy={hybrid}|rr={rerank}|h={hist_sig}")
+            f"|qu={qu}|hy={hybrid}|rr={rerank}|h={hist_sig}|lang={answer_lang}")
 
 
 def clear_qa_cache(username: str | None = None) -> None:
@@ -515,7 +638,7 @@ def answer_stream(
             items=[("说明", "传入历史后：Query 理解解析代词 + LLM 上下文连贯")],
         ))
 
-    # 列举/盘点类提问：进入枚举通道（V3.8.1：召回/名额 30、跳过精排、token 6000）。
+    # 列举/盘点类提问：进入枚举通道（V3.8.1：召回 50 / 名额 40、跳过精排、token 12000）。
     # 双通道判定：Query 理解的语义识别（enumeration 字段）为主，
     # 关键词词表为兜底（Query 理解关闭或解析失败时依然生效）。
     # 注意：判定必须用原始问题——Query 理解改写后的查询已丢失计数语气。
@@ -589,8 +712,8 @@ def answer_stream(
     # 过滤条件优先级：界面手动设置 > Query 理解推断 > 默认 status=active
     # Rerank 开启时先宽召回（默认 10 条候选），精排后再取 Top K
     # V3.8.1 枚举通道：识别到列举/计数意图后，整条管线切换到枚举参数集——
-    # 召回 30（全文档卡片全量进池）、跳过精排（枚举要"全"不要"精"，还省一次 LLM 调用）、
-    # 名额 30、token 预算 6000（全量卡片进上下文）。非枚举提问完全不受影响。
+    # 召回 50（全文档卡片全量进池）、跳过精排（枚举要"全"不要"精"，还省一次 LLM 调用）、
+    # 名额 40、token 预算 12000（全量卡片进上下文）。非枚举提问完全不受影响。
     if enumeration_mode:
         recall_k = ENUM_RECALL_K
         ctx_max_items = ENUM_CTX_ITEMS
@@ -635,44 +758,10 @@ def answer_stream(
                     break
             sq_lines.append(f"子查询 {i}：「{sq}」→ {len(sub_items)} 条｜主要来源：{'、'.join(top_srcs)}")
 
-        # 合并去重（按 chunk_id 保留最高分）
-        merged: dict = {}
-        for sub_items in per_sq_results:
-            for it in sub_items:
-                key = (it.metadata.get("chunk_id")
-                       or f'{it.metadata.get("source","?")}|{(it.text or "")[:40]}')
-                cur = merged.get(key)
-                if cur is None or it.score > cur.score:
-                    merged[key] = it
-
-        # 保底配额选取：每个子查询先保底取 Top N 条（N = 合并池上限 // 子查询数），
-        # 保证每个子问题的证据不会被其他主题挤掉；剩余名额按全局分数补足
-        _pool_cap = 20
-        _quota = max(3, 20 // max(len(sub_q_lists), 1))
-        _selected_keys: set = set()
-        _selected: list = []
-        for sub_items in per_sq_results:
-            picked = 0
-            for it in sorted(sub_items, key=lambda x: -x.score):
-                key = (it.metadata.get("chunk_id")
-                       or f'{it.metadata.get("source","?")}|{(it.text or "")[:40]}')
-                if key not in _selected_keys and len(_selected) < _pool_cap:
-                    _selected_keys.add(key)
-                    _selected.append(it)
-                    picked += 1
-                if picked >= _quota:
-                    break
-
-        # 剩余名额按全局分数补足
-        for key, it in sorted(merged.items(), key=lambda kv: -kv[1].score):
-            if key not in _selected_keys and len(_selected) < _pool_cap:
-                _selected_keys.add(key)
-                _selected.append(it)
-
-        # 按分数排序 + 重新编号
-        pool = sorted(_selected, key=lambda x: -x.score)[:_pool_cap]
-        for i, it in enumerate(pool, start=1):
-            it.rank = i
+        # 合并去重 + 保底配额（见 merge_sub_query_results）。
+        # 枚举模式（列举/计数）合并池放宽到上下文名额，避免拆分后列举不全
+        _pool_cap = max(20, ctx_max_items) if enumeration_mode else 20
+        pool, _quota = merge_sub_query_results(per_sq_results, _pool_cap)
         result.retrieved = pool
 
         trace.append(make_node(
@@ -681,8 +770,9 @@ def answer_stream(
                      f"共 {len(pool)} 张不同卡片进入精排——避免混合查询让两个主题互相稀释"),
             items=[
                 ("各子查询命中明细", "\n".join(sq_lines)),
-                ("保底配额", f"每个子查询保底 {_quota} 条"),
-                ("合并策略", "同卡多子查询命中保留最高分"),
+                ("保底配额", f"每个子查询保底 {_quota} 条（按子查询内的融合名次）"),
+                ("合并策略", "同卡多子查询命中取最好名次；按名次换算可比分 1/(60+名次) 排序"
+                             "（各通道原始分量级不同，不可混排）"),
                 ("合并后候选池", f"{len(pool)} 条（上限 {_pool_cap} 条）"),
             ],
         ))
@@ -705,7 +795,7 @@ def answer_stream(
         t_relax = time.time()
         manual_filters = filters or {}
         result.retrieved = retriever.retrieve(
-            search_query, top_k=top_k, filters=manual_filters, trace=None,
+            search_query, top_k=recall_k, filters=manual_filters, trace=None,
             keyword_query=(qu.keyword_query if qu and qu.ok else None),
             use_hybrid=use_hybrid,
         )
@@ -722,6 +812,24 @@ def answer_stream(
                 ("重试结果", f"召回 {len(result.retrieved)} 条"),
             ],
         ))
+
+    # 节点 ⑥.5（枚举模式）：文档展开——列举题要的是「某一文档的全部条目」，按相关度召回只能
+    # 接近全量（跨语言时部分条目排在召回上限之外）。只在单查询枚举时展开：
+    # 复合问题拆分时各子问题靠保底配额保护，展开某一篇会挤占其他子问题的证据
+    if enumeration_mode and len(sub_q_lists) < 2 and result.retrieved:
+        expand_start = now_str()
+        result.retrieved, expand_notes = expand_dominant_documents(
+            result.retrieved, result.filters, max_doc_cards=ctx_max_items)
+        if expand_notes:
+            trace.append(make_node(
+                "📚", "文档展开（枚举模式）", time_str=expand_start,
+                status="已执行" if any("补入" in n for n in expand_notes) else "未展开（文档超出上下文名额）",
+                summary=f"列举题要「某一文档的全部条目」：候选池中卡片最多的文档（≥4 张，最多 2 篇，"
+                        f"全文 ≤{ctx_max_items} 张才展开）按同样的权限与状态条件补齐全部卡片；"
+                        f"候选池原有前 10 名位置不动，展开的卡片排在其后",
+                items=[("展开明细", "\n".join(expand_notes)),
+                       ("展开后候选池", f"{len(result.retrieved)} 条")],
+            ))
     result.elapsed["retrieval"] = time.time() - t0
     # 节点 ⑦：Rerank 精排（V2.5：LLM 逐条打分，宽召回精选）
     if use_rerank_now and result.retrieved:
@@ -762,6 +870,14 @@ def answer_stream(
             status="未启用（可在 检索设置 或 .env RERANK_ENABLED 开启）",
             summary="候选卡片按粗排顺序（向量相似度 / RRF 融合）直接使用",
             items=[("说明", "开启后：召回先扩宽（默认 10 条候选），LLM 逐条打分精排，再取 Top K 进入回答")],
+        ))
+    elif enumeration_mode and result.retrieved:
+        trace.append(make_node(
+            "🏆", "Rerank（精排）", time_str=now_str(),
+            status="跳过（枚举模式）",
+            summary="列举/计数类提问要「全」不要「精」：候选按粗排顺序（RRF 融合）直接进入组装，省一次 LLM 调用",
+            items=[("说明", f"枚举模式：召回 {recall_k} 条候选；上下文最多 {ctx_max_items} 条、"
+                           f"约 {ENUM_CTX_TOKENS} tokens，同文档不限条数")],
         ))
 
     _p("📦 整理资料中…")

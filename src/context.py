@@ -62,16 +62,36 @@ def _truncate_to_tokens(text: str, max_tokens: int) -> str:
     return text[: max(0, int(len(text) * max_tokens / total))] + "……"
 
 
-def _merge_adjacent_texts(texts: list[str]) -> str:
-    """拼接相邻卡片文本：后一张与前一张的重叠部分（Overlap）只保留一份。"""
-    merged = texts[0]
-    for nxt in texts[1:]:
+# 切片时每张卡片正文开头注入的「来源文档：xxx」行（src/chunker.py，供按文件名检索）
+_SOURCE_PREFIX_RE = re.compile(r"^来源文档：[^\n]*\n")
+
+
+def _merge_run(run: list[RetrievedItem]) -> str:
+    """拼接一段序号连续的同文档卡片，恢复被切片切断的上下文。
+
+    - 后续卡片去掉重复的「来源文档：xxx」前缀（出处标签里已有），并在去掉前缀后再做
+      重叠（Overlap）去重——带着前缀比对时开头永远对不上，切片重叠部分会被重复保留；
+    - 换章节时补一行「【章节：xxx】」——出处标签只写第一张卡片的章节，不补的话后面卡片的
+      标题（如网页的功能名称）在拼接后全部丢失，模型只看到一串没有名字的描述（列举时尤其致命）；
+    - 不重叠的两张卡片之间换行，避免正文首尾粘连。
+    """
+    merged = run[0].text
+    prev_section = run[0].metadata.get("section")
+    for item in run[1:]:
+        body = _SOURCE_PREFIX_RE.sub("", item.text, count=1)
         overlap = 0
-        for k in range(min(300, len(merged), len(nxt)), 0, -1):
-            if merged.endswith(nxt[:k]):
+        for k in range(min(300, len(merged), len(body)), 0, -1):
+            if merged.endswith(body[:k]):
                 overlap = k
                 break
-        merged += nxt[overlap:]
+        piece = body[overlap:]
+        section = item.metadata.get("section")
+        if section and section != prev_section:
+            piece = f"【章节：{section}】\n{piece}"
+        if overlap == 0 and piece and not merged.endswith("\n"):
+            merged += "\n"
+        merged += piece
+        prev_section = section or prev_section
     return merged
 
 
@@ -168,7 +188,7 @@ def build_context(
             number = len(final_items) + 1
             label = citation_label(first, number)
             if len(run) > 1:
-                merged_text = _merge_adjacent_texts([it.text for it in run])
+                merged_text = _merge_run(run)
                 # 相邻拼接会叠加多张卡片的全文，可能突破第一轮的 token 预算：
                 # 合并后复核，超限则截断合并文本（保留卡片编号与出处）
                 over = estimate_tokens(merged_text) - max(

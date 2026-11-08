@@ -28,11 +28,21 @@ from src.config import AppConfig, get_config
 from src.llm import LLMClient
 from src.query_understanding import _extract_json_object
 
-# 拒答短语：回答里出现这些表述、而上下文其实有卡片时，就是「拒答不一致」可疑信号
+# 拒答短语：回答里出现这些表述、而上下文其实有卡片时，就是「拒答不一致」可疑信号。
+# 回答语言跟随提问语言（realize.md B14.1），所以覆盖简/繁中文、英文、日文；统一按小写匹配
 _REFUSAL_PATTERNS = (
     "没有相关内容", "没有找到相关", "知识库中未", "知识库中没有",
     "未找到相关", "无法回答", "资料中未提及", "资料中没有",
-    "no relevant information", "not found in the",
+    "沒有相關內容", "沒有找到相關", "知識庫中未", "知識庫中沒有",
+    "未找到相關", "無法回答", "資料中未提及", "資料中沒有",
+    "no relevant information", "no relevant content", "not found in the",
+    "knowledge base does not", "knowledge base doesn't", "not in the knowledge base",
+    "could not find any relevant", "couldn't find any relevant", "did not find any relevant",
+    "unable to answer", "cannot answer", "can't answer",
+    "materials do not mention", "material does not mention", "not mentioned in the",
+    "materials do not contain", "material does not contain",
+    "関連する内容はありません", "関連する情報はありません", "見つかりませんでした",
+    "記載されていません", "回答できません",
 )
 
 # 精排打分行形如 "C1  心得.rtf  8 分"
@@ -125,7 +135,8 @@ def compute_signals(result) -> dict:
     cite = {"cited": len(cited), "total": len(result.sources or [])}
 
     # 拒答一致性：回答称"没有相关内容"但上下文其实有卡片 → 可疑信号
-    refused = any(p in answer for p in _REFUSAL_PATTERNS)
+    lowered = answer.lower()
+    refused = any(p in lowered for p in _REFUSAL_PATTERNS)
     has_context = bool(result.sources)
     if refused and has_context:
         state = "inconsistent"

@@ -1,8 +1,8 @@
 """枚举通道（V3.8.1）：列举/计数类提问的检索全量验证。
 
 核心验收：构造"单文档 24 张功能卡"的场景（模拟 Xtools 首页），中文问
-「列出全部功能」时——全部 24 张卡片进入上下文（召回 30 / 名额 30 /
-同文档放开 / token 6000），不再受"Top 5 + 同文档 3"的限制。
+「列出全部功能」时——全部 24 张卡片进入上下文（召回 50 / 名额 40 /
+同文档放开 / token 12000），不再受"Top 5 + 同文档 3"的限制。
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ class EnumerationChannelTests(IngestHarness):
         self.assertTrue(all(s["domain"] == "learning" for s in result.sources))
 
     def test_pool_covers_full_document_at_recall_stage(self):
-        """召回池 30 ≥ 单文档 24 卡：池子在召回阶段就装得下全量。"""
+        """召回池（枚举模式 50）≥ 单文档 24 卡：池子在召回阶段就装得下全量。"""
         self.ingest_feature_doc(24)
         # 直接断言召回层（绕过组装）也能取出超过旧上限 10 的卡片数
         from src.retriever import get_retriever, effective_filters
@@ -74,7 +74,8 @@ class EnumerationChannelTests(IngestHarness):
         self.assertEqual(len(result.sources), 2)  # 两个文档各 1 张卡，全部入选
 
     def test_rerank_skipped_in_enumeration_mode(self):
-        """枚举模式跳过精排（省一次 LLM 调用）：rerank_items 不被调用。"""
+        """枚举模式跳过精排（省一次 LLM 调用）：rerank_items 不被调用，
+        且调试时间线明确显示「跳过（枚举模式）」——不能让精排节点无声消失。"""
         self.ingest_feature_doc(24)
         sentinel = mock.Mock(side_effect=AssertionError("枚举模式不应调用精排"))
         with mock.patch("src.pipeline.rerank_items", sentinel), \
@@ -89,6 +90,9 @@ class EnumerationChannelTests(IngestHarness):
                                          use_query_understanding=False)
         sentinel.assert_not_called()
         self.assertTrue(result.answer or result.retrieved)
+        rerank_nodes = [n for n in result.trace if "Rerank" in str(n.get("name", ""))]
+        self.assertEqual(len(rerank_nodes), 1)
+        self.assertEqual(rerank_nodes[0].get("status"), "跳过（枚举模式）")
 
 
 if __name__ == "__main__":
