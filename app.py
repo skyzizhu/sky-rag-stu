@@ -1242,7 +1242,7 @@ def show_answer_sources(result) -> None:
             st.write("")
 
         # V3.5 一键复制
-        st.code(t("sources.copy_answer") + "\n" + (result.answer or ""), language=None)
+        # 下方不再重复显示回答全文（上方回答气泡已有）；仅保留来源清单的复制
         st.code(t("sources.copy_list") + "\n" + "\n".join(
             f"[{s['rank']}] {s['source']}（{t('sources.relevance')} {s['score']:.3f}）"
             + (t("sources.section", v=s["section"]) if s.get("section") else "")
