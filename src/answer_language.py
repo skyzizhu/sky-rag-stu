@@ -69,8 +69,11 @@ _KANA = re.compile(r"[\u3041-\u3096\u30a1-\u30fa]")       # 平假名 + 片假�
 _KANA_ANY = re.compile(r"[\u3040-\u30ff\u31f0-\u31ff]")
 _HANGUL = re.compile(r"[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]")
 _HAN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
-_LATIN = re.compile(r"[A-Za-z\u00c0-\u024f\uff21-\uff3a\uff41-\uff5a]")  # 含全角字母
-_LATIN_NON_ENGLISH = re.compile(r"[\u00c0-\u024f]")       # é ñ ü ß 等
+# 拉丁字母：Latin-1 补充区里的 ×（U+00D7）、÷（U+00F7）是运算符号不是字母，必须排除——
+# 否则「2×3 matrix」这类英文提问会被误判为「其他语言」
+_LATIN_LETTERS = r"A-Za-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u024f"
+_LATIN = re.compile(r"[" + _LATIN_LETTERS + r"\uff21-\uff3a\uff41-\uff5a]")  # 含全角字母
+_LATIN_NON_ENGLISH = re.compile(r"[\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u024f]")  # é ñ ü ß 等
 
 
 def detect_language(text: str) -> str | None:
@@ -187,3 +190,28 @@ def resolve_answer_language(question: str, history: list[dict] | None = None) ->
 def language_directive(language: str) -> str:
     """追加在用户消息最末尾的语言指令（用目标语言书写）。"""
     return DIRECTIVES.get(language, DIRECTIVES[SAME_AS_QUESTION])
+
+
+_CODE_RE = re.compile(r"```[\s\S]*?```|`[^`\n]*`")  # 代码块 / 行内代码（命令、路径）
+_ASCII_LETTER = re.compile(r"[A-Za-z]")
+
+
+def dominant_language(text: str) -> str:
+    """一段较长文本（如模型的回答）实际使用的语言，按字符占比统计——供评测与验收使用。
+
+    与 detect_language 的区别：回答里常夹带中文文件名、专有名词，不能「含汉字即中文」；
+    中文回答里也常有大段命令。先去掉代码片段，再比较「汉字 ÷（汉字 + 英文字母）」：
+    ≥ 25% → 中文（简繁按专用字多少）；假名 ≥ 5 个 → ja；韩文 ≥ 5 个 → ko；否则 en。
+    阈值依据 2026-11-08 实测约 200 个回答：中文回答该比例最低 0.40，英文回答约 0.0。
+    """
+    text = _CODE_RE.sub(" ", text or "")
+    if len(_KANA.findall(text)) >= 5:
+        return "ja"
+    if len(_HANGUL.findall(text)) >= 5:
+        return "ko"
+    han = len(_HAN.findall(text))
+    if han and han / (han + len(_ASCII_LETTER.findall(text))) >= 0.25:
+        simplified = sum(1 for c in text if c in _SIMPLIFIED_SET)
+        traditional = sum(1 for c in text if c in _TRADITIONAL_SET)
+        return "zh-TW" if traditional > simplified else "zh-CN"
+    return "en"
