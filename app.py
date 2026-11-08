@@ -1938,6 +1938,7 @@ def page_manage():
         return {"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
                 t("manage.col.file"): file_cell, t("manage.col.type"): "web" if origin
                 else str(d.get("file_type") or "").upper(),
+                t("manage.col.indexed_at"): str(d.get("indexed_at") or "")[:16],
                 t("manage.col.path"): d["path"],
                 "Domain": domain_label(d["domain"]), "Category": d["category"],
                 "Topic": ", ".join(d["topic"]) or "-",
