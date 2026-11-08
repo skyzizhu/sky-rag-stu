@@ -2252,7 +2252,18 @@ def page_retrieval_settings():
               value=st.session_state["debug_mode"], key="set_debug",
               on_change=_sync_setting("debug_mode", "set_debug"))
 
-    st.divider()
+
+def page_model_config():
+    """模型配置页（B16.2）：当前模型信息 + 模型单价（评估卡片的费用估算用）。"""
+    require_perm('retrieval_settings')
+    st.markdown(f'<div class="section-title">{t("set.model.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("set.model.caption"))
+    badge = t("set.model.local") if cfg.llm_is_local else t("set.model.cloud")
+    st.markdown(t("set.model.current", model=cfg.llm_model or "-", badge=badge),
+                unsafe_allow_html=True)
+    if cfg.llm_is_local:
+        st.caption(t("set.model.local_note"))
+
     # 模型单价（B16.1 模型消耗统计）：只影响评估卡片里的费用估算，不影响任何调用
     st.markdown(f'<div class="section-title">{t("set.price.title")}</div>', unsafe_allow_html=True)
     st.caption(t("set.price.caption"))
@@ -2615,6 +2626,7 @@ manage_page = st.Page(page_manage, title=t("nav.manage"), icon="🗂", url_path=
 domains_page = st.Page(page_domains, title=t("nav.domains"), icon="🧭", url_path="domains")
 general_page = st.Page(page_general_settings, title=t("nav.general"), icon="⚙️", url_path="settings-general")
 retrieval_page = st.Page(page_retrieval_settings, title=t("nav.retrieval"), icon="🔍", url_path="settings-retrieval")
+model_page = st.Page(page_model_config, title=t("nav.model"), icon="🤖", url_path="settings-model")
 maintenance_page = st.Page(page_maintenance, title=t("nav.maintenance"), icon="🧹", url_path="settings-maintenance")
 status_page = st.Page(page_system_status, title=t("nav.status"), icon="📊", url_path="settings-status")
 params_page = st.Page(page_params_overview, title=t("nav.params"), icon="🧾", url_path="settings-params")
@@ -2634,6 +2646,7 @@ if "domains" in _user_perms:  # V3.8 领域管理：独立权限（管理后台�
 settings_pages = [general_page]
 if "retrieval_settings" in _user_perms:
     settings_pages.append(retrieval_page)
+    settings_pages.append(model_page)
 # 维护操作页人人可达（页内"知识库维护"区块按权限显隐；缓存管理是个人功能）
 settings_pages.append(maintenance_page)
 settings_pages.extend([status_page, params_page])
