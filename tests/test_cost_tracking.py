@@ -292,5 +292,39 @@ class LocalModelScopeTests(unittest.TestCase):
             self.assertFalse(AppConfig(llm_base_url=url, llm_model="m").llm_is_local, url)
 
 
+    def test_run_evaluation_payload_carries_timing(self):
+        """评估卡片显示的检索耗时来自 result.elapsed（缓存命中=原始运行耗时）。"""
+        result = SimpleNamespace(question="q", answer="回答", context="资料", trace=[],
+                                 retrieved=[], sources=[{"source": "a.md"}],
+                                 elapsed={"retrieval": 1.5, "llm": 2.0, "total": 3.5})
+
+        def fake_create(**kwargs):
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content=(
+                    '{"faithfulness": {"score": 8, "reason": "有据"},'
+                    ' "relevance": {"score": 8, "reason": "贴题"},'
+                    ' "completeness": {"score": 8, "reason": "完整"}}')))],
+                usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5))
+
+        payload = run_evaluation(result, llm=make_client_with(fake_create))
+        self.assertTrue(payload["ok"], payload.get("error"))
+        self.assertEqual(payload["timing"],
+                         {"retrieval": 1.5, "llm": 2.0, "total": 3.5})
+
+    def test_run_evaluation_timing_survives_judge_failure(self):
+        """评审失败降级时，检索耗时仍然可见（结构信号一部分，不依赖 LLM 成功）。"""
+        def fake_create(**kwargs):
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="不是 JSON"))],
+                usage=None)
+
+        result = SimpleNamespace(question="q", answer="回答", context="资料", trace=[],
+                                 retrieved=[], sources=[{"source": "a.md"}],
+                                 elapsed={"retrieval": 0.8, "llm": 0.0, "total": 0.8})
+        payload = run_evaluation(result, llm=make_client_with(fake_create))
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["timing"]["retrieval"], 0.8)
+
+
 if __name__ == "__main__":
     unittest.main()

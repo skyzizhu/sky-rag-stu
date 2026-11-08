@@ -1165,6 +1165,9 @@ def _render_eval_card(evaluation: dict, usage: dict | None = None) -> None:
                            total=cite.get("total", 0)))
         ref = signals.get("refusal") or {}
         lines.append(t(f"eval.signal.refusal.{ref.get('state', 'normal')}"))
+        timing = evaluation.get("timing") or {}
+        if timing.get("retrieval"):
+            lines.append(t("eval.signal.timing", seconds=f"{timing['retrieval']:.1f}"))
         for line in lines:
             st.markdown(line)
 
