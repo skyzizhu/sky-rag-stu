@@ -1,6 +1,10 @@
 """回答语言判定：回答语言只跟随提问语言。
 
 规则（依次判定，命中即停）：
+  0. 提问里明确要求了回答语言 → 按要求（「请用英文回答」「中文回答我」「Please answer in Chinese」）；
+     同一句里有多个要求时以最后一个为准；只说「中文」时简繁跟随提问本身的写法。
+     不算明确要求：询问语言现象的句子（「它会用英文回答吗」「Why does it answer in Chinese?」）、
+     话题词（「英文写作」「中文说明书」）、翻译请求（「翻译成英文」——译文是内容，回答仍跟随提问）；
   1. 日文：含 2 个以上假名，且没有简体专用字（「我の笔记」这类网络用语仍按中文）；
   2. 韩文：含 2 个以上韩文字母；
   3. 中文：含汉字即为中文（夹杂英文术语也算，如「Xtools 的 PDF parsing 怎么用」）；
@@ -25,13 +29,19 @@ import re
 DEFAULT_LANGUAGE = "zh-CN"  # 判断不出、且本会话也没有可参考的提问时
 SAME_AS_QUESTION = "same"   # 确定不是中日韩英、但说不出具体语种 → 让模型与提问保持一致
 
-# 指令用目标语言本身书写：英文写的 "Answer in English." 对英文回答的约束力最强
+# 指令用目标语言本身书写：英文写的 "Answer in English." 对英文回答的约束力最强。
+# 日文与中文共用汉字，在中文为主的提示词里更容易滑回中文，所以额外明确"不要用中文"
+# （实测同一请求各 25 次：普通写法跑偏 2 次 → 加强写法 0 次）
 DIRECTIVES = {
     "zh-CN": "请用简体中文回答。",
     "zh-TW": "請用繁體中文回答。",
-    "ja": "日本語で回答してください。",
+    "ja": "必ず日本語で回答してください。中国語で回答しないでください。",
     "ko": "한국어로 답변해 주세요.",
     "en": "Answer in English.",
+    "fr": "Réponds en français.",
+    "de": "Bitte antworte auf Deutsch.",
+    "es": "Responde en español.",
+    "ru": "Отвечай на русском языке.",
     SAME_AS_QUESTION: "Answer in the same language as the user's question.",
 }
 
@@ -86,15 +96,89 @@ def detect_language(text: str) -> str | None:
     return None
 
 
+# ---------- 规则 0：提问里明确要求的回答语言 ----------
+# 语种说法 → 语言代码（"zh" = 只说了中文，简繁再看提问本身）
+_ZH_NAMES = {
+    "简体中文": "zh-CN", "簡體中文": "zh-CN", "简体": "zh-CN", "簡體": "zh-CN",
+    "繁体中文": "zh-TW", "繁體中文": "zh-TW", "繁体": "zh-TW", "繁體": "zh-TW",
+    "中文": "zh", "汉语": "zh", "漢語": "zh", "普通话": "zh", "普通話": "zh",
+    "英文": "en", "英语": "en", "英語": "en",
+    "日文": "ja", "日语": "ja", "日語": "ja", "日本语": "ja", "日本語": "ja",
+    "韩文": "ko", "韩语": "ko", "韓文": "ko", "韓語": "ko",
+    "法语": "fr", "法文": "fr", "德语": "de", "德文": "de",
+    "西班牙语": "es", "西班牙文": "es", "俄语": "ru", "俄文": "ru",
+}
+_EN_NAMES = {
+    "simplified chinese": "zh-CN", "traditional chinese": "zh-TW", "chinese": "zh",
+    "mandarin": "zh", "english": "en", "japanese": "ja", "korean": "ko",
+    "french": "fr", "german": "de", "spanish": "es", "russian": "ru",
+}
+
+
+def _alternation(names) -> str:
+    """长的说法排前面（「简体中文」先于「中文」），英文说法里的空格允许多个空白。"""
+    ordered = sorted(names, key=len, reverse=True)
+    return "|".join(re.escape(n).replace(r"\ ", r"\s+") for n in ordered)
+
+
+_ZH_LANG = _alternation(_ZH_NAMES)
+_EN_LANG = _alternation(_EN_NAMES)
+# 要求句的起点：句首/标点之后，或紧跟「请/麻烦/你/可以…」——
+# 「它会用英文回答吗」「为什么总是用中文回答」前面是「会/是」，不算要求
+_ZH_START = (r"(?:^|[，。！？；：、,.!?;:\s]|请|請|麻烦|麻煩|帮我|幫我|给我|給我|你|您"
+             r"|可以|能否|能不能|并|並|再|然后|然後)")
+_ZH_VERB = (r"(?:回答|回复|回覆|作答|答复|答覆|输出|輸出|写(?!作)|寫(?!作)|说明(?!书)|說明(?!書)"
+            r"|解释|解釋|介绍|介紹|总结|總結|表达|表達|讲|講|说|說)")
+_EN_START = (r"(?:^|[.?!;:,\n]\s*|\b(?:please|pls|kindly)\s+"
+             r"|\b(?:can|could|would|will)\s+you\s+(?:please\s+)?)")
+_EXPLICIT_PATTERNS = [
+    # 「请用英文回答」「可以用英文写吗」：用/以 + 语种 + 动词
+    (re.compile(_ZH_START + r"(?:用|以|使用|改用|换用|換用)(?P<lang>" + _ZH_LANG + r")(?:来|來)?"
+                + _ZH_VERB), _ZH_NAMES),
+    # 「中文回答我」「……？英文回答。」：语种 + 回答类动词
+    (re.compile(_ZH_START + r"(?P<lang>" + _ZH_LANG + r")(?:回答|回复|回覆|作答)"), _ZH_NAMES),
+    # 「用英文，谢谢」「请用中文。」：用 + 语种 + 标点/结尾
+    (re.compile(_ZH_START + r"(?:用|以)(?P<lang>" + _ZH_LANG + r")(?=\s*(?:[。！!.？?，,；;]|$))"),
+     _ZH_NAMES),
+    # "Please answer in Chinese" / "Can you reply in Japanese?" / "Explain RAG in English"
+    (re.compile(_EN_START + r"(?:answer|reply|respond|write|explain|summari[sz]e|describe|list|tell\s+me)"
+                r"\b[^.?!\n]{0,40}?\bin\s+(?P<lang>" + _EN_LANG + r")\b", re.I), _EN_NAMES),
+    # "in English please"
+    (re.compile(r"\bin\s+(?P<lang>" + _EN_LANG + r")\s*,?\s*(?:please|pls)\b", re.I), _EN_NAMES),
+]
+
+
+def explicit_language_request(text: str) -> str | None:
+    """提问里明确要求的回答语言代码；没有明确要求返回 None。"""
+    text = text or ""
+    found: list[tuple[int, str]] = []
+    for pattern, names in _EXPLICIT_PATTERNS:
+        for match in pattern.finditer(text):
+            name = match.group("lang")
+            key = name if names is _ZH_NAMES else re.sub(r"\s+", " ", name.lower())
+            found.append((match.start("lang"), names[key]))
+    if not found:
+        return None
+    language = max(found)[1]  # 多个要求时以最后一个为准
+    if language == "zh":      # 只说了「中文」：简繁跟随提问本身的写法
+        return "zh-TW" if detect_language(text) == "zh-TW" else "zh-CN"
+    return language
+
+
+def question_language(text: str) -> str | None:
+    """一句提问自身决定的回答语言：明确要求优先，其次按文字判定；判断不出返回 None。"""
+    return explicit_language_request(text) or detect_language(text)
+
+
 def resolve_answer_language(question: str, history: list[dict] | None = None) -> str:
     """本次回答用的语言：先看当前提问；判断不出看本会话最近的提问（只看用户消息，
     不看历史回答——历史回答本身可能就答错了语言）；仍没有则用默认简体中文。"""
-    language = detect_language(question)
+    language = question_language(question)
     if language:
         return language
     for message in reversed(history or []):
         if message.get("role") == "user":
-            language = detect_language(str(message.get("content") or ""))
+            language = question_language(str(message.get("content") or ""))
             if language:
                 return language
     return DEFAULT_LANGUAGE

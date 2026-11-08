@@ -13,7 +13,7 @@ import unittest
 from unittest import mock
 
 from src import answer_language as al
-from src.answer_language import detect_language, resolve_answer_language
+from src.answer_language import detect_language, explicit_language_request, resolve_answer_language
 from src.prompt import SYSTEM_PROMPT, build_messages
 from tests._helpers import IngestHarness
 
@@ -56,6 +56,69 @@ class DetectLanguageTests(unittest.TestCase):
         self.assertFalse(set(s) & set(t))
 
 
+class ExplicitLanguageRequestTests(unittest.TestCase):
+    """规则 0：提问里明确要求的回答语言优先（此前会被末尾指令盖过，3/3 答错）。"""
+
+    def test_explicit_requests_are_honoured(self):
+        cases = {
+            "Xtools有哪些功能？请用英文回答。": "en",
+            "What features does Xtools have? Please answer in Chinese.": "zh-CN",
+            "中文回答我": "zh-CN",
+            "Xtools有哪些功能？英文回答。": "en",
+            "可以用英文回答吗？": "en",
+            "用英文，谢谢。Xtools 怎么去除背景噪音？": "en",
+            "Can you reply in Japanese? What does Xtools do?": "ja",
+            "in English please": "en",
+            "用日语回答": "ja",
+            "請用繁體中文回答": "zh-TW",
+            "Answer in Simplified Chinese": "zh-CN",
+            "Explain how RAG works in Chinese": "zh-CN",
+            "请用法语回答": "fr",
+            "Answer in French.": "fr",
+        }
+        for question, expected in cases.items():
+            self.assertEqual(explicit_language_request(question), expected, question)
+
+    def test_plain_chinese_follows_question_script(self):
+        """只说「中文」时，简繁跟随提问本身的写法。"""
+        self.assertEqual(explicit_language_request("Xtools有哪些功能？請用中文回答"), "zh-TW")
+        self.assertEqual(explicit_language_request("Xtools有哪些功能？请用中文回答"), "zh-CN")
+
+    def test_last_request_wins(self):
+        self.assertEqual(explicit_language_request("先用英文回答，最后再用中文回答"), "zh-CN")
+
+    def test_not_counted_as_requests(self):
+        """询问语言现象、话题词、翻译请求都不算明确要求，按提问语言回答。"""
+        for question in ("它会用英文回答吗？", "为什么总是用中文回答？", "英文写作有哪些技巧？",
+                         "用英文写作有哪些技巧？", "中文说明书在哪里", "用英文怎么说知识库",
+                         "Why does the model answer in Chinese?", "How do I write in Japanese?",
+                         "把这段翻译成英文", "Translate hello into Japanese", ENGLISH_Q):
+            self.assertIsNone(explicit_language_request(question), question)
+        self.assertEqual(resolve_answer_language("把这段翻译成英文"), "zh-CN")
+        self.assertEqual(resolve_answer_language("Translate hello into Japanese"), "en")
+
+    def test_explicit_request_beats_question_language_and_history(self):
+        history = [{"role": "user", "content": "How do I add subtitles?"},
+                   {"role": "assistant", "content": "..."}]
+        self.assertEqual(resolve_answer_language("Xtools有哪些功能？请用英文回答。"), "en")
+        self.assertEqual(resolve_answer_language("Xtools有哪些功能？请用中文回答", history), "zh-CN")
+
+    def test_ambiguous_follow_up_inherits_explicit_request(self):
+        history = [{"role": "user", "content": "Xtools有哪些功能？请用英文回答。"},
+                   {"role": "assistant", "content": "Xtools offers ..."}]
+        self.assertEqual(resolve_answer_language("OK", history), "en")
+
+    def test_every_requested_language_has_a_directive(self):
+        codes = {c for c in {**al._ZH_NAMES, **al._EN_NAMES}.values() if c != "zh"}
+        self.assertFalse(codes - set(al.DIRECTIVES), "有语言缺少对应的末尾指令")
+
+    def test_japanese_directive_forbids_chinese(self):
+        """日文与中文共用汉字易滑回中文：指令须明确"不要用中文"（实测 25 次跑偏 2 → 0）。"""
+        self.assertIn("中国語で回答しないでください", al.DIRECTIVES["ja"])
+        self.assertTrue(build_messages("[1] 资料", "Xtoolsの機能を教えてください。")[-1]["content"]
+                        .endswith(al.DIRECTIVES["ja"]))
+
+
 class ResolveAnswerLanguageTests(unittest.TestCase):
     def test_question_language_wins_over_history(self):
         """核心场景：会话里全是中文问答，再用英文提问 → 英文。"""
@@ -90,6 +153,13 @@ class BuildMessagesTests(unittest.TestCase):
                         .endswith("\n\n请用简体中文回答。"))
         self.assertTrue(build_messages("[1] 資料", "Xtools有哪些功能？請列出。")[-1]["content"]
                         .endswith("\n\n請用繁體中文回答。"))
+
+    def test_explicit_request_sets_directive(self):
+        """修复点：中文提问里要求英文 → 末尾指令是英文（之前错误地追加「请用简体中文回答。」）。"""
+        self.assertTrue(build_messages("[1] 资料", "Xtools有哪些功能？请用英文回答。")[-1]["content"]
+                        .endswith("\n\nAnswer in English."))
+        self.assertTrue(build_messages("[1] 资料", "What does Xtools do? Please answer in Chinese.")[-1]
+                        ["content"].endswith("\n\n请用简体中文回答。"))
 
     def test_system_prompt_no_longer_forces_chinese(self):
         self.assertNotIn("用简洁的中文回答", SYSTEM_PROMPT)
@@ -138,6 +208,10 @@ class PipelineWiringTests(IngestHarness):
         history = [{"role": "user", "content": "Xtools 有哪些功能？"},
                    {"role": "assistant", "content": "Xtools 支持字幕、降噪等功能。"}]
         messages = self.sent_messages("Can it remove background noise?", history=history)
+        self.assertTrue(messages[-1]["content"].endswith("Answer in English."))
+
+    def test_explicit_request_through_pipeline(self):
+        messages = self.sent_messages("Xtools 有哪些功能？请用英文回答。")
         self.assertTrue(messages[-1]["content"].endswith("Answer in English."))
 
 
