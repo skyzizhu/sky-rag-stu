@@ -1379,6 +1379,16 @@ def page_chat():
                 progress_ph = st.empty()  # 实时进度占位符
                 def _show_progress(msg):
                     progress_ph.markdown(f"⏳ {tr(msg)}")
+
+                def _show_reasoning(piece):
+                    """模型思考过程实时滚入（仅展示；正文出现后由流式循环清空）。"""
+                    nonlocal thinking_text
+                    thinking_text += piece
+                    tail = html.escape(thinking_text[-600:])
+                    thinking_ph.markdown(
+                        f"🤔 **{t('chat.thinking')}**\n\n<div class='chunk-quote'>{tail}</div>",
+                        unsafe_allow_html=True,
+                    )
                 # 流式回答期间持续贴底跟随：答案再长也始终看得到最新输出；
                 # 用户主动上滑阅读时跟随自动让位
                 scroll_follow_stream(
@@ -1406,14 +1416,23 @@ def page_chat():
                         use_rerank=st.session_state["rerank"],
                         history=chat_history,
                         on_progress=_show_progress,
+                        on_reasoning=_show_reasoning,
                         user_groups=_user_groups,
                         username=str((st.session_state.get("auth_user") or {}).get("username") or ""),
                     )
                 progress_ph.empty()
+                # 思考过程实时展示区（B14）：模型思考逐段滚入，正文第一个字出现时整块消失、
+                # 由回答接管；思考内容只在生成期间展示，不写入回答、不随会话保存
+                thinking_ph = st.empty()
+                thinking_text = ""
+                content_started = False
                 answer_ph = st.empty()
                 full_text = ""
                 for delta in deltas:
                     full_text += delta
+                    if not content_started:
+                        content_started = True
+                        thinking_ph.empty()  # 正文开始：思考区让位给回答
                     answer_ph.markdown(format_answer_markdown(full_text) + " ▌")
                 formatted_answer = format_answer_markdown(result.answer or full_text or "")
                 answer_ph.markdown(formatted_answer)

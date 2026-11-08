@@ -145,10 +145,13 @@ class LLMClient:
             print(f"    LLM 调用完成：{self.cfg.llm_model}，耗时 {elapsed:.1f} 秒")
         return answer, elapsed
 
-    def chat_stream(self, messages: list[dict], usage_out: dict | None = None):
+    def chat_stream(self, messages: list[dict], usage_out: dict | None = None,
+                    on_reasoning=None):
         """流式发送对话：逐段产出答案文本（界面里实现「逐字出答案」）。
 
         usage_out：可选的用量字典——流式结束（含回退重试）后写入本次 token 统计。
+        on_reasoning：可选回调——思考模型（DeepSeek 风格 delta.reasoning_content）的
+        思考文本会实时逐段回调，供界面在回答开始前展示「思考中」；思考不计入回答。
         返回一个生成器；迭代过程中出现的 API 异常同样翻译成人话后抛出。
         个别情况下服务端流式返回为空内容，此时自动回退到一次性调用重试一次。
         """
@@ -171,7 +174,11 @@ class LLMClient:
                 fr = getattr(chunk.choices[0], "finish_reason", None)
                 if fr:
                     finish_reason = fr
-                delta = chunk.choices[0].delta.content
+                delta_obj = chunk.choices[0].delta
+                reasoning_piece = getattr(delta_obj, "reasoning_content", None)
+                if reasoning_piece and on_reasoning is not None:
+                    on_reasoning(reasoning_piece)
+                delta = delta_obj.content
                 if delta:
                     clean = self._clean_think_tags(delta)
                     if clean:

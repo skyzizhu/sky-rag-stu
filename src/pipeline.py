@@ -554,6 +554,7 @@ def answer_stream(
     use_rerank: bool = True,
     history: list[dict] | None = None,
     on_progress=None,
+    on_reasoning=None,
     config: AppConfig | None = None,
     user_groups: list[str] | None = None,
     username: str | None = None,
@@ -980,7 +981,10 @@ def answer_stream(
         completed = False
         gen_usage = new_usage()
         try:
-            for delta in llm.chat_stream(messages, usage_out=gen_usage):
+            kwargs = {"usage_out": gen_usage}
+            if on_reasoning is not None:  # 界面实时展示思考过程（兼容不含该参数的旧调用方）
+                kwargs["on_reasoning"] = on_reasoning
+            for delta in llm.chat_stream(messages, **kwargs):
                 text += delta
                 yield delta
             completed = True  # 正常跑完才会置 True；异常/用户中断都不会

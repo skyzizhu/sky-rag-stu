@@ -357,6 +357,56 @@ class PipelineTruncationTests(IngestHarness):
         self.assertTrue(trunc_items, "追踪面板应有截断标记")
 
 
+class ReasoningDisplayTests(unittest.TestCase):
+    """思考过程实时展示（B14）：reasoning_content 逐段回调，回答正文不受影响。"""
+
+    def _chunks(self):
+        return iter([
+            SimpleNamespace(usage=None,
+                            choices=[SimpleNamespace(delta=SimpleNamespace(
+                                content=None, reasoning_content="先想一下"), finish_reason=None)]),
+            SimpleNamespace(usage=None,
+                            choices=[SimpleNamespace(delta=SimpleNamespace(
+                                content=None, reasoning_content="再对比一下"), finish_reason=None)]),
+            SimpleNamespace(usage=None,
+                            choices=[SimpleNamespace(delta=SimpleNamespace(
+                                content="9.8 更大", reasoning_content=None), finish_reason="stop")]),
+            SimpleNamespace(usage=SimpleNamespace(prompt_tokens=9, completion_tokens=8), choices=[]),
+        ])
+
+    def test_chat_stream_calls_on_reasoning_and_yields_only_content(self):
+        pieces = []
+        client = make_client_with(lambda **kwargs: self._chunks())
+        out = "".join(client.chat_stream([{"role": "user", "content": "q"}], on_reasoning=pieces.append))
+        self.assertEqual(out, "9.8 更大")
+        self.assertEqual(pieces, ["先想一下", "再对比一下"])
+
+    def test_chat_stream_without_callback_ignores_reasoning(self):
+        client = make_client_with(lambda **kwargs: self._chunks())
+        out = "".join(client.chat_stream([{"role": "user", "content": "q"}]))
+        self.assertEqual(out, "9.8 更大")
+
+    def test_pipeline_forwards_on_reasoning(self):
+        """answer_stream 的 on_reasoning 透传到 LLM 调用（正文照常流式输出）。"""
+        received = []
+
+        def fake_chat_stream(messages, usage_out=None, on_reasoning=None):
+            if on_reasoning is not None:
+                on_reasoning("思考片段")
+            yield "正文回答"
+
+        fake = SimpleNamespace(chat=lambda *a, **k: ("[{}]", 0.0), chat_stream=fake_chat_stream)
+        from src.pipeline import clear_qa_cache, answer_stream
+        clear_qa_cache()
+        with mock.patch("src.pipeline.get_llm_client", return_value=fake), \
+             contextlib.redirect_stdout(io.StringIO()):
+            result, deltas = answer_stream("任意问题", top_k=5, use_llm=True, use_rerank=False,
+                                           use_query_understanding=False, on_reasoning=received.append)
+            answer = "".join(deltas)
+        self.assertEqual(answer, "正文回答")
+        self.assertEqual(received, ["思考片段"])
+
+
 class LocalModelScopeTests(unittest.TestCase):
     """消耗统计只针对云上 LLM：本地端点（Ollama 等）不计费，卡片不显示消耗区块。"""
 
