@@ -65,6 +65,7 @@ class RerankOutcome:
     ok: bool = False
     error: str = ""
     elapsed: float = 0.0
+    usage: dict = field(default_factory=dict)  # 本次调用的 token 用量（B16.1 模型消耗统计）
 
 
 def _extract_json_array(raw: str) -> list:
@@ -104,7 +105,7 @@ def rerank(
 
     start = time.time()
     try:
-        raw, _ = llm.chat(messages)
+        raw, _ = llm.chat(messages, usage_out=outcome.usage)
         outcome.raw_output = raw
         entries = _extract_json_array(raw)
         score_map: dict[str, float] = {}

@@ -95,6 +95,7 @@ class QueryUnderstanding:
     ok: bool = False
     error: str = ""
     elapsed: float = 0.0
+    usage: dict = field(default_factory=dict)  # 本次调用的 token 用量（B16.1 模型消耗统计）
 
 
 def _strip_code_fence(raw: str) -> str:
@@ -179,7 +180,7 @@ def understand_query(
 
     start = time.time()
     try:
-        raw, _ = llm.chat(messages)
+        raw, _ = llm.chat(messages, usage_out=qu.usage)
         qu.raw_output = raw
         data = _extract_json_object(raw)
 

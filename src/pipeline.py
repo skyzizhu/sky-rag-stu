@@ -22,11 +22,12 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from src import index_epoch
+from src.answer_evaluator import merge_usage
 from src.chunker import clean_and_chunk
 from src.config import AppConfig, get_config
 from src.context import build_context, estimate_tokens
 from src.embedding import EmbeddingClient, get_embedding_client
-from src.llm import LLMClient, get_llm_client, strip_think_tags
+from src.llm import LLMClient, get_llm_client, new_usage, strip_think_tags
 from src.metadata import build_document_metadata, document_id_for
 from src.parser import ParsedDocument, parse_file
 from src.answer_language import resolve_answer_language
@@ -76,6 +77,7 @@ class QAResult:
     trace: list = field(default_factory=list)    # 节点时间线（调试面板）
     elapsed: dict = field(default_factory=dict)
     evaluation: dict | None = None  # V3.6 回答质量评估载荷（见 src/answer_evaluator.py）
+    usage: dict = field(default_factory=dict)  # 本次回答的 LLM 消耗合计（B16.1；评估的用量在 evaluation["usage"]）
 
 
 # ---------------------------------------------------------------- 入库
@@ -363,6 +365,23 @@ _QA_CACHE_MAX = 50  # 最多缓存 50 条问答
 # Streamlit 多标签页 = 多线程：入库/缓存读写需要锁保护，
 # 否则驱逐点与并发清空可竞态崩溃，台账也会互相覆盖
 _ingest_lock = threading.Lock()
+
+
+def record_stage_usage(result: QAResult, stage: str, usage: dict) -> None:
+    """把一次 LLM 调用的用量记入 result.usage 的分项并重算总计（B16.1 模型消耗统计）。
+
+    usage 形如 {"input", "input_cached", "output", "estimated"}（见 src/llm.py）；
+    跳过空用量与全 0 用量（假 LLM / Mock 不填 usage_out 的场景）——真实调用必有正数。
+    """
+    if not usage or (not usage.get("input") and not usage.get("output")):
+        return
+    stages = result.usage.setdefault("stages", {})
+    stages[stage] = dict(usage)
+    parts = list(stages.values())
+    total = merge_usage(parts)
+    result.usage.clear()
+    result.usage.update(total)
+    result.usage["stages"] = stages
 
 
 def merge_sub_query_results(per_sq_results: list[list[RetrievedItem]],
@@ -668,6 +687,7 @@ def answer_stream(
         except Exception:
             catalog = []
         qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history)
+        record_stage_usage(result, "query_understanding", qu.usage)
         search_query = qu.vector_query or question
         qu_filters = dict(qu.filters)
         # 语义判定合并：LLM 识别出计数/列举意图而词表没命中时，同样进入枚举通道——
@@ -838,6 +858,7 @@ def answer_stream(
         t_rr = time.time()
         outcome = rerank_items(question, result.retrieved, top_k=top_k,
                                llm=get_llm_client(), config=cfg)
+        record_stage_usage(result, "rerank", outcome.usage)
         rr_elapsed = time.time() - t_rr
         # 全部打分候选交给上下文组装，由「多样性 + Top K」规则统一精选
         # 注意：不能按 Rerank 分数过滤 0 分卡片——实测发现 Rerank 可能误判
@@ -957,27 +978,40 @@ def answer_stream(
         t3 = time.time()
         text = ""
         completed = False
+        gen_usage = new_usage()
         try:
-            for delta in llm.chat_stream(messages):
+            for delta in llm.chat_stream(messages, usage_out=gen_usage):
                 text += delta
                 yield delta
             completed = True  # 正常跑完才会置 True；异常/用户中断都不会
         finally:
+            record_stage_usage(result, "generation", gen_usage)
             # 思考标签跨 chunk 边界时逐段清洗会漏，回答定稿前对全文再清一次
             cleaned = strip_think_tags(text).strip()
             result.answer = cleaned or None
             result.elapsed["llm"] = time.time() - t3
             result.elapsed["total"] = result.elapsed.get("retrieval", 0) + result.elapsed["llm"]
+            usage_line = ""
+            if result.usage.get("calls"):
+                usage_line = (f"｜消耗：{result.usage['input']} tokens 输入"
+                              f"（命中缓存 {result.usage['input_cached']}）"
+                              f" / {result.usage['output']} tokens 输出"
+                              f"{'（部分为估算）' if result.usage.get('estimated') else ''}")
             trace.append(make_node(
                 "🤖", "LLM 调用（Prompt 组装 + 生成回答）",
                 time_str=llm_start, elapsed=result.elapsed["llm"],
                 summary="把「任务说明书 + 资料附页 + 用户问题」组装成消息发给大模型，"
-                        "大模型基于资料流式生成回答",
+                        f"大模型基于资料流式生成回答{usage_line}",
                 items=[
                     ("模型", cfg.llm_model or "-"),
                     ("输入 · System Prompt（任务说明书）", messages[0]["content"]),
                     ("输入 · User Prompt（资料附页 + 问题）", messages[-1]["content"]),
                     ("输出 · LLM 生成的回答", result.answer or "（空）"),
+                    ("Token 消耗（全部调用合计）",
+                     f"输入 {result.usage.get('input', 0)}（命中缓存 {result.usage.get('input_cached', 0)}）"
+                     f" / 输出 {result.usage.get('output', 0)}"
+                     f"{' · 部分为本地估算' if result.usage.get('estimated') else ''}"
+                     if result.usage.get("calls") else "（本次未捕获到用量）"),
                 ],
             ))
             trace.append(make_node(
