@@ -32,14 +32,22 @@ def build_user_prompt(context: str, question: str) -> str:
     return USER_PROMPT_TEMPLATE.format(context=context, question=question)
 
 
-def build_messages(context: str, question: str, history: list[dict] | None = None) -> list[dict]:
+def build_messages(context: str, question: str, history: list[dict] | None = None,
+                   enumerate_mode: bool = False) -> list[dict]:
     """组装成大模型接口需要的消息格式。
 
     history: 最近几轮对话 [{"role": "user"/"assistant", "content": "..."}]，
     传入后 LLM 能结合上下文理解代词（多轮对话），不增加调用次数。
+    enumerate_mode: 枚举模式（"列出全部/有几种"类提问）——System Prompt 追加逐条
+    枚举指令，引导 LLM 完整列出清单而不是概括（V3.8.1）。
     消息顺序：System → 历史对话 → 当前问题（资料 + 提问）。
     """
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    system_prompt = SYSTEM_PROMPT + (
+        "\n\n【枚举模式】用户的问题是枚举型提问：请将资料中与问题主题相关的条目逐条完整列出"
+        "（每条附一句简要说明），不得遗漏、不得合并同类项；资料未覆盖的部分如实说明，不要编造。"
+        if enumerate_mode else ""
+    )
+    messages = [{"role": "system", "content": system_prompt}]
     # 历史对话：最近 6 条（3 轮），只保留 role 和 content（去掉检索结果等内部对象）
     if history:
         for m in history[-6:]:
