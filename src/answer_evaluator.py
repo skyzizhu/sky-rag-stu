@@ -222,11 +222,12 @@ def run_evaluation(result, llm: LLMClient | None = None,
     start = time.time()
     payload: dict = {"ok": False, "error": "", "elapsed": 0.0, "overall": None,
                      "faithfulness": None, "relevance": None, "signals": {}}
-    # 本次提问的检索耗时（检索→展开→精排→组装，不含 Query 理解与生成）：
+    # 本次提问的全流程耗时（全部节点加总：Query 理解 + 检索/展开/精排/组装 + 生成）：
     # 来自 result.elapsed（缓存命中时为产生这份答案的原始运行的耗时）
     _elapsed = getattr(result, "elapsed", {}) or {}
     payload["timing"] = {"retrieval": float(_elapsed.get("retrieval", 0.0)),
                          "llm": float(_elapsed.get("llm", 0.0)),
+                         "query_understanding": float(_elapsed.get("query_understanding", 0.0)),
                          "total": float(_elapsed.get("total", 0.0))}
     try:
         payload["signals"] = compute_signals(result)

@@ -244,6 +244,20 @@ class PipelineUsageTests(IngestHarness):
         self.assertEqual(fake.chat_calls, 1)  # 缓存命中：没有新调用
         self.assertEqual(second.usage, first.usage)
 
+    def test_total_elapsed_includes_query_understanding(self):
+        """全流程耗时必须包含 Query 理解（LLM 调用）：total = QU + 检索/精排/组装 + 生成。"""
+        from src.pipeline import answer_stream
+        fake = self.FakeLLM()  # QU 关闭 → qu 段为 0；total = 检索阶段 + 生成
+        with mock.patch("src.pipeline.get_llm_client", return_value=fake), \
+             contextlib.redirect_stdout(io.StringIO()):
+            result, deltas = answer_stream(self.QUESTION, top_k=5, use_llm=True,
+                                           use_rerank=True, use_query_understanding=False)
+            for _ in deltas:
+                pass
+        self.assertAlmostEqual(result.elapsed["total"],
+                               result.elapsed["retrieval"] + result.elapsed["llm"]
+                               + result.elapsed.get("query_understanding", 0.0), places=3)
+
     def test_zero_usage_not_recorded(self):
         """Mock 式假 LLM 不填 usage_out：用量保持全 0 → 不产生分项与总计。"""
         from types import SimpleNamespace as NS
@@ -293,10 +307,11 @@ class LocalModelScopeTests(unittest.TestCase):
 
 
     def test_run_evaluation_payload_carries_timing(self):
-        """评估卡片显示的检索耗时来自 result.elapsed（缓存命中=原始运行耗时）。"""
+        """评估卡片显示的全流程耗时来自 result.elapsed（缓存命中=原始运行耗时）。"""
         result = SimpleNamespace(question="q", answer="回答", context="资料", trace=[],
                                  retrieved=[], sources=[{"source": "a.md"}],
-                                 elapsed={"retrieval": 1.5, "llm": 2.0, "total": 3.5})
+                                 elapsed={"retrieval": 8.5, "llm": 2.0, "total": 11.5,
+                                          "query_understanding": 1.0})
 
         def fake_create(**kwargs):
             return SimpleNamespace(
@@ -308,11 +323,11 @@ class LocalModelScopeTests(unittest.TestCase):
 
         payload = run_evaluation(result, llm=make_client_with(fake_create))
         self.assertTrue(payload["ok"], payload.get("error"))
-        self.assertEqual(payload["timing"],
-                         {"retrieval": 1.5, "llm": 2.0, "total": 3.5})
+        self.assertEqual(payload["timing"], {"retrieval": 8.5, "llm": 2.0,
+                                             "query_understanding": 1.0, "total": 11.5})
 
     def test_run_evaluation_timing_survives_judge_failure(self):
-        """评审失败降级时，检索耗时仍然可见（结构信号一部分，不依赖 LLM 成功）。"""
+        """评审失败降级时，全流程耗时仍然可见（结构信号一部分，不依赖 LLM 成功）。"""
         def fake_create(**kwargs):
             return SimpleNamespace(
                 choices=[SimpleNamespace(message=SimpleNamespace(content="不是 JSON"))],
@@ -320,10 +335,11 @@ class LocalModelScopeTests(unittest.TestCase):
 
         result = SimpleNamespace(question="q", answer="回答", context="资料", trace=[],
                                  retrieved=[], sources=[{"source": "a.md"}],
-                                 elapsed={"retrieval": 0.8, "llm": 0.0, "total": 0.8})
+                                 elapsed={"retrieval": 0.8, "llm": 0.0, "total": 0.8,
+                                          "query_understanding": 0.0})
         payload = run_evaluation(result, llm=make_client_with(fake_create))
         self.assertFalse(payload["ok"])
-        self.assertEqual(payload["timing"]["retrieval"], 0.8)
+        self.assertEqual(payload["timing"]["total"], 0.8)
 
 
 if __name__ == "__main__":

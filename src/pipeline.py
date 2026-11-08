@@ -990,7 +990,11 @@ def answer_stream(
             cleaned = strip_think_tags(text).strip()
             result.answer = cleaned or None
             result.elapsed["llm"] = time.time() - t3
-            result.elapsed["total"] = result.elapsed.get("retrieval", 0) + result.elapsed["llm"]
+            # 总耗时 = 全部节点：Query 理解（LLM 调用）+ 检索/展开/精排/组装 + 生成（LLM 调用）
+            qu_seconds = float(getattr(qu, "elapsed", 0.0) or 0.0)
+            result.elapsed["query_understanding"] = qu_seconds
+            result.elapsed["total"] = (result.elapsed.get("retrieval", 0)
+                                       + result.elapsed["llm"] + qu_seconds)
             usage_line = ""
             if result.usage.get("calls"):
                 usage_line = (f"｜消耗：{result.usage['input']} tokens 输入"
