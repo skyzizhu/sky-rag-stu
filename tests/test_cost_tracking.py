@@ -278,5 +278,19 @@ class EvaluationUsageTests(unittest.TestCase):
         self.assertEqual(payload["usage"]["output"], 60)
 
 
+class LocalModelScopeTests(unittest.TestCase):
+    """消耗统计只针对云上 LLM：本地端点（Ollama 等）不计费，卡片不显示消耗区块。"""
+
+    def test_local_endpoint_detected(self):
+        from src.config import AppConfig
+        for url in ("http://localhost:11434/v1", "http://127.0.0.1:11434/v1"):
+            self.assertTrue(AppConfig(llm_base_url=url, llm_model="m").llm_is_local, url)
+
+    def test_cloud_endpoint_not_local(self):
+        from src.config import AppConfig
+        for url in ("https://api.deepseek.com/v1", "https://llm.example.com/v1"):
+            self.assertFalse(AppConfig(llm_base_url=url, llm_model="m").llm_is_local, url)
+
+
 if __name__ == "__main__":
     unittest.main()

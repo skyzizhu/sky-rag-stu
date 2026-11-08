@@ -1169,6 +1169,9 @@ def _render_eval_card(evaluation: dict, usage: dict | None = None) -> None:
             st.markdown(line)
 
         # —— 💰 模型消耗（B16.1）：管线用量 + 评估用量，费用按当前单价即时计算 ——
+        # 只统计云上 LLM：本地模型（Ollama 等本机端点）不产生费用，不显示消耗区块
+        if cfg.llm_is_local:
+            return
         stages: dict = dict(usage.get("stages") or {}) if usage else {}
         if evaluation.get("usage"):
             stages["evaluation"] = evaluation["usage"]
