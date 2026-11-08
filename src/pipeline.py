@@ -14,9 +14,10 @@
 
 from __future__ import annotations
 
+import os
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from src import index_epoch
@@ -33,6 +34,13 @@ from src.reranker import rerank as rerank_items
 from src.retriever import RetrievedItem, effective_filters, get_retriever
 from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
+
+# V3.8.1 枚举通道参数（列举/计数类提问专用——目标是"全"而不是"精"）：
+# 召回池与上下文名额扩到 30（容纳单文档全量卡片）、跳过精排（省一次 LLM 调用）、
+# token 预算放宽到 6000（全量卡片进上下文）。支持 .env 覆盖。
+ENUM_RECALL_K = int(os.getenv("ENUM_RECALL_K", "50"))
+ENUM_CTX_ITEMS = int(os.getenv("ENUM_CTX_ITEMS", "40"))
+ENUM_CTX_TOKENS = int(os.getenv("ENUM_CTX_TOKENS", "12000"))
 
 
 @dataclass
@@ -507,11 +515,12 @@ def answer_stream(
             items=[("说明", "传入历史后：Query 理解解析代词 + LLM 上下文连贯")],
         ))
 
-    # 列举/盘点类提问：自动扩大召回深度 + 上下文容量 + 放开单文档上限。
+    # 列举/盘点类提问：进入枚举通道（V3.8.1：召回/名额 30、跳过精排、token 6000）。
     # 双通道判定：Query 理解的语义识别（enumeration 字段）为主，
     # 关键词词表为兜底（Query 理解关闭或解析失败时依然生效）。
-    # 注意：判定必须用原始问题——Query 理解改写后的查询已丢失计数语气
-    enumeration_keyword = any(w in question for w in (
+    # 注意：判定必须用原始问题——Query 理解改写后的查询已丢失计数语气。
+    # 参数在节点②之后统一应用（见 use_rerank_now 处）
+    enumeration_mode = any(w in question for w in (
         "有哪些", "列出", "都有什么", "列举", "全部",
         "那些", "哪些", "都有", "所有", "什么功能", "什么工具",
         "功能列表", "几个", "多少个", "多少种",
@@ -520,9 +529,8 @@ def answer_stream(
         "几份", "几段", "几条", "几次", "几轮", "几家", "几个方面",
         "多少份", "多少段", "多少条", "多少次", "多少轮", "多少家",
     ))
-    recall_k = top_k * 2 if enumeration_keyword else top_k
-    ctx_max_items = top_k * 2 if enumeration_keyword else top_k
-    ctx_max_per_doc = 999 if enumeration_keyword else None
+    recall_k = top_k            # 基线：非枚举 = top_k（精排开启时在下方过采样）
+    ctx_max_items = top_k
 
     # 节点 ②：Query 理解 / 改写（V2：一次 LLM 调用完成改写 + 关键词 + 过滤条件推断）
     search_query = question
@@ -539,12 +547,10 @@ def answer_stream(
         qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history)
         search_query = qu.vector_query or question
         qu_filters = dict(qu.filters)
-        # 语义判定合并：LLM 识别出计数/列举意图而词表没命中时，此处补齐扩容——
+        # 语义判定合并：LLM 识别出计数/列举意图而词表没命中时，同样进入枚举通道——
         # 覆盖「经历过几家公司」这类词表外的任意计数问法
-        if qu.enumeration and not enumeration_keyword:
-            recall_k = top_k * 2
-            ctx_max_items = top_k * 2
-            ctx_max_per_doc = 999
+        if qu.enumeration:
+            enumeration_mode = True
         # 返回字段逐项解析：B3 规范的 7 个字段全部展示（未输出 = LLM 按规范省略，取默认值）
         fields_dump = (
             f"intent（意图概括）: {qu.intent or '（未输出）'}\n"
@@ -582,8 +588,20 @@ def answer_stream(
     # 节点 ③④⑤⑥：Query Embedding → Metadata Filter → 数据库检索 → 召回 Chunk
     # 过滤条件优先级：界面手动设置 > Query 理解推断 > 默认 status=active
     # Rerank 开启时先宽召回（默认 10 条候选），精排后再取 Top K
-    use_rerank_now = use_rerank and use_llm
-    recall_k = max(recall_k, cfg.rerank_recall_k) if use_rerank_now else recall_k
+    # V3.8.1 枚举通道：识别到列举/计数意图后，整条管线切换到枚举参数集——
+    # 召回 30（全文档卡片全量进池）、跳过精排（枚举要"全"不要"精"，还省一次 LLM 调用）、
+    # 名额 30、token 预算 6000（全量卡片进上下文）。非枚举提问完全不受影响。
+    if enumeration_mode:
+        recall_k = ENUM_RECALL_K
+        ctx_max_items = ENUM_CTX_ITEMS
+        ctx_max_per_doc = 999
+        use_rerank_now = False
+        enum_ctx_cfg = replace(cfg, context_max_tokens=ENUM_CTX_TOKENS)
+    else:
+        use_rerank_now = use_rerank and use_llm
+        recall_k = max(recall_k, cfg.rerank_recall_k) if use_rerank_now else recall_k
+        ctx_max_per_doc = None  # 非枚举：组装时回落到 .env 的 CONTEXT_MAX_PER_DOC
+        enum_ctx_cfg = cfg
     merged_filters = {**qu_filters, **(filters or {})}
     if qu and qu.ok and qu.time_range:
         merged_filters["updated_at"] = qu.time_range  # V3.2 时间感知：按文档时间过滤
@@ -752,7 +770,7 @@ def answer_stream(
     merge_start = now_str()
     t1 = time.time()
     context, used, dropped, merge_notes = build_context(
-        result.retrieved, cfg, max_items=ctx_max_items, max_per_doc=ctx_max_per_doc
+        result.retrieved, enum_ctx_cfg, max_items=ctx_max_items, max_per_doc=ctx_max_per_doc
     )
     result.retrieved = used
     result.context = context
@@ -813,7 +831,8 @@ def answer_stream(
 
     # 节点 ⑩⑪：LLM 调用（Prompt 组装 + 生成回答，合并展示）
     t2 = time.time()
-    messages = build_messages(context, question, history=history)
+    messages = build_messages(context, question, history=history,
+                              enumerate_mode=enumeration_mode)
     llm = get_llm_client()
 
     def _generate():
