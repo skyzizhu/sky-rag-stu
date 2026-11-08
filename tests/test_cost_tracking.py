@@ -58,13 +58,14 @@ class ChatUsageTests(unittest.TestCase):
 
     def test_chat_fills_usage_out(self):
         response = SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="你好"))],
+            choices=[SimpleNamespace(message=SimpleNamespace(content="你好"), finish_reason="stop")],
             usage=SimpleNamespace(prompt_tokens=120, completion_tokens=30, prompt_cache_hit_tokens=20))
         client = make_client_with(lambda **kwargs: response)
         usage = new_usage()
         answer, _ = client.chat([{"role": "user", "content": "hi"}], usage_out=usage)
         self.assertEqual(answer, "你好")
-        self.assertEqual(usage, {"input": 120, "input_cached": 20, "output": 30, "estimated": False})
+        self.assertEqual(usage, {"input": 120, "input_cached": 20, "output": 30,
+                                 "estimated": False, "finish_reason": "stop"})
         self.assertEqual(new_usage(), {"input": 0, "input_cached": 0, "output": 0, "estimated": False})
 
     def test_chat_without_usage_out_unchanged(self):
@@ -88,9 +89,12 @@ class ChatUsageTests(unittest.TestCase):
         self.assertEqual(usage["input"], estimate_tokens("问题" * 10))
         self.assertEqual(usage["output"], estimate_tokens("答案"))
 
-    def _stream_chunks(self, usage=None, text=("你", "好")):
-        chunks = [SimpleNamespace(usage=None, choices=[SimpleNamespace(delta=SimpleNamespace(content=t))])
+    def _stream_chunks(self, usage=None, text=("你", "好"), finish_reason=None):
+        chunks = [SimpleNamespace(usage=None,
+                                  choices=[SimpleNamespace(delta=SimpleNamespace(content=t),
+                                                           finish_reason=None)])
                   for t in text]
+        chunks[-1].choices[0].finish_reason = finish_reason
         chunks.append(SimpleNamespace(usage=usage, choices=[]))  # 末尾 usage-only chunk
         return iter(chunks)
 
@@ -102,7 +106,8 @@ class ChatUsageTests(unittest.TestCase):
         usage = new_usage()
         out = "".join(client.chat_stream([{"role": "user", "content": "q"}], usage_out=usage))
         self.assertEqual(out, "你好")
-        self.assertEqual(usage, {"input": 2000, "input_cached": 500, "output": 300, "estimated": False})
+        self.assertEqual(usage, {"input": 2000, "input_cached": 500, "output": 300,
+                                 "estimated": False, "finish_reason": None})
 
     def test_stream_requests_include_usage_and_retries_without(self):
         """建流时带 stream_options；服务商报 TypeError（不支持）时去掉重试一次。"""
@@ -290,6 +295,66 @@ class EvaluationUsageTests(unittest.TestCase):
         self.assertTrue(payload["ok"], payload.get("error"))
         self.assertEqual(payload["usage"]["input"], 800)
         self.assertEqual(payload["usage"]["output"], 60)
+
+
+class TruncationTests(unittest.TestCase):
+    """输出上限截断检测（finish_reason=length）：采集 + 回答末尾可见提示。"""
+
+    def test_chat_captures_finish_reason(self):
+        response = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="ok"), finish_reason="stop")],
+            usage=SimpleNamespace(prompt_tokens=5, completion_tokens=2))
+        client = make_client_with(lambda **kwargs: response)
+        usage = new_usage()
+        client.chat([{"role": "user", "content": "x"}], usage_out=usage)
+        self.assertEqual(usage["finish_reason"], "stop")
+
+    def test_stream_captures_length_reason(self):
+        chunks = [SimpleNamespace(usage=None,
+                                  choices=[SimpleNamespace(delta=SimpleNamespace(content="半截"),
+                                                           finish_reason=None)]),
+                  SimpleNamespace(usage=None,
+                                  choices=[SimpleNamespace(delta=SimpleNamespace(content="答案"),
+                                                           finish_reason="length")]),
+                  SimpleNamespace(usage=SimpleNamespace(prompt_tokens=9, completion_tokens=4),
+                                  choices=[])]
+        client = make_client_with(lambda **kwargs: iter(chunks))
+        usage = new_usage()
+        "".join(client.chat_stream([{"role": "user", "content": "q"}], usage_out=usage))
+        self.assertEqual(usage["finish_reason"], "length")
+
+
+class PipelineTruncationTests(IngestHarness):
+    """截断时回答末尾追加可见提示 + 追踪面板标记（不静默展示半截答案）。"""
+
+    class LengthCappedLLM:
+        def chat(self, messages, usage_out=None):
+            if usage_out is not None:
+                usage_out.update({"input": 100, "input_cached": 0, "output": 10, "estimated": False})
+            return '[{"id": "C1", "score": 9}]', 0.05
+
+        def chat_stream(self, messages, usage_out=None):
+            if usage_out is not None:
+                usage_out.update({"input": 3000, "input_cached": 0, "output": 2000, "estimated": False,
+                                  "finish_reason": "length"})
+            yield "系统提示词是产品给模型的长期工作指令，和交代"
+
+    def test_truncated_answer_gets_visible_warning(self):
+        from src.pipeline import clear_qa_cache, answer_stream
+        clear_qa_cache()
+        self.use_fakes()
+        self.ingest([self.write_note("提示词工程相关内容。" * 10, "prompt.md")])
+        fake = self.LengthCappedLLM()
+        with mock.patch("src.pipeline.get_llm_client", return_value=fake), \
+             contextlib.redirect_stdout(io.StringIO()):
+            result, deltas = answer_stream("写提示词有哪些技巧？", top_k=5, use_llm=True,
+                                           use_rerank=True, use_query_understanding=False)
+            for _ in deltas:
+                pass
+        self.assertTrue(result.answer.endswith("或换更聚焦的问法。"))
+        self.assertIn("被截断", result.answer)
+        trunc_items = [it for n in result.trace for it in n.get("items", []) if "截断" in str(it[0])]
+        self.assertTrue(trunc_items, "追踪面板应有截断标记")
 
 
 class LocalModelScopeTests(unittest.TestCase):

@@ -988,6 +988,12 @@ def answer_stream(
             record_stage_usage(result, "generation", gen_usage)
             # 思考标签跨 chunk 边界时逐段清洗会漏，回答定稿前对全文再清一次
             cleaned = strip_think_tags(text).strip()
+            truncated = gen_usage.get("finish_reason") == "length"
+            if truncated and cleaned:
+                # 达到输出上限被掐断（思考模型的内部思考也计入上限，枚举模式最易触发）：
+                # 静默展示半截答案会让人以为是完整回答——在末尾追加可见提示
+                cleaned += (f"\n\n> ⚠️ 回答因达到模型输出上限（{cfg.llm_max_tokens} tokens）被截断，内容不完整。"
+                            "可在 .env 调大 `LLM_MAX_TOKENS`，或换更聚焦的问法。")
             result.answer = cleaned or None
             result.elapsed["llm"] = time.time() - t3
             # 总耗时 = 全部节点：Query 理解（LLM 调用）+ 检索/展开/精排/组装 + 生成（LLM 调用）
@@ -1016,7 +1022,8 @@ def answer_stream(
                      f" / 输出 {result.usage.get('output', 0)}"
                      f"{' · 部分为本地估算' if result.usage.get('estimated') else ''}"
                      if result.usage.get("calls") else "（本次未捕获到用量）"),
-                ],
+                ] + ([("⚠️ 截断", f"finish_reason=length：输出达到 max_tokens 上限（{cfg.llm_max_tokens}），"
+                                   "回答不完整；思考模型的内部思考同样计入该上限")] if truncated else []),
             ))
             trace.append(make_node(
                 "🎁", "后处理", time_str=now_str(),

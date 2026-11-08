@@ -140,6 +140,7 @@ class LLMClient:
         if usage_out is not None:
             parsed = parse_usage(getattr(response, "usage", None))
             usage_out.update(parsed or _estimate_usage(messages, answer))
+            usage_out["finish_reason"] = getattr(response.choices[0], "finish_reason", None)
         if self.cfg.debug:
             print(f"    LLM 调用完成：{self.cfg.llm_model}，耗时 {elapsed:.1f} 秒")
         return answer, elapsed
@@ -155,6 +156,7 @@ class LLMClient:
         produced = False
         acc_text = ""  # 本地估算输出 token 用：生成器内部积累的已产出文本
         captured: dict | None = None
+        finish_reason: str | None = None
         try:
             stream = self._create(messages, stream=True, include_usage=usage_out is not None)
             for chunk in stream:
@@ -166,6 +168,9 @@ class LLMClient:
                         captured = parsed
                 if not chunk.choices:
                     continue
+                fr = getattr(chunk.choices[0], "finish_reason", None)
+                if fr:
+                    finish_reason = fr
                 delta = chunk.choices[0].delta.content
                 if delta:
                     clean = self._clean_think_tags(delta)
@@ -186,6 +191,7 @@ class LLMClient:
         finally:
             if usage_out is not None:
                 usage_out.update(captured or _estimate_usage(messages, acc_text))
+                usage_out["finish_reason"] = finish_reason
             if self.cfg.debug:
                 print(f"    LLM 流式调用完成：{self.cfg.llm_model}，耗时 {time.time() - start:.1f} 秒")
 

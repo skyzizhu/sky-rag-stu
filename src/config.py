@@ -51,7 +51,8 @@ class AppConfig:
     llm_base_url: str = field(default_factory=lambda: _env("LLM_BASE_URL"))
     llm_model: str = field(default_factory=lambda: _env("LLM_MODEL"))
     llm_temperature: float = field(default_factory=lambda: _env_float("LLM_TEMPERATURE", 0.2))
-    llm_max_tokens: int = field(default_factory=lambda: _env_int("LLM_MAX_TOKENS", 2000))
+    # 单次回答的输出 token 上限（含思考模型的内部思考；枚举模式答案长，2000 容易被截断）
+    llm_max_tokens: int = field(default_factory=lambda: _env_int("LLM_MAX_TOKENS", 8192))
 
     # 本地向量化（Ollama）
     ollama_url: str = field(default_factory=lambda: _env("OLLAMA_URL", "http://localhost:11434"))
