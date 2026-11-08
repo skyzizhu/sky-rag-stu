@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass
 
 from src.config import AppConfig, get_config
-from src.llm import LLMClient
+from src.llm import LLMClient, new_usage
 from src.query_understanding import _extract_json_object
 
 # 拒答短语：回答里出现这些表述、而上下文其实有卡片时，就是「拒答不一致」可疑信号。
@@ -187,8 +187,12 @@ def judge_dimensions(
     context_text: str,
     llm: LLMClient | None = None,
     config: AppConfig | None = None,
+    usage_out: dict | None = None,
 ) -> tuple[EvalDimension, EvalDimension, EvalDimension]:
-    """LLM 三维评审（一次调用）。任何失败抛出异常，由 run_evaluation 统一降级。"""
+    """LLM 三维评审（一次调用）。任何失败抛出异常，由 run_evaluation 统一降级。
+
+    usage_out：可选，调用后写入本次 token 用量（B16.1 模型消耗统计）。
+    """
     cfg = config or get_config()
     llm = llm or LLMClient(cfg)
     # 附页可能很长，评审只需"足够判断有据性"的篇幅
@@ -198,7 +202,7 @@ def judge_dimensions(
         {"role": "user", "content": _JUDGE_USER_TEMPLATE.format(
             question=question, context=context_text or "（无）", answer=answer)},
     ]
-    raw, _ = llm.chat(messages)
+    raw, _ = llm.chat(messages, usage_out=usage_out)
     data = _extract_json_object(raw)
 
     def _dim(key: str) -> EvalDimension:
@@ -218,6 +222,13 @@ def run_evaluation(result, llm: LLMClient | None = None,
     start = time.time()
     payload: dict = {"ok": False, "error": "", "elapsed": 0.0, "overall": None,
                      "faithfulness": None, "relevance": None, "signals": {}}
+    # 本次提问的全流程耗时（全部节点加总：Query 理解 + 检索/展开/精排/组装 + 生成）：
+    # 来自 result.elapsed（缓存命中时为产生这份答案的原始运行的耗时）
+    _elapsed = getattr(result, "elapsed", {}) or {}
+    payload["timing"] = {"retrieval": float(_elapsed.get("retrieval", 0.0)),
+                         "llm": float(_elapsed.get("llm", 0.0)),
+                         "query_understanding": float(_elapsed.get("query_understanding", 0.0)),
+                         "total": float(_elapsed.get("total", 0.0))}
     try:
         payload["signals"] = compute_signals(result)
         answer = (result.answer or "").strip()
@@ -225,10 +236,12 @@ def run_evaluation(result, llm: LLMClient | None = None,
             payload["error"] = "empty_answer"
             payload["elapsed"] = time.time() - start
             return payload
+        eval_usage = new_usage()
         faith, rel, comp = judge_dimensions(
             result.question or "", answer, getattr(result, "context", "") or "",
-            llm=llm, config=config,
+            llm=llm, config=config, usage_out=eval_usage,
         )
+        payload["usage"] = eval_usage  # 评估自身的调用消耗（与管线用量分开计，缓存命中重评不重复计数）
         payload["faithfulness"] = {"score": faith.score, "band": faith.band, "reason": faith.reason}
         payload["relevance"] = {"score": rel.score, "band": rel.band, "reason": rel.reason}
         payload["completeness"] = {"score": comp.score, "band": comp.band, "reason": comp.reason}
@@ -246,3 +259,27 @@ def run_evaluation(result, llm: LLMClient | None = None,
         payload["error"] = f"{type(exc).__name__}: {exc}"
     payload["elapsed"] = time.time() - start
     return payload
+
+
+def compute_cost(usage: dict, price_in: float, price_in_cached: float, price_out: float) -> float:
+    """按三档单价（元 / 百万 tokens）估算一次消耗的费用。
+
+    usage 形如 {"input", "input_cached", "output", ...}：未命中输入 = input − input_cached。
+    单价为 0 的档位自然计 0（未填单价 = 该段免费显示）。
+    """
+    uncached = max(0, int(usage.get("input", 0)) - int(usage.get("input_cached", 0)))
+    cached = max(0, int(usage.get("input_cached", 0)))
+    out = max(0, int(usage.get("output", 0)))
+    return (uncached / 1_000_000 * price_in + cached / 1_000_000 * price_in_cached
+            + out / 1_000_000 * price_out)
+
+
+def merge_usage(parts: list[dict]) -> dict:
+    """把多次调用的用量合并成一次总计（tokens 相加；任一段为估算则整体标记估算）。"""
+    total = {"input": 0, "input_cached": 0, "output": 0, "estimated": False, "calls": len(parts)}
+    for part in parts:
+        total["input"] += int(part.get("input", 0))
+        total["input_cached"] += int(part.get("input_cached", 0))
+        total["output"] += int(part.get("output", 0))
+        total["estimated"] = total["estimated"] or bool(part.get("estimated"))
+    return total

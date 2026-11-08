@@ -51,7 +51,8 @@ class AppConfig:
     llm_base_url: str = field(default_factory=lambda: _env("LLM_BASE_URL"))
     llm_model: str = field(default_factory=lambda: _env("LLM_MODEL"))
     llm_temperature: float = field(default_factory=lambda: _env_float("LLM_TEMPERATURE", 0.2))
-    llm_max_tokens: int = field(default_factory=lambda: _env_int("LLM_MAX_TOKENS", 2000))
+    # 单次回答的输出 token 上限（含思考模型的内部思考；枚举模式答案长，2000 容易被截断）
+    llm_max_tokens: int = field(default_factory=lambda: _env_int("LLM_MAX_TOKENS", 8192))
 
     # 本地向量化（Ollama）
     ollama_url: str = field(default_factory=lambda: _env("OLLAMA_URL", "http://localhost:11434"))
@@ -97,9 +98,18 @@ class AppConfig:
     default_category: str = field(default_factory=lambda: _env("DEFAULT_CATEGORY", "未分类"))
     debug: bool = field(default_factory=lambda: _env_bool("DEBUG", True))
 
+    @property
+    def llm_is_local(self) -> bool:
+        """当前大模型是否为本地端点（Ollama 等）。
+
+        本地模型不产生 API 费用——模型消耗统计只针对云上 LLM（B16.2）。
+        判定口径与 validate_llm 保持一致。
+        """
+        return "localhost" in self.llm_base_url or "127.0.0.1" in self.llm_base_url
+
     def validate_llm(self) -> None:
         """用到云端大模型前检查配置是否齐全，缺什么直接说清楚。"""
-        is_local = "localhost" in self.llm_base_url or "127.0.0.1" in self.llm_base_url
+        is_local = self.llm_is_local
         missing = [
             name
             for name, value in (

@@ -21,7 +21,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.app_settings import SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
+from src.app_settings import PRICE_DEFAULTS, SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
 from src import auth_client  # noqa: E402  # V3.7 登录/注册/偏好（FastAPI 认证服务 8700）
 from src import auth_db  # noqa: E402  # V3.7 部门列表（上传可见性选项）
 from src.permissions import visible_groups, write_group_options  # noqa: E402  # V3.8 权限规则
@@ -63,7 +63,7 @@ from src.upload_plan import (  # noqa: E402  # V3.8 上传/目录导入的重复
     KIND_SAME_PATH, NEW, NEW_VERSION, SKIP, VERSION_OF, content_hash, execute_uploads,
     plan_uploads, write_directory_import,
 )
-from src.answer_evaluator import run_evaluation  # noqa: E402
+from src.answer_evaluator import compute_cost, merge_usage, run_evaluation  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import (
     SESSIONS_DIR,
@@ -89,6 +89,9 @@ st.session_state.setdefault("query_understanding", cfg.query_understanding)
 st.session_state.setdefault("session_id", new_session_id())
 st.session_state.setdefault("theme", "system")  # system / light / dark
 st.session_state.setdefault("language", FOLLOW_SYSTEM)  # system / zh-CN / zh-TW / en / ja
+# 模型单价（元 / 百万 tokens）：费用估算用，默认 DeepSeek 官方价，可在检索设置里改
+for _price_key, _price_default in PRICE_DEFAULTS.items():
+    st.session_state.setdefault(_price_key, _price_default)
 
 
 @st.dialog(t("dialog.delete_session.title"), width="small")
@@ -1100,10 +1103,12 @@ def auth_gate() -> bool:
     st.stop()
 
 
-def _render_eval_card(evaluation: dict) -> None:
-    """V3.6 回答质量评估卡片：LLM 两维评审（分档展示）+ 结构信号。
+def _render_eval_card(evaluation: dict, usage: dict | None = None) -> None:
+    """V3.6 回答质量评估卡片：LLM 两维评审（分档展示）+ 结构信号 + 模型消耗。
 
     评分只分档不做精确阈值——LLM 打分有波动（与精排同一教训），分档更稳。
+    usage：本次回答的管线用量（Query 理解/精排/生成合计，缓存命中=原始运行）；
+    评估自身的用量在 evaluation["usage"]（缓存命中会重跑评估，分开计避免重复）。
     """
     with st.expander(t("eval.title"), expanded=False):
         bands = {"good": ("good", "green"), "mid": ("mid", "amber"), "poor": ("poor", "red")}
@@ -1160,8 +1165,52 @@ def _render_eval_card(evaluation: dict) -> None:
                            total=cite.get("total", 0)))
         ref = signals.get("refusal") or {}
         lines.append(t(f"eval.signal.refusal.{ref.get('state', 'normal')}"))
+        timing = evaluation.get("timing") or {}
+        if timing.get("total"):
+            lines.append(t("eval.signal.timing", total=f"{timing['total']:.1f}",
+                           qu=f"{timing.get('query_understanding', 0.0):.1f}",
+                           retrieval=f"{timing.get('retrieval', 0.0):.1f}",
+                           llm=f"{timing.get('llm', 0.0):.1f}"))
         for line in lines:
             st.markdown(line)
+
+        # —— 💰 模型消耗（B16.1）：管线用量 + 评估用量，费用按当前单价即时计算 ——
+        # 只统计云上 LLM：本地模型（Ollama 等本机端点）不产生费用，不显示消耗区块
+        if cfg.llm_is_local:
+            return
+        stages: dict = dict(usage.get("stages") or {}) if usage else {}
+        if evaluation.get("usage"):
+            stages["evaluation"] = evaluation["usage"]
+        if not stages:
+            return
+        total = merge_usage(list(stages.values()))
+        prices = tuple(float(st.session_state.get(key, PRICE_DEFAULTS.get(key, 0.0)))
+                       for key in ("llm_price_input", "llm_price_input_cached", "llm_price_output"))
+        cost = compute_cost(total, *prices)
+        st.markdown(f"**{t('eval.cost.title')}**")
+        price_part = t("eval.cost.price", cost=f"{cost:.4f}") if any(prices) else ""
+        st.markdown(t("eval.cost.total", calls=total["calls"], inp=f"{total['input']:,}",
+                      cached=f"{total['input_cached']:,}", out=f"{total['output']:,}",
+                      cost_part=price_part),
+                    unsafe_allow_html=True)
+        stage_names = (("query_understanding", "eval.cost.stage.qu"), ("rerank", "eval.cost.stage.rerank"),
+                       ("generation", "eval.cost.stage.generation"), ("evaluation", "eval.cost.stage.evaluation"))
+        stage_lines = []
+        for stage_key, name_key in stage_names:
+            part = stages.get(stage_key)
+            if not part:
+                continue
+            part_cost = compute_cost(part, *prices)
+            stage_lines.append(t("eval.cost.stage.line", name=t(name_key),
+                                 inp=f"{part.get('input', 0):,}", out=f"{part.get('output', 0):,}",
+                                 cost=f"{part_cost:.4f}"))
+        if stage_lines:
+            st.markdown("<div class='chunk-quote'>" + "<br>".join(stage_lines) + "</div>",
+                        unsafe_allow_html=True)
+        if total.get("estimated"):
+            st.caption(t("eval.cost.estimated"))
+        if not any(prices):
+            st.caption(t("eval.cost.price_hint"))
 
 
 def show_answer_sources(result) -> None:
@@ -1193,7 +1242,7 @@ def show_answer_sources(result) -> None:
             st.write("")
 
         # V3.5 一键复制
-        st.code(t("sources.copy_answer") + "\n" + (result.answer or ""), language=None)
+        # 下方不再重复显示回答全文（上方回答气泡已有）；仅保留来源清单的复制
         st.code(t("sources.copy_list") + "\n" + "\n".join(
             f"[{s['rank']}] {s['source']}（{t('sources.relevance')} {s['score']:.3f}）"
             + (t("sources.section", v=s["section"]) if s.get("section") else "")
@@ -1243,7 +1292,7 @@ def show_answer_sources(result) -> None:
     # 新回答的评估计算在问答流程里完成并挂到 result.evaluation 后才会出现在这里，
     # 历史消息重绘时直接展示已算好的结果，不重新调用 LLM
     if getattr(result, "evaluation", None):
-        _render_eval_card(result.evaluation)
+        _render_eval_card(result.evaluation, usage=getattr(result, "usage", None))
 
 
 # ---------------------------------------------------------------- 页面 1：知识库问答
@@ -2210,6 +2259,31 @@ def page_retrieval_settings():
               on_change=_sync_setting("debug_mode", "set_debug"))
 
 
+def page_model_config():
+    """模型配置页（B16.2）：当前模型信息 + 模型单价（评估卡片的费用估算用）。"""
+    require_perm('retrieval_settings')
+    st.markdown(f'<div class="section-title">{t("set.model.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("set.model.caption"))
+    badge = t("set.model.local") if cfg.llm_is_local else t("set.model.cloud")
+    st.markdown(t("set.model.current", model=cfg.llm_model or "-", badge=badge),
+                unsafe_allow_html=True)
+    if cfg.llm_is_local:
+        st.caption(t("set.model.local_note"))
+
+    # 模型单价（B16.1 模型消耗统计）：只影响评估卡片里的费用估算，不影响任何调用
+    st.markdown(f'<div class="section-title">{t("set.price.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("set.price.caption"))
+    for canonical, widget, label_key, help_key in (
+        ("llm_price_input", "set_price_input", "set.price.input", "set.price.input.help"),
+        ("llm_price_input_cached", "set_price_input_cached", "set.price.input_cached", None),
+        ("llm_price_output", "set_price_output", "set.price.output", None),
+    ):
+        st.number_input(t(label_key), min_value=0.0, max_value=100000.0, step=0.1, format="%.2f",
+                        value=float(st.session_state[canonical]), key=widget,
+                        on_change=_sync_setting(canonical, widget),
+                        help=t(help_key) if help_key else None)
+
+
 # ---------------------------------------------------------------- 页面 6：维护操作
 def page_maintenance():
     st.markdown(f'<div class="section-title">{t("maint.title")}</div>', unsafe_allow_html=True)
@@ -2558,6 +2632,7 @@ manage_page = st.Page(page_manage, title=t("nav.manage"), icon="🗂", url_path=
 domains_page = st.Page(page_domains, title=t("nav.domains"), icon="🧭", url_path="domains")
 general_page = st.Page(page_general_settings, title=t("nav.general"), icon="⚙️", url_path="settings-general")
 retrieval_page = st.Page(page_retrieval_settings, title=t("nav.retrieval"), icon="🔍", url_path="settings-retrieval")
+model_page = st.Page(page_model_config, title=t("nav.model"), icon="🤖", url_path="settings-model")
 maintenance_page = st.Page(page_maintenance, title=t("nav.maintenance"), icon="🧹", url_path="settings-maintenance")
 status_page = st.Page(page_system_status, title=t("nav.status"), icon="📊", url_path="settings-status")
 params_page = st.Page(page_params_overview, title=t("nav.params"), icon="🧾", url_path="settings-params")
@@ -2577,6 +2652,7 @@ if "domains" in _user_perms:  # V3.8 领域管理：独立权限（管理后台�
 settings_pages = [general_page]
 if "retrieval_settings" in _user_perms:
     settings_pages.append(retrieval_page)
+    settings_pages.append(model_page)
 # 维护操作页人人可达（页内"知识库维护"区块按权限显隐；缓存管理是个人功能）
 settings_pages.append(maintenance_page)
 settings_pages.extend([status_page, params_page])

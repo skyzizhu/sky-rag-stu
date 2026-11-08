@@ -26,7 +26,14 @@ SETTINGS_KEYS = [
     "theme",
     "language",
     "installed_plugins",
+    # 模型单价（元 / 百万 tokens，B16.1 费用估算用；默认 DeepSeek 官方价，可按服务商价目表改）
+    "llm_price_input",
+    "llm_price_input_cached",
+    "llm_price_output",
 ]
+
+# 单价默认值（与 app.py 的 setdefault 保持一致；settings.json 未写该键时生效）
+PRICE_DEFAULTS = {"llm_price_input": 2.0, "llm_price_input_cached": 0.2, "llm_price_output": 8.0}
 
 
 def _normalize_choices(settings: dict) -> dict:
@@ -66,6 +73,12 @@ def _normalize_choices(settings: dict) -> dict:
     tk = settings.get("top_k")
     if tk is not None and (not isinstance(tk, int) or isinstance(tk, bool) or not 1 <= tk <= 10):
         settings.pop("top_k")
+    # 模型单价：非负数字（bool 是 int 子类，要排除），否则移除（回退默认单价）
+    for key in ("llm_price_input", "llm_price_input_cached", "llm_price_output"):
+        price = settings.get(key)
+        if price is not None and (isinstance(price, bool) or not isinstance(price, (int, float))
+                                  or not 0 <= price <= 100000):
+            settings.pop(key)
     # theme / language：白名单
     if settings.get("theme") not in (None, "system", "light", "dark"):
         settings.pop("theme")
