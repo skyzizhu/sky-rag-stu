@@ -9,12 +9,43 @@
 
 from __future__ import annotations
 
+import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from src import auth_db
+
+
+def isolate_app_settings(language: str = "system"):
+    """AppTest 隔离：把 src.app_settings 的读写路径指到临时 settings.json。
+
+    app.py 经 Streamlit AppTest 在测试进程内真实执行，会读取（且界面交互会写入）
+    项目根目录的真实 settings.json——不隔离时测试结果取决于开发者本机的
+    界面语言等设置（曾导致 6 个界面用例在英文界面下失败）。
+
+    返回 stop 函数：调用后解除 patch 并清理临时目录。
+    用法（setUp 里）：stop = isolate_app_settings(); self.addCleanup(stop)
+    """
+    from src import app_settings
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="sky-test-settings-"))
+    tmp = tmp_dir / "settings.json"
+    tmp.write_text(json.dumps({"language": language, "theme": "system"},
+                              ensure_ascii=False), encoding="utf-8")
+    p1 = mock.patch.object(app_settings, "SETTINGS_PATH", tmp)
+    p2 = mock.patch.object(app_settings, "_LEGACY_PATH", tmp_dir / "legacy.json")
+    p1.start()
+    p2.start()
+
+    def stop() -> None:
+        p2.stop()
+        p1.stop()
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    return stop
 
 
 class TempAuthDB(unittest.TestCase):

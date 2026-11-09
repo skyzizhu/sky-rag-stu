@@ -15,7 +15,7 @@ from unittest import mock
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from tests._helpers import IngestHarness
+from tests._helpers import IngestHarness, isolate_app_settings
 
 APP = str(Path(__file__).resolve().parent.parent / "app.py")
 _real_page = st.Page
@@ -43,6 +43,8 @@ class UploadPageFlowTests(IngestHarness):
         super().setUp()
         st.cache_resource.clear()
         st.cache_data.clear()
+        # 界面语言等设置隔离到临时文件：测试不再受开发者本机 settings.json 影响
+        self.addCleanup(isolate_app_settings())
         self.uploads: list[_FakeUpload] = []
         for p in (
             mock.patch("src.config.get_config", return_value=self.cfg),

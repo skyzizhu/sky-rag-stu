@@ -15,6 +15,7 @@ from streamlit.testing.v1 import AppTest
 
 from src.i18n import LANGUAGE_ORDER, _CATALOG
 from src.vector_store import VectorStoreError
+from tests._helpers import isolate_app_settings
 
 APP = str(Path(__file__).resolve().parent.parent / "app.py")
 BOOT = {"has_users": True, "has_admins": True, "departments": [{"id": 1, "name": "hr"}]}
@@ -27,14 +28,18 @@ def _qdrant_down(*_args, **_kwargs):
 
 class LoginPageWithoutVectorStoreTests(unittest.TestCase):
     def _run(self, auth_user: dict | None = None) -> AppTest:
-        with mock.patch("src.vector_store.VectorStore.__init__", _qdrant_down), \
-             mock.patch("src.auth_client.bootstrap", return_value=BOOT), \
-             mock.patch("src.auth_client.get_prefs", return_value={}):
-            at = AppTest.from_file(APP, default_timeout=90)
-            at.query_params["rip"] = "1"  # 跳过登录门的 IP 探测 iframe
-            if auth_user:
-                at.session_state["auth_user"] = auth_user
-            at.run()
+        stop_settings = isolate_app_settings()
+        try:
+            with mock.patch("src.vector_store.VectorStore.__init__", _qdrant_down), \
+                 mock.patch("src.auth_client.bootstrap", return_value=BOOT), \
+                 mock.patch("src.auth_client.get_prefs", return_value={}):
+                at = AppTest.from_file(APP, default_timeout=90)
+                at.query_params["rip"] = "1"  # 跳过登录门的 IP 探测 iframe
+                if auth_user:
+                    at.session_state["auth_user"] = auth_user
+                at.run()
+        finally:
+            stop_settings()
         return at
 
     def test_visitor_sees_login_form_when_qdrant_down(self):
