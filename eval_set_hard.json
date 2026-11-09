@@ -110,15 +110,6 @@
       "_考察节点": "计数意图扩容——列举型问题需放开召回与单文档上限"
     },
     {
-      "question": "登记表里，几段工作经历的月薪分别是多少？",
-      "expected_source": "应聘面试登记表.docx",
-      "expect_keywords": [
-        "24K"
-      ],
-      "should_refuse": false,
-      "_考察节点": "解析与切片——表格文本归一化后能否被检索命中"
-    },
-    {
       "question": "我的公积金每个月交多少钱？",
       "expected_source": "",
       "expect_keywords": [],

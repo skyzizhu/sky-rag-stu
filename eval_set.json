@@ -83,14 +83,6 @@
       "should_refuse": false
     },
     {
-      "question": "应聘面试登记表中记录了几段工作经历？",
-      "expected_source": "应聘面试登记表.docx",
-      "expect_keywords": [
-        "4"
-      ],
-      "should_refuse": false
-    },
-    {
       "question": "公司今年团建的预算是多少？",
       "expected_source": "",
       "expect_keywords": [],

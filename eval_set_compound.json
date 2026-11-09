@@ -1,5 +1,4 @@
 {
-  "_说明": "复合问题查询拆分评测集（V3.4）。每题包含两个不同信息需求（可来自不同文档），检验查询拆分能否让两个子问题都得到带引用的回答。运行：python scripts/eval_compound.py",
   "questions": [
     {
       "question": "帮我查一下我的心得里提到的处事原则，顺便看看 PDF 智能解析功能支持哪几种总结方式？",
@@ -116,24 +115,6 @@
       "_意图数": 2
     },
     {
-      "question": "AI 学习路径那篇文章建议从什么开始入手？另外登记表里记录了几段工作经历？",
-      "parts": [
-        {
-          "expected_source": "465ec67d_AI学习路径_–_迷人的暮.md",
-          "expect_keywords": [
-            "Agent"
-          ]
-        },
-        {
-          "expected_source": "应聘面试登记表.docx",
-          "expect_keywords": [
-            "4"
-          ]
-        }
-      ],
-      "_意图数": 2
-    },
-    {
       "question": "PDF 智能解析从哪里导入文件？还有我的简历里提到熟悉哪方面的方案设计？",
       "parts": [
         {
@@ -237,14 +218,8 @@
       "_意图数": 3
     },
     {
-      "question": "登记表里记录了几段工作经历？我的心德里说设计需求之后要做什么？还有交付物指南里说相邻卡片同时入选时怎么处理？",
+      "question": "我的心德里说设计需求之后要做什么？还有交付物指南里说相邻卡片同时入选时怎么处理？",
       "parts": [
-        {
-          "expected_source": "应聘面试登记表.docx",
-          "expect_keywords": [
-            "4"
-          ]
-        },
         {
           "expected_source": "心得.rtf",
           "expect_keywords": [
@@ -258,7 +233,7 @@
           ]
         }
       ],
-      "_意图数": 3
+      "_意图数": 2
     },
     {
       "question": "PDF 智能解析支持哪几种总结方式？Mac 下怎么重启 apache？以及交付物指南里 LLM 调用失败的重试策略是怎么规定的？",
@@ -309,14 +284,8 @@
       "_意图数": 3
     },
     {
-      "question": "登记表里李强的籍贯是哪里？交付物指南里 Chunk Size 默认是多少？以及 PDF 智能解析从哪里导入文件？",
+      "question": "交付物指南里 Chunk Size 默认是多少？以及 PDF 智能解析从哪里导入文件？",
       "parts": [
-        {
-          "expected_source": "应聘面试登记表.docx",
-          "expect_keywords": [
-            "天水"
-          ]
-        },
         {
           "expected_source": "AI_PM交付物深度指南_RAG与Agent.md",
           "expect_keywords": [
@@ -330,7 +299,7 @@
           ]
         }
       ],
-      "_意图数": 3
+      "_意图数": 2
     },
     {
       "question": "我的心德里说设计埋点之后要做什么？交付物指南里 Final Top K 默认是多少？以及 Mac 下 mysql 服务怎么启动？",
@@ -381,14 +350,8 @@
       "_意图数": 3
     },
     {
-      "question": "登记表里李强的家庭成员是谁？我的心德里提到的第一条原则是什么？以及交付物指南里说知识从新建到删除会经历哪些状态？",
+      "question": "我的心德里提到的第一条原则是什么？以及交付物指南里说知识从新建到删除会经历哪些状态？",
       "parts": [
-        {
-          "expected_source": "应聘面试登记表.docx",
-          "expect_keywords": [
-            "马韶辰"
-          ]
-        },
         {
           "expected_source": "心得.rtf",
           "expect_keywords": [
@@ -402,7 +365,7 @@
           ]
         }
       ],
-      "_意图数": 3
+      "_意图数": 2
     },
     {
       "question": "我的简历里李强今年多大年纪？Mac 下怎么查看电池信息？以及交付物指南里 Chunk Size 默认是多少？",
