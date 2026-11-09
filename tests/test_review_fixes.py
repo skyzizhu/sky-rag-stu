@@ -155,7 +155,12 @@ class ExpandDominantDocumentsTests(IngestHarness):
     def setUp(self) -> None:
         super().setUp()
         self.use_fakes()
-        sections = "\n".join(f"### 功能 {i:02d}\n这是功能 {i:02d} 的独立说明，编号 {i}。" for i in range(1, 13))
+        # 每节正文 ~420 字：相邻两节合计 >600 → 短小节合并不生效，12 节仍各自成卡
+        # （短小节合并是 2026-11-08 切片规则；本类测的是展开逻辑，需要多卡文档）
+        sections = "\n".join(
+            f"### 功能 {i:02d}\n这是功能 {i:02d} 的独立说明，编号 {i}，"
+            f"包含核心能力、适用场景与使用限制。" * 12
+            for i in range(1, 13))
         big = self.knowledge / "learning" / "general" / "features.md"
         big.write_text(f"# 产品功能\n\n{sections}\n", encoding="utf-8")
         self.ingest([big, self.write_note("一篇无关的笔记。" * 20, "other.md")])

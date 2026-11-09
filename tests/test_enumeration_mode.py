@@ -57,14 +57,18 @@ class EnumerationChannelTests(IngestHarness):
         self.assertTrue(all(s["domain"] == "learning" for s in result.sources))
 
     def test_pool_covers_full_document_at_recall_stage(self):
-        """召回池（枚举模式 50）≥ 单文档 24 卡：池子在召回阶段就装得下全量。"""
+        """召回池（枚举模式 50）覆盖全文档：24 节碎小节经短小节合并（≤600）压成
+        少数几张卡，池子装得下全部卡片。"""
         self.ingest_feature_doc(24)
-        # 直接断言召回层（绕过组装）也能取出超过旧上限 10 的卡片数
+        # 直接断言召回层（绕过组装）也能取出全部合并后的卡片
         from src.retriever import get_retriever, effective_filters
-        items = get_retriever().retrieve("功能", top_k=30,
+        items = get_retriever().retrieve("功能", top_k=50,
                                          filters=effective_filters({"domain": "learning"}),
                                          use_hybrid=False)
-        self.assertGreaterEqual(len(items), 24)
+        self.assertGreaterEqual(len(items), 2)  # 24 节合并后约 2 张卡
+        joined = "".join(it.text for it in items)
+        for i in range(1, 25):
+            self.assertIn(f"功能 {i:02d}", joined, f"功能 {i} 缺失")
 
     def test_non_enumeration_unchanged_top5_perdoc3(self):
         """普通提问（非列举）：仍是 Top 5、同文档 ≤ 3——现状不劣化。"""

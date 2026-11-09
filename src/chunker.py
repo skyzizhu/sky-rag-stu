@@ -73,17 +73,28 @@ def _split_by_sections(text: str) -> list[tuple[str | None, str | None, str]]:
     """按 Markdown 标题切章节。返回 [(章节名, 章节路径, 章节正文), ...]。
 
     章节路径形如「RAG > Metadata > Metadata Filter」，章节名是最后一级标题。
+    兼容入口：不带标题行、不做短小节合并的原始三段式；切片主流程用 _split_by_sections_raw。
     """
-    sections: list[tuple[str | None, str | None, str]] = []
+    return [(leaf, path, body) for leaf, path, _line, body in _split_by_sections_raw(text)]
+
+
+def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str, str]]:
+    """按 Markdown 标题切章节（原始版）。
+
+    返回 [(章节名, 章节路径, 标题行原文, 章节正文), ...]——标题行原文供
+    短小节合并时回注（合并后正文里不能丢掉各子块的小标题）。
+    """
+    sections: list[tuple[str | None, str | None, str, str]] = []
     heading_stack: dict[int, str] = {}
     current_leaf: str | None = None
     current_path: str | None = None
+    current_heading_line: str | None = None
     buffer: list[str] = []
 
     def flush() -> None:
         body = "\n".join(buffer).strip()
         if body:
-            sections.append((current_leaf, current_path, body))
+            sections.append((current_leaf, current_path, current_heading_line or "", body))
 
     for line in text.split("\n"):
         match = _HEADING_RE.match(line)
@@ -96,16 +107,78 @@ def _split_by_sections(text: str) -> list[tuple[str | None, str | None, str]]:
                 del heading_stack[deeper]
             current_path = " > ".join(heading_stack[k] for k in sorted(heading_stack))
             current_leaf = heading_stack[max(heading_stack)]
+            current_heading_line = line.strip()
         else:
             buffer.append(line)
     flush()
     return sections
 
 
+def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str]],
+                          max_chars: int) -> list[tuple[str | None, str | None, str, str]]:
+    """相邻短小节合并（2026-11-08）：合计不超过单卡容量就合成一个切片单元。
+
+    病灶（实测）：网页清洗器把每个视觉块当独立小节——Xtools 价格区 5 个碎块
+    （53~159 字）各自成卡，远低于 600 容量，名额竞争下问年费会漏答。
+    规则：连续的小节从头累加，加上下一节会超容量就封组开新组；
+    组内章节名/路径取第一节，各子节标题行原文回注正文（合并后小标题不能丢）。
+    单节自己就超容量的不参与合并（保持独立，交给打包阶段硬切）。
+    """
+    if max_chars <= 0 or not sections:
+        return sections
+    merged: list[tuple[str | None, str | None, str, str]] = []
+    group: list[tuple[str | None, str | None, str, str]] = []
+    group_size = 0
+
+    def flush_group() -> None:
+        if not group:
+            return
+        if len(group) == 1:  # 没有发生合并：保持原样（正文不含标题行，行为不变）
+            leaf, path, _line, body = group[0]
+            merged.append((leaf, path, _line, body))
+            return
+        leaf, path = group[0][0], group[0][1]
+        body = "\n\n".join(f"{line}\n{sec_body}" for _leaf, _path, line, sec_body in group)
+        merged.append((leaf, path, group[0][2], body))
+
+    for section in sections:
+        section_size = len(section[2]) + len(section[3])
+        if group and group_size + section_size > max_chars:
+            flush_group()
+            group, group_size = [], 0
+        group.append(section)
+        group_size += section_size
+    flush_group()
+    return merged
+
+
+# 列表型页面的条目标题行：「18，mac笔记本查看电池耗损度：」——
+# 数字编号 + 顿号/逗号开头、冒号结尾、不超长（IP 行「127.0.0.1 xxx」以点分隔，不匹配）
+_ITEM_TITLE_LINE = re.compile(r"^\d{1,3}[，、]\s*\S.*[：:]\s*$")
+
+
 def _split_paragraphs(text: str) -> list[str]:
-    """按空行切段落，段落内部的单个换行保留。"""
-    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
-    return paragraphs
+    """按空行切段落，段落内部的单个换行保留。
+
+    切段后追加一步：段落内部若嵌着「编号标题行」（列表型页面整页无空行时，
+    全文是一个巨型段落），在标题行处把段落拆开——让每个条目的标题与内容
+    回到同一个块，容量边界只会落在条目之间，不再把条目从中间切断。
+    """
+    paragraphs: list[str] = []
+    for para in re.split(r"\n\s*\n", text):
+        para = para.strip()
+        if not para:
+            continue
+        current: list[str] = []
+        for line in para.split("\n"):
+            if current and _ITEM_TITLE_LINE.match(line.strip()):
+                paragraphs.append("\n".join(current).strip())
+                current = [line]
+            else:
+                current.append(line)
+        if current:
+            paragraphs.append("\n".join(current).strip())
+    return [p for p in paragraphs if p]
 
 
 def _hard_split_long_text(text: str, size: int, overlap: int) -> list[str]:
@@ -128,6 +201,36 @@ def _hard_split_long_text(text: str, size: int, overlap: int) -> list[str]:
     if buffer.strip():
         pieces.append(buffer)
     return pieces
+
+
+def _is_title_paragraph(block: str) -> bool:
+    """识别「标题段」：短、以冒号结尾（如「18，mac笔记本查看电池耗损度：终端：」）。
+
+    列表型网页的条目标题是独立段落；切片按段落装卡时，这样的标题段容易被
+    留在上一张卡的末尾，而它的正文段进了下一张卡——模型只见标题不见内容。
+    """
+    return 0 < len(block.strip()) <= 60 and block.strip().endswith(("：", ":"))
+
+
+def _bind_title_paragraphs(blocks: list[str], size: int) -> list[str]:
+    """标题段绑定正文段（2026-11-08）：标题段与下一段合成一个打包单元。
+
+    无条件绑定：合体超过单卡容量时由既有硬切逻辑兜底（按句子切，标题仍在首片），
+    保证「标题永远和它的内容在一起」，不出现只见标题不见正文。
+    """
+    _ = size  # 预留：若未来要限制合体长度，用 size 判断
+    bound: list[str] = []
+    i = 0
+    while i < len(blocks):
+        block = blocks[i]
+        if (_is_title_paragraph(block) and i + 1 < len(blocks)
+                and not _is_title_paragraph(blocks[i + 1])):
+            bound.append(f"{block}\n\n{blocks[i + 1]}")
+            i += 2
+            continue
+        bound.append(block)
+        i += 1
+    return bound
 
 
 def _pack_with_overlap(blocks: list[str], size: int, overlap: int) -> list[str]:
@@ -176,8 +279,10 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
 
     chunks: list[Chunk] = []
     for page_start, page_text in _split_by_pages(doc.text):
-        for section_leaf, section_path, section_text in _split_by_sections(page_text):
-            for piece in _pack_with_overlap(_split_paragraphs(section_text), size, overlap):
+        sections = _merge_short_sections(_split_by_sections_raw(page_text), max_chars=size)
+        for section_leaf, section_path, _heading_line, section_text in sections:
+            paragraphs = _bind_title_paragraphs(_split_paragraphs(section_text), size)
+            for piece in _pack_with_overlap(paragraphs, size, overlap):
                 piece = piece.strip()
                 if not piece:
                     continue
