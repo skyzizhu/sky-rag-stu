@@ -14,6 +14,7 @@ import unittest
 from unittest import mock
 
 from src.pipeline import query_evidence
+from src.metadata import build_document_metadata
 from tests._helpers import IngestHarness
 
 
@@ -57,6 +58,43 @@ class QueryEvidenceTests(IngestHarness):
         self.assertEqual(meta["coverage"], "partial")
 
 
+class MetadataFieldsTests(unittest.TestCase):
+    """V3.9 元数据补字段：effective_date（FM 声明）与 owner（入库人，入库时写入）。"""
+
+    def test_effective_date_from_front_matter(self):
+        meta = build_document_metadata(
+            relative_path="reference/general/a.md", source="a.md", file_type="md",
+            title_hint=None, created_at=None, updated_at=None,
+            front_matter={"effective_date": "2026-01-01"})
+        self.assertEqual(meta["effective_date"], "2026-01-01")
+
+    def test_effective_date_default_empty(self):
+        """缺省为空，不造假数据（生效日期是制度性信息，宁缺勿错）。"""
+        meta = build_document_metadata(
+            relative_path="reference/general/a.md", source="a.md", file_type="md",
+            title_hint=None, created_at=None, updated_at=None, front_matter={})
+        self.assertEqual(meta["effective_date"], "")
+
+    def test_ingest_owner_lands_in_payload(self):
+        """入库人写入每张卡的 payload（审计与溯源依据）。"""
+
+        class V(IngestHarness):
+            def runTest(self):
+                pass
+
+        v = V("runTest")
+        v.setUp()
+        v.use_fakes()
+        p = v.knowledge / "learning" / "general" / "owned.md"
+        p.write_text("# 有主文档\n\n正文内容。\n", encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            v.ingest([p], owner="alice")
+        from src.vector_store import get_vector_store
+        cards = get_vector_store().get_all_cards(filters={"source": "owned.md"})
+        self.assertGreaterEqual(len(cards), 1)
+        self.assertTrue(all(c["payload"].get("owner") == "alice" for c in cards))
+
+
 class McpDocumentToolsTests(IngestHarness):
     """get_document / list_documents：按权限取全文/分页片段/枚举目录。"""
 
@@ -81,6 +119,13 @@ class McpDocumentToolsTests(IngestHarness):
         from src import mcp_server
         with contextlib.redirect_stdout(io.StringIO()):
             return json.loads(getattr(mcp_server, fn)(*args, **kwargs))
+
+    def test_knowledge_search_exposes_coverage_and_document_id(self):
+        """查询模式响应：coverage 粗判定 + matches 带 document_id（get_document 入口）。"""
+        payload = self._call("knowledge_search", "功能 01 的说明", top_k=3)
+        self.assertIn(payload["coverage"], ("not_found", "partial", "unknown"))
+        self.assertTrue(all("document_id" in m and "version" in m
+                            for m in payload["matches"]))
 
     def test_get_document_full_stitches_all_fragments(self):
         payload = self._call("get_document", self.document_id, mode="full")
@@ -107,6 +152,17 @@ class McpDocumentToolsTests(IngestHarness):
              contextlib.redirect_stdout(io.StringIO()):
             denied = json.loads(mcp_server.get_document(self.document_id))
         self.assertTrue(denied.get("refused"))
+
+    def test_document_access_is_audited(self):
+        """合规（方案 §9.2）：文档读取与目录枚举必须落审计（谁在何时看了什么）。"""
+        from src import auth_db, mcp_server
+        with mock.patch.object(auth_db, "log_doc_access") as mlog, \
+             contextlib.redirect_stdout(io.StringIO()):
+            self._call("get_document", self.document_id, mode="full")
+            self._call("list_documents")
+        actions = [c.kwargs.get("action") for c in mlog.call_args_list]
+        self.assertIn("read_document", actions)
+        self.assertIn("list_documents", actions)
 
     def test_list_documents_filters_by_permission_and_domain(self):
         payload = self._call("list_documents")

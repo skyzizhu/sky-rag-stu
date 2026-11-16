@@ -1430,6 +1430,15 @@ elapsed、usage）+ `evidence_meta`。QAResult 新增 `enumeration` 字段（本
 两种 MCP_MODE 下都注册。全量测试 254 个通过；真实库冒烟：search→document_id→get_document 全文（4234 字）、
 list_documents 12 个文档全部正确。
 
+**V3.9 第二批补齐（同批落地）**：
+
+- **coverage 暴露**：knowledge_search 响应新增 `coverage` 字段（not_found/partial/unknown）——
+  Agent 拿到清单时同时知道"可信到什么程度"，据此决定继续追问、换词重搜还是标记待确认；
+- **文档访问审计**：auth.db 新表 `doc_access_logs`（username/entry/action/document_id/source/detail/时间），
+  get_document（read_document）与 list_documents（list_documents）调用即记录——补齐 §9.2
+  "谁在哪次操作中看到了哪篇知识"的合规追溯；qa_logs.sources 已覆盖检索命中，本表只补文档级访问；
+- **审计与测试**：真实库冒烟 coverage='unknown'、审计表落行 ✅；测试 259 个通过。
+
 ## 工具描述的四层行为契约（本项目最值得复盘的实践）
 
 MCP 工具的 `description` 会通过 `tools/list` 下发给每一个接入的 Agent，

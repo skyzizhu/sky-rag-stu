@@ -267,6 +267,7 @@ def knowledge_search(
     return json.dumps(
         {
             "query": question.strip(),
+            "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
             "matches": [
                 {
                     "rank": i,
@@ -370,6 +371,17 @@ def get_document(document_id: str, page: int = 1, page_size: int = 5,
     cards.sort(key=_seq)
     meta = cards[0]["payload"]
 
+    from src import auth_db
+    user = _request_user.get() or {}
+    try:
+        auth_db.log_doc_access(username=_current_username(),
+                               department=str(user.get("department") or ""),
+                               entry=_ENTRY, action="read_document",
+                               document_id=document_id,
+                               source=str(meta.get("source") or ""),
+                               detail={"mode": mode, "cards": len(cards)})
+    except Exception:
+        pass  # 审计失败不影响取数
     if mode == "full":
         run = [RetrievedItem(rank=i, score=0.0, text=c["payload"]["text"],
                              metadata={k: v for k, v in c["payload"].items() if k != "text"})
@@ -377,6 +389,8 @@ def get_document(document_id: str, page: int = 1, page_size: int = 5,
         full = _merge_run(run)
         return json.dumps(
             {"document_id": document_id, "source": meta.get("source"),
+             "title": meta.get("title"), "owner": meta.get("owner"),
+             "effective_date": meta.get("effective_date"),
              "domain": meta.get("domain"), "category": meta.get("category"),
              "version": meta.get("version"), "total_cards": len(cards),
              "total_chars": len(full), "full_text": full},
@@ -389,6 +403,8 @@ def get_document(document_id: str, page: int = 1, page_size: int = 5,
     slice_ = cards[(page - 1) * page_size: page * page_size]
     return json.dumps(
         {"document_id": document_id, "source": meta.get("source"),
+         "title": meta.get("title"), "owner": meta.get("owner"),
+         "effective_date": meta.get("effective_date"),
          "version": meta.get("version"), "page": page, "page_size": page_size,
          "total_cards": len(cards), "total_pages": total_pages,
          "fragments": [
@@ -429,9 +445,21 @@ def list_documents(domain: str | None = None, status: str = "active") -> str:
         if want_status and d.get("status") != want_status:
             continue
         docs.append({"document_id": d.get("document_id"), "source": d.get("source"),
+                     "title": d.get("title"), "owner": d.get("owner"),
+                     "effective_date": d.get("effective_date"),
                      "domain": d.get("domain"), "category": d.get("category"),
                      "version": d.get("version"), "status": d.get("status"),
                      "chunks": d.get("chunks"), "indexed_at": d.get("indexed_at")})
+    from src import auth_db
+    user = _request_user.get() or {}
+    try:
+        auth_db.log_doc_access(username=_current_username(),
+                               department=str(user.get("department") or ""),
+                               entry=_ENTRY, action="list_documents",
+                               detail={"domain": want_domain, "status": want_status,
+                                       "total": len(docs)})
+    except Exception:
+        pass  # 审计失败不影响枚举
     return json.dumps({"total": len(docs), "documents": docs},
                       ensure_ascii=False, indent=2)
 

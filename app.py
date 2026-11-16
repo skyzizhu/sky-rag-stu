@@ -1750,7 +1750,8 @@ def _run_upload(files, plan, choices, groups) -> None:
     with st.spinner(t("ingest.spinner")):
         try:
             # skip_unchanged：内容没变的不重跑整条流水线（「重新入库」按钮仍是强制重跑入口）
-            summary = ingest_files(paths=to_ingest, skip_unchanged=True, default_groups=groups)
+            summary = ingest_files(paths=to_ingest, skip_unchanged=True, default_groups=groups,
+                                    owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -1793,7 +1794,8 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool
               roots="、".join(copied_roots), docs=len(ingest_paths)))
     with st.spinner(t("ingest.spinner")):
         try:
-            summary = ingest_files(paths=ingest_paths, skip_unchanged=True, default_groups=groups)
+            summary = ingest_files(paths=ingest_paths, skip_unchanged=True, default_groups=groups,
+                                owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -2303,7 +2305,8 @@ def page_maintenance():
                      width="stretch", type="primary"):
             with st.spinner(t("maint.rebuilding")):
                 try:
-                    summary = ingest_files(rebuild=True)
+                    summary = ingest_files(rebuild=True,
+                                           owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
                 except (LLMError, VectorStoreError, EmbeddingError) as exc:
                     st.error(str(exc))
                     st.stop()

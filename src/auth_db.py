@@ -134,6 +134,19 @@ CREATE TABLE IF NOT EXISTS qa_logs (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_qa_logs_time ON qa_logs(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS doc_access_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL DEFAULT '',
+    department TEXT NOT NULL DEFAULT '',
+    entry TEXT NOT NULL DEFAULT '',      -- mcp_http / mcp_stdio / web
+    action TEXT NOT NULL DEFAULT '',     -- read_document / list_documents
+    document_id TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT '',
+    detail TEXT NOT NULL DEFAULT '{}',   -- JSON（mode/page/结果规模等）
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_doc_access_time ON doc_access_logs(created_at DESC);
 """
 
 
@@ -772,6 +785,28 @@ def log_qa_event(username: str, department: str, entry: str, question: str,
                  answer or "", json.dumps(slim_sources, ensure_ascii=False),
                  json.dumps(filters or {}, ensure_ascii=False),
                  int(top_k or 0), float(elapsed or 0), _now()),
+            )
+    except (sqlite3.Error, TypeError, ValueError):
+        pass
+
+
+# ---------------------------------------------------------------- 文档访问审计（V3.9）
+def log_doc_access(username: str, department: str, entry: str, action: str,
+                   document_id: str = "", source: str = "",
+                   detail: dict | None = None) -> None:
+    """记录一次对知识文档的访问（读取全文/分页片段/枚举目录）。失败不抛出。
+
+    合规口径（方案 §9.2）：谁在哪次操作中看到了哪篇知识，必须可追溯——
+    knowledge_search/qa 的命中已记录在 qa_logs.sources，这里只补文档级访问。
+    """
+    try:
+        with _connect() as conn:
+            conn.execute(
+                "INSERT INTO doc_access_logs(username, department, entry, action,"
+                " document_id, source, detail, created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (username or "", department or "", entry or "", action or "",
+                 document_id or "", source or "",
+                 json.dumps(detail or {}, ensure_ascii=False), _now()),
             )
     except (sqlite3.Error, TypeError, ValueError):
         pass

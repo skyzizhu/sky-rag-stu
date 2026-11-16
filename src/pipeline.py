@@ -78,6 +78,7 @@ class QAResult:
     elapsed: dict = field(default_factory=dict)
     evaluation: dict | None = None  # V3.6 回答质量评估载荷（见 src/answer_evaluator.py）
     enumeration: bool = False  # V3.9：本次提问是否走枚举通道（Evidence/生成共用）
+    evidence_meta: dict | None = None  # V3.9：coverage 粗判定等 Evidence 元信息
     usage: dict = field(default_factory=dict)  # 本次回答的 LLM 消耗合计（B16.1；评估的用量在 evaluation["usage"]）
 
 
@@ -90,6 +91,7 @@ def ingest_files(
     store: VectorStore | None = None,
     skip_unchanged: bool = False,
     default_groups: list[str] | None = None,
+    owner: str | None = None,
 ) -> IngestSummary:
     """把文件送进知识库。paths 为空时扫描整个知识目录。
 
@@ -98,13 +100,14 @@ def ingest_files(
     显式路径同样做指纹跳过（网页入库等"内容没变就别重跑"的场景）。
     default_groups（V3.7）：本批文件的默认可见部门（上传表单的"可见部门"选择）。
     优先级：Front Matter 显式声明 > 表单选择 > 默认全员；空列表一律落为 ["all"]。
+    owner（V3.9）：本批文件的入库人（登录用户名），写入每张卡片的元数据。
     """
     # 多标签页并发点入库会互相覆盖台账/向量数据，入库全程串行化（单用户无感知）
     with _ingest_lock:
         return _ingest_files_impl(paths=paths, rebuild=rebuild, config=config,
                                   embedding_client=embedding_client, store=store,
                                   skip_unchanged=skip_unchanged,
-                                  default_groups=default_groups)
+                                  default_groups=default_groups, owner=owner)
 
 
 def _ingest_files_impl(
@@ -115,6 +118,7 @@ def _ingest_files_impl(
     store: VectorStore | None = None,
     skip_unchanged: bool = False,
     default_groups: list[str] | None = None,
+    owner: str | None = None,
 ) -> IngestSummary:
     """把文件送进知识库。paths 为空时扫描整个知识目录。
 
@@ -269,6 +273,9 @@ def _ingest_files_impl(
 
     # ③ 清洗 + ④ 切片
     print("③ 清洗文本，④ 切成知识卡片")
+    # V3.9：入库人写入文档元数据（切片继承 → 进卡片 payload），供审计与溯源
+    for doc in docs:
+        doc.metadata["owner"] = (owner or "").strip()
     cleaned_docs, chunks = clean_and_chunk(docs)
     summary.total_chunks = len(chunks)
     chunks_by_file: dict[str, int] = {}
@@ -1025,6 +1032,7 @@ def answer_stream(
         use_query_understanding=use_query_understanding, use_hybrid=use_hybrid,
         use_rerank=use_rerank, history=history, use_llm=use_llm,
         on_progress=_p, config=cfg)
+    result.evidence_meta = evidence_meta   # V3.9：MCP 证据模式透出 coverage
     result.trace[:0] = trace   # 早期节点（就绪/提问/会话记忆）并入时间线头部
     trace = result.trace
     context = result.context  # 生成半程需要的组装资料（Evidence 已含四道检查）

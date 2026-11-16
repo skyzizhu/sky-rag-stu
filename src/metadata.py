@@ -208,6 +208,8 @@ def build_document_metadata(
     # title：FM > 解析器提示（H1 / Word 标题）> 文件名
     title = (str(fm.get("title")).strip() if fm.get("title") else None) \
         or (title_hint or "").strip() or Path(source).stem
+    # effective_date（V3.9）：FM 声明的生效日期（企业文档的版本有效性），缺省为空不造假
+    effective_date = str(fm.get("effective_date") or "").strip()
     # version：FM 可手动指定，默认 1.0
     version = str(fm.get("version")).strip() if fm.get("version") is not None else DEFAULTS["version"]
 
@@ -229,6 +231,7 @@ def build_document_metadata(
         "indexed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         # 内容字段
         "title": title,
+        "effective_date": effective_date,  # V3.9：FM 声明的生效日期（空 = 未声明）
         "section": None,       # 切片时填写
         "section_path": None,  # 切片时填写
         "page": None,          # 切片时填写
