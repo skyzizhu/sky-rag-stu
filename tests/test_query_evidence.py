@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import io
 import json
@@ -116,9 +117,10 @@ class McpDocumentToolsTests(IngestHarness):
             if d["source"] == "doc.md")
 
     def _call(self, fn, *args, **kwargs):
+        import asyncio
         from src import mcp_server
         with contextlib.redirect_stdout(io.StringIO()):
-            return json.loads(getattr(mcp_server, fn)(*args, **kwargs))
+            return json.loads(asyncio.run(getattr(mcp_server, fn)(*args, **kwargs)))
 
     def test_knowledge_search_exposes_coverage_and_document_id(self):
         """查询模式响应：coverage 粗判定 + matches 带 document_id（get_document 入口）。"""
@@ -129,13 +131,11 @@ class McpDocumentToolsTests(IngestHarness):
 
     def test_get_document_full_stitches_single(self):
         payload = self._call("get_document", [self.document_id], mode="full")
-        docs = payload["documents"]
-        self.assertEqual(len(docs), 1)
-        self.assertEqual(docs[0]["total_cards"], 6)
+        self.assertEqual(payload["total_cards"], 6)
         for i in range(1, 7):
-            self.assertIn(f"功能 {i:02d}", docs[0]["full_text"], i)
-        self.assertEqual(docs[0]["full_text"].count("来源文档："), 1)  # 仅首卡保留来源前缀
-        self.assertEqual(len(docs[0]["sections"]), 6)                # 章节名清单供 Agent 定位
+            self.assertIn(f"功能 {i:02d}", payload["full_text"], i)
+        self.assertEqual(payload["full_text"].count("来源文档："), 1)  # 仅首卡保留来源前缀
+        self.assertEqual(len(payload["sections"]), 6)                # 章节名清单供 Agent 定位
 
     def test_get_document_fragments_paginates(self):
         payload = self._call("get_document", [self.document_id], page=2, page_size=2,
@@ -149,11 +149,9 @@ class McpDocumentToolsTests(IngestHarness):
         """章节过滤：只返回章节名包含关键词的卡片。"""
         payload = self._call("get_document", [self.document_id], mode="full",
                              section="功能 03")
-        docs = payload["documents"]
-        self.assertEqual(len(docs), 1)
-        self.assertIn("功能 03", docs[0]["full_text"])
-        self.assertNotIn("功能 04", docs[0]["full_text"])
-        self.assertEqual(docs[0]["sections"], ["功能 03"])
+        self.assertIn("功能 03", payload["full_text"])
+        self.assertNotIn("功能 04", payload["full_text"])
+        self.assertEqual(payload["sections"], ["功能 03"])
 
     def test_get_document_multi_and_not_found(self):
         """多文档一次取全：可见的返回全文；不可见的归入 not_found（不泄露存在性）。"""
@@ -175,9 +173,10 @@ class McpDocumentToolsTests(IngestHarness):
     def test_get_document_refuses_when_none_visible(self):
         """全部请求都不可见时才 refused；finance 令牌看不见 hr 限权文档。"""
         from src import mcp_server
-        with mock.patch.object(mcp_server, "_current_user_groups", return_value=["finance"]), \
+        with mock.patch.object(mcp_server, "_identity_from_ctx",
+                               return_value=(["finance"], "eve", {"username": "eve"})), \
              contextlib.redirect_stdout(io.StringIO()):
-            denied = json.loads(mcp_server.get_document([self.document_id]))
+            denied = json.loads(asyncio.run(mcp_server.get_document([self.document_id])))
         self.assertTrue(denied.get("refused"))
 
     def test_document_access_is_audited(self):
@@ -199,11 +198,42 @@ class McpDocumentToolsTests(IngestHarness):
         payload = self._call("list_documents", domain="learning")
         self.assertEqual(payload["total"], 0)
         from src import mcp_server
-        with mock.patch.object(mcp_server, "_current_user_groups", return_value=["finance"]), \
+        with mock.patch.object(mcp_server, "_identity_from_ctx",
+                               return_value=(["finance"], "eve", {"username": "eve"})), \
              contextlib.redirect_stdout(io.StringIO()):
-            denied = json.loads(mcp_server.list_documents())
+            denied = json.loads(asyncio.run(mcp_server.list_documents()))
         self.assertEqual(denied["total"], 0)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class IdentityFromCtxTests(unittest.TestCase):
+    """逐次验身份（V3.9）：ctx 携带当次请求 → 令牌派生权限；无请求回退 contextvar。"""
+
+    def _fake_ctx(self, auth_header: str | None):
+        headers = {"authorization": auth_header} if auth_header else {}
+        request = mock.Mock(headers=headers)
+        rc = mock.Mock(request=request)
+        return mock.Mock(request_context=rc)
+
+    def test_valid_token_derives_identity(self):
+        from src import auth_db, mcp_server
+        ident = {"username": "alice", "department": "hr"}
+        with mock.patch.object(auth_db, "verify_token", return_value=ident) as vt, \
+             mock.patch("src.permissions.visible_groups", return_value=["all", "hr"]):
+            groups, username, user = mcp_server._identity_from_ctx(
+                self._fake_ctx("Bearer mcp_pat_valid"))
+        vt.assert_called_once_with("mcp_pat_valid")
+        self.assertEqual(username, "alice")
+        self.assertIn("hr", groups)
+
+    def test_missing_or_bad_token_falls_back_to_contextvar(self):
+        from src import mcp_server
+        ctx = self._fake_ctx(None)
+        with mock.patch.object(mcp_server, "_request_groups", mock.Mock(get=lambda: None)), \
+             mock.patch.object(mcp_server, "_request_user",
+                               mock.Mock(get=lambda: {"username": "bob", "department": "it"})):
+            groups, username, user = mcp_server._identity_from_ctx(ctx)
+        self.assertEqual(username, "bob")  # 无请求头 → 回退 contextvar（stdio 兜底口径）

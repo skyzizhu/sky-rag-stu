@@ -25,6 +25,7 @@
 
 from __future__ import annotations
 
+import functools
 import json
 import os
 import re
@@ -43,7 +44,8 @@ for _proxy_key in ("http_proxy", "https_proxy", "all_proxy",
 # 保证作为脚本直接运行时能 import 项目包（src.*）
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mcp.server.fastmcp import FastMCP
+import anyio
+from mcp.server.fastmcp import Context, FastMCP
 
 mcp = FastMCP("sky-personal-rag")
 
@@ -58,6 +60,39 @@ _ENTRY = ("mcp_http"
           else "mcp_stdio")
 
 
+def _identity_from_ctx(ctx) -> tuple[list[str] | None, str, dict]:
+    """从当前调用的请求重新验证令牌，派生本次调用的身份（V3.9 修复会话身份冻结）。
+
+    背景：streamable-http 会话任务在 initialize 请求的上下文中启动，此前依赖的
+    contextvar 身份会被冻结为会话创建者——同一会话内的后续请求即使换了合法令牌，
+    权限范围与审计署名仍是会话创建者。修复：每条消息的元数据都携带当次 HTTP 请求
+    （ServerMessageMetadata.request_context），工具经 ctx.request_context.request
+    读取 Authorization 头逐次验证。stdio / 直接调用（ctx 为 None 或无 request）
+    回退到 contextvar（个人模式为 None = 不限制）。
+
+    返回 (user_groups, username, user_dict)。
+    """
+    try:
+        request = ctx.request_context.request if ctx is not None else None
+    except Exception:
+        request = None
+    if request is not None:
+        auth_header = (request.headers.get("authorization") or "")
+        token = auth_header[7:].strip() if auth_header.lower().startswith("bearer ") else ""
+        if token:
+            from src import auth_db
+            from src.permissions import visible_groups
+            ident = auth_db.verify_token(token)
+            if ident:
+                groups = visible_groups(ident["department"])
+                user = {"username": ident["username"], "department": ident["department"]}
+                return groups, str(ident["username"]), user
+    # 兜底：中间件写入的 contextvar（stdio 个人模式 = None/空）
+    groups = _request_groups.get()
+    user = _request_user.get() or {}
+    return groups, str(user.get("username") or "local"), user
+
+
 def _current_user_groups() -> list[str] | None:
     return _request_groups.get()
 
@@ -68,14 +103,20 @@ def _current_username() -> str:
     return str(user.get("username") or "local") if user else "local"
 
 
-def _log_qa(question: str, result, top_k: int, elapsed: float) -> None:
-    """RAG 使用记录：MCP 调用同样落 SQLite。日志失败不影响回答。"""
+def _log_qa(question: str, result, top_k: int, elapsed: float,
+            username: str | None = None, department: str | None = None) -> None:
+    """RAG 使用记录：MCP 调用同样落 SQLite。日志失败不影响回答。
+
+    username/department：调用方从 ctx 逐次验出的身份（V3.9）；缺省回退 contextvar。
+    """
     from src import auth_db
 
     user = _request_user.get() or {}
+    username = username if username is not None else str(user.get("username") or "local")
+    department = department if department is not None else str(user.get("department") or "")
     auth_db.log_qa_event(
-        username=str(user.get("username") or "local"),
-        department=str(user.get("department") or ""),
+        username=username,
+        department=department,
         entry=_ENTRY, question=question, answer=result.answer or "",
         sources=result.sources, filters=result.filters,
         top_k=top_k, elapsed=elapsed,
@@ -98,7 +139,12 @@ def _filters(domain: str | None, status: str | None) -> dict | None:
             raise ValueError(f"无法识别领域「{domain}」。可用的领域编号：{'、'.join(all_codes())}")
         filters["domain"] = code
     if status:
-        filters["status"] = status
+        status = str(status).strip().lower()
+        if status != "all":
+            from src.metadata import STATUSES
+            if status not in STATUSES:
+                raise ValueError(f"无法识别状态「{status}」。可用值：{'、'.join(STATUSES)} 或 all")
+            filters["status"] = status
     return filters or None
 
 
@@ -150,9 +196,15 @@ def _with_domain_codes(fn):
 #                  零生成成本，适合「Agent 自己的 LLM 负责回答」的架构。
 #   answer       = 独立回答模式：暴露 knowledge_qa / knowledge_digest / knowledge_status。
 #                  RAG 全管线（含生成带引用回答），适合「直接要成品答案」的场景。
-# 非法值一律回退 query。
+# 非法值一律回退 query（启动日志打印警告）。
+from dotenv import load_dotenv
+load_dotenv()  # 显式加载 .env——MCP_MODE/_ENTRY 必须在读取环境变量之前生效
 _raw_mode = os.environ.get("MCP_MODE", "query").strip().lower()
-MCP_MODE = _raw_mode if _raw_mode in ("query", "answer") else "query"
+if _raw_mode in ("query", "answer"):
+    MCP_MODE = _raw_mode
+else:
+    MCP_MODE = "query"
+    print(f"⚠️ MCP_MODE={_raw_mode!r} 非法（仅限 query/answer），已回退 query")
 _MODE_TOOLS: dict[str, tuple[str, ...]] = {
     "query": ("knowledge_search", "knowledge_status", "get_document", "list_documents"),
     "answer": ("knowledge_qa", "knowledge_digest", "knowledge_status",
@@ -162,12 +214,13 @@ REGISTERED_TOOLS: list[str] = []
 
 
 @_with_domain_codes
-def knowledge_qa(
+def _tool_knowledge_qa_impl(
     question: str,
     top_k: int = 5,
     domain: str | None = None,
     status: str | None = None,
     history: list[dict] | None = None,
+    ctx=None,
 ) -> str:
     """基于用户的个人知识库（含其简历、面试登记表、学习笔记、技术文档、网页收藏等私有资料）回答问题，返回带来源引用的答案。
 
@@ -194,6 +247,8 @@ def knowledge_qa(
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
     from src.pipeline import answer_question
 
+    groups, username, user = _identity_from_ctx(ctx)
+
     try:
         filters = _filters(domain, status)
     except ValueError as exc:
@@ -205,10 +260,11 @@ def knowledge_qa(
         top_k=max(1, min(int(top_k), 10)),
         filters=filters,
         history=_history(history),
-        user_groups=_current_user_groups(),
-        username=_current_username(),
+        user_groups=groups,
+        username=username,
     )
-    _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0)
+    _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0,
+            username=username, department=str(user.get("department") or ""))
     return json.dumps(
         {
             "answer": result.answer or "知识库中没有找到足够的信息回答这个问题。",
@@ -222,11 +278,12 @@ def knowledge_qa(
 
 
 @_with_domain_codes
-def knowledge_search(
+def _tool_knowledge_search_impl(
     question: str,
     top_k: int = 5,
     domain: str | None = None,
     status: str | None = None,
+    ctx=None,
 ) -> str:
     """在用户的个人知识库中检索相关片段（其简历、登记表、笔记、技术文档、网页收藏等），不调用 LLM 生成答案（零生成成本、更快）。
 
@@ -254,16 +311,18 @@ def knowledge_search(
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
+    groups, username, user = _identity_from_ctx(ctx)
     _t0 = time.time()
     result = answer_question(
         question.strip(),
         top_k=max(1, min(int(top_k), 10)),
         use_llm=False,  # 仅检索：不调用生成模型
         filters=filters,
-        user_groups=_current_user_groups(),
-        username=_current_username(),
+        user_groups=groups,
+        username=username,
     )
-    _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0)
+    _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0,
+            username=username, department=str(user.get("department") or ""))
     return json.dumps(
         {
             "query": question.strip(),
@@ -288,7 +347,7 @@ def knowledge_search(
     )
 
 
-def knowledge_digest(topic: str) -> str:
+def _tool_knowledge_digest_impl(topic: str, ctx=None) -> str:
     """跨文档知识总结：围绕一个主题，综合用户知识库中的多个文档生成结构化摘要（要点+出处）。
 
     使用时机：用户要求"总结/归纳/梳理某主题在资料中的内容"时使用；不新建或修改知识文件。
@@ -310,23 +369,27 @@ def knowledge_digest(topic: str) -> str:
         f"请综合知识库中与「{topic.strip()}」相关的全部内容，"
         "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
         top_k=10,
-        user_groups=_current_user_groups(),
-        username=_current_username(),
+        user_groups=groups,
+        username=username,
     )
-    _log_qa(topic.strip(), result, 10, time.time() - _t0)
+    _log_qa(topic.strip(), result, 10, time.time() - _t0,
+            username=username, department=str(user.get("department") or ""))
     return json.dumps(
         {
             "topic": topic.strip(),
             "digest": result.answer or "知识库中没有与该主题相关的足够内容。",
+            "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
             "sources": _sources_payload(result.sources),
+            "refused": result.answer is None,
         },
         ensure_ascii=False,
         indent=2,
     )
 
 
-def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
-                 mode: str = "fragments", section: str | None = None) -> str:
+def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: int = 5,
+                            mode: str = "fragments", section: str | None = None,
+                            ctx=None) -> str:
     """按 document_id 获取一篇或多篇文档：mode="full" 返回每篇拼接全文（去重叠）；
     mode="fragments"（默认）返回卡片片段，单文档时按页分页、多文档时按文档分组全量返回。
     可选 section 过滤：只返回章节名包含该关键词的内容（大小写不敏感）。
@@ -351,7 +414,8 @@ def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
 
     if isinstance(document_ids, str):  # 容错：直接调用时允许传单个字符串
         document_ids = [document_ids]
-    wanted = [str(d).strip() for d in (document_ids or []) if str(d or "").strip()][:10]
+    wanted = [str(d).strip() for d in (document_ids or []) if str(d or "").strip()]
+    wanted = list(dict.fromkeys(wanted))[:10]  # 去重，避免同一篇重复返回/重复审计
     if not wanted:
         return json.dumps({"error": "document_ids 不能为空"}, ensure_ascii=False)
     mode = (mode or "fragments").strip().lower()
@@ -360,9 +424,12 @@ def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
     section_kw = (section or "").strip().lower()
 
     doc_filters = {"document_id": wanted, "status": "active"}
-    filters = scope_filters(doc_filters, _current_user_groups())
+    groups, username, user = _identity_from_ctx(ctx)
+    filters = scope_filters(doc_filters, groups)
+    truncated = False
     try:
         cards = get_vector_store().get_all_cards(filters=filters, limit=2000)
+        truncated = len(cards) >= 2000  # 触顶：响应可能不完整，明确告知 Agent
     except Exception as exc:
         return json.dumps({"error": f"知识库访问失败：{exc}"}, ensure_ascii=False)
 
@@ -378,11 +445,10 @@ def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
     not_found = [d for d in wanted if d not in by_doc]
 
     from src import auth_db
-    user = _request_user.get() or {}
     for d in ordered_ids:
         meta = by_doc[d][0]["payload"]
         try:
-            auth_db.log_doc_access(username=_current_username(),
+            auth_db.log_doc_access(username=username,
                                    department=str(user.get("department") or ""),
                                    entry=_ENTRY, action="read_document",
                                    document_id=d,
@@ -394,13 +460,16 @@ def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
             pass  # 审计失败不影响取数
 
     documents = []
+    section_missed: list[str] = []
     for d in ordered_ids:
         cards = sorted(by_doc[d], key=_seq)
         if section_kw:  # 章节过滤：只保留章节名含关键词的卡片（大小写不敏感）
-            cards = [c for c in cards
-                     if section_kw in str(c["payload"].get("section") or "").lower()]
-            if not cards:
-                continue  # 该文档没有匹配章节：不计入返回，也不计入 not_found
+            matched = [c for c in cards
+                       if section_kw in str(c["payload"].get("section") or "").lower()]
+            if not matched:
+                section_missed.append(d)  # 文档可见但无匹配章节：单独列出，不算 not_found
+                continue
+            cards = matched
         meta = cards[0]["payload"]
         cards = sorted(cards, key=_seq)
         base = {"document_id": d, "source": meta.get("source"),
@@ -422,9 +491,15 @@ def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
                           "text": c["payload"].get("text", "")}
                          for c in cards]
             if len(ordered_ids) == 1:  # 分页仅在单文档时生效；多文档按文档分组全量返回
-                page_size = min(max(1, int(page_size)), 20)
+                try:
+                    page_size = min(max(1, int(page_size)), 20)
+                except (TypeError, ValueError):
+                    page_size = 5
                 total_pages = math.ceil(len(fragments) / page_size)
-                page = min(max(1, int(page)), total_pages)
+                try:
+                    page = min(max(1, int(page)), total_pages)
+                except (TypeError, ValueError):
+                    page = 1
                 documents.append({**base,
                                   "page": page, "page_size": page_size,
                                   "total_pages": total_pages,
@@ -433,16 +508,26 @@ def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
                 documents.append({**base, "fragments": fragments})
 
     result: dict = {"mode": mode, "total": len(documents), "documents": documents,
-                    "not_found": not_found}
+                    "not_found": not_found, "truncated": truncated}
+    if section_missed:
+        result["section_not_matched"] = section_missed  # 可见但无匹配章节的文档
     if not documents:
         result["refused"] = True
-        result["reason"] = "请求的文档均不存在、未生效或当前令牌无权限"
-    if len(ordered_ids) == 1 and mode == "fragments":
-        result.update(documents[0])  # 单文档 fragments 模式：分页字段提到顶层，便于阅读
+        if section_kw and not_found == wanted:
+            result["reason"] = "请求的文档均不存在、未生效或当前令牌无权限"
+        elif section_kw:
+            result["reason"] = ("章节过滤无匹配（文档存在且可见，但没有章节名包含该关键词）；"
+                                 "可先不带 section 调用一次查看 sections 可用章节名")
+        else:
+            result["reason"] = "请求的文档均不存在、未生效或当前令牌无权限"
+    if len(ordered_ids) == 1 and documents:
+        result.update(documents[0])  # 单文档模式：字段提到顶层（full/fragments 一致），便于阅读
+        result.pop("documents")       # 扁平化后移除嵌套，避免同一内容重复两份
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 
-def list_documents(domain: str | None = None, status: str = "active") -> str:
+def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
+                              ctx=None) -> str:
     """枚举知识库目录：按权限列出文档（编号/文件名/领域/分类/版本/状态/卡片数）。
     不调用 LLM。用途：生成方案前先了解知识库里有哪些资料可供检索。
 
@@ -457,10 +542,11 @@ def list_documents(domain: str | None = None, status: str = "active") -> str:
         filters = _filters(domain, status)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
-    filters = scope_filters(filters, _current_user_groups())
-    allowed = set((filters.get("allowed_groups") or []))
+    groups, username, user = _identity_from_ctx(ctx)
+    filters = scope_filters(filters, groups) or {}
+    allowed = set(filters.get("allowed_groups") or [])
     want_domain = filters.get("domain")
-    want_status = filters.get("status")
+    want_status = filters.get("status")  # "all" 已在 _filters 中剔除，不再过滤
 
     docs = []
     for d in get_vector_store().list_documents():
@@ -477,9 +563,8 @@ def list_documents(domain: str | None = None, status: str = "active") -> str:
                      "version": d.get("version"), "status": d.get("status"),
                      "chunks": d.get("chunks"), "indexed_at": d.get("indexed_at")})
     from src import auth_db
-    user = _request_user.get() or {}
     try:
-        auth_db.log_doc_access(username=_current_username(),
+        auth_db.log_doc_access(username=username,
                                department=str(user.get("department") or ""),
                                entry=_ENTRY, action="list_documents",
                                detail={"domain": want_domain, "status": want_status,
@@ -490,7 +575,7 @@ def list_documents(domain: str | None = None, status: str = "active") -> str:
                       ensure_ascii=False, indent=2)
 
 
-def knowledge_status() -> str:
+def _tool_knowledge_status_impl() -> str:
     """检查知识库服务就绪状态：向量化模型、向量数据库、卡片总数。
 
     适用：调用其他知识工具前确认依赖可用；或排查「查不到结果」时先看这里。
@@ -519,9 +604,74 @@ def knowledge_status() -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
+# ---- V3.9 异步公开工具：async 包装 + 线程池执行 ----
+# 修复两个问题：
+# ① 同步工具直接在事件循环上执行——一次生成（数十秒）会阻塞所有并发客户端；
+# ② HTTP 会话任务的 contextvar 身份冻结在会话创建者——async 包装把 ctx（携带
+#    当次请求）传入工作线程，impl 内经 _identity_from_ctx(ctx) 逐次验令牌。
+# 工具的 schema/文档由 impl 的签名与 docstring 提供（__doc__ 在下方运行时复制）。
+
+async def knowledge_qa(question: str, top_k: int = 5, domain: str | None = None,
+                       status: str | None = None,
+                       history: list[dict] | None = None,
+                       ctx: Context | None = None) -> str:
+    """基于用户的个人知识库回答问题（带来源引用；详见实现说明）。"""
+    return await anyio.to_thread.run_sync(
+        functools.partial(_tool_knowledge_qa_impl, question, top_k, domain, status,
+                          history, ctx))
+
+
+async def knowledge_search(question: str, top_k: int = 5, domain: str | None = None,
+                           status: str | None = None,
+                           ctx: Context | None = None) -> str:
+    """在用户的个人知识库中检索相关片段（不调用 LLM，详见实现说明）。"""
+    return await anyio.to_thread.run_sync(
+        functools.partial(_tool_knowledge_search_impl, question, top_k, domain,
+                          status, ctx))
+
+
+async def knowledge_digest(topic: str, ctx: Context | None = None) -> str:
+    """跨文档知识总结：围绕一个主题综合多文档生成结构化摘要（详见实现说明）。"""
+    return await anyio.to_thread.run_sync(
+        functools.partial(_tool_knowledge_digest_impl, topic, ctx))
+
+
+async def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
+                       mode: str = "fragments", section: str | None = None,
+                       ctx: Context | None = None) -> str:
+    """按 document_id 获取一篇或多篇文档的全文/分页片段（详见实现说明）。"""
+    return await anyio.to_thread.run_sync(
+        functools.partial(_tool_get_document_impl, document_ids, page, page_size,
+                          mode, section, ctx))
+
+
+async def list_documents(domain: str | None = None, status: str = "active",
+                         ctx: Context | None = None) -> str:
+    """按权限枚举知识库目录（详见实现说明）。"""
+    return await anyio.to_thread.run_sync(
+        functools.partial(_tool_list_documents_impl, domain, status, ctx))
+
+
+async def knowledge_status(ctx: Context | None = None) -> str:
+    """检查知识库服务就绪状态（详见实现说明）。"""
+    return await anyio.to_thread.run_sync(_tool_knowledge_status_impl)
+
+
+# docstring 归位：impl 上维护完整说明（含 {DOMAIN_CODES} 替换），公开函数继承展示
+knowledge_qa.__doc__ = _tool_knowledge_qa_impl.__doc__
+knowledge_search.__doc__ = _tool_knowledge_search_impl.__doc__
+knowledge_digest.__doc__ = _tool_knowledge_digest_impl.__doc__
+get_document.__doc__ = _tool_get_document_impl.__doc__
+list_documents.__doc__ = _tool_list_documents_impl.__doc__
+knowledge_status.__doc__ = _tool_knowledge_status_impl.__doc__
+
+
 # ---- 按 MCP_MODE 注册工具（V3.9 双模配置：见本文件上方 MCP_MODE 说明）----
+_TOOL_REGISTRY = {"knowledge_qa": knowledge_qa, "knowledge_search": knowledge_search,
+                  "knowledge_digest": knowledge_digest, "get_document": get_document,
+                  "list_documents": list_documents, "knowledge_status": knowledge_status}
 for _tool_name in _MODE_TOOLS[MCP_MODE]:
-    mcp.tool()(globals()[_tool_name])
+    mcp.tool()(_TOOL_REGISTRY[_tool_name])
     REGISTERED_TOOLS.append(_tool_name)
 
 
@@ -589,4 +739,6 @@ if __name__ == "__main__":
     if transport in ("streamable-http", "streamable_http", "http"):
         _run_http()
     else:
+        from src import auth_db as _auth_db  # stdio 也确保审计/日志表存在（幂等）
+        _auth_db.init_db()
         mcp.run()  # stdio 模式（默认），供 MCP 客户端以子进程方式挂载

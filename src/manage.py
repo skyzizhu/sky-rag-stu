@@ -69,16 +69,16 @@ def _has_user_files(directory: Path) -> bool:
     )
 
 
-def reingest(relative_path: str) -> dict:
-    """重新解析并入库单个文件（文件修改后手动刷新用）。"""
+def reingest(relative_path: str, owner: str | None = None) -> dict:
+    """重新解析并入库单个文件（文件修改后手动刷新用）。owner：操作者（审计/溯源）。"""
     path, _, cfg = _resolve(relative_path)
-    summary = ingest_files(paths=[path])
+    summary = ingest_files(paths=[path], owner=owner)
     if summary.ok_files == 0:
         raise ManageError(f"重新入库失败：{summary.failed_files}")
     return {"message": f"已重新入库：{relative_path}（{summary.total_chunks} 张卡片）", "summary": summary}
 
 
-def archive(relative_path: str) -> dict:
+def archive(relative_path: str, owner: str | None = None) -> dict:
     """归档：把文件移到 knowledge/archive/ 下（保留原子目录结构），并刷新向量库。"""
     path, knowledge_dir, cfg = _resolve(relative_path)
     if relative_path.split("/")[0] == "archive":
@@ -96,13 +96,13 @@ def archive(relative_path: str) -> dict:
 
     store = get_vector_store()
     store.delete_documents([document_id_for(relative_path)])
-    summary = ingest_files(paths=[dest])
+    summary = ingest_files(paths=[dest], owner=owner)
     if summary.ok_files == 0:
         raise ManageError(f"归档后重新入库失败：{summary.failed_files}")
     return {"message": f"已归档：{relative_path} → archive/{relative_path}", "summary": summary}
 
 
-def restore(archived_relative_path: str) -> dict:
+def restore(archived_relative_path: str, owner: str | None = None) -> dict:
     """恢复：把归档文件移回原目录；原本就散落在归档根目录的，移到 reference/documents/。"""
     path, knowledge_dir, cfg = _resolve(archived_relative_path)
     parts = archived_relative_path.split("/")
@@ -135,7 +135,7 @@ def restore(archived_relative_path: str) -> dict:
 
     store = get_vector_store()
     store.delete_documents([document_id_for(archived_relative_path)])
-    summary = ingest_files(paths=[target])
+    summary = ingest_files(paths=[target], owner=owner)
     if summary.ok_files == 0:
         raise ManageError(f"恢复后重新入库失败：{summary.failed_files}")
     return {"message": f"已恢复：{archived_relative_path} → {target.relative_to(knowledge_dir).as_posix()}",
@@ -301,7 +301,8 @@ def remove_from_index_and_disk(relative_path: str) -> dict:
 def ingest_web_page(url: str, domain: str = "reference",
                     category: str = "webpages", on_progress=None,
                     default_groups: list[str] | None = None,
-                    snapshot_path: Path | None = None) -> dict:
+                    snapshot_path: Path | None = None,
+                    owner: str | None = None) -> dict:
     """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
 
     流程：fetch URL → 提取正文 → 保存为 .md 快照（领域 / 分类写进文件头）→ 标准入库
@@ -331,7 +332,7 @@ def ingest_web_page(url: str, domain: str = "reference",
     # 入库（走标准流水线）：skip_unchanged 让同 URL 重复抓取时走增量判断，
     # 网页内容没变就跳过（省 LLM 标签、切片和向量化）
     summary = ingest_files(paths=[file_path], skip_unchanged=True,
-                           default_groups=default_groups)
+                           default_groups=default_groups, owner=owner)
     if summary.skipped_files and not summary.ok_files:
         return {
             "message": f"网页内容未变化，已跳过入库：{url}（增量判断命中，省时省钱）",
@@ -354,7 +355,7 @@ def ingest_web_page(url: str, domain: str = "reference",
     raise ManageError(f"网页入库失败：{summary.failed_files}")
 
 
-def refetch_web_page(relative_path: str) -> dict:
+def refetch_web_page(relative_path: str, owner: str | None = None) -> dict:
     """重新抓取网页：按快照文件头里的原文网址重抓并写回原快照，内容变了生成新版本、没变就跳过。
 
     领域 / 分类沿用文件头里的声明，可见部门沿用当前卡片——入库时表单选的部门只在卡片里、
@@ -372,7 +373,7 @@ def refetch_web_page(relative_path: str) -> dict:
                    if d["path"] == relative_path and d["status"] == "active"), None)
     try:
         return ingest_web_page(origin["url"], domain=origin["domain"], category=origin["category"],
-                               default_groups=groups, snapshot_path=path)
+                               default_groups=groups, snapshot_path=path, owner=owner)
     except ManageError:
         raise
     except Exception as exc:  # 网络错误、网站返回异常等：给出可读的提示，不让页面崩溃

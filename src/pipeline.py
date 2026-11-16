@@ -621,6 +621,7 @@ def query_evidence(
             catalog = []
         qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history)
         record_stage_usage(result, "query_understanding", qu.usage)
+        result.elapsed["query_understanding"] = qu.elapsed  # 生成半程的 total 依赖此项
         search_query = qu.vector_query or question
         qu_filters = dict(qu.filters)
         # 语义判定合并：LLM 识别出计数/列举意图而词表没命中时，同样进入枚举通道——
@@ -897,12 +898,16 @@ def query_evidence(
     ))
 
 
-    # Evidence 覆盖粗判定（V3.9）：零召回=not_found；名额/token 截断=partial；其余 unknown。
-    # 事实级 complete 判定依赖结构化数据层（方案第三批），V1 不签 complete。
+    # Evidence 覆盖粗判定（V3.9）：零召回=not_found；任何截断（名额/同文档配额/token/
+    # 相邻拼接截断）=partial；其余 unknown。事实级 complete 判定依赖结构化数据层（方案
+    # 第三批），V1 不签 complete。
     if not result.retrieved:
         coverage = "not_found"
-    elif any("上限" in str(d.get("reason", "")) or "token" in str(d.get("reason", "")).lower()
-             for d in (dropped or [])):
+    elif (any("上限" in str(d.get("reason", ""))
+              or "最多采用" in str(d.get("reason", ""))
+              or "token" in str(d.get("reason", "")).lower()
+              for d in (dropped or []))
+          or any("截断" in str(note) for note in (merge_notes or []))):
         coverage = "partial"
     else:
         coverage = "unknown"

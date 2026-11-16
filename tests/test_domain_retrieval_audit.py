@@ -19,6 +19,7 @@ import io
 import json
 import unittest
 from pathlib import Path
+import asyncio
 from unittest import mock
 
 from src import domains, index_epoch
@@ -189,18 +190,19 @@ class McpDomainParameterTests(_RetrievalCase):
     def test_unknown_domain_returns_explicit_error_not_empty_result(self):
         from src import mcp_server
 
-        out = json.loads(mcp_server.knowledge_search("报销流程", domain="不存在的领域"))
+        import asyncio
+        out = json.loads(asyncio.run(mcp_server.knowledge_search("报销流程", domain="不存在的领域")))
         self.assertNotIn("matches", out)
         self.assertIn("不存在的领域", out["error"])
         self.assertIn("finance", out["error"])  # 带上可用编号，Agent 能自行纠正
-        out = json.loads(mcp_server.knowledge_qa("报销流程", domain="不存在的领域"))
+        out = json.loads(asyncio.run(mcp_server.knowledge_qa("报销流程", domain="不存在的领域")))
         self.assertIn("finance", out["error"])
 
     def test_search_by_display_name_finds_the_document(self):
         from src import mcp_server
 
         with mock.patch.object(mcp_server, "_log_qa"):  # 不写真实 RAG 日志
-            out = json.loads(mcp_server.knowledge_search("报销流程", domain="财务"))
+            out = json.loads(asyncio.run(mcp_server.knowledge_search("报销流程", domain="财务")))
         self.assertEqual([m["source"] for m in out["matches"]], ["a.md"])
 
 

@@ -1651,6 +1651,7 @@ def page_upload():
                             category=web_category.strip().lower() or "webpages",
                             on_progress=lambda msg: st.write(tr(msg)),
                             default_groups=web_groups,
+                            owner=str((st.session_state.get("auth_user") or {}).get("username") or ""),
                         )
                     status.update(label=t("web.status.done"), state="complete", expanded=False)
                     st.success(f"🎉 {result['message']}")
@@ -2106,13 +2107,14 @@ def page_manage():
         restore_btn = btn2.button(t("manage.act.restore"), width="stretch", key="act_restore",
                                   disabled=not is_archived, help=t("manage.act.restore.help"))
 
+        _owner = str((st.session_state.get("auth_user") or {}).get("username") or "")
         actions = [
-            (reingest_btn, lambda: reingest_file(d["path"])),
-            (archive_btn, lambda: archive_file(d["path"])),
-            (restore_btn, lambda: restore_file(d["path"])),
+            (reingest_btn, lambda: reingest_file(d["path"], owner=_owner)),
+            (archive_btn, lambda: archive_file(d["path"], owner=_owner)),
+            (restore_btn, lambda: restore_file(d["path"], owner=_owner)),
         ]
         if refetch_btn:
-            actions.append((refetch_btn, lambda: refetch_web_page(d["path"])))
+            actions.append((refetch_btn, lambda: refetch_web_page(d["path"], owner=_owner)))
         for btn, fn in actions:
             if btn:
                 try:

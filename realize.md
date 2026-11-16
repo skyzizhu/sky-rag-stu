@@ -1442,6 +1442,32 @@ list_documents 12 个文档全部正确。
   "谁在哪次操作中看到了哪篇知识"的合规追溯；qa_logs.sources 已覆盖检索命中，本表只补文档级访问；
 - **审计与测试**：真实库冒烟 coverage='unknown'、审计表落行 ✅；测试 259 个通过。
 
+**V3.9 审查轮（双代理代码审查 + 修复，2026-11-17）**：
+
+两个审查代理发现并修复 17 项（5 bug / 6 边界 / 6 质量）：
+
+- **pipeline（重构遗漏）**：QU 耗时丢失（elapsed["query_understanding"] 无人写入 → 评估卡片总耗时被低估）
+  ——已在 query_evidence 的 QU 块补写；coverage 判定扩展——同文档多样性截断（"最多采用"）与
+  相邻拼接截断（merge_notes"已截断"）也判 partial（此前只认名额/token）；
+- **MCP 工具**：get_document 章节无匹配时 IndexError（扁平化取空列表）→ 明确 reason +
+  section_not_matched 字段；list_documents filters=None 崩溃（stdio 双 None）→ 兜底；
+  status="all" 返回空目录 → 剔除过滤；document_ids 去重；分页参数容错；截断标记 truncated；
+  单文档响应扁平化去重（同一内容不再出现两份，full/fragments 行为一致）；
+  knowledge_search 章节无匹配的误导性 reason 修正；
+- **MCP 配置**：MCP_MODE/_ENTRY 在 .env 加载前读值 → 显式 load_dotenv（此前 .env 配
+  MCP_MODE=answer 会被静默回退 query、HTTP 日志误标 stdio）；非法值回退打印警告；
+  status 参数校验（非法值报错而非静默空结果）；stdio 分支补 init_db（防审计静默丢失）；
+  401 提示从 REGISTERED_TOOLS 生成；注册循环改显式映射（globals() 隐患）；
+- **多用户身份（最重要）**：streamable-http 会话任务的 contextvar 身份冻结在会话创建者——
+  同一会话内换合法令牌，权限范围与审计署名仍是创建者。修复：五个工具改 **async + to_thread**
+  （同步工具不再阻塞事件循环），工具经 **ctx.request_context.request 读取当次请求头逐次验证
+  令牌**（SDK 每条消息携带请求对象）——身份与权限按调用派生，审计署名正确；
+- **owner 贯通**：manage.py 网页入库/重新入库/归档/恢复/重新抓取五处补 owner 参数，
+  app.py 对应调用传登录用户名——修复"重新入库把已有 owner 清空"的数据问题；
+- **验证**：全量测试 263 个通过（新增身份派生/权限隔离用例）；真实库冒烟：
+  QU 耗时落账（2.13s）、真实库枚举 coverage=partial（召回 50 > 名额 40 的诚实判定）、
+  章节过滤/多文档/去重全部正确。
+
 ## 工具描述的四层行为契约（本项目最值得复盘的实践）
 
 MCP 工具的 `description` 会通过 `tools/list` 下发给每一个接入的 Agent，
