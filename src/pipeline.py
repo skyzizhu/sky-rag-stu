@@ -77,6 +77,7 @@ class QAResult:
     trace: list = field(default_factory=list)    # 节点时间线（调试面板）
     elapsed: dict = field(default_factory=dict)
     evaluation: dict | None = None  # V3.6 回答质量评估载荷（见 src/answer_evaluator.py）
+    enumeration: bool = False  # V3.9：本次提问是否走枚举通道（Evidence/生成共用）
     usage: dict = field(default_factory=dict)  # 本次回答的 LLM 消耗合计（B16.1；评估的用量在 evaluation["usage"]）
 
 
@@ -544,118 +545,43 @@ def _sync_qa_cache_epoch() -> str:
 
 
 # ---------------------------------------------------------------- 问答
-def answer_stream(
+def query_evidence(
     question: str,
     top_k: int | None = None,
-    use_llm: bool = True,
     filters: dict | None = None,
     use_query_understanding: bool = True,
     use_hybrid: bool = True,
     use_rerank: bool = True,
     history: list[dict] | None = None,
+    use_llm: bool = True,
     on_progress=None,
     config: AppConfig | None = None,
     user_groups: list[str] | None = None,
-    username: str | None = None,
-):
+) -> tuple[QAResult, dict]:
+    """Evidence 统一查询入口（V3.9）：检索半程（意图→检索→融合→筛选→组装）。
+
+    Web 答案模式（answer_stream）与 MCP 证据模式（knowledge_search）共用本函数，
+    保证两个出口的检索规则永远一致。返回 QAResult（retrieved=入选卡片、sources=含相邻
+    补全的最终条目、trace=检索半程全部节点、elapsed、usage）+ evidence_meta（coverage
+    粗判定：not_found/partial/unknown，V1 不签 complete）。
+
+    filters 应为 scope_filters 之后的条件；本函数内部对 user_groups 再做一次注入
+    （直接调用方传 None 即可，MCP 层传令牌属主的可见部门）。
+    """
     def _p(msg):
         if on_progress:
             on_progress(msg)
 
-    """流式问答：history 传入最近对话实现多轮（解析代词+上下文），不增加 LLM 调用。
-
-    生成器迭代结束后，result.answer / result.elapsed / result.trace 才是完整值。
-    filters 例：{"domain": "learning"}、{"status": "archive"}（界面手动设置，优先级最高）。
-    use_query_understanding=True 时先用 LLM 改写提问并推断过滤条件（V2.1）。
-    use_hybrid=True 时并行执行 BM25 关键词检索并用 RRF 融合（V2.3/V2.4）。
-    use_rerank=True 时召回扩宽到 RERANK_RECALL_K 条，LLM 打分精排后取 Top K（V2.5）。
-    """
     cfg = config or get_config()
     top_k = top_k or cfg.top_k
 
-    # V3.7 权限：把可见部门并入 filters 的本地副本（服务端强制注入——
-    # 此后 merged_filters / 渐进式放宽的 manual_filters / 两级缓存键全部自动带上，
-    # 调用方在界面上改任何过滤条件都绕不开它）。None = 不限制（个人模式/离线评测）。
     from src.permissions import scope_filters
     filters = scope_filters(filters, user_groups)
-
-    # Q→A 缓存：同一问题+同一配置+同一对话上下文直接返回上次结果；
-    # 仅检索模式（use_llm=False）不读缓存——它要的是检索结果而非缓存的 LLM 答案
-    cache_key = _cache_key(question, top_k, filters or {}, use_query_understanding,
-                           use_hybrid, use_rerank, history=history)
-    epoch_at_start = _sync_qa_cache_epoch()  # 知识库已变 → 旧答案作废
-    # .get 取一次：判断与读取分两步时，并发清空会让第二步抛 KeyError
-    cached_entry = _qa_cache.get(cache_key) if use_llm else None
-    if cached_entry is not None:
-        import copy
-        cached = copy.deepcopy(cached_entry)
-        # 缓存命中：加一条时间线节点说明（不重跑流水线）
-        cached.trace.append(make_node(
-            "⚡", "Q→A 缓存命中", time_str=now_str(), status="已命中",
-            summary="同一问题 + 同一检索配置，直接返回上次结果——"
-                    "不重跑 Query 理解 / 检索 / Rerank / LLM 生成（0 次 API 调用，0 秒）",
-            items=[
-                ("缓存条件", f"问题：{question[:50]}……"),
-                ("上次耗时", f"{cached.elapsed.get('total', 0):.2f} 秒"),
-                ("本次耗时", "≈0 秒（直接返回缓存）"),
-            ],
-        ))
-        return cached, iter([])
 
     retriever = get_retriever()
     trace: list = []
     result = QAResult(question=question, answer=None, retrieved=[], context="",
                       sources=[], filters=effective_filters(filters), trace=trace)
-
-    # 节点 ⓪：服务就绪检查
-    ready_start = now_str()
-    checks = []
-    try:
-        emb_ok = get_embedding_client().model_available()
-        checks.append(("向量化模型（Ollama）", f"{'在线 ✅' if emb_ok else '离线 ❌'} · {cfg.embedding_model}"))
-    except Exception as exc:
-        checks.append(("向量化模型（Ollama）", f"不可用 ❌ · {str(exc)[:60]}"))
-    try:
-        from src.vector_store import get_vector_store as _gvs
-        checks.append(("向量数据库（Qdrant）", f"在线 ✅ · 已存 {_gvs().count()} 张卡片"))
-    except Exception as exc:
-        checks.append(("向量数据库（Qdrant）", f"不可用 ❌ · {str(exc)[:60]}"))
-    checks.append(("大模型（云端 API）", f"已配置 ✅ · {cfg.llm_model}" if cfg.llm_api_key else "未配置 ❌"))
-    trace.append(make_node(
-        "🩺", "服务就绪检查", time_str=ready_start,
-        summary="问答开始前，先确认三个依赖都可用：本地向量化模型、本机向量数据库、云端大模型 Key",
-        items=checks,
-    ))
-
-    # 节点 ①：提问
-    trace.append(make_node(
-        "❓", "提问", time_str=now_str(),
-        summary="接收用户问题，问答流程从这里开始",
-        items=[("输入（用户问题）", question)],
-    ))
-
-    # 节点：会话记忆 / 多轮对话（V3：结合历史解析代词 + 上下文生成）
-    recent_history = [m for m in (history or []) if m.get("role") in ("user", "assistant") and m.get("content")][-6:]
-    if recent_history:
-        trace.append(make_node(
-            "💬", "会话记忆 / 多轮对话", time_str=now_str(), status="已执行",
-            summary="检测到对话历史，本轮结合最近对话理解当前问题：Query 理解时解析代词"
-                    "（'它多少钱'→'Qdrant 的价格'），生成时带上历史上下文",
-            items=[
-                ("输入", f"当前问题 1 条 + 历史消息 {len(recent_history)} 条（最近 {len(recent_history) // 2} 轮）"),
-                ("历史摘要", "\n".join(
-                    f"{'用户' if m['role'] == 'user' else '助手'}：{m['content'][:80]}……"
-                    for m in recent_history[-4:]
-                )),
-                ("输出", "历史传入 Query 理解（代词消解）+ LLM 生成（上下文连贯），不增加 LLM 调用"),
-            ],
-        ))
-    else:
-        trace.append(make_node(
-            "💬", "会话记忆 / 多轮对话", time_str=now_str(), status="本轮无历史（首轮提问）",
-            summary="当前是新会话的第一轮提问，没有历史可结合。多轮时系统会自动带上最近对话",
-            items=[("说明", "传入历史后：Query 理解解析代词 + LLM 上下文连贯")],
-        ))
 
     # 列举/盘点类提问：进入枚举通道（V3.8.1：召回 50 / 名额 40、跳过精排、token 12000）。
     # 双通道判定：Query 理解的语义识别（enumeration 字段）为主，
@@ -963,13 +889,152 @@ def answer_stream(
         ],
     ))
 
+
+    # Evidence 覆盖粗判定（V3.9）：零召回=not_found；名额/token 截断=partial；其余 unknown。
+    # 事实级 complete 判定依赖结构化数据层（方案第三批），V1 不签 complete。
+    if not result.retrieved:
+        coverage = "not_found"
+    elif any("上限" in str(d.get("reason", "")) or "token" in str(d.get("reason", "")).lower()
+             for d in (dropped or [])):
+        coverage = "partial"
+    else:
+        coverage = "unknown"
+    result.enumeration = enumeration_mode
+    evidence_meta = {"coverage": coverage, "dropped": len(dropped or []),
+                     "enumeration": enumeration_mode,
+                     "ctx_max_items": ctx_max_items, "recall_k": recall_k}
+    return result, evidence_meta
+
+
+def answer_stream(
+    question: str,
+    top_k: int | None = None,
+    use_llm: bool = True,
+    filters: dict | None = None,
+    use_query_understanding: bool = True,
+    use_hybrid: bool = True,
+    use_rerank: bool = True,
+    history: list[dict] | None = None,
+    on_progress=None,
+    config: AppConfig | None = None,
+    user_groups: list[str] | None = None,
+    username: str | None = None,
+):
+    def _p(msg):
+        if on_progress:
+            on_progress(msg)
+
+    """流式问答：history 传入最近对话实现多轮（解析代词+上下文），不增加 LLM 调用。
+
+    生成器迭代结束后，result.answer / result.elapsed / result.trace 才是完整值。
+    filters 例：{"domain": "learning"}、{"status": "archive"}（界面手动设置，优先级最高）。
+    use_query_understanding=True 时先用 LLM 改写提问并推断过滤条件（V2.1）。
+    use_hybrid=True 时并行执行 BM25 关键词检索并用 RRF 融合（V2.3/V2.4）。
+    use_rerank=True 时召回扩宽到 RERANK_RECALL_K 条，LLM 打分精排后取 Top K（V2.5）。
+    """
+    cfg = config or get_config()
+    top_k = top_k or cfg.top_k
+
+    # V3.7 权限：把可见部门并入 filters 的本地副本（服务端强制注入——
+    # 此后 merged_filters / 渐进式放宽的 manual_filters / 两级缓存键全部自动带上，
+    # 调用方在界面上改任何过滤条件都绕不开它）。None = 不限制（个人模式/离线评测）。
+    from src.permissions import scope_filters
+    filters = scope_filters(filters, user_groups)
+
+    # Q→A 缓存：同一问题+同一配置+同一对话上下文直接返回上次结果；
+    # 仅检索模式（use_llm=False）不读缓存——它要的是检索结果而非缓存的 LLM 答案
+    cache_key = _cache_key(question, top_k, filters or {}, use_query_understanding,
+                           use_hybrid, use_rerank, history=history)
+    epoch_at_start = _sync_qa_cache_epoch()  # 知识库已变 → 旧答案作废
+    # .get 取一次：判断与读取分两步时，并发清空会让第二步抛 KeyError
+    cached_entry = _qa_cache.get(cache_key) if use_llm else None
+    if cached_entry is not None:
+        import copy
+        cached = copy.deepcopy(cached_entry)
+        # 缓存命中：加一条时间线节点说明（不重跑流水线）
+        cached.trace.append(make_node(
+            "⚡", "Q→A 缓存命中", time_str=now_str(), status="已命中",
+            summary="同一问题 + 同一检索配置，直接返回上次结果——"
+                    "不重跑 Query 理解 / 检索 / Rerank / LLM 生成（0 次 API 调用，0 秒）",
+            items=[
+                ("缓存条件", f"问题：{question[:50]}……"),
+                ("上次耗时", f"{cached.elapsed.get('total', 0):.2f} 秒"),
+                ("本次耗时", "≈0 秒（直接返回缓存）"),
+            ],
+        ))
+        return cached, iter([])
+
+    # 早期节点（就绪/提问/会话记忆）先入 head 列表；检索半程（query_evidence）返回后合并进 result.trace
+    head_trace: list = []
+    trace = head_trace
+
+    # 节点 ⓪：服务就绪检查
+    ready_start = now_str()
+    checks = []
+    try:
+        emb_ok = get_embedding_client().model_available()
+        checks.append(("向量化模型（Ollama）", f"{'在线 ✅' if emb_ok else '离线 ❌'} · {cfg.embedding_model}"))
+    except Exception as exc:
+        checks.append(("向量化模型（Ollama）", f"不可用 ❌ · {str(exc)[:60]}"))
+    try:
+        from src.vector_store import get_vector_store as _gvs
+        checks.append(("向量数据库（Qdrant）", f"在线 ✅ · 已存 {_gvs().count()} 张卡片"))
+    except Exception as exc:
+        checks.append(("向量数据库（Qdrant）", f"不可用 ❌ · {str(exc)[:60]}"))
+    checks.append(("大模型（云端 API）", f"已配置 ✅ · {cfg.llm_model}" if cfg.llm_api_key else "未配置 ❌"))
+    trace.append(make_node(
+        "🩺", "服务就绪检查", time_str=ready_start,
+        summary="问答开始前，先确认三个依赖都可用：本地向量化模型、本机向量数据库、云端大模型 Key",
+        items=checks,
+    ))
+
+    # 节点 ①：提问
+    trace.append(make_node(
+        "❓", "提问", time_str=now_str(),
+        summary="接收用户问题，问答流程从这里开始",
+        items=[("输入（用户问题）", question)],
+    ))
+
+    # 节点：会话记忆 / 多轮对话（V3：结合历史解析代词 + 上下文生成）
+    recent_history = [m for m in (history or []) if m.get("role") in ("user", "assistant") and m.get("content")][-6:]
+    if recent_history:
+        trace.append(make_node(
+            "💬", "会话记忆 / 多轮对话", time_str=now_str(), status="已执行",
+            summary="检测到对话历史，本轮结合最近对话理解当前问题：Query 理解时解析代词"
+                    "（'它多少钱'→'Qdrant 的价格'），生成时带上历史上下文",
+            items=[
+                ("输入", f"当前问题 1 条 + 历史消息 {len(recent_history)} 条（最近 {len(recent_history) // 2} 轮）"),
+                ("历史摘要", "\n".join(
+                    f"{'用户' if m['role'] == 'user' else '助手'}：{m['content'][:80]}……"
+                    for m in recent_history[-4:]
+                )),
+                ("输出", "历史传入 Query 理解（代词消解）+ LLM 生成（上下文连贯），不增加 LLM 调用"),
+            ],
+        ))
+    else:
+        trace.append(make_node(
+            "💬", "会话记忆 / 多轮对话", time_str=now_str(), status="本轮无历史（首轮提问）",
+            summary="当前是新会话的第一轮提问，没有历史可结合。多轮时系统会自动带上最近对话",
+            items=[("说明", "传入历史后：Query 理解解析代词 + LLM 上下文连贯")],
+        ))
+
+    # V3.9 Evidence 统一查询入口：检索半程（意图→检索→融合→筛选→组装）抽为独立函数，
+    # Web 答案模式与 MCP 证据模式（knowledge_search）共用同一套检索规则
+    result, evidence_meta = query_evidence(
+        question=question, top_k=top_k, filters=filters,
+        use_query_understanding=use_query_understanding, use_hybrid=use_hybrid,
+        use_rerank=use_rerank, history=history, use_llm=use_llm,
+        on_progress=_p, config=cfg)
+    result.trace[:0] = trace   # 早期节点（就绪/提问/会话记忆）并入时间线头部
+    trace = result.trace
+    context = result.context  # 生成半程需要的组装资料（Evidence 已含四道检查）
     if not use_llm:
         return result, iter(())
 
     # 节点 ⑩⑪：LLM 调用（Prompt 组装 + 生成回答，合并展示）
     t2 = time.time()
     messages = build_messages(context, question, history=history,
-                              enumerate_mode=enumeration_mode)
+                              enumerate_mode=result.enumeration)
     llm = get_llm_client()
 
     def _generate():
@@ -997,7 +1062,7 @@ def answer_stream(
             result.answer = cleaned or None
             result.elapsed["llm"] = time.time() - t3
             # 总耗时 = 全部节点：Query 理解（LLM 调用）+ 检索/展开/精排/组装 + 生成（LLM 调用）
-            qu_seconds = float(getattr(qu, "elapsed", 0.0) or 0.0)
+            qu_seconds = float(result.elapsed.get("query_understanding", 0.0) or 0.0)
             result.elapsed["query_understanding"] = qu_seconds
             result.elapsed["total"] = (result.elapsed.get("retrieval", 0)
                                        + result.elapsed["llm"] + qu_seconds)

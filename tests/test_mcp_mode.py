@@ -33,23 +33,26 @@ class McpModeTests(unittest.TestCase):
         importlib.reload(ms)  # 恢复默认环境下的模块状态，避免影响其他用例
 
     def test_default_is_query_mode(self):
-        """不设 MCP_MODE：默认 query——只暴露 search/status，Agent 负责拼装回答。"""
+        """不设 MCP_MODE：默认 query——search/status + 文档工具，Agent 负责拼装回答。"""
         ms = self._load(None)
         self.assertEqual(ms.MCP_MODE, "query")
         self.assertEqual(sorted(ms.REGISTERED_TOOLS),
-                         ["knowledge_search", "knowledge_status"])
+                         ["get_document", "knowledge_search", "knowledge_status",
+                          "list_documents"])
 
     def test_answer_mode_registers_qa_tools(self):
         ms = self._load("answer")
         self.assertEqual(ms.MCP_MODE, "answer")
         self.assertEqual(sorted(ms.REGISTERED_TOOLS),
-                         ["knowledge_digest", "knowledge_qa", "knowledge_status"])
+                         ["get_document", "knowledge_digest", "knowledge_qa",
+                          "knowledge_status", "list_documents"])
 
     def test_invalid_mode_falls_back_to_query(self):
         ms = self._load("Nonsense")
         self.assertEqual(ms.MCP_MODE, "query")
         self.assertEqual(sorted(ms.REGISTERED_TOOLS),
-                         ["knowledge_search", "knowledge_status"])
+                         ["get_document", "knowledge_search", "knowledge_status",
+                          "list_documents"])
 
 
 if __name__ == "__main__":

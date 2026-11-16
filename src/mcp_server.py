@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 from contextvars import ContextVar
@@ -153,8 +154,9 @@ def _with_domain_codes(fn):
 _raw_mode = os.environ.get("MCP_MODE", "query").strip().lower()
 MCP_MODE = _raw_mode if _raw_mode in ("query", "answer") else "query"
 _MODE_TOOLS: dict[str, tuple[str, ...]] = {
-    "query": ("knowledge_search", "knowledge_status"),
-    "answer": ("knowledge_qa", "knowledge_digest", "knowledge_status"),
+    "query": ("knowledge_search", "knowledge_status", "get_document", "list_documents"),
+    "answer": ("knowledge_qa", "knowledge_digest", "knowledge_status",
+               "get_document", "list_documents"),
 }
 REGISTERED_TOOLS: list[str] = []
 
@@ -268,6 +270,8 @@ def knowledge_search(
             "matches": [
                 {
                     "rank": i,
+                    "document_id": item.metadata.get("document_id"),
+                    "version": item.metadata.get("version"),
                     "source": item.metadata.get("source"),
                     "path": item.metadata.get("path"),
                     "score": round(float(item.score), 4),
@@ -318,6 +322,118 @@ def knowledge_digest(topic: str) -> str:
         ensure_ascii=False,
         indent=2,
     )
+
+
+def get_document(document_id: str, page: int = 1, page_size: int = 5,
+                 mode: str = "fragments") -> str:
+    """按 document_id 获取整篇文档：mode="full" 返回拼接全文（去重叠）；
+    mode="fragments"（默认）按卡片分页返回片段。不调用 LLM，零生成成本。
+
+    document_id 来自 knowledge_search 的 matches（每条都带 document_id）。
+    检索范围遵循调用者令牌的可见部门；无权限或文档不存在统一返回 refused，不做区分。
+
+    Args:
+        document_id: 文档编号（knowledge_search 结果中的 document_id 字段）
+        page: 片段模式的页码（从 1 起）
+        page_size: 片段模式每页卡片数（1~20，默认 5）
+        mode: "fragments"（分页片段）或 "full"（拼接全文）
+    """
+    import math
+
+    from src.context import _merge_run
+    from src.permissions import scope_filters
+    from src.retriever import RetrievedItem
+    from src.vector_store import get_vector_store
+
+    document_id = (document_id or "").strip()
+    if not document_id:
+        return json.dumps({"error": "document_id 不能为空"}, ensure_ascii=False)
+    mode = (mode or "fragments").strip().lower()
+    if mode not in ("fragments", "full"):
+        return json.dumps({"error": "mode 仅支持 fragments / full"}, ensure_ascii=False)
+
+    filters = scope_filters({"document_id": document_id, "status": "active"},
+                            _current_user_groups())
+    try:
+        cards = get_vector_store().get_all_cards(filters=filters, limit=500)
+    except Exception as exc:
+        return json.dumps({"error": f"知识库访问失败：{exc}"}, ensure_ascii=False)
+    if not cards:
+        return json.dumps({"refused": True,
+                           "reason": "无此 document_id，或文档未生效/当前令牌无权限"},
+                          ensure_ascii=False)
+
+    def _seq(card) -> int:
+        m = re.search(r"(\d{4})$", card["payload"].get("chunk_id") or "")
+        return int(m.group(1)) if m else 0
+
+    cards.sort(key=_seq)
+    meta = cards[0]["payload"]
+
+    if mode == "full":
+        run = [RetrievedItem(rank=i, score=0.0, text=c["payload"]["text"],
+                             metadata={k: v for k, v in c["payload"].items() if k != "text"})
+               for i, c in enumerate(cards)]
+        full = _merge_run(run)
+        return json.dumps(
+            {"document_id": document_id, "source": meta.get("source"),
+             "domain": meta.get("domain"), "category": meta.get("category"),
+             "version": meta.get("version"), "total_cards": len(cards),
+             "total_chars": len(full), "full_text": full},
+            ensure_ascii=False, indent=2)
+
+    page = max(1, int(page))
+    page_size = min(max(1, int(page_size)), 20)
+    total_pages = math.ceil(len(cards) / page_size)
+    page = min(page, total_pages)
+    slice_ = cards[(page - 1) * page_size: page * page_size]
+    return json.dumps(
+        {"document_id": document_id, "source": meta.get("source"),
+         "version": meta.get("version"), "page": page, "page_size": page_size,
+         "total_cards": len(cards), "total_pages": total_pages,
+         "fragments": [
+             {"chunk_id": c["payload"].get("chunk_id"),
+              "section": c["payload"].get("section"),
+              "text": c["payload"].get("text", "")}
+             for c in slice_
+         ]},
+        ensure_ascii=False, indent=2)
+
+
+def list_documents(domain: str | None = None, status: str = "active") -> str:
+    """枚举知识库目录：按权限列出文档（编号/文件名/领域/分类/版本/状态/卡片数）。
+    不调用 LLM。用途：生成方案前先了解知识库里有哪些资料可供检索。
+
+    Args:
+        domain: 可选，限定知识领域编号（{DOMAIN_CODES}）；"all" 表示不限
+        status: 知识状态过滤（active/archive/expired/all，默认 active）
+    """
+    from src.permissions import scope_filters
+    from src.vector_store import get_vector_store
+
+    try:
+        filters = _filters(domain, status)
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)}, ensure_ascii=False)
+    filters = scope_filters(filters, _current_user_groups())
+    allowed = set((filters.get("allowed_groups") or []))
+    want_domain = filters.get("domain")
+    want_status = filters.get("status")
+
+    docs = []
+    for d in get_vector_store().list_documents():
+        if allowed and not (set(d.get("allowed_groups") or ["all"]) & allowed):
+            continue
+        if want_domain and d.get("domain") != want_domain:
+            continue
+        if want_status and d.get("status") != want_status:
+            continue
+        docs.append({"document_id": d.get("document_id"), "source": d.get("source"),
+                     "domain": d.get("domain"), "category": d.get("category"),
+                     "version": d.get("version"), "status": d.get("status"),
+                     "chunks": d.get("chunks"), "indexed_at": d.get("indexed_at")})
+    return json.dumps({"total": len(docs), "documents": docs},
+                      ensure_ascii=False, indent=2)
 
 
 def knowledge_status() -> str:

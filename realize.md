@@ -1378,7 +1378,13 @@ MCP 服务不维护任何会话状态，多轮对话通过 `history` 参数由 A
 | `knowledge_qa` | 完整问答 | 走全流水线（Query 理解→检索→Rerank→生成），带引用 |
 | `knowledge_search` | 仅检索 | `use_llm=False`，不调用生成模型——零成本、更快，供 Agent 自行推理 |
 | `knowledge_digest` | 跨文档总结 | 横向综合多文档 |
+| `get_document` | 取整篇文档 | 按 document_id 取拼接全文（去重叠）或分页片段——纯元数据精确取数，不走检索管线、零 LLM（V3.9） |
+| `list_documents` | 枚举目录 | 按权限列出文档（编号/领域/版本/卡片数），供 Agent 先"看看库里有什么"（V3.9） |
 | `knowledge_status` | 自检 | 依赖可用性检查 |
+
+**`get_document` 为什么不走检索管线**：每张卡的元数据都带 document_id（切片时写入），
+按 id 过滤 Qdrant 是**精确取数**——按卡序取出、重叠去重、拼回接近原文的全文，
+结果 100% 稳定（不存在"这次没检索到"），零 token 成本；权限过滤照常生效。
 
 **为什么要有 `knowledge_search`**：Agent 有自己的推理能力，有时它只需要"证据"而不需要
 "别人替它写好的答案"。给出检索粒度，让 Agent 自己决定要不要再加工——这是把选择权交给调用方。
@@ -1390,14 +1396,39 @@ MCP 服务不维护任何会话状态，多轮对话通过 `history` 参数由 A
 
 | MCP_MODE | 暴露的工具 | 语义 |
 |---|---|---|
-| `query`（**默认**） | knowledge_search + knowledge_status | **仅查询模式**：检索+筛选（四道检查）由 RAG 完成，拼装回答归调用方 Agent——零生成成本，适合「Agent 自己的 LLM 负责回答」的架构 |
-| `answer` | knowledge_qa + knowledge_digest + knowledge_status | **独立回答模式**：RAG 全管线（含生成带引用回答），适合「直接要成品答案」的场景 |
+| `query`（**默认**） | knowledge_search / get_document / list_documents + knowledge_status | **仅查询模式**：检索+筛选（四道检查）由 RAG 完成，拼装回答归调用方 Agent——零生成成本，适合「Agent 自己的 LLM 负责回答」的架构 |
+| `answer` | knowledge_qa / knowledge_digest + get_document / list_documents / knowledge_status | **独立回答模式**：RAG 全管线（含生成带引用回答），适合「直接要成品答案」的场景 |
 | 非法值 | 回退 `query` | 配错不炸服务 |
 
 **为什么用"工具暴露"而不是"同一工具加 mode 参数"**：工具不暴露 = Agent 从物理上就调不到那个
 模式，行为 100% 确定；加参数则选择权仍在 Agent 的 LLM 手里，存在不确定性——这恰恰是本配置要消除的。
 查询模式比独立回答模式少跑三个 LLM 节点（Query 理解/精排/生成），检索质量略降，由 Agent 的
 多轮检索能力补偿（搜→读→换更准的词再搜）。生效需要重启 MCP；启动日志与 401 提示都会标注当前模式。
+
+### 3.2 Evidence 统一查询入口：query_evidence（V3.9）
+
+**为什么抽这个函数**：检索半程（意图→检索→融合→筛选→组装四道检查）原本嵌在 answer_stream
+（千行函数）里，Web 答案出口与 MCP 证据出口靠 `use_llm` 开关区分——两个出口共用一份代码这点
+已经成立，但"检索半程"不是一个可独立调用的能力。抽成 `pipeline.query_evidence()` 后：
+
+- **answer_stream** 调它拿到检索结果，继续拼装与生成（Answer 出口）；
+- **MCP / 外部 Agent** 直接调它拿 Evidence（查询出口）——检索规则两个出口永远一致，不会漂移。
+
+**返回**：`QAResult`（retrieved=入选卡片、sources=含相邻补全的最终条目、trace=检索半程全部节点、
+elapsed、usage）+ `evidence_meta`。QAResult 新增 `enumeration` 字段（本次是否走枚举通道，生成提示需要）。
+
+**coverage 覆盖粗判定（V1 口径）**：
+
+| 值 | 判定依据 |
+|---|---|
+| `not_found` | 零召回 |
+| `partial` | 组装丢弃明细出现名额/token 截断（说明范围内还有内容没带全） |
+| `unknown` | 其余情况（V1 默认——事实级 complete 签发依赖结构化数据层，属第三批） |
+
+**配套**：knowledge_search 的 matches 补 document_id / version（Agent 由此调 get_document 取原文）；
+新增 get_document（元数据精确取数，见工具粒度表）与 list_documents（权限内枚举目录）两个工具，
+两种 MCP_MODE 下都注册。全量测试 254 个通过；真实库冒烟：search→document_id→get_document 全文（4234 字）、
+list_documents 12 个文档全部正确。
 
 ## 工具描述的四层行为契约（本项目最值得复盘的实践）
 
