@@ -1381,7 +1381,7 @@ MCP 服务不维护任何会话状态，多轮对话通过 `history` 参数由 A
 | `knowledge_qa` | 完整问答 | 走全流水线（Query 理解→检索→Rerank→生成），带引用 |
 | `knowledge_search` | 仅检索 | `use_llm=False`，不调用生成模型——零成本、更快，供 Agent 自行推理 |
 | `knowledge_digest` | 跨文档总结 | 横向综合多文档 |
-| `get_document` | 取整篇文档 | 按 document_id 取拼接全文（去重叠）或分页片段——纯元数据精确取数，不走检索管线、零 LLM（V3.9） |
+| `get_document` | 取整篇文档 | 按 document_id（一篇或多篇）取拼接全文（去重叠）或分页片段；支持章节名关键词过滤、响应始终附章节清单——纯元数据精确取数，不走检索管线、零 LLM（V3.9） |
 | `list_documents` | 枚举目录 | 按权限列出文档（编号/领域/版本/卡片数），供 Agent 先"看看库里有什么"（V3.9） |
 | `knowledge_status` | 自检 | 依赖可用性检查 |
 
