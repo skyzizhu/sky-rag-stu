@@ -17,6 +17,20 @@ from dataclasses import dataclass, field
 
 from src.config import AppConfig, get_config
 from src.cleaner import clean_document
+
+# 切片容量单位：估算 token（V3.9）。中文≈0.8/字、英文≈4字符/token——中英文卡片密度一致。
+# 实现委托 src.context.estimate_tokens（延迟导入：vector_store 依赖 chunker，
+# chunker 不能在模块加载期反向 import context，否则循环导入）
+_estimate_tokens_fn = None
+
+
+def est_tokens(text: str) -> int:
+    """估算文本的 token 数（与组装预算 src.context.estimate_tokens 同口径）。"""
+    global _estimate_tokens_fn
+    if _estimate_tokens_fn is None:
+        from src.context import estimate_tokens as _fn
+        _estimate_tokens_fn = _fn
+    return _estimate_tokens_fn(text)
 from src.metadata import chunk_id_for
 from src.parser import PAGE_MARKER_RE, ParsedDocument, parse_directory
 
@@ -115,7 +129,7 @@ def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str,
 
 
 def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str]],
-                          max_chars: int) -> list[tuple[str | None, str | None, str, str]]:
+                          max_tokens: int) -> list[tuple[str | None, str | None, str, str]]:
     """相邻短小节合并（2026-11-08）：合计不超过单卡容量就合成一个切片单元。
 
     病灶（实测）：网页清洗器把每个视觉块当独立小节——Xtools 价格区 5 个碎块
@@ -124,7 +138,7 @@ def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str]
     组内章节名/路径取第一节，各子节标题行原文回注正文（合并后小标题不能丢）。
     单节自己就超容量的不参与合并（保持独立，交给打包阶段硬切）。
     """
-    if max_chars <= 0 or not sections:
+    if max_tokens <= 0 or not sections:
         return sections
     merged: list[tuple[str | None, str | None, str, str]] = []
     group: list[tuple[str | None, str | None, str, str]] = []
@@ -142,8 +156,8 @@ def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str]
         merged.append((leaf, path, group[0][2], body))
 
     for section in sections:
-        section_size = len(section[2]) + len(section[3])
-        if group and group_size + section_size > max_chars:
+        section_size = est_tokens(section[2]) + est_tokens(section[3])
+        if group and group_size + section_size > max_tokens:
             flush_group()
             group, group_size = [], 0
         group.append(section)
@@ -182,19 +196,26 @@ def _split_paragraphs(text: str) -> list[str]:
 
 
 def _hard_split_long_text(text: str, size: int, overlap: int) -> list[str]:
-    """超长段落兜底：先按句子切，再打包；整句超长时按字符硬切。"""
+    """超长段落兜底：先按句子切，再打包；整句超长时按比例换算字符窗口硬切。
+
+    size / overlap 单位为估算 token（V3.9）；字符窗口 = token 预算 × 该句的字符/token 比。
+    """
     sentences = [s for s in _SENTENCE_SPLIT_RE.split(text) if s.strip()]
     pieces: list[str] = []
     buffer = ""
     for sentence in sentences:
-        if len(sentence) > size:  # 连一个句子都超长：按字符硬切
+        sentence_est = est_tokens(sentence)
+        if sentence_est > size:  # 连一个句子都超长：按比例换算字符窗口硬切
+            ratio = len(sentence) / max(1, sentence_est)
+            window = max(50, int(size * ratio * 0.9))
+            step = max(50, window - int(overlap * ratio))
             start = 0
             while start < len(sentence):
-                pieces.append(sentence[start : start + size])
-                start += size - overlap if size > overlap else size
+                pieces.append(sentence[start : start + window])
+                start += step
             buffer = ""
             continue
-        if buffer and len(buffer) + len(sentence) > size:
+        if buffer and est_tokens(buffer + sentence) > size:
             pieces.append(buffer)
             buffer = ""
         buffer += sentence
@@ -233,12 +254,25 @@ def _bind_title_paragraphs(blocks: list[str], size: int) -> list[str]:
     return bound
 
 
+def _token_tail(text: str, overlap_tokens: int) -> str:
+    """从文本末尾按行回退收集，直到估算 token 达到 overlap（天然落在行边界）。"""
+    lines = text.split("\n")
+    tail: list[str] = []
+    total = 0
+    for line in reversed(lines):
+        tail.insert(0, line)
+        total += est_tokens(line) + 1
+        if total >= overlap_tokens:
+            break
+    return "\n".join(tail)
+
+
 def _pack_with_overlap(blocks: list[str], size: int, overlap: int) -> list[str]:
-    """把若干「块」（段落）打包成不超过 size 的切片，相邻切片带 overlap。"""
+    """把若干「块」（段落）打包成不超过 size（估算 token）的切片，相邻切片带 overlap。"""
     chunks: list[str] = []
     buffer = ""
     for block in blocks:
-        if len(block) > size:
+        if est_tokens(block) > size:
             # 当前段落本身超长：先收掉已攒的内容，再把长段落硬切
             if buffer.strip():
                 chunks.append(buffer)
@@ -247,13 +281,10 @@ def _pack_with_overlap(blocks: list[str], size: int, overlap: int) -> list[str]:
             chunks.extend(pieces)
             continue
         candidate = f"{buffer}\n\n{block}" if buffer else block
-        if len(candidate) > size and buffer:
+        if est_tokens(candidate) > size and buffer:
             chunks.append(buffer)
             if overlap > 0:
-                tail = buffer[-overlap:]
-                newline_at = tail.find("\n")
-                if 0 < newline_at < len(tail) - 1:  # 让重复的起点落在行边界，别撕在半句话里
-                    tail = tail[newline_at + 1 :]
+                tail = _token_tail(buffer, overlap)  # 按行回退至估算 token 达标（天然行对齐）
                 buffer = (tail + "\n\n" + block).strip()
             else:
                 buffer = block
@@ -270,6 +301,7 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
     每张卡片完整继承文档 Metadata，只额外增加：chunk_id、section、section_path、page。
     """
     cfg = config or get_config()
+    # V3.9：size / overlap 单位为估算 token（见模块头 est_tokens）——中英文卡片密度一致
     size = max(100, cfg.chunk_size)
     overlap = max(0, min(cfg.chunk_overlap, size // 2))
     document_id = doc.metadata.get("document_id") or "doc_unknown"
@@ -279,7 +311,7 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
 
     chunks: list[Chunk] = []
     for page_start, page_text in _split_by_pages(doc.text):
-        sections = _merge_short_sections(_split_by_sections_raw(page_text), max_chars=size)
+        sections = _merge_short_sections(_split_by_sections_raw(page_text), max_tokens=size)
         for section_leaf, section_path, _heading_line, section_text in sections:
             paragraphs = _bind_title_paragraphs(_split_paragraphs(section_text), size)
             for piece in _pack_with_overlap(paragraphs, size, overlap):
@@ -332,7 +364,7 @@ if __name__ == "__main__":
     for chunk in chunks:
         meta = chunk.metadata
         first_line = chunk.text.split("\n")[0][:50]
-        flag = " ⚠️超长" if len(chunk.text) > cfg.chunk_size else ""
+        flag = " ⚠️超长" if est_tokens(chunk.text) > cfg.chunk_size else ""
         print(f"[{chunk.chunk_id}] {meta['source']} | {meta.get('section') or '无章节'}"
               f" | 页码:{meta['page'] or '-'} | {len(chunk.text)}字{flag}")
         print(f"      domain={meta.get('domain')} category={meta.get('category')} status={meta.get('status')}")

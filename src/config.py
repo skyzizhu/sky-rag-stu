@@ -67,8 +67,10 @@ class AppConfig:
     )
 
     # 知识切片
-    chunk_size: int = field(default_factory=lambda: _env_int("CHUNK_SIZE", 600))
-    chunk_overlap: int = field(default_factory=lambda: _env_int("CHUNK_OVERLAP", 100))
+    # V3.9：切片单位从字符换到估算 token（中文≈0.8/字、英文≈4字符/token）——
+    # 中英文卡片密度一致；640 token 中文卡 ≈ 800 字（略大于旧 600 字符卡）
+    chunk_size: int = field(default_factory=lambda: _env_int("CHUNK_SIZE", 640))
+    chunk_overlap: int = field(default_factory=lambda: _env_int("CHUNK_OVERLAP", 80))
 
     # 检索与回答
     top_k: int = field(default_factory=lambda: _env_int("TOP_K", 5))

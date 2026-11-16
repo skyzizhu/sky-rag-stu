@@ -50,7 +50,7 @@ $8.99 / 季，500 AI 积分，包含全部基础功能与进阶工具。
 $29.99 / 年，800 AI 积分/月，包含全部功能，免广告体验。
 """
         raw = _split_by_sections_raw(md)
-        merged = _merge_short_sections(raw, max_chars=600)
+        merged = _merge_short_sections(raw, max_tokens=640)
         self.assertEqual(len(merged), 1, "5 个碎小节应合并为 1 个单元")
         self.assertEqual(merged[0][0], "订阅方案")            # 章节名取第一节
         for title in ("月度会员", "季度会员", "年度会员"):
@@ -58,21 +58,21 @@ $29.99 / 年，800 AI 积分/月，包含全部功能，免广告体验。
 
     def test_no_merge_when_combined_exceeds_capacity(self):
         """相邻两节合计超容量：封组开新组，不硬塞。"""
-        md = "## 甲\n\n" + "甲" * 400 + "\n\n## 乙\n\n" + "乙" * 400
-        merged = _merge_short_sections(_split_by_sections_raw(md), max_chars=600)
+        md = "## 甲\n\n" + "甲" * 500 + "\n\n## 乙\n\n" + "乙" * 500
+        merged = _merge_short_sections(_split_by_sections_raw(md), max_tokens=640)
         self.assertEqual(len(merged), 2)
 
     def test_large_section_stays_independent(self):
         """单节自己超容量：不参与合并，保持独立（交给打包阶段硬切）。"""
-        md = "## 大节\n\n" + "内容" * 400 + "\n\n## 小节\n\n短内容"
-        merged = _merge_short_sections(_split_by_sections_raw(md), max_chars=600)
+        md = "## 大节\n\n" + "内容" * 500 + "\n\n## 小节\n\n短内容"
+        merged = _merge_short_sections(_split_by_sections_raw(md), max_tokens=640)
         self.assertEqual(len(merged), 2)
         self.assertEqual(merged[0][0], "大节")
 
     def test_single_section_unchanged(self):
         """只有一节、没发生合并：正文保持不含标题行（旧行为不变）。"""
         md = "# 唯一小节\n\n正文内容。"
-        merged = _merge_short_sections(_split_by_sections_raw(md), max_chars=600)
+        merged = _merge_short_sections(_split_by_sections_raw(md), max_tokens=640)
         self.assertEqual(len(merged), 1)
         self.assertEqual(merged[0][3], "正文内容。")  # 未合并 → 不回注标题行
 
@@ -169,3 +169,32 @@ $29.99 / 年，800 AI 积分/月，包含全部功能，免广告体验。
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TokenDensityTests(unittest.TestCase):
+    """V3.9 换制的核心性质：中英文同 token → 同卡片数（字符制下英文卡只有约 1/3 密度）。"""
+
+    def test_same_tokens_same_card_count_regardless_of_language(self):
+        from src.chunker import chunk_document, est_tokens
+        zh_text = "这是一段中文正文，用于验证切片密度在不同语言下保持一致。" * 130
+        en_unit = "English body text for chunk density verification. "
+        tz = est_tokens(zh_text)
+        # 英文按估算 token 对齐到与中文相同的总量（构造而非假设）
+        k = max(1, round(tz / est_tokens(en_unit)))
+        en_text = en_unit * k
+        te = est_tokens(en_text)
+        self.assertLess(abs(tz - te) / max(tz, te), 0.03, f"tz={tz} te={te}")
+
+        def parse(text: str, source: str) -> ParsedDocument:
+            return ParsedDocument(metadata={"source": source, "document_id": "doc_density"},
+                                  text=text)
+
+        cfg = get_config()
+        cards_zh = chunk_document(parse(zh_text, "zh.md"), cfg)
+        cards_en = chunk_document(parse(en_text, "en.md"), cfg)
+        # 边界取整噪声允许 ±1 张（估算差 0.2% 在 640 边界上可翻转一张卡）；
+        # 字符制下这个差距是 3~4 张（英文密度只有中文的 1/3）
+        self.assertLessEqual(abs(len(cards_zh) - len(cards_en)), 1,
+                             f"同 token 的中英文文档卡片数差距过大：中文 {len(cards_zh)} vs 英文 {len(cards_en)}")
+        # 且都切成了多张卡（证明 size 真的在起作用）
+        self.assertGreaterEqual(len(cards_zh), 3)
