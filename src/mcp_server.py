@@ -142,7 +142,23 @@ def _with_domain_codes(fn):
     return fn
 
 
-@mcp.tool()
+# ---------------------------------------------------------------- V3.9 MCP 双模配置
+# MCP_MODE 决定本服务对外暴露哪些工具（读取 .env / 启动环境，修改需重启 MCP）：
+#   query（默认）= 仅查询模式：只暴露 knowledge_search / knowledge_status。
+#                  检索+筛选（四道检查）由 RAG 完成，拼装回答归调用方 Agent——
+#                  零生成成本，适合「Agent 自己的 LLM 负责回答」的架构。
+#   answer       = 独立回答模式：暴露 knowledge_qa / knowledge_digest / knowledge_status。
+#                  RAG 全管线（含生成带引用回答），适合「直接要成品答案」的场景。
+# 非法值一律回退 query。
+_raw_mode = os.environ.get("MCP_MODE", "query").strip().lower()
+MCP_MODE = _raw_mode if _raw_mode in ("query", "answer") else "query"
+_MODE_TOOLS: dict[str, tuple[str, ...]] = {
+    "query": ("knowledge_search", "knowledge_status"),
+    "answer": ("knowledge_qa", "knowledge_digest", "knowledge_status"),
+}
+REGISTERED_TOOLS: list[str] = []
+
+
 @_with_domain_codes
 def knowledge_qa(
     question: str,
@@ -203,7 +219,6 @@ def knowledge_qa(
     )
 
 
-@mcp.tool()
 @_with_domain_codes
 def knowledge_search(
     question: str,
@@ -268,7 +283,6 @@ def knowledge_search(
     )
 
 
-@mcp.tool()
 def knowledge_digest(topic: str) -> str:
     """跨文档知识总结：围绕一个主题，综合用户知识库中的多个文档生成结构化摘要（要点+出处）。
 
@@ -306,7 +320,6 @@ def knowledge_digest(topic: str) -> str:
     )
 
 
-@mcp.tool()
 def knowledge_status() -> str:
     """检查知识库服务就绪状态：向量化模型、向量数据库、卡片总数。
 
@@ -336,6 +349,12 @@ def knowledge_status() -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
+# ---- 按 MCP_MODE 注册工具（V3.9 双模配置：见本文件上方 MCP_MODE 说明）----
+for _tool_name in _MODE_TOOLS[MCP_MODE]:
+    mcp.tool()(globals()[_tool_name])
+    REGISTERED_TOOLS.append(_tool_name)
+
+
 # ---------------------------------------------------------------- V3.7 HTTP 传输 + PAT 身份透传
 class _TokenAuthMiddleware:
     """ASGI 中间件：校验 Authorization: Bearer mcp_pat_...
@@ -359,7 +378,9 @@ class _TokenAuthMiddleware:
         if ident is None:
             payload = json.dumps(
                 {"error": "invalid or missing MCP token",
-                 "hint": "在管理后台「访问令牌」页生成，配置到 MCP 客户端 Authorization 头"},
+                 "hint": (f"在管理后台「访问令牌」页生成，配置到 MCP 客户端 Authorization 头；"
+                          f"当前服务模式 MCP_MODE={MCP_MODE}"
+                          f"（{'仅查询：search/status' if MCP_MODE == 'query' else '独立回答：qa/digest/status'}）")},
                 ensure_ascii=False,
             ).encode("utf-8")
             await send({"type": "http.response.start", "status": 401,
@@ -388,7 +409,8 @@ def _run_http() -> None:
     asgi_app = _TokenAuthMiddleware(mcp.streamable_http_app())
     host = os.environ.get("MCP_HTTP_HOST", "0.0.0.0")
     port = int(os.environ.get("MCP_HTTP_PORT", "8760"))
-    print(f"📡 MCP Server (streamable-http) 监听 http://{host}:{port}/mcp（PAT 鉴权）")
+    print(f"📡 MCP Server (streamable-http) 监听 http://{host}:{port}/mcp（PAT 鉴权）"
+          f"｜模式 MCP_MODE={MCP_MODE}｜工具：{'、'.join(REGISTERED_TOOLS)}")
     uvicorn.run(asgi_app, host=host, port=port)
 
 
