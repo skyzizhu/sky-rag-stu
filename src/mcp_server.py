@@ -325,19 +325,22 @@ def knowledge_digest(topic: str) -> str:
     )
 
 
-def get_document(document_id: str, page: int = 1, page_size: int = 5,
-                 mode: str = "fragments") -> str:
-    """按 document_id 获取整篇文档：mode="full" 返回拼接全文（去重叠）；
-    mode="fragments"（默认）按卡片分页返回片段。不调用 LLM，零生成成本。
+def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
+                 mode: str = "fragments", section: str | None = None) -> str:
+    """按 document_id 获取一篇或多篇文档：mode="full" 返回每篇拼接全文（去重叠）；
+    mode="fragments"（默认）返回卡片片段，单文档时按页分页、多文档时按文档分组全量返回。
+    可选 section 过滤：只返回章节名包含该关键词的内容（大小写不敏感）。
+    不调用 LLM，零生成成本。
 
-    document_id 来自 knowledge_search 的 matches（每条都带 document_id）。
-    检索范围遵循调用者令牌的可见部门；无权限或文档不存在统一返回 refused，不做区分。
+    document_ids 来自 knowledge_search 的 matches（每条都带 document_id），可传一篇或多篇。
+    检索范围遵循调用者令牌的可见部门；无权限或文档不存在统一归入 not_found，不做区分。
 
     Args:
-        document_id: 文档编号（knowledge_search 结果中的 document_id 字段）
-        page: 片段模式的页码（从 1 起）
-        page_size: 片段模式每页卡片数（1~20，默认 5）
+        document_ids: 文档编号列表（knowledge_search 结果中的 document_id 字段，1~10 篇）
+        page: fragments 模式、单文档时的页码（从 1 起；多文档时不分页）
+        page_size: fragments 模式每页卡片数（1~20，默认 5）
         mode: "fragments"（分页片段）或 "full"（拼接全文）
+        section: 可选，章节名关键词——只返回章节名包含它的内容（大小写不敏感）
     """
     import math
 
@@ -346,74 +349,97 @@ def get_document(document_id: str, page: int = 1, page_size: int = 5,
     from src.retriever import RetrievedItem
     from src.vector_store import get_vector_store
 
-    document_id = (document_id or "").strip()
-    if not document_id:
-        return json.dumps({"error": "document_id 不能为空"}, ensure_ascii=False)
+    if isinstance(document_ids, str):  # 容错：直接调用时允许传单个字符串
+        document_ids = [document_ids]
+    wanted = [str(d).strip() for d in (document_ids or []) if str(d or "").strip()][:10]
+    if not wanted:
+        return json.dumps({"error": "document_ids 不能为空"}, ensure_ascii=False)
     mode = (mode or "fragments").strip().lower()
     if mode not in ("fragments", "full"):
         return json.dumps({"error": "mode 仅支持 fragments / full"}, ensure_ascii=False)
+    section_kw = (section or "").strip().lower()
 
-    filters = scope_filters({"document_id": document_id, "status": "active"},
-                            _current_user_groups())
+    doc_filters = {"document_id": wanted, "status": "active"}
+    filters = scope_filters(doc_filters, _current_user_groups())
     try:
-        cards = get_vector_store().get_all_cards(filters=filters, limit=500)
+        cards = get_vector_store().get_all_cards(filters=filters, limit=2000)
     except Exception as exc:
         return json.dumps({"error": f"知识库访问失败：{exc}"}, ensure_ascii=False)
-    if not cards:
-        return json.dumps({"refused": True,
-                           "reason": "无此 document_id，或文档未生效/当前令牌无权限"},
-                          ensure_ascii=False)
 
     def _seq(card) -> int:
         m = re.search(r"(\d{4})$", card["payload"].get("chunk_id") or "")
         return int(m.group(1)) if m else 0
 
-    cards.sort(key=_seq)
-    meta = cards[0]["payload"]
+    # 按文档分组（保持请求顺序），组内按卡片序号排序
+    by_doc: dict[str, list] = {}
+    for card in cards:
+        by_doc.setdefault(card["payload"].get("document_id"), []).append(card)
+    ordered_ids = [d for d in wanted if d in by_doc]
+    not_found = [d for d in wanted if d not in by_doc]
 
     from src import auth_db
     user = _request_user.get() or {}
-    try:
-        auth_db.log_doc_access(username=_current_username(),
-                               department=str(user.get("department") or ""),
-                               entry=_ENTRY, action="read_document",
-                               document_id=document_id,
-                               source=str(meta.get("source") or ""),
-                               detail={"mode": mode, "cards": len(cards)})
-    except Exception:
-        pass  # 审计失败不影响取数
-    if mode == "full":
-        run = [RetrievedItem(rank=i, score=0.0, text=c["payload"]["text"],
-                             metadata={k: v for k, v in c["payload"].items() if k != "text"})
-               for i, c in enumerate(cards)]
-        full = _merge_run(run)
-        return json.dumps(
-            {"document_id": document_id, "source": meta.get("source"),
-             "title": meta.get("title"), "owner": meta.get("owner"),
-             "effective_date": meta.get("effective_date"),
-             "domain": meta.get("domain"), "category": meta.get("category"),
-             "version": meta.get("version"), "total_cards": len(cards),
-             "total_chars": len(full), "full_text": full},
-            ensure_ascii=False, indent=2)
+    for d in ordered_ids:
+        meta = by_doc[d][0]["payload"]
+        try:
+            auth_db.log_doc_access(username=_current_username(),
+                                   department=str(user.get("department") or ""),
+                                   entry=_ENTRY, action="read_document",
+                                   document_id=d,
+                                   source=str(meta.get("source") or ""),
+                                   detail={"mode": mode,
+                                           "section": section_kw or None,
+                                           "cards": len(by_doc[d])})
+        except Exception:
+            pass  # 审计失败不影响取数
 
-    page = max(1, int(page))
-    page_size = min(max(1, int(page_size)), 20)
-    total_pages = math.ceil(len(cards) / page_size)
-    page = min(page, total_pages)
-    slice_ = cards[(page - 1) * page_size: page * page_size]
-    return json.dumps(
-        {"document_id": document_id, "source": meta.get("source"),
-         "title": meta.get("title"), "owner": meta.get("owner"),
-         "effective_date": meta.get("effective_date"),
-         "version": meta.get("version"), "page": page, "page_size": page_size,
-         "total_cards": len(cards), "total_pages": total_pages,
-         "fragments": [
-             {"chunk_id": c["payload"].get("chunk_id"),
-              "section": c["payload"].get("section"),
-              "text": c["payload"].get("text", "")}
-             for c in slice_
-         ]},
-        ensure_ascii=False, indent=2)
+    documents = []
+    for d in ordered_ids:
+        cards = sorted(by_doc[d], key=_seq)
+        if section_kw:  # 章节过滤：只保留章节名含关键词的卡片（大小写不敏感）
+            cards = [c for c in cards
+                     if section_kw in str(c["payload"].get("section") or "").lower()]
+            if not cards:
+                continue  # 该文档没有匹配章节：不计入返回，也不计入 not_found
+        meta = cards[0]["payload"]
+        cards = sorted(cards, key=_seq)
+        base = {"document_id": d, "source": meta.get("source"),
+                "title": meta.get("title"), "owner": meta.get("owner"),
+                "effective_date": meta.get("effective_date"),
+                "domain": meta.get("domain"), "category": meta.get("category"),
+                "version": meta.get("version"), "total_cards": len(cards),
+                "sections": sorted({str(c["payload"].get("section") or "")
+                                    for c in cards if c["payload"].get("section")})}
+        if mode == "full":
+            run = [RetrievedItem(rank=i, score=0.0, text=c["payload"]["text"],
+                                 metadata={k: v for k, v in c["payload"].items() if k != "text"})
+                   for i, c in enumerate(cards)]
+            full = _merge_run(run)
+            documents.append({**base, "full_text": full, "total_chars": len(full)})
+        else:
+            fragments = [{"chunk_id": c["payload"].get("chunk_id"),
+                          "section": c["payload"].get("section"),
+                          "text": c["payload"].get("text", "")}
+                         for c in cards]
+            if len(ordered_ids) == 1:  # 分页仅在单文档时生效；多文档按文档分组全量返回
+                page_size = min(max(1, int(page_size)), 20)
+                total_pages = math.ceil(len(fragments) / page_size)
+                page = min(max(1, int(page)), total_pages)
+                documents.append({**base,
+                                  "page": page, "page_size": page_size,
+                                  "total_pages": total_pages,
+                                  "fragments": fragments[(page - 1) * page_size: page * page_size]})
+            else:
+                documents.append({**base, "fragments": fragments})
+
+    result: dict = {"mode": mode, "total": len(documents), "documents": documents,
+                    "not_found": not_found}
+    if not documents:
+        result["refused"] = True
+        result["reason"] = "请求的文档均不存在、未生效或当前令牌无权限"
+    if len(ordered_ids) == 1 and mode == "fragments":
+        result.update(documents[0])  # 单文档 fragments 模式：分页字段提到顶层，便于阅读
+    return json.dumps(result, ensure_ascii=False, indent=2)
 
 
 def list_documents(domain: str | None = None, status: str = "active") -> str:
