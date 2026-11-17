@@ -389,9 +389,27 @@ def _read_xlsx(path: Path) -> tuple[str, str, dict]:
 
 
 def _read_pptx(path: Path) -> tuple[str, str, dict]:
-    """PPT：逐页读——标题占位符转 # 标题，文本框/表格按序读取，演讲者备注跟在页尾。
+    """PPT：逐页读——标题占位符转 # 标题，文本框/表格按序读取，页面内图片交给
+    OCR（组合形状递归展开），演讲者备注跟在页尾。
     页与页之间插分页标记（与 PDF 同机制，切片时页码进元数据）。"""
     from pptx import Presentation
+    from pptx.enum.shapes import MSO_SHAPE_TYPE
+
+    def _collect_slide_images(shapes, out: list[bytes]) -> None:
+        """收集一页里的所有图片字节；组合形状（Group）递归展开。
+        图片占位符/普通图片都有 .image 属性，其他形状没有该属性。"""
+        for shape in shapes:
+            shape_type = getattr(shape, "shape_type", None)
+            if shape_type == MSO_SHAPE_TYPE.GROUP:
+                _collect_slide_images(getattr(shape, "shapes", []), out)
+                continue
+            image = getattr(shape, "image", None)
+            if image is None:
+                continue
+            try:
+                out.append(image.blob)
+            except Exception:
+                pass  # 链接型图片等取不到 blob 的，按无图处理
 
     prs = Presentation(str(path))
     parts: list[str] = []
@@ -421,6 +439,16 @@ def _read_pptx(path: Path) -> tuple[str, str, dict]:
                     cells = [_squeeze_cjk_spaces(" | ".join(cell.text.strip() for cell in row.cells))]
                     if any(cells):
                         page_parts.append(cells[0])
+
+        slide_images: list[bytes] = []
+        _collect_slide_images(slide.shapes, slide_images)
+        ocr_blocks: list[str] = []
+        for img_index, blob in enumerate(slide_images, start=1):
+            ocr_text = _ocr_image(blob, hint=f"{path.name} 第{index}页图片{img_index}")
+            if ocr_text:
+                ocr_blocks.append(f"[页面图片 {img_index} · OCR 识别]\n{ocr_text}")
+        if ocr_blocks:
+            page_parts.append("\n".join(ocr_blocks))
 
         if slide.has_notes_slide:
             notes = (slide.notes_slide.notes_text_frame.text or "").strip()
