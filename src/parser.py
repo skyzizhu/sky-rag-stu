@@ -478,9 +478,11 @@ def _read_xlsx(path: Path) -> tuple[str, str, dict]:
     """
     from openpyxl import load_workbook
 
-    workbook = load_workbook(str(path), data_only=True, read_only=True)
+    # 图片提取用普通模式（read_only 模式不加载内嵌图片）；表格读完后对每张图 OCR
+    workbook = load_workbook(str(path), data_only=True)
     parts: list[str] = []
     try:
+        sheet_images: list[tuple[str, bytes]] = []
         for sheet in workbook.worksheets:
             parts.append(f"## Sheet：{sheet.title}")
             rows_written = 0
@@ -493,9 +495,24 @@ def _read_xlsx(path: Path) -> tuple[str, str, dict]:
                 if rows_written >= 5000:
                     parts.append(f"（Sheet「{sheet.title}」超过 5000 行，后续行未收录）")
                     break
+            for image in getattr(sheet, "_images", []):
+                try:
+                    blob = image._data()
+                except Exception:
+                    blob = None
+                if blob:
+                    sheet_images.append((sheet.title, blob))
             parts.append("")
     finally:
         workbook.close()
+    if sheet_images:
+        ocr_blocks: list[str] = []
+        for index, (sheet_title, blob) in enumerate(sheet_images, start=1):
+            ocr_text = _ocr_image(blob, hint=f"{path.name} {sheet_title} 内嵌图{index}")
+            if ocr_text:
+                ocr_blocks.append(f"[{sheet_title} 内嵌图片 {index} · OCR 识别]\n{ocr_text}")
+        if ocr_blocks:
+            parts.append("\n\n".join(ocr_blocks))
     return "\n".join(parts).strip(), "", {}
 
 
