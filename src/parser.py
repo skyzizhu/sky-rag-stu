@@ -40,9 +40,18 @@ from striprtf.striprtf import rtf_to_text
 from src.config import get_config
 from src.metadata import parse_front_matter
 
-# 支持的文件格式（图片格式交给 OCR 识别；xlsx/pptx 由 Office 解析器读取）
+# 支持的文件格式（图片格式交给 OCR 识别；xlsx/pptx 由 Office 解析器读取；
+# doc/xls/ppt/wps/et/dps 由 LibreOffice 转换为 docx/xlsx/pptx 后走既有解析器，见 _convert_via_soffice）
 SUPPORTED_EXTENSIONS = {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf",
-                        ".xlsx", ".pptx", ".png", ".jpg", ".jpeg", ".bmp"}
+                        ".xlsx", ".pptx", ".png", ".jpg", ".jpeg", ".bmp",
+                        ".doc", ".xls", ".ppt", ".wps", ".et", ".dps"}
+
+# 老格式 / WPS 变体 → (LibreOffice 转换目标格式, 该格式的文档大类)
+_SOFFICE_CONVERT = {
+    ".doc": ("docx", "writer"), ".wps": ("docx", "writer"),
+    ".xls": ("xlsx", "calc"), ".et": ("xlsx", "calc"),
+    ".ppt": ("pptx", "impress"), ".dps": ("pptx", "impress"),
+}
 
 # PDF 分页标记：解析 PDF 时插入正文，用来记住「这段话原来在第几页」。
 # 切片节点会读取这个标记，把页码写进元数据。
@@ -271,6 +280,108 @@ def _ocr_image(data: bytes, hint: str = "") -> str:
     return "\n".join(lines)
 
 
+# 老格式转换的进程锁：soffice 并发实例之间会互相争抢用户配置目录，必须串行
+_soffice_lock = __import__("threading").Lock()
+
+
+def _convert_via_soffice(path: Path, target_ext: str, family: str) -> Path:
+    """用 LibreOffice（soffice）把老格式 / WPS 变体转换为既有格式，返回转换产物路径。
+
+    - 产物写到原目录下的 .rag_converted/ 缓存（内容指纹命名）：同一文件重复入库
+      不会重复转换（增量判断命中时甚至不会走到这里）；
+    - 超时 120 秒；soffice 不存在 / 转换失败 → ParseError 带安装提示。
+    """
+    import hashlib
+    import shutil
+    import subprocess
+
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    if not soffice:
+        raise ParseError(
+            f"解析 {path.suffix} 需要 LibreOffice（转换 {path.suffix} → {target_ext}），"
+            "但系统里没有找到 soffice。请安装 LibreOffice 后重试"
+            "（macOS: brew install --cask libreoffice；Linux: apt install libreoffice；"
+            "Windows: 官网安装后把 soffice.exe 所在目录加入 PATH）。"
+        )
+    out_dir = path.parent / ".rag_converted"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    fingerprint = hashlib.sha1(f"{path.name}|{path.stat().st_mtime_ns}".encode()).hexdigest()[:12]
+    # 指纹作为文件名一部分（真实扩展名必须留在末尾——openpyxl/pptx 按扩展名校验格式）
+    converted = out_dir / f"{path.stem}__{fingerprint}.{target_ext}"
+    if converted.exists() and converted.stat().st_size > 0:
+        return converted  # 缓存命中：内容没变不重转
+
+    fmt_flag = {"docx": "docx", "xlsx": "xlsx", "pptx": "pptx"}[target_ext]
+    with _soffice_lock:
+        try:
+            proc = subprocess.run(
+                [soffice, "--headless", "--convert-to", fmt_flag,
+                 "--outdir", str(out_dir), str(path)],
+                capture_output=True, text=True, timeout=120,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise ParseError(
+                f"转换超时（120 秒）：{path.name} → {target_ext}。"
+                "文件可能过大或已损坏；也可以先用 Office/WPS 打开另存为新格式后重新入库。"
+            ) from exc
+    produced = out_dir / f"{path.stem}.{target_ext}"
+    # 清理旧命名缓存（指纹紧贴扩展名的旧形式）；注意在 produced 存在性检查之后才能删
+    if proc.returncode != 0 or not produced.exists() or produced.stat().st_size == 0:
+        detail = (proc.stderr or proc.stdout or "").strip().splitlines()
+        hint = detail[-1][:120] if detail else "未知原因"
+        raise ParseError(
+            f"转换失败：{path.name} → {target_ext}（{hint}）。"
+            "可以先用 Office/WPS 打开该文件另存为 docx/xlsx/pptx 后重新入库。"
+        )
+    # 统一重命名为带指纹的缓存名，避免同目录不同文件互相覆盖
+    final = converted
+    if produced != final:
+        # 先清掉同 stem 的全部旧缓存条目（含旧命名与旧指纹），再把新产物 rename 到位
+        for stale in out_dir.glob(f"{path.stem}*"):
+            if stale != produced:
+                try:
+                    stale.unlink()
+                except OSError:
+                    pass
+        produced.replace(final)
+    return final
+
+
+def _read_legacy_office(path: Path, target_ext: str, family: str):
+    """老格式 / WPS 变体：soffice 转换为既有格式后，委托对应的既有 reader。"""
+    converted = _convert_via_soffice(path, target_ext, family)
+    reader = _READERS.get(f".{target_ext}")  # _READERS 的键带前导点
+    if reader is None:  # 防御：转换目标必须是既有格式（docx/xlsx/pptx）
+        raise ParseError(f"内部错误：转换目标 {target_ext!r} 没有对应解析器")
+    text, title, fm = reader(converted)
+    fm.setdefault("source_note", f"由 {path.suffix.upper()} 经 LibreOffice 转换解析")
+    return text, title, fm
+
+
+def _read_doc(path: Path) -> tuple[str, str, dict]:
+    return _read_legacy_office(path, "docx", "writer")
+
+
+def _read_wps(path: Path) -> tuple[str, str, dict]:
+    return _read_legacy_office(path, "docx", "writer")
+
+
+def _read_xls(path: Path) -> tuple[str, str, dict]:
+    return _read_legacy_office(path, "xlsx", "calc")
+
+
+def _read_et(path: Path) -> tuple[str, str, dict]:
+    return _read_legacy_office(path, "xlsx", "calc")
+
+
+def _read_ppt(path: Path) -> tuple[str, str, dict]:
+    return _read_legacy_office(path, "pptx", "impress")
+
+
+def _read_dps(path: Path) -> tuple[str, str, dict]:
+    return _read_legacy_office(path, "pptx", "impress")
+
+
 def _read_docx(path: Path) -> tuple[str, str, dict]:
     """Word：按段落读正文；标题样式段落转成 Markdown 风格的 # 标记，
     让切片节点能识别章节（Heading 1 → #，Heading 2 → ## ……）。表格逐行读。"""
@@ -471,9 +582,15 @@ _READERS = {
     ".html": _read_html,
     ".htm": _read_html,
     ".docx": _read_docx,
+    ".doc": _read_doc,
+    ".wps": _read_wps,
     ".pdf": _read_pdf,
     ".xlsx": _read_xlsx,
+    ".xls": _read_xls,
+    ".et": _read_et,
     ".pptx": _read_pptx,
+    ".ppt": _read_ppt,
+    ".dps": _read_dps,
     ".png": _read_image,
     ".jpg": _read_image,
     ".jpeg": _read_image,

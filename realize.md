@@ -94,7 +94,13 @@
 
 ## 节点 A1：文档解析（Parser）
 
-- **技术**：pypdf（PDF）、python-docx（Word）、striprtf（RTF）、BeautifulSoup（HTML）、PyYAML（Markdown 头部声明）、内置读取（TXT/MD）。
+- **技术**：pypdf（PDF）、python-docx（Word）、python-openpyxl（Excel）、python-pptx（PPT）、
+  RapidOCR（图片/扫描件，离线）、striprtf（RTF）、BeautifulSoup（HTML）、PyYAML（Markdown 头部声明）、
+  内置读取（TXT/MD）；**老格式与 WPS 变体（doc/xls/ppt/wps/et/dps，V3.9 新增）由系统 LibreOffice
+  （soffice --headless）转换为 docx/xlsx/pptx 后走既有解析器**——转换产物带内容指纹缓存
+  （重复入库不重转），进程锁串行（soffice 并发实例会争抢配置目录），超时 120 秒与失败均报
+  人话（含安装/另存提示）。注意：转换产物必须保留真实扩展名在文件名末尾
+  （openpyxl/python-pptx 按扩展名校验格式——曾因指纹插在扩展名前导致读取被拒）。
 - **作用**：六种格式长相完全不同，统一读成「正文文本 + 档案卡」。PDF 逐页记录页码标记；Word 的标题样式转成通用标题标记；Markdown 单独拆出文件头声明（Front Matter）。
 - **目标**：不管来源是什么，下游看到的都是同一种东西。
 - **上游**：knowledge/ 目录里的原始文件；**下游**：元数据生成、清洗。

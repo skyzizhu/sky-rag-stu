@@ -33,13 +33,17 @@
 | Markdown | `.md` | 笔记、文档，支持 Front Matter 声明元数据 |
 | 纯文本 | `.txt` | 通用文本文件 |
 | PDF | `.pdf` | 逐页解析并记录页码；**扫描版**（无文字层）自动整页 OCR；页面内嵌图片也会抽出识别（加密 PDF 不支持） |
-| Word | `.docx` | 标题样式自动转为章节标记，表格逐行读取；**内嵌图片自动 OCR** |
-| Excel | `.xlsx` | 每个工作表转为「Sheet 标题 + 表格文本」，公式取计算值 |
-| PPT | `.pptx` | 逐页解析标题/文本框/表格/演讲者备注，页码进元数据；**页面图片自动 OCR** |
+| Word | `.docx` `.doc` | 标题样式自动转为章节标记，表格逐行读取；**内嵌图片自动 OCR** |
+| Excel | `.xlsx` `.xls` | 每个工作表转为「Sheet 标题 + 表格文本」，公式取计算值 |
+| PPT | `.pptx` `.ppt` | 逐页解析标题/文本框/表格/演讲者备注，页码进元数据；**页面图片自动 OCR** |
+| WPS Office | `.wps` `.et` `.dps` | 金山文档文字/表格/演示（老格式）：经 LibreOffice 转换后按 docx/xlsx/pptx 解析 |
 | 图片 | `.png` `.jpg` `.jpeg` `.bmp` | 整张图 OCR 识别（中英文） |
 | HTML | `.html` `.htm` | 网页剪藏，自动去除脚本/样式 |
 | RTF | `.rtf` | 富文本格式 |
 
+> **doc / xls / ppt / wps / et / dps 解析**依赖系统安装 **LibreOffice**（转换到 docx/xlsx/pptx 后走标准解析器）：
+> macOS `brew install --cask libreoffice`；Linux `apt install libreoffice`；
+> Windows 安装后把 `soffice.exe` 所在目录加入 PATH。转换产物带指纹缓存，重复入库不重转。
 > OCR 由 RapidOCR（PaddleOCR 模型的 ONNX 移植版）**本地离线**完成，中英文均可，
 > 纯 CPU 运行；不想启用时在 `.env` 里设 `OCR_ENABLED=false` 即可一键关闭。
 
