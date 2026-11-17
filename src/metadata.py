@@ -253,12 +253,13 @@ def build_document_metadata(
 # ---------------- 直接运行本文件：查看知识目录的元数据推断结果 ----------------
 if __name__ == "__main__":
     from src.config import get_config
+    from src.parser import SUPPORTED_EXTENSIONS as SUPPORTED_PARSE_EXTENSIONS
 
     cfg = get_config()
     files = sorted(
         p for p in cfg.knowledge_dir.rglob("*")
         if p.is_file() and not p.name.startswith(".")
-        and p.suffix.lower() in {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf"}
+        and p.suffix.lower() in SUPPORTED_PARSE_EXTENSIONS
     )
     print(f"知识目录：{cfg.knowledge_dir}\n")
     header = f"{'相对路径':<44} {'domain':<10} {'category':<12} {'topic':<14} status"

@@ -29,7 +29,7 @@ from src.context import build_context, estimate_tokens
 from src.embedding import EmbeddingClient, get_embedding_client
 from src.llm import LLMClient, get_llm_client, new_usage, strip_think_tags
 from src.metadata import build_document_metadata, document_id_for
-from src.parser import ParsedDocument, parse_file
+from src.parser import ParsedDocument, SUPPORTED_EXTENSIONS, parse_file
 from src.answer_language import resolve_answer_language
 from src.prompt import build_messages
 from src.query_understanding import understand_query
@@ -139,7 +139,7 @@ def _ingest_files_impl(
         files = sorted(
             p for p in cfg.knowledge_dir.rglob("*")
             if p.is_file() and not p.name.startswith(".") and p.suffix.lower() in
-            {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf"}
+            SUPPORTED_EXTENSIONS  # 与 parser 白名单同一份，新增格式只改一处
         )
     summary.total_files = len(files)
     from src import index_state as istate
