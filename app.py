@@ -16,6 +16,7 @@ import re
 import sys
 import dataclasses
 from pathlib import Path
+from urllib.parse import quote, unquote  # front_auth Cookie 值转 ASCII（中文名兼容）
 
 import streamlit as st
 
@@ -889,7 +890,8 @@ def try_restore_session() -> bool:
         cookie_val = st.context.cookies.get("front_auth", "")
     except Exception:
         return False
-    restored_username = auth_db.verify_session_cookie(cookie_val)
+    # 写入时做了 quote 转纯 ASCII（中文名兼容）——读回先还原再验签
+    restored_username = auth_db.verify_session_cookie(unquote(cookie_val))
     if not restored_username:
         return False
     restored = auth_db.get_user(restored_username)
@@ -939,6 +941,9 @@ def auth_gate() -> bool:
         st.session_state["auth_user"] = data["user"]
         username = data["user"]["username"]
         cookie_val = auth_db.make_session_cookie(username)
+        # Cookie 值里的中文会破坏服务端 Cookie 头解析（非 ASCII 非法值）——
+        # 整值 quote 成纯 ASCII，读取端 unquote 还原后再验签
+        cookie_val = quote(cookie_val, safe="")
         from streamlit.components.v1 import html as components_html
         # parent（前台主页面）与本组件同域：直接写 cookie + 重载，无跨域依赖
         components_html(
@@ -950,37 +955,40 @@ def auth_gate() -> bool:
         st.stop()
 
     def _render_register_tab(tab, boot: dict) -> None:
-        """注册表单（登录门与"只有注册"模式共用）。"""
+        """注册表单（登录门与"只有注册"模式共用）。表单始终渲染，与管理员是否存在
+        无关；提交时统一校验：密码一致、长度、必须选择部门（无部门即拦截）。
+        """
         with tab:
             departments = boot.get("departments") or []
-            if not departments:
-                st.info(t("auth.no_departments"))
-            else:
-                with st.form("register_form", clear_on_submit=False):
-                    u = st.text_input(t("auth.username"), key="reg_user")
-                    dep = st.selectbox(
-                        t("auth.department"), departments,
-                        format_func=lambda d: d["name"],
-                    )
-                    p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
-                    p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
-                    submitted = st.form_submit_button(t("auth.register.btn"), type="primary",
-                                                      width="stretch")
-                    if submitted:
-                        if p1 != p2:
-                            st.error(t("auth.pwd.mismatch"))
-                        elif len(p1) < 6:
-                            st.error(t("auth.pwd.short"))
+            with st.form("register_form", clear_on_submit=False):
+                u = st.text_input(t("auth.username"), key="reg_user")
+                # 部门控件始终显示：没有可选部门时给出"无"选项，提交时统一拦截
+                dep = st.selectbox(
+                    t("auth.department"),
+                    departments or [None],
+                    format_func=lambda d: d["name"] if d else t("auth.department.none"),
+                )
+                p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
+                p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
+                submitted = st.form_submit_button(t("auth.register.btn"), type="primary",
+                                                  width="stretch")
+                if submitted:
+                    if dep is None:
+                        st.error(t("auth.no_departments"))
+                    elif p1 != p2:
+                        st.error(t("auth.pwd.mismatch"))
+                    elif len(p1) < 6:
+                        st.error(t("auth.pwd.short"))
+                    else:
+                        data, err = auth_client.register(u.strip(), p1, p2, dep["id"])
+                        if err:
+                            st.error(err)
                         else:
-                            data, err = auth_client.register(u.strip(), p1, p2, dep["id"])
-                            if err:
-                                st.error(err)
+                            data2, err2 = auth_client.login(u.strip(), p1)
+                            if data2:
+                                _finish_login(data2)
                             else:
-                                data2, err2 = auth_client.login(u.strip(), p1)
-                                if data2:
-                                    _finish_login(data2)
-                                else:
-                                    st.success(t("auth.register.ok"))
+                                st.success(t("auth.register.ok"))
 
     # V3.7.2 记录真实登录 IP：隐藏组件让浏览器直连认证服务 /auth/ping，认证服务
     # 看到浏览器真实局域网 IP 并写入 rip cookie（localhost 域共享，30 天有效）。
@@ -1021,34 +1029,11 @@ def auth_gate() -> bool:
     # 点击按钮时最后一个输入框的值可能还没提交到会话，处理器读到旧值，
     # 出现"两次密码明明一致却提示不一致"（登录偶尔要点两次也是这个根源）。
     # form 的字段值在点击提交按钮那一刻原子落地，竞态不可能发生。
-    if not boot.get("has_admins"):
-        st.markdown(f'<div class="section-title">{t("auth.init.title")}</div>',
-                    unsafe_allow_html=True)
-        st.caption(t("auth.init.note"))
-        with st.form("init_admin_form", clear_on_submit=False):
-            u = st.text_input(t("auth.username"), key="init_user")
-            p1 = st.text_input(t("auth.password"), type="password", key="init_pw1")
-            p2 = st.text_input(t("auth.password.confirm"), type="password", key="init_pw2")
-            submitted = st.form_submit_button(t("auth.init.btn"), type="primary",
-                                              width="stretch")
-            if submitted:
-                if p1 != p2:
-                    st.error(t("auth.pwd.mismatch"))
-                elif len(p1) < 6:
-                    st.error(t("auth.pwd.short"))
-                else:
-                    data, err = auth_client.bootstrap_admin(u.strip(), p1, p2)
-                    if err:
-                        st.error(err)
-                    else:
-                        # 硬性规则：管理员不能登录前台——创建成功后不自动登录，
-                        # 指引到管理后台使用
-                        st.success(t("auth.init.ok"))
-        return False
+    # 初始化管理员入口只在管理后台（8700/admin/login）；前台不依赖管理员存在，
+    # 没有管理员时员工照样可以注册 / 登录（部门可选，见 _render_register_tab）
 
     if not boot.get("has_users"):
-        # 有管理员但没有员工：只显示注册（员工自助注册，或管理员在后台创建）
-        st.info(t("auth.no_users"))
+        # 没有员工：只显示注册（注册表单照常渲染，无部门时提交会被拦截）
         _tab_register = st.tabs([t("auth.tab.register")])[0]
         _render_register_tab(_tab_register, boot)
         st.stop()

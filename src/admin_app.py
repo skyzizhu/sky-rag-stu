@@ -142,8 +142,10 @@ def root(request: Request):
 
 @app.get("/admin/login", response_class=HTMLResponse)
 def login_page(request: Request, err: str = ""):
+    init_mode = auth_db.count_admins() == 0
     return templates.TemplateResponse(request, "login.html",
-                                      {"err": err, "msg": ""})
+                                      {"err": err, "msg": "",
+                                       "init_mode": init_mode})
 
 
 @app.post("/admin/login")
@@ -168,6 +170,43 @@ async def login_action(request: Request):
     _log_from_admin(request, "login", info["username"], success=True)
     resp = RedirectResponse("/admin", status_code=303)
     resp.set_cookie(_SESSION_COOKIE, _make_cookie(info["username"]),
+                    httponly=True, samesite="lax")
+    return resp
+
+
+@app.post("/admin/bootstrap")
+async def bootstrap_admin_action(request: Request):
+    """首次使用：在这里创建第一个管理员并直接登录后台。
+
+    初始化管理员的唯一入口（前台只提示跳转到这里）；系统已有管理员时拒绝。
+    创建成功即写入管理员会话 Cookie，浏览器直接进入 /admin 工作台。
+    """
+    if auth_db.count_admins() > 0:
+        return JSONResponse({"ok": False,
+                             "detail": "系统已有管理员，初始化入口已关闭"},
+                            status_code=400)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "detail": "请求格式错误"}, status_code=400)
+    username = str(body.get("username", "")).strip()
+    password = str(body.get("password", ""))
+    confirm = str(body.get("password_confirm", ""))
+    if password != confirm:
+        return JSONResponse({"ok": False, "detail": "两次输入的密码不一致"},
+                            status_code=400)
+    try:
+        admin = auth_db.create_admin(username, password, is_super=True)
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    auth_db.log_auth_event("bootstrap_admin", admin["username"], success=True,
+                           entry="admin",
+                           ip=request.client.host if request.client else "",
+                           user_agent=request.headers.get("user-agent", ""),
+                           accept_language=request.headers.get("accept-language", ""))
+    _log_from_admin(request, "login", admin["username"])
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(_SESSION_COOKIE, _make_cookie(admin["username"]),
                     httponly=True, samesite="lax")
     return resp
 
@@ -554,7 +593,7 @@ class RegisterBody(ContextFields):
     username: str
     password: str
     password_confirm: str
-    department_id: int
+    department_id: int  # 必填：注册必须归属部门；部门由管理员在后台创建
 
 
 class LoginBody(ContextFields):

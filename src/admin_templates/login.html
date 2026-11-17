@@ -23,10 +23,21 @@
 </head>
 <body>
 <div class="box">
+  {% if init_mode %}
+  <h1>🛡 初始化管理员</h1>
+  <p class="sub">首次使用：创建第一个管理员账户（仅用于登录管理后台，不能登录前台）</p>
+  <form id="init-form">
+    <label>账户名（2~32 位字母/数字/下划线/中文）</label>
+    <input name="username" autocomplete="username" required>
+    <label>密码（至少 6 位）</label>
+    <input name="password" type="password" autocomplete="new-password" required>
+    <label>确认密码</label>
+    <input name="password_confirm" type="password" autocomplete="new-password" required>
+    <button type="submit">创建并进入后台</button>
+  </form>
+  {% else %}
   <h1>🛡 管理后台</h1>
   <p class="sub">Sky Personal RAG · 仅限管理员账户</p>
-  {% if err %}<div class="flash err">{{ err }}</div>{% endif %}
-  {% if msg %}<div class="flash msg">{{ msg }}</div>{% endif %}
   <form id="login-form">
     <label>账户名</label>
     <input name="username" autocomplete="username" required>
@@ -34,35 +45,70 @@
     <input name="password" type="password" autocomplete="current-password" required>
     <button type="submit">登录</button>
   </form>
+  {% endif %}
+  {% if err %}<div class="flash err">{{ err }}</div>{% endif %}
+  {% if msg %}<div class="flash msg">{{ msg }}</div>{% endif %}
 </div>
 <script>
 // fetch JSON 提交：原生 urlencoded 表单在此环境对中文账户会按 Latin-1 解码（乱码），
 // JSON 请求体不受影响；失败原因就地展示
-document.getElementById('login-form').addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  const f = ev.target;
+function showErr(form, text) {
   const errBox = document.querySelector('.flash.err');
   if (errBox) errBox.remove();
-  try {
-    const resp = await fetch('/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: f.username.value.trim(),
-                             password: f.password.value }),
-    });
-    if (resp.ok || resp.status === 303) { location.href = '/admin'; return; }
-    const data = await resp.json().catch(() => ({}));
-    const box = document.createElement('div');
-    box.className = 'flash err';
-    box.textContent = data.detail || '登录失败';
-    f.prepend(box);
-  } catch (e) {
-    const box = document.createElement('div');
-    box.className = 'flash err';
-    box.textContent = '网络错误，请重试';
-    f.prepend(box);
-  }
-});
+  const box = document.createElement('div');
+  box.className = 'flash err';
+  box.textContent = text;
+  form.prepend(box);
+}
+const initForm = document.getElementById('init-form');
+if (initForm) {
+  initForm.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const f = initForm;
+    if (f.password.value !== f.password_confirm.value) {
+      showErr(f, '两次输入的密码不一致');
+      return;
+    }
+    try {
+      const resp = await fetch('/admin/bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: f.username.value.trim(),
+                               password: f.password.value,
+                               password_confirm: f.password_confirm.value }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok && data.ok) { location.href = '/admin'; return; }
+      // 初始化入口只在"零管理员"时开放——已被他人初始化则刷新回登录页
+      if (data.detail && data.detail.indexOf('已有管理员') !== -1) {
+        location.reload(); return;
+      }
+      showErr(f, data.detail || '创建失败，请重试');
+    } catch (e) {
+      showErr(f, '网络错误，请重试');
+    }
+  });
+}
+const loginForm = document.getElementById('login-form');
+if (loginForm) {
+  loginForm.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const f = loginForm;
+    try {
+      const resp = await fetch('/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: f.username.value.trim(),
+                               password: f.password.value }),
+      });
+      if (resp.ok || resp.status === 303) { location.href = '/admin'; return; }
+      const data = await resp.json().catch(() => ({}));
+      showErr(f, data.detail || '登录失败');
+    } catch (e) {
+      showErr(f, '网络错误，请重试');
+    }
+  });
+}
 </script>
 </body>
 </html>
