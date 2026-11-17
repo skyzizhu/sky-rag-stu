@@ -27,6 +27,10 @@ if [ ! -d "$ROOT/.venv" ]; then
 fi
 source "$ROOT/.venv/bin/activate"
 
+# storage/ 不进 git——全新 clone 后首次启动时先建出来，
+# 否则下面的日志重定向（> storage/qdrant.log）会静默失败，Qdrant 起不来
+mkdir -p "$ROOT/storage"
+
 echo ""
 echo "🧠 Sky Personal RAG · 启动中"
 echo "────────────────────────────────"
