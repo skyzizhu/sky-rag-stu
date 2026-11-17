@@ -93,6 +93,10 @@ class AppConfig:
     # V3.3：入库时 LLM 自动补全 topic/tags（每个新入库/有变化的文件多用一次 LLM 调用）
     auto_tag: bool = field(default_factory=lambda: _env_bool("AUTO_TAG", True))
 
+    # OCR（图片文件 / 扫描版 PDF / Word 与 PDF 内嵌图）：关闭后跳过所有 OCR 环节，
+    # 普通文字文档的入库不受任何影响
+    ocr_enabled: bool = field(default_factory=lambda: _env_bool("OCR_ENABLED", True))
+
     # 其他
     knowledge_dir: Path = field(
         default_factory=lambda: (PROJECT_ROOT / _env("KNOWLEDGE_DIR", "knowledge")).resolve()

@@ -25,6 +25,7 @@
 
 from __future__ import annotations
 
+import io
 import re
 import sys
 from dataclasses import dataclass, field
@@ -39,13 +40,18 @@ from striprtf.striprtf import rtf_to_text
 from src.config import get_config
 from src.metadata import parse_front_matter
 
-# 支持的文件格式
-SUPPORTED_EXTENSIONS = {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf"}
+# 支持的文件格式（图片格式交给 OCR 识别；xlsx/pptx 由 Office 解析器读取）
+SUPPORTED_EXTENSIONS = {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf",
+                        ".xlsx", ".pptx", ".png", ".jpg", ".jpeg", ".bmp"}
 
 # PDF 分页标记：解析 PDF 时插入正文，用来记住「这段话原来在第几页」。
 # 切片节点会读取这个标记，把页码写进元数据。
 PAGE_MARKER_TEMPLATE = "<<<__RAG_PAGE__={page}>>>"
 PAGE_MARKER_RE = re.compile(r"^<<<__RAG_PAGE__=(\d+)>>>\s*$", re.MULTILINE)
+
+# 图片 OCR 的尺寸门槛（宽或高小于该值的图片直接跳过）：logo / 装饰小图上没有
+# 可读内容，OCR 既慢又只会产出噪声
+OCR_MIN_SIDE = 200
 
 
 class ParseError(Exception):
@@ -210,6 +216,61 @@ def _squeeze_cjk_spaces(text: str) -> str:
     return re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "", text)
 
 
+# ---------------------------------------------------------------- OCR（RapidOCR）
+# 中英文识别走 PaddleOCR 的 ONNX 模型（rapidocr_onnxruntime），纯 CPU 离线运行，
+# 模型随包内置；引擎进程内单例懒加载——不用 OCR 的入库完全不加载模型。
+
+_OCR_ENGINE = None  # RapidOCR 实例；False = 初始化失败（不再重试）
+
+
+def _get_ocr_engine():
+    """懒加载 OCR 引擎单例。OCR_ENABLED=false 或库不可用时返回 None，调用方跳过 OCR。"""
+    global _OCR_ENGINE
+    if _OCR_ENGINE is None:
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+
+            _OCR_ENGINE = RapidOCR()
+        except Exception as exc:
+            print(f"⚠️ OCR 引擎不可用，图片/扫描件内容将不被识别（{type(exc).__name__}: {exc}）")
+            _OCR_ENGINE = False
+    return _OCR_ENGINE or None
+
+
+def _ocr_image(data: bytes, hint: str = "") -> str:
+    """对一段图片二进制做 OCR，返回按行拼接的识别文本；无文字 / 尺寸过小 / 失败返回空串。
+
+    调用方自行决定是否 OCR（受 OCR_ENABLED 控制），本函数只负责"安全地识别一次"。
+    """
+    if not get_config().ocr_enabled:
+        return ""
+    try:
+        from PIL import Image
+
+        image = Image.open(io.BytesIO(data))
+        width, height = image.size
+        if width < OCR_MIN_SIDE or height < OCR_MIN_SIDE:
+            return ""
+        image = image.convert("RGB")
+    except Exception:
+        return ""  # 解不开的图（损坏/编码不支持）按"没有文字"处理
+    engine = _get_ocr_engine()
+    if engine is None:
+        return ""
+    try:
+        import numpy as np
+
+        pixels = np.array(image)[:, :, ::-1]  # RGB → BGR（RapidOCR 按 OpenCV 约定读数组）
+        result, _ = engine(pixels)
+    except Exception as exc:
+        print(f"⚠️ 图片 OCR 失败{('（' + hint + '）') if hint else ''}：{exc}")
+        return ""
+    if not result:
+        return ""
+    lines = [str(item[1]).strip() for item in result if len(item) >= 2 and str(item[1]).strip()]
+    return "\n".join(lines)
+
+
 def _read_docx(path: Path) -> tuple[str, str, dict]:
     """Word：按段落读正文；标题样式段落转成 Markdown 风格的 # 标记，
     让切片节点能识别章节（Heading 1 → #，Heading 2 → ## ……）。表格逐行读。"""
@@ -238,19 +299,141 @@ def _read_docx(path: Path) -> tuple[str, str, dict]:
         rows = [_squeeze_cjk_spaces(" | ".join(cell.text.strip() for cell in row.cells))
                 for row in table.rows]
         parts.append("\n".join(rows))
+
+    # 内嵌图片 → OCR：文档里以截图存在的表格 / 架构图上的文字同样可检索
+    seen_names: set[str] = set()
+    image_blobs: list[bytes] = []
+    for part in doc.part.package.iter_parts():
+        if part.content_type.startswith("image/"):
+            name = str(part.partname)
+            if name not in seen_names:
+                seen_names.add(name)
+                image_blobs.append(part.blob)
+    ocr_blocks: list[str] = []
+    for index, blob in enumerate(image_blobs, start=1):
+        ocr_text = _ocr_image(blob, hint=f"{path.name} 内嵌图{index}")
+        if ocr_text:
+            ocr_blocks.append(f"[文档内图片 {index} · OCR 识别]\n{ocr_text}")
+    if ocr_blocks:
+        parts.append("\n\n".join(ocr_blocks))
+
     return "\n".join(parts), title, {}
 
 
 def _read_pdf(path: Path) -> tuple[str, str, dict]:
-    """PDF：逐页读，页与页之间插入分页标记（页码信息全靠它往后传）。"""
+    """PDF：逐页读文字层；扫描页（没有文字层）整页交给 OCR；普通页的内嵌大图
+    也抽出识别（图表截图上的文字同样可检索）。页与页之间插入分页标记。"""
     reader = PdfReader(str(path))
     if reader.is_encrypted:
         raise ParseError("PDF 已加密，无法读取")
     pages: list[str] = []
     for index, page in enumerate(reader.pages, start=1):
-        page_text = page.extract_text() or ""
-        pages.append(f"{PAGE_MARKER_TEMPLATE.format(page=index)}\n{page_text}")
+        page_text = (page.extract_text() or "").strip()
+        page_parts: list[str] = []
+        if page_text:
+            page_parts.append(page_text)
+
+        ocr_blocks: list[str] = []
+        try:
+            embedded = list(page.images)
+        except Exception:
+            embedded = []  # 个别 PDF 的图片流解不出来，跳过不影响文字层
+        for image in embedded:
+            try:
+                data = image.data
+            except Exception:
+                continue
+            ocr_text = _ocr_image(data, hint=f"{path.name} 第{index}页")
+            if ocr_text:
+                ocr_blocks.append(ocr_text)
+
+        if ocr_blocks:
+            if not page_text:
+                # 整页没有文字层 → 扫描件，OCR 结果就是这一页的全部内容
+                page_parts.append("[扫描页 · OCR 识别]\n" + "\n".join(ocr_blocks))
+            else:
+                page_parts.append("[页面内图片 · OCR 识别]\n" + "\n".join(ocr_blocks))
+
+        pages.append(f"{PAGE_MARKER_TEMPLATE.format(page=index)}\n" + "\n".join(page_parts))
     return "\n".join(pages), "", {}
+
+
+def _read_xlsx(path: Path) -> tuple[str, str, dict]:
+    """Excel：每个工作表转成「Sheet 标题 + 按行拼接的表格文本」。
+
+    - data_only=True：公式单元格取最近一次计算值（拿不到计算值的公式留空，不造假）
+    - 合并单元格的值存在左上角单元格，其余为空——按原样输出即可读
+    - 单表超过 5000 行截断：表格知识入库的意义在内容而非全量数据，防巨型表拖垮切片
+    """
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(str(path), data_only=True, read_only=True)
+    parts: list[str] = []
+    try:
+        for sheet in workbook.worksheets:
+            parts.append(f"## Sheet：{sheet.title}")
+            rows_written = 0
+            for row in sheet.iter_rows(values_only=True):
+                cells = ["" if value is None else str(value).strip() for value in row]
+                if not any(cells):
+                    continue
+                parts.append(_squeeze_cjk_spaces(" | ".join(cells)).rstrip(" |"))
+                rows_written += 1
+                if rows_written >= 5000:
+                    parts.append(f"（Sheet「{sheet.title}」超过 5000 行，后续行未收录）")
+                    break
+            parts.append("")
+    finally:
+        workbook.close()
+    return "\n".join(parts).strip(), "", {}
+
+
+def _read_pptx(path: Path) -> tuple[str, str, dict]:
+    """PPT：逐页读——标题占位符转 # 标题，文本框/表格按序读取，演讲者备注跟在页尾。
+    页与页之间插分页标记（与 PDF 同机制，切片时页码进元数据）。"""
+    from pptx import Presentation
+
+    prs = Presentation(str(path))
+    parts: list[str] = []
+    title = ""
+    for index, slide in enumerate(prs.slides, start=1):
+        parts.append(PAGE_MARKER_TEMPLATE.format(page=index))
+        page_parts: list[str] = []
+
+        title_shape = slide.shapes.title
+        title_id = title_shape.shape_id if title_shape is not None else None
+        if title_shape is not None and title_shape.has_text_frame:
+            shape_title = title_shape.text_frame.text.strip()
+            if shape_title:
+                page_parts.append(f"# {shape_title}")
+                if not title:
+                    title = shape_title
+
+        for shape in slide.shapes:
+            if shape.shape_id == title_id:
+                continue
+            if shape.has_text_frame:
+                text = shape.text_frame.text.strip()
+                if text:
+                    page_parts.extend(line.strip() for line in text.splitlines() if line.strip())
+            if getattr(shape, "has_table", False):
+                for row in shape.table.rows:
+                    cells = [_squeeze_cjk_spaces(" | ".join(cell.text.strip() for cell in row.cells))]
+                    if any(cells):
+                        page_parts.append(cells[0])
+
+        if slide.has_notes_slide:
+            notes = (slide.notes_slide.notes_text_frame.text or "").strip()
+            if notes:
+                page_parts.append(f"> 演讲者备注：{notes}")
+
+        parts.append("\n".join(page_parts))
+    return "\n".join(parts), title, {}
+
+
+def _read_image(path: Path) -> tuple[str, str, dict]:
+    """图片文件：整张图交给 OCR 识别（中英文），识别文本即正文；无文字则得到空文档。"""
+    return _ocr_image(path.read_bytes(), hint=path.name), "", {}
 
 
 _READERS = {
@@ -261,6 +444,12 @@ _READERS = {
     ".htm": _read_html,
     ".docx": _read_docx,
     ".pdf": _read_pdf,
+    ".xlsx": _read_xlsx,
+    ".pptx": _read_pptx,
+    ".png": _read_image,
+    ".jpg": _read_image,
+    ".jpeg": _read_image,
+    ".bmp": _read_image,
 }
 
 
