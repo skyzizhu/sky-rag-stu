@@ -83,6 +83,12 @@ class QAResult:
 
 
 # ---------------------------------------------------------------- 入库
+def _skip_hidden(p: Path, root: Path) -> bool:
+    """路径中任一段以点开头（隐藏目录，如 .rag_converted 转换缓存）→ 跳过。
+    rglob("*") 会深入点目录，仅检查文件名不含点会让转换缓存被当新文档重复入库。"""
+    return any(part.startswith(".") for part in p.relative_to(root).parts)
+
+
 def ingest_files(
     paths: list[Path] | None = None,
     rebuild: bool = False,
@@ -140,6 +146,7 @@ def _ingest_files_impl(
             p for p in cfg.knowledge_dir.rglob("*")
             if p.is_file() and not p.name.startswith(".") and p.suffix.lower() in
             SUPPORTED_EXTENSIONS  # 与 parser 白名单同一份，新增格式只改一处
+            and not _skip_hidden(p, cfg.knowledge_dir)  # 跳过隐藏目录（.rag_converted 转换缓存等）
         )
     summary.total_files = len(files)
     from src import index_state as istate
@@ -294,6 +301,14 @@ def _ingest_files_impl(
             "chunks": chunks_by_file.get(meta["path"], 0),
         })
     print(f"   共切出 {len(chunks)} 张知识卡片")
+    # 空文本文件（0 卡片，如无文字的扫描件/图片）：显式警告并跳过台账指纹——
+    # 记了指纹会永久跳过，之后再开启 OCR 也不会重试；不记则开启后可重新入库
+    zero_card_files = [d.metadata["source"] for d in cleaned_docs
+                       if chunks_by_file.get(d.metadata["path"], 0) == 0]
+    if zero_card_files:
+        print(f"   ⚠️ {len(zero_card_files)} 个文件未解析出文字（扫描件未开 OCR 或内容为空）："
+              f"{'、'.join(zero_card_files[:5])}{'…' if len(zero_card_files) > 5 else ''}；"
+              "这些文件本次不会入向量库，开启 OCR 后重新入库即可")
     if not chunks:
         return summary
 

@@ -260,6 +260,7 @@ if __name__ == "__main__":
         p for p in cfg.knowledge_dir.rglob("*")
         if p.is_file() and not p.name.startswith(".")
         and p.suffix.lower() in SUPPORTED_PARSE_EXTENSIONS
+        and not any(part.startswith(".") for part in p.relative_to(cfg.knowledge_dir).parts)
     )
     print(f"知识目录：{cfg.knowledge_dir}\n")
     header = f"{'相对路径':<44} {'domain':<10} {'category':<12} {'topic':<14} status"

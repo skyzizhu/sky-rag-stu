@@ -103,23 +103,40 @@ def _base_metadata(path: Path, title: str, file_type: str) -> dict:
     }
 
 
+def _read_text_smart(path: Path) -> str:
+    """读文本：UTF-8 严格解码失败时回退 GB18030（GBK/GB2312 的超集，中文环境常见）。"""
+    raw = path.read_bytes()
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return raw.decode("gb18030", errors="replace")
+
+
 def _read_txt(path: Path) -> tuple[str, str, dict]:
     """纯文本：直接读，标题用文件名。"""
-    return path.read_text(encoding="utf-8", errors="replace"), "", {}
+    return _read_text_smart(path), "", {}
 
 
 def _read_markdown(path: Path) -> tuple[str, str, dict]:
     """Markdown：先拆 Front Matter（人工声明的分类信息），标题取正文的第一个一级标题。"""
-    raw = path.read_text(encoding="utf-8", errors="replace")
+    raw = _read_text_smart(path)
     front_matter, text = parse_front_matter(raw)
-    match = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
-    title = match.group(1).strip() if match else ""
+    # 标题取第一个非代码块的 # 行（``` 围栏内的 # 是注释，不是标题）
+    title = ""
+    in_code = False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+        if not in_code and re.match(r"#\s+\S", line):
+            title = line.lstrip("#").strip()
+            break
     return text, title, front_matter
 
 
 def _read_rtf(path: Path) -> tuple[str, str, dict]:
     """RTF：用专门的解析库读出纯文本。"""
-    raw = path.read_text(encoding="utf-8", errors="replace")
+    raw = _read_text_smart(path)
     return rtf_to_text(raw), "", {}
 
 
@@ -312,7 +329,7 @@ def _convert_via_soffice(path: Path, target_ext: str, family: str) -> Path:
         return converted  # 缓存命中：内容没变不重转
 
     fmt_flag = {"docx": "docx", "xlsx": "xlsx", "pptx": "pptx"}[target_ext]
-    with _soffice_lock:
+    with _soffice_lock:  # 转换与产物改名全程串行：并发 soffice 会争抢输出，rename 也会有竞态
         try:
             proc = subprocess.run(
                 [soffice, "--headless", "--convert-to", fmt_flag,
@@ -324,27 +341,27 @@ def _convert_via_soffice(path: Path, target_ext: str, family: str) -> Path:
                 f"转换超时（120 秒）：{path.name} → {target_ext}。"
                 "文件可能过大或已损坏；也可以先用 Office/WPS 打开另存为新格式后重新入库。"
             ) from exc
-    produced = out_dir / f"{path.stem}.{target_ext}"
-    # 清理旧命名缓存（指纹紧贴扩展名的旧形式）；注意在 produced 存在性检查之后才能删
-    if proc.returncode != 0 or not produced.exists() or produced.stat().st_size == 0:
-        detail = (proc.stderr or proc.stdout or "").strip().splitlines()
-        hint = detail[-1][:120] if detail else "未知原因"
-        raise ParseError(
-            f"转换失败：{path.name} → {target_ext}（{hint}）。"
-            "可以先用 Office/WPS 打开该文件另存为 docx/xlsx/pptx 后重新入库。"
-        )
-    # 统一重命名为带指纹的缓存名，避免同目录不同文件互相覆盖
-    final = converted
-    if produced != final:
-        # 先清掉同 stem 的全部旧缓存条目（含旧命名与旧指纹），再把新产物 rename 到位
-        for stale in out_dir.glob(f"{path.stem}*"):
-            if stale != produced:
-                try:
-                    stale.unlink()
-                except OSError:
-                    pass
-        produced.replace(final)
-    return final
+        produced = out_dir / f"{path.stem}.{target_ext}"
+        if proc.returncode != 0 or not produced.exists() or produced.stat().st_size == 0:
+            detail = (proc.stderr or proc.stdout or "").strip().splitlines()
+            hint = detail[-1][:120] if detail else "未知原因"
+            raise ParseError(
+                f"转换失败：{path.name} → {target_ext}（{hint}）。"
+                "可以先用 Office/WPS 打开该文件另存为 docx/xlsx/pptx 后重新入库。"
+            )
+        # 统一重命名为带指纹的缓存名，避免同目录不同文件互相覆盖
+        final = converted
+        if produced != final:
+            # 先清掉同 stem 的全部旧缓存条目（含旧命名与旧指纹），再把新产物 rename 到位
+            for stale in out_dir.glob(f"{path.stem}*"):
+                if stale != produced:
+                    try:
+                        stale.unlink()
+                    except OSError:
+                        pass
+            produced.replace(final)
+        return final
+
 
 
 def _read_legacy_office(path: Path, target_ext: str, family: str):
@@ -382,34 +399,69 @@ def _read_dps(path: Path) -> tuple[str, str, dict]:
     return _read_legacy_office(path, "pptx", "impress")
 
 
+def _docx_paragraph_line(para, title_state: dict) -> str:
+    """段落 → 输出行：标题样式转 Markdown # 标记（V3.9 从 docx reader 拆出供复用）。"""
+    line = para.text.strip()
+    if not line:
+        return ""
+    style = para.style.name if para.style is not None else ""
+    if style == "Title" and not title_state.get("title"):
+        title_state["title"] = line
+        return line
+    if style.startswith("Heading"):
+        try:
+            level = min(int(style.split()[-1]), 6)
+        except ValueError:
+            level = 2
+        line = "#" * level + " " + line
+        if not title_state.get("title"):
+            title_state["title"] = line
+    return line
+
+
+def _docx_table_text(table, title_state: dict) -> str:
+    """表格 → 管道分隔文本；嵌套表递归读出（V3.9：此前嵌套表内容静默丢失）。"""
+    rows: list[str] = []
+    for row in table.rows:
+        cells: list[str] = []
+        for cell in row.cells:
+            cell_parts = [para.text.strip() for para in cell.paragraphs if para.text.strip()]
+            for nested in getattr(cell, "tables", []):
+                nested_text = _docx_table_text(nested, title_state)
+                if nested_text:
+                    cell_parts.append(nested_text.replace("\n", " / "))
+            cells.append(_squeeze_cjk_spaces(" / ".join(p for p in cell_parts if p)))
+        rows.append(_squeeze_cjk_spaces(" | ".join(cells)))
+    return "\n".join(rows)
+
+
 def _read_docx(path: Path) -> tuple[str, str, dict]:
-    """Word：按段落读正文；标题样式段落转成 Markdown 风格的 # 标记，
-    让切片节点能识别章节（Heading 1 → #，Heading 2 → ## ……）。表格逐行读。"""
+    """Word：按文档流顺序读（段落与表格穿插，V3.9 修复表格被挪到文档尾部）；
+    标题样式转 Markdown # 标记；嵌套表递归；读取各节页眉/页脚文字。
+    （文本框 / SmartArt 文字暂不支持，读取范围记录在 realize.md A1。）"""
     doc = DocxDocument(str(path))
     parts: list[str] = []
-    title = ""
-    for para in doc.paragraphs:
-        line = para.text.strip()
-        if not line:
-            parts.append("")
+    title_state: dict = {"title": ""}
+    # 阅读顺序：iter_inner_content 按文档流产出段落与表格（python-docx ≥1.1）
+    for item in doc.iter_inner_content():
+        if hasattr(item, "rows"):  # Table
+            table_text = _docx_table_text(item, title_state)
+            if table_text.strip():
+                parts.append(table_text)
             continue
-        style = para.style.name if para.style is not None else ""
-        if style == "Title" and not title:
-            title = line
-        elif style.startswith("Heading"):
-            try:
-                level = min(int(style.split()[-1]), 6)
-            except ValueError:
-                level = 2
-            parts.append("#" * level + " " + line)
-            if not title:
-                title = line
-        else:
-            parts.append(line)
-    for table in doc.tables:
-        rows = [_squeeze_cjk_spaces(" | ".join(cell.text.strip() for cell in row.cells))
-                for row in table.rows]
-        parts.append("\n".join(rows))
+        line = _docx_paragraph_line(item, title_state)
+        parts.append(line)
+    title = title_state.get("title", "")
+
+    # 页眉 / 页脚：每节的页眉页脚文字（通常为文档名、页码说明等辅助信息）
+    for section in doc.sections:
+        for container, label in ((section.header, "页眉"), (section.footer, "页脚")):
+            if container is None:
+                continue
+            for para in container.paragraphs:
+                line = para.text.strip()
+                if line:
+                    parts.append(f"[{label}] {line}")
 
     # 内嵌图片 → OCR：文档里以截图存在的表格 / 架构图上的文字同样可检索
     seen_names: set[str] = set()
@@ -435,8 +487,9 @@ def _read_pdf(path: Path) -> tuple[str, str, dict]:
     """PDF：逐页读文字层；扫描页（没有文字层）整页交给 OCR；普通页的内嵌大图
     也抽出识别（图表截图上的文字同样可检索）。页与页之间插入分页标记。"""
     reader = PdfReader(str(path))
-    if reader.is_encrypted:
-        raise ParseError("PDF 已加密，无法读取")
+    if reader.is_encrypted and not reader.decrypt(""):
+        # 空密码解不开（真加密）才拒绝；仅权限加密（很多企业 PDF）任何阅读器都能直接读
+        raise ParseError("PDF 已加密且需要密码，无法读取")
     pages: list[str] = []
     for index, page in enumerate(reader.pages, start=1):
         page_text = (page.extract_text() or "").strip()
@@ -487,7 +540,8 @@ def _read_xlsx(path: Path) -> tuple[str, str, dict]:
             parts.append(f"## Sheet：{sheet.title}")
             rows_written = 0
             for row in sheet.iter_rows(values_only=True):
-                cells = ["" if value is None else str(value).strip() for value in row]
+                cells = ["" if value is None else str(value).strip().replace("|", "\\|")
+                         for value in row]
                 if not any(cells):
                     continue
                 parts.append(_squeeze_cjk_spaces(" | ".join(cells)).rstrip(" |"))
@@ -514,6 +568,15 @@ def _read_xlsx(path: Path) -> tuple[str, str, dict]:
         if ocr_blocks:
             parts.append("\n\n".join(ocr_blocks))
     return "\n".join(parts).strip(), "", {}
+
+
+def _iter_shapes_flat(shapes):
+    """深度优先展平组合形状（GroupShape.shapes）：组内文字/表格不再被静默跳过。"""
+    for shape in shapes:
+        if shape.shape_type == 6 and hasattr(shape, "shapes"):  # MSO_SHAPE_TYPE.GROUP
+            yield from _iter_shapes_flat(shape.shapes)
+        else:
+            yield shape
 
 
 def _read_pptx(path: Path) -> tuple[str, str, dict]:
@@ -555,7 +618,7 @@ def _read_pptx(path: Path) -> tuple[str, str, dict]:
                 if not title:
                     title = shape_title
 
-        for shape in slide.shapes:
+        for shape in _iter_shapes_flat(slide.shapes):
             if shape.shape_id == title_id:
                 continue
             if shape.has_text_frame:
@@ -645,6 +708,8 @@ def parse_directory(dir_path: Path | str) -> tuple[list[ParsedDocument], list[st
     docs: list[ParsedDocument] = []
     failures: list[str] = []
     for path in sorted(dir_path.rglob("*")):
+        if any(part.startswith(".") for part in path.relative_to(dir_path).parts):
+            continue  # 隐藏目录（.rag_converted 转换缓存等）不入解析清单
         if not path.is_file() or path.name.startswith("."):
             continue
         if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
