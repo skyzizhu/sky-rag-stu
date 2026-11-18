@@ -686,13 +686,17 @@ def api_logs_qa(limit: int = Query(20, le=100), page: int = Query(1, ge=1),
 @app.get("/api/llm/costs")
 def api_llm_costs(_: dict = Depends(require_admin_api),
                   days: int = Query(0, ge=0, le=365),
-                  username: str = ""):
+                  username: str = "",
+                  page: int = Query(1, ge=1),
+                  page_size: int = Query(20, ge=1, le=100)):
     """云端 LLM 消耗统计（V3.9）：从 qa_logs 的 usage 逐条计算费用并汇总。
 
     费用 = 未命中输入 × 输入单价 + 命中缓存输入 × 缓存单价 + 输出 × 输出单价；
     单价（元/百万 tokens）实时读取 settings.json（与前台「模型配置」页同一来源），
     改单价后历史记录按新价重算。days：最近 N 天（0=全部）；username：按用户过滤。
+    汇总（totals）始终覆盖全部符合条件的数据，分页只影响明细行（rows）。
     """
+    import math
     from datetime import datetime, timedelta
 
     from src.app_settings import PRICE_DEFAULTS, load_app_settings
@@ -735,7 +739,13 @@ def api_llm_costs(_: dict = Depends(require_admin_api),
                      "estimated": bool(usage.get("estimated")),
                      "cost": round(cost, 4)})
     totals["cost"] = round(totals["cost"], 2)
-    return {"ok": True, "totals": totals, "rows": rows,
+    total_items = len(rows)
+    total_pages = max(1, math.ceil(total_items / page_size))
+    page = min(page, total_pages)
+    paged = rows[(page - 1) * page_size: page * page_size]
+    return {"ok": True, "totals": totals, "rows": paged,
+            "page": page, "page_size": page_size,
+            "total_rows": total_items, "total_pages": total_pages,
             "prices": {"input": price_in, "input_cached": price_cached,
                        "output": price_out}}
 

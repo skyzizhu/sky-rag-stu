@@ -82,6 +82,21 @@
   dialog .perm-item input[type="checkbox"] { width: auto; margin: 0; }
   .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
   .empty { text-align: center; color: #8a93a6; padding: 26px 0; font-size: 13px; }
+  .cost-cards { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+  .cost-card { flex: 1; min-width: 160px; background: #f7f8fa; border-radius: 10px;
+               padding: 16px 20px; border: 1px solid #e5e8ee; }
+  .cost-card .label { color: #6b7688; font-size: 12px; margin-bottom: 6px; }
+  .cost-card .value { font-size: 1.7em; font-weight: 700; color: #2c3e50; }
+  .cost-card .sub   { color: #8a93a6; font-size: 11px; margin-top: 4px; }
+  .cost-card.highlight { background: #eef4ff; border-color: #c8d8f0; }
+  .cost-card.highlight .value { color: #2a5db0; }
+  .cost-page { display: flex; gap: 8px; align-items: center; justify-content: center;
+               margin: 14px 0; }
+  .cost-page button { padding: 4px 12px; border: 1px solid #c8d0dc; border-radius: 6px;
+                      background: #fff; cursor: pointer; font-size: 13px; }
+  .cost-page button:disabled { opacity: .4; cursor: default; }
+  .cost-page button.current { background: #2a5db0; color: #fff; border-color: #2a5db0; }
+  .cost-page .info { color: #6b7688; font-size: 12px; margin: 0 8px; }
   .log-detail { background: #f8f9fd; border-radius: 8px; padding: 10px 12px; margin-top: 6px;
                 font-size: 12.5px; white-space: pre-wrap; word-break: break-all; }
   .clickable { cursor: pointer; }
@@ -906,9 +921,14 @@ function actionLabel(a) {
 }
 
 /* ---------- 云端 LLM 费用（V3.9：qa_logs.usage × 模型单价） ---------- */
-let llmCostFilter = { days: 30 };
+let llmCostFilter = { days: 30, page: 1 };
+const LLM_PAGE_SIZE = 20;
 async function renderLlmCost() {
-  const d = await api('GET', '/api/llm/costs');
+  const qs = new URLSearchParams();
+  qs.set('days', llmCostFilter.days);
+  qs.set('page', llmCostFilter.page);
+  qs.set('page_size', LLM_PAGE_SIZE);
+  const d = await api('GET', '/api/llm/costs?' + qs.toString());
   const t = d.totals, p = d.prices;
   const daysSel = [0, 7, 30, 90].map(v =>
     `<option value="${v}" ${llmCostFilter.days === v ? 'selected' : ''}>${v === 0 ? '全部' : '最近 ' + v + ' 天'}</option>`).join('');
@@ -916,36 +936,63 @@ async function renderLlmCost() {
     <tr>
       <td class="muted">${esc(r.created_at)}</td>
       <td><b>${esc(r.username) || '—'}</b></td>
-      <td>${esc(r.entry)}</td>
+      <td><span class="tag neutral">${esc(r.entry)}</span></td>
       <td class="wrap">${esc(r.question)}</td>
-      <td>${r.input.toLocaleString()}（含缓存 ${r.input_cached.toLocaleString()}）</td>
+      <td>${r.input.toLocaleString()}<span class="muted">（缓存 ${r.input_cached.toLocaleString()}）</span></td>
       <td>${r.output.toLocaleString()}</td>
       <td>${r.calls}</td>
-      <td>${r.estimated ? '≈' : ''}</td>
+      <td>${r.estimated ? '<span class="muted">≈</span>' : ''}</td>
       <td><b>${r.cost.toFixed(4)}</b> 元</td>
     </tr>`).join('');
+  const totalPages = Math.max(1, d.total_pages);
+  const cur = Math.min(d.page, totalPages);
+  let pages = '';
+  for (let i = 1; i <= totalPages; i++) {
+    if (totalPages > 9 && i > 2 && i < totalPages - 1 && Math.abs(i - cur) > 1) {
+      if (!pages.endsWith('…')) pages += '<span class="muted">…</span>';
+      continue;
+    }
+    pages += `<button class="${i === cur ? 'current' : ''}" ${i === cur ? 'disabled' : ''}
+      onclick="llmCostFilter.page = ${i}; renderLlmCost();">${i}</button>`;
+  }
+  const prev = `<button ${cur <= 1 ? 'disabled' : ''}
+    onclick="llmCostFilter.page = ${cur - 1}; renderLlmCost();">‹ 上一页</button>`;
+  const next = `<button ${cur >= totalPages ? 'disabled' : ''}
+    onclick="llmCostFilter.page = ${cur + 1}; renderLlmCost();">下一页 ›</button>`;
   $('#view').innerHTML = `
     <h3>云端 LLM 消耗与费用（仅云上模型；本地模型不计费）</h3>
-    <div style="margin: 8px 0;">统计范围：
-      <select onchange="llmCostFilter.days = parseInt(this.value); renderLlmCost();">${daysSel}</select>
-      <span class="muted" style="margin-left: 16px;">单价（元/百万 tokens）：
+    <div class="cost-cards">
+      <div class="cost-card"><div class="label">调用次数</div>
+        <div class="value">${t.calls}</div></div>
+      <div class="cost-card"><div class="label">输入 tokens</div>
+        <div class="value">${t.input.toLocaleString()}</div>
+        <div class="sub">其中命中缓存 ${t.input_cached.toLocaleString()}</div></div>
+      <div class="cost-card"><div class="label">输出 tokens</div>
+        <div class="value">${t.output.toLocaleString()}</div></div>
+      <div class="cost-card highlight"><div class="label">总费用</div>
+        <div class="value">${t.cost.toFixed(2)} 元</div></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px; margin: 4px 0 10px;">
+      <span>统计范围：
+        <select onchange="llmCostFilter.days = parseInt(this.value); llmCostFilter.page = 1; renderLlmCost();">${daysSel}</select>
+      </span>
+      <span class="muted" style="margin-left:auto;">单价（元/百万 tokens）：
         输入 ${p.input} ｜ 命中缓存 ${p.input_cached} ｜ 输出 ${p.output}
         —— 在前台「模型配置」页修改</span>
-    </div>
-    <div class="stat-cards" style="display:flex; gap:24px; margin: 12px 0;">
-      <div><div class="muted">调用次数</div><div style="font-size:1.6em"><b>${t.calls}</b></div></div>
-      <div><div class="muted">输入 tokens</div><div style="font-size:1.6em"><b>${t.input.toLocaleString()}</b></div>
-        <div class="muted">其中命中缓存 ${t.input_cached.toLocaleString()}</div></div>
-      <div><div class="muted">输出 tokens</div><div style="font-size:1.6em"><b>${t.output.toLocaleString()}</b></div></div>
-      <div><div class="muted">总费用</div><div style="font-size:1.6em"><b>${t.cost.toFixed(2)}</b> 元</div></div>
     </div>
     <table class="data-table">
       <thead><tr>
         <th>时间</th><th>用户</th><th>入口</th><th>问题</th>
         <th>输入 tokens</th><th>输出 tokens</th><th>调用次数</th><th>估算</th><th>费用（元）</th>
       </tr></thead>
-      <tbody>${rows || '<tr><td colspan="9" class="muted">所选范围内没有云端 LLM 消耗记录</td></tr>'}</tbody>
-    </table>`;
+      <tbody>${rows || '<tr><td colspan="9" class="empty">所选范围内没有云端 LLM 消耗记录</td></tr>'}</tbody>
+    </table>
+    <div class="cost-page">
+      ${prev}
+      ${pages}
+      ${next}
+      <span class="info">第 ${cur} / ${totalPages} 页 ｜ 共 ${d.total_rows} 条记录</span>
+    </div>`;
 }
 
 /* ---------- RAG 使用日志（只有员工会产生——管理员不能登录前台/MCP） ---------- */
