@@ -83,9 +83,15 @@ class AppConfig:
     # V2：混合检索（向量通道 + BM25 关键词通道，RRF 融合排序）
     hybrid_search: bool = field(default_factory=lambda: _env_bool("HYBRID_SEARCH", True))
 
-    # V2：Rerank 精排（LLM 对候选逐条相关度打分；先宽召回 RERANK_RECALL_K 条，精排后取 Top K）
+    # V2：Rerank 精排（先宽召回 RERANK_RECALL_K 条，精排后取 Top K）
     rerank_enabled: bool = field(default_factory=lambda: _env_bool("RERANK_ENABLED", True))
     rerank_recall_k: int = field(default_factory=lambda: _env_int("RERANK_RECALL_K", 10))
+    # 精排后端：local_onnx（本地 bge-reranker-v2-m3 ONNX，CPU 离线）| llm（云端 LLM 逐条打分）
+    rerank_backend: str = field(default_factory=lambda: _env("RERANK_BACKEND", "llm"))
+    rerank_model_dir: Path = field(
+        default_factory=lambda: (PROJECT_ROOT / _env("RERANK_MODEL_DIR",
+                                                     "models/bge-reranker-v2-m3-onnx")).resolve()
+    )
 
     # V2.6：上下文组装的来源多样性（同一文档最多进入回答的卡片数）
     context_max_per_doc: int = field(default_factory=lambda: _env_int("CONTEXT_MAX_PER_DOC", 3))

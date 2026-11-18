@@ -17,3 +17,4 @@ jieba>=0.42
 mcp>=1.0,<2  # MCP Server：把 RAG 暴露为 Agent 可调用的知识工具
 fastapi>=0.115  # V3.7 管理后台（部门/员工/认证 API）
 uvicorn>=0.30  # V3.7 管理后台 ASGI 服务器
+tokenizers>=0.20  # 本地精排分词器（加载 bge-reranker 的 tokenizer.json）

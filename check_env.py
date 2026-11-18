@@ -112,7 +112,23 @@ def main() -> int:
         "Linux: apt install libreoffice）",
     )
 
-    # 7. LLM 配置
+    # 7. 精排后端（local_onnx 需要本地模型文件；llm 走云端，无需本地文件）
+    rerank_backend = (cfg.rerank_backend or "llm").strip().lower()
+    if rerank_backend == "local_onnx":
+        model_file = cfg.rerank_model_dir / "model_quantized.onnx"
+        tok_file = cfg.rerank_model_dir / "tokenizer.json"
+        ready = model_file.exists() and tok_file.exists()
+        record(
+            OK if ready else WARN,
+            "本地精排模型（bge-reranker-v2-m3）",
+            f"就绪：{cfg.rerank_model_dir}" if ready else
+            f"模型文件缺失（{cfg.rerank_model_dir}）：运行 python scripts/download_rerank_model.py 下载，"
+            "或改回 RERANK_BACKEND=llm（缺失时自动降级 LLM 精排，不影响问答）",
+        )
+    else:
+        record(OK, f"精排后端 LLM（{cfg.llm_model} 打分）", "")
+
+    # 8. LLM 配置
     if cfg.llm_api_key and cfg.llm_base_url and cfg.llm_model:
         record(OK, f"LLM 配置（{cfg.llm_model}）")
         if args.with_llm:

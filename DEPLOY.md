@@ -74,6 +74,10 @@ ollama pull qwen3-embedding:4b
 sudo apt install -y libreoffice
 soffice --version   # 验证：能打印版本号即可
 
+# 3.6 本地精排模型（bge-reranker-v2-m3 ONNX，约 600MB）
+#     .env 设 RERANK_BACKEND=local_onnx 时必须；不下载则设 RERANK_BACKEND=llm（云端打分）
+.venv/bin/python scripts/download_rerank_model.py
+
 # 4. 配置
 cp /path/to/本地/.env .env          # LLM_API_KEY 等
 # 按需拷贝 knowledge/ 与 storage/auth.db（见第三节）

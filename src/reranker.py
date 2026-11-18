@@ -1,26 +1,29 @@
-"""V2.5：Rerank 精排（LLM 重排）。
+"""V2.5：Rerank 精排（双后端：本地 cross-encoder / LLM 重排）。
 
 产品视角：向量检索和 BM25 都是「先算分再排序」的粗排——它们只看文字和指纹，
-不理解内容。Rerank 是最后一道精排：让大模型逐条阅读候选卡片，
+不理解内容。Rerank 是最后一道精排：逐条阅读候选卡片，
 按「是否真的回答了问题」打 0~10 分，再按分数精选。
 
-本实现采用「LLM 重排」（用已配置的云端大模型打分），零新增依赖；
-后续可替换为专用重排模型（如 bge-reranker、Cohere Rerank），接口不变。
+双后端（.env 的 RERANK_BACKEND 切换，失败自动降级）：
+- local_onnx（推荐）：本地 bge-reranker-v2-m3 的 ONNX 量化版（cross-encoder），
+  onnxruntime 纯 CPU 逐对打分，零 API 费用、离线可用、亚秒级；
+  模型文件放 models/bge-reranker-v2-m3-onnx/（scripts/download_rerank_model.py 一键下载）。
+- llm：用已配置的云端大模型逐条打分（原始实现，零本地资源）。
 
-可靠性设计：
-- 打分输出必须是 JSON 数组，逐条校验（编号必须对得上、分数取值合法）；
+可靠性设计（两后端一致）：
 - 没被打分 / 打分非法的候选，沿用粗排名次排在已评分候选之后；
-- 任何解析失败 / LLM 报错，整体回退为粗排顺序，问答不中断。
+- 任何失败整体回退为粗排顺序，问答不中断；local 失败还会自动降级到 LLM 精排。
 """
 
 from __future__ import annotations
 
 import json
+import math
 import re
 import time
 from dataclasses import dataclass, field
 
-from src.config import AppConfig
+from src.config import AppConfig, get_config
 from src.llm import LLMClient
 from src.retriever import RetrievedItem
 
@@ -86,6 +89,27 @@ def rerank(
     llm: LLMClient,
     config: AppConfig | None = None,
 ) -> RerankOutcome:
+    """精排分发器：按 RERANK_BACKEND 选择本地 cross-encoder 或 LLM 打分。
+
+    local 失败自动降级到 LLM 精排；LLM 也失败时由 rerank_llm 内部回退粗排顺序。
+    """
+    cfg = config or get_config()
+    backend = (cfg.rerank_backend or "llm").strip().lower()
+    if backend == "local_onnx":
+        outcome = rerank_local(question, items, top_k, config)
+        if outcome.ok:
+            return outcome
+        outcome.error = f"本地精排失败（{outcome.error}），已自动降级 LLM 精排"
+    return rerank_llm(question, items, top_k, llm, config)
+
+
+def rerank_llm(
+    question: str,
+    items: list[RetrievedItem],
+    top_k: int,
+    llm: LLMClient,
+    config: AppConfig | None = None,
+) -> RerankOutcome:
     """用 LLM 对候选卡片逐条打相关度分，按分重排。失败时整体回退为粗排顺序。"""
     cfg = config or get_config()
     outcome = RerankOutcome(before_order=[f"[{it.rank}] {it.metadata.get('source')}" for it in items])
@@ -138,5 +162,109 @@ def rerank(
         outcome.error = f"{type(exc).__name__}: {exc}"
         outcome.items = items  # 回退：保持粗排顺序
 
+    outcome.elapsed = time.time() - start
+    return outcome
+
+
+# ---------------- 本地精排（bge-reranker-v2-m3 ONNX cross-encoder，CPU） ----------------
+
+_LOCAL_RERANKER = None  # (tokenizer, session, input_names)；False = 初始化失败（不再重试）
+_LOCAL_MAX_PAIR_TOKENS = 2048  # 单对 (query, 候选) 的 token 截断上限（v2-m3 窗口 8192，留裕量）
+_LOCAL_DOC_CHARS = 1200        # 候选正文送入打分的字符上限（640 token 卡片 ≈ 800 中文字，足够）
+
+
+def _sigmoid(x: float) -> float:
+    if x >= 0:
+        return 1.0 / (1.0 + math.exp(-x))
+    z = math.exp(x)
+    return z / (1.0 + z)
+
+
+def _get_local_reranker():
+    """懒加载本地精排器（tokenizers 分词 + onnxruntime CPU 推理），进程内单例。
+
+    模型文件缺失 / 库不可用时返回 None，调用方降级到 LLM 精排。
+    """
+    global _LOCAL_RERANKER
+    if _LOCAL_RERANKER is None:
+        try:
+            import onnxruntime as ort
+            from tokenizers import Tokenizer
+
+            model_dir = get_config().rerank_model_dir
+            model_file = model_dir / "model_quantized.onnx"
+            tok_file = model_dir / "tokenizer.json"
+            if not model_file.exists() or not tok_file.exists():
+                print(f"⚠️ 本地精排模型缺失（{model_dir}），本次回退 LLM 精排。"
+                      "运行 scripts/download_rerank_model.py 下载，或在 .env 设 RERANK_BACKEND=llm")
+                _LOCAL_RERANKER = False
+                return None
+            tokenizer = Tokenizer.from_file(str(tok_file))
+            tokenizer.enable_truncation(max_length=_LOCAL_MAX_PAIR_TOKENS)
+            session = ort.InferenceSession(str(model_file),
+                                           providers=["CPUExecutionProvider"])
+            input_names = [item.name for item in session.get_inputs()]
+            _LOCAL_RERANKER = (tokenizer, session, input_names)
+        except Exception as exc:
+            print(f"⚠️ 本地精排器初始化失败，回退 LLM 精排（{type(exc).__name__}: {exc}）")
+            _LOCAL_RERANKER = False
+    return _LOCAL_RERANKER or None
+
+
+def _score_pair(tokenizer, session, input_names, query: str, text: str) -> float:
+    """对一对 (query, 候选正文) 打相关度分，返回 sigmoid 后的 0~1 分数。"""
+    import numpy as np
+
+    encoding = tokenizer.encode(query, text)
+    feed = {"input_ids": np.array([encoding.ids], dtype=np.int64),
+            "attention_mask": np.array([encoding.attention_mask], dtype=np.int64)}
+    if "token_type_ids" in input_names:
+        feed["token_type_ids"] = np.zeros((1, len(encoding.ids)), dtype=np.int64)
+    logits = session.run(None, feed)[0]
+    return _sigmoid(float(logits.reshape(-1)[0]))
+
+
+def rerank_local(question: str, items: list[RetrievedItem], top_k: int,
+                 config: AppConfig | None = None) -> RerankOutcome:
+    """本地 cross-encoder 对候选逐对打相关度分（sigmoid × 10，与 LLM 打分同尺度 0~10）。
+
+    失败（模型缺失 / 推理异常）时 outcome.ok=False，由分发器降级到 LLM 精排。
+    """
+    outcome = RerankOutcome(before_order=[f"[{it.rank}] {it.metadata.get('source')}" for it in items])
+    engine = _get_local_reranker()
+    if engine is None:
+        outcome.error = "本地精排模型未就绪（缺模型文件或运行库）"
+        outcome.items = items
+        return outcome
+    tokenizer, session, input_names = engine
+    start = time.time()
+    score_map: dict[str, float] = {}
+    try:
+        # 逐对推理（不批填充）：CPU 上各对长度差异大，填充反而增加计算量；
+        # 单对约 0.05s，10 条候选实测约 0.5s（不含首次模型加载）
+        for i, item in enumerate(items, start=1):
+            score01 = _score_pair(tokenizer, session, input_names,
+                                  question, item.text[:_LOCAL_DOC_CHARS])
+            score_map[f"C{i}"] = round(score01 * 10.0, 2)
+
+        ordered = [item for _, item in sorted(enumerate(items),
+                    key=lambda pair: (-score_map.get(f"C{pair[0] + 1}", -1.0), pair[0]))]
+        outcome.items = ordered
+        outcome.scores = [
+            (f"C{i + 1}", it.metadata.get("source", "?"), score_map.get(f"C{i + 1}", -1.0))
+            for i, it in enumerate(ordered)
+        ]
+        outcome.after_order = [
+            f"[{i + 1}] {it.metadata.get('source')}（{score_map.get(f'C{i + 1}', -1.0):.1f} 分）"
+            for i, it in enumerate(ordered[:top_k])
+        ]
+        outcome.ok = True
+        outcome.raw_output = json.dumps(
+            [{"id": f"C{i + 1}", "score": score_map.get(f"C{i + 1}", -1.0)} for i in range(len(items))],
+            ensure_ascii=False)
+    except Exception as exc:
+        outcome.ok = False
+        outcome.error = f"{type(exc).__name__}: {exc}"
+        outcome.items = items
     outcome.elapsed = time.time() - start
     return outcome
