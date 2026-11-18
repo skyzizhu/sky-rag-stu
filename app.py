@@ -82,7 +82,7 @@ cfg = get_config()
 # 上传页格式显示：按类别归组（文档 → 表格 → 演示 → 图片 → 网页），仅影响显示顺序；
 # 实际接受范围仍以 parser 白名单（SUPPORTED_EXTENSIONS，带点）为准
 _UPLOAD_TYPE_GROUPS = [
-    ("文档", [".doc", ".docx", ".pdf", ".md", ".txt", ".rtf"]),
+    ("文档", [".doc", ".docx", ".wps", ".pdf", ".md", ".txt", ".rtf"]),
     ("表格", [".xls", ".xlsx", ".et"]),
     ("演示", [".ppt", ".pptx", ".dps"]),
     ("图片", [".png", ".jpg", ".jpeg", ".bmp"]),

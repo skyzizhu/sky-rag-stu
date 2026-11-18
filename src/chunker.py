@@ -110,8 +110,15 @@ def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str,
         if body:
             sections.append((current_leaf, current_path, current_heading_line or "", body))
 
+    in_code = False  # ``` 围栏内不识别标题（与 parser._read_markdown 同款规则）：
+    # 代码块里的 "# 注释" 不是章节——否则代码块被拦腰切开，且注释会进
+    # heading_stack 污染后续所有章节的 section_path 元数据
     for line in text.split("\n"):
-        match = _HEADING_RE.match(line)
+        if line.lstrip().startswith("```"):
+            in_code = not in_code
+            buffer.append(line)
+            continue
+        match = None if in_code else _HEADING_RE.match(line)
         if match:
             flush()
             buffer = []
