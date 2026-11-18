@@ -711,9 +711,6 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
 
 [data-testid="stFileUploaderDropzone"] button {
   font-family: 'Inter', sans-serif !important;}
-/* 上传组件默认的「200MB per file • 平铺扩展名」小字隐藏——格式说明由上方
-   按类别归组的 caption 呈现（组件内这行是逗号平铺、无法分组） */
-[data-testid="stFileUploaderDropzoneInstructions"] {display: none !important;}
 @media (max-width: 760px) {
   .hero {padding:15px 17px;border-radius:15px;}
   .hero h1 {font-size:1.1rem;}
@@ -1492,13 +1489,13 @@ def page_chat():
 def page_upload():
     require_perm('upload')
     st.markdown(f'<div class="section-title">{t("upload.title")}</div>', unsafe_allow_html=True)
-    # 格式说明按类别归组显示（与上方上传组件的格式顺序一致）
+    # 归组文案不再放顶部 caption——由下方脚本在上传框内原地改写组件默认的
+    # 平铺格式小字（types_grouped 同时供上传框改写与 type= 顺序使用）
     types_grouped = " · ".join(
         f"{label} {'/'.join(ext.lstrip('.') for ext in exts)}"
         for label, exts in _UPLOAD_TYPE_GROUPS
         if any(ext in SUPPORTED_EXTENSIONS for ext in exts)
     )
-    st.caption(t("upload.caption", types=types_grouped))
 
     _tabs = [t("upload.tab.file"), t("upload.tab.dir")]
     _has_web = is_installed("web_fetcher")
@@ -1535,6 +1532,30 @@ def page_upload():
         if st.button(t("upload.start"), disabled=not uploads, width="stretch", type="primary"):
             _start_upload(uploads, _upload_target, upload_groups)
         _render_upload_confirmation(uploads, _upload_target, upload_groups)
+
+        # 上传框内的「200MB per file • 平铺扩展名」小字由组件按 type 参数渲染，
+        # 无法直接分组——用同源 iframe 脚本原地改写为归组文案。Streamlit 重渲染
+        # 会重建 DOM，MutationObserver 负责再次改写；内容已是归组文案时不重写，
+        # 不会触发改写循环。
+        from streamlit.components.v1 import html as components_html
+        components_html(f'''
+<script>
+(function() {{
+  var root = parent.document;
+  var GROUPED = {types_grouped!r};
+  var SIZE = '单文件不超过 200MB';
+  function fix() {{
+    root.querySelectorAll('[data-testid="stFileUploaderDropzoneInstructions"] span').forEach(function(span) {{
+      if (/per file/.test(span.textContent) && !/文档/.test(span.textContent)) {{
+        span.textContent = GROUPED + ' · ' + SIZE;
+      }}
+    }});
+  }}
+  fix();
+  new MutationObserver(fix).observe(root.body, {{childList: true, subtree: true}});
+}})();
+</script>
+''', height=0)
 
     with tab_dir:
         st.markdown(t("dir.title"))
