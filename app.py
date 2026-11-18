@@ -64,7 +64,7 @@ from src.upload_plan import (  # noqa: E402  # V3.8 上传/目录导入的重复
     KIND_SAME_PATH, NEW, NEW_VERSION, SKIP, VERSION_OF, content_hash, execute_uploads,
     plan_uploads, write_directory_import,
 )
-from src.answer_evaluator import compute_cost, merge_usage, run_evaluation  # noqa: E402
+from src.answer_evaluator import compute_cost, merge_usage, run_evaluation, stage_timing  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import (
     SESSIONS_DIR,
@@ -1119,7 +1119,8 @@ def auth_gate() -> bool:
     st.stop()
 
 
-def _render_eval_card(evaluation: dict, usage: dict | None = None) -> None:
+def _render_eval_card(evaluation: dict, usage: dict | None = None,
+                      result: QAResult | None = None) -> None:
     """V3.6 回答质量评估卡片：LLM 两维评审（分档展示）+ 结构信号 + 模型消耗。
 
     评分只分档不做精确阈值——LLM 打分有波动（与精排同一教训），分档更稳。
@@ -1182,11 +1183,24 @@ def _render_eval_card(evaluation: dict, usage: dict | None = None) -> None:
         ref = signals.get("refusal") or {}
         lines.append(t(f"eval.signal.refusal.{ref.get('state', 'normal')}"))
         timing = evaluation.get("timing") or {}
+        if result is not None:
+            timing = stage_timing(result.elapsed or timing, result.trace)
         if timing.get("total"):
-            lines.append(t("eval.signal.timing", total=f"{timing['total']:.1f}",
-                           qu=f"{timing.get('query_understanding', 0.0):.1f}",
-                           retrieval=f"{timing.get('retrieval', 0.0):.1f}",
-                           llm=f"{timing.get('llm', 0.0):.1f}"))
+            if all(key in timing for key in ("retrieval_only", "rerank", "assembly")):
+                lines.append(t("eval.signal.timing.total", total=f"{timing['total']:.2f}"))
+                for name, key in (("qu", "query_understanding"), ("retrieval", "retrieval_only"),
+                                  ("rerank", "rerank"), ("assembly", "assembly"), ("generation", "llm")):
+                    lines.append(t(f"eval.signal.timing.{name}", seconds=f"{timing.get(key, 0.0):.3f}"))
+                if timing.get("mode") == "inferred":
+                    lines.append(t("eval.signal.timing.inferred"))
+            else:
+                lines.append(t("eval.signal.timing", total=f"{timing['total']:.1f}",
+                               qu=f"{timing.get('query_understanding', 0.0):.1f}",
+                               retrieval=f"{timing.get('retrieval', 0.0):.1f}",
+                               llm=f"{timing.get('llm', 0.0):.1f}"))
+            if result is not None and any("缓存命中" in str(node.get("name", ""))
+                                          for node in result.trace or []):
+                lines.append(t("eval.signal.timing.cached"))
         for line in lines:
             st.markdown(line)
 
@@ -1308,7 +1322,7 @@ def show_answer_sources(result) -> None:
     # 新回答的评估计算在问答流程里完成并挂到 result.evaluation 后才会出现在这里，
     # 历史消息重绘时直接展示已算好的结果，不重新调用 LLM
     if getattr(result, "evaluation", None):
-        _render_eval_card(result.evaluation, usage=getattr(result, "usage", None))
+        _render_eval_card(result.evaluation, usage=getattr(result, "usage", None), result=result)
 
 
 # ---------------------------------------------------------------- 页面 1：知识库问答

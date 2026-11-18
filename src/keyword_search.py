@@ -95,6 +95,7 @@ def bm25_search(
     store: VectorStore | None = None,
     filters: dict | None = None,
     config: AppConfig | None = None,
+    diagnostics: dict | None = None,
 ) -> list[dict]:
     """对知识卡片做 BM25 关键词检索（带缓存，首次构建后复用）。"""
     cfg = config or get_config()
@@ -105,6 +106,8 @@ def bm25_search(
         )
 
     cached = _get_cached_index(store, filters)
+    if diagnostics is not None:
+        diagnostics["cache_hit"] = cached is not None
     if cached is None:
         cached = _build_and_cache(store, filters, cfg)
     if cached is None:

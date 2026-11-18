@@ -6,7 +6,7 @@
 
 双后端（.env 的 RERANK_BACKEND 切换，失败自动降级）：
 - local_onnx（推荐）：本地 bge-reranker-v2-m3 的 ONNX 量化版（cross-encoder），
-  onnxruntime 纯 CPU 逐对打分，零 API 费用、离线可用、亚秒级；
+  onnxruntime 纯 CPU 逐对打分，零 API 费用、离线可用；耗时以节点实测为准；
   模型文件放 models/bge-reranker-v2-m3-onnx/（scripts/download_rerank_model.py 一键下载）。
 - llm：用已配置的云端大模型逐条打分（原始实现，零本地资源）。
 
@@ -21,6 +21,7 @@ import json
 import math
 import re
 import time
+import threading
 from dataclasses import dataclass, field
 
 from src.config import AppConfig, get_config
@@ -69,6 +70,13 @@ class RerankOutcome:
     error: str = ""
     elapsed: float = 0.0
     usage: dict = field(default_factory=dict)  # 本次调用的 token 用量（B16.1 模型消耗统计）
+    backend: str = "llm"  # 实际执行方式，不能仅凭配置判断（本地可能降级）。
+    fallback_reason: str = ""
+    timings: dict = field(default_factory=dict)
+    pair_tokens: list[int] = field(default_factory=list)
+    pair_details: list[dict] = field(default_factory=list)
+    cold_load: bool = False
+    tokenizer_type: str = ""
 
 
 def _extract_json_array(raw: str) -> list:
@@ -96,11 +104,18 @@ def rerank(
     cfg = config or get_config()
     backend = (cfg.rerank_backend or "llm").strip().lower()
     if backend == "local_onnx":
-        outcome = rerank_local(question, items, top_k, config)
+        outcome = rerank_local(question, items, top_k, cfg)
         if outcome.ok:
             return outcome
-        outcome.error = f"本地精排失败（{outcome.error}），已自动降级 LLM 精排"
-    return rerank_llm(question, items, top_k, llm, config)
+        fallback = rerank_llm(question, items, top_k, llm, cfg)
+        fallback.fallback_reason = outcome.error
+        fallback.timings = {**outcome.timings, "local_attempt": outcome.elapsed,
+                            "llm": fallback.elapsed}
+        fallback.elapsed += outcome.elapsed
+        fallback.cold_load = outcome.cold_load
+        fallback.pair_tokens = outcome.pair_tokens
+        return fallback
+    return rerank_llm(question, items, top_k, llm, cfg)
 
 
 def rerank_llm(
@@ -146,14 +161,16 @@ def rerank_llm(
             idx, item = pair
             return (-score_map.get(f"C{idx + 1}", -1.0), idx)
 
-        ordered = [item for _, item in sorted(enumerate(items), key=sort_key)]
-        outcome.items = ordered
+        ordered_pairs = sorted(enumerate(items), key=sort_key)
+        outcome.items = [item for _, item in ordered_pairs]
         outcome.scores = [
-            (f"C{i + 1}", it.metadata.get("source", "?"), score_map.get(f"C{i + 1}", -1.0))
-            for i, it in enumerate(ordered)
+            (f"C{idx + 1}", item.metadata.get("source", "?"), score_map.get(f"C{idx + 1}", -1.0))
+            for idx, item in ordered_pairs
         ]
-        outcome.after_order = [f"[{i + 1}] {it.metadata.get('source')}（{score_map.get(f'C{i + 1}', -1.0):.0f} 分）"
-                               for i, it in enumerate(ordered[:top_k])]
+        outcome.after_order = [
+            f"[{rank}] {source}（{score:.2f} 分，{cid}）"
+            for rank, (cid, source, score) in enumerate(outcome.scores[:top_k], start=1)
+        ]
         outcome.ok = bool(score_map)
         if not outcome.ok:
             outcome.error = "评分输出中没有有效条目"
@@ -168,9 +185,12 @@ def rerank_llm(
 
 # ---------------- 本地精排（bge-reranker-v2-m3 ONNX cross-encoder，CPU） ----------------
 
-_LOCAL_RERANKER = None  # (tokenizer, session, input_names)；False = 初始化失败（不再重试）
-_LOCAL_MAX_PAIR_TOKENS = 2048  # 单对 (query, 候选) 的 token 截断上限（v2-m3 窗口 8192，留裕量）
-_LOCAL_DOC_CHARS = 1200        # 候选正文送入打分的字符上限（640 token 卡片 ≈ 800 中文字，足够）
+_LOCAL_RERANKER = None  # (tokenizer, session, input_names)
+_LOCAL_RERANKER_KEY = None
+_LOCAL_LOAD_LOCK = threading.Lock()
+_LOCAL_SCORE_LOCK = threading.Lock()
+_LOCAL_MAX_PAIR_TOKENS = 2048
+_LOCAL_DOC_CHARS = 1200
 
 
 def _sigmoid(x: float) -> float:
@@ -180,91 +200,111 @@ def _sigmoid(x: float) -> float:
     return z / (1.0 + z)
 
 
-def _get_local_reranker():
-    """懒加载本地精排器（tokenizers 分词 + onnxruntime CPU 推理），进程内单例。
-
-    模型文件缺失 / 库不可用时返回 None，调用方降级到 LLM 精排。
-    """
-    global _LOCAL_RERANKER
-    if _LOCAL_RERANKER is None:
-        try:
-            import onnxruntime as ort
-            from tokenizers import Tokenizer
-
-            model_dir = get_config().rerank_model_dir
-            model_file = model_dir / "model_quantized.onnx"
-            tok_file = model_dir / "tokenizer.json"
-            if not model_file.exists() or not tok_file.exists():
-                print(f"⚠️ 本地精排模型缺失（{model_dir}），本次回退 LLM 精排。"
-                      "运行 scripts/download_rerank_model.py 下载，或在 .env 设 RERANK_BACKEND=llm")
-                _LOCAL_RERANKER = False
-                return None
-            tokenizer = Tokenizer.from_file(str(tok_file))
-            tokenizer.enable_truncation(max_length=_LOCAL_MAX_PAIR_TOKENS)
-            session = ort.InferenceSession(str(model_file),
-                                           providers=["CPUExecutionProvider"])
-            input_names = [item.name for item in session.get_inputs()]
-            _LOCAL_RERANKER = (tokenizer, session, input_names)
-        except Exception as exc:
-            print(f"⚠️ 本地精排器初始化失败，回退 LLM 精排（{type(exc).__name__}: {exc}）")
-            _LOCAL_RERANKER = False
-    return _LOCAL_RERANKER or None
+def _local_cache_key(cfg: AppConfig) -> tuple:
+    model_dir = cfg.rerank_model_dir.resolve()
+    files = [model_dir / name for name in ("model_quantized.onnx", "tokenizer.json")]
+    stamps = tuple((p.stat().st_mtime_ns, p.stat().st_size) if p.exists() else None for p in files)
+    return str(model_dir), max(0, cfg.rerank_threads), stamps
 
 
-def _score_pair(tokenizer, session, input_names, query: str, text: str) -> float:
-    """对一对 (query, 候选正文) 打相关度分，返回 sigmoid 后的 0~1 分数。"""
+def _get_local_reranker(config: AppConfig | None = None):
+    """按模型目录及线程设置缓存引擎；下载补齐后可重试，不缓存永久失败。"""
+    global _LOCAL_RERANKER, _LOCAL_RERANKER_KEY
+    cfg = config or get_config()
+    key = _local_cache_key(cfg)
+    with _LOCAL_LOAD_LOCK:
+        if _LOCAL_RERANKER is not None and _LOCAL_RERANKER_KEY == key:
+            return _LOCAL_RERANKER
+        import onnxruntime as ort
+        from tokenizers import Tokenizer
+
+        model_file = cfg.rerank_model_dir / "model_quantized.onnx"
+        tok_file = cfg.rerank_model_dir / "tokenizer.json"
+        if not model_file.exists() or not tok_file.exists():
+            raise FileNotFoundError(f"精排模型文件缺失：{cfg.rerank_model_dir}")
+        tokenizer = Tokenizer.from_file(str(tok_file))
+        tokenizer.enable_truncation(max_length=_LOCAL_MAX_PAIR_TOKENS)
+        options = ort.SessionOptions()
+        options.intra_op_num_threads = max(0, cfg.rerank_threads)
+        options.inter_op_num_threads = 1
+        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        session = ort.InferenceSession(str(model_file), sess_options=options,
+                                      providers=["CPUExecutionProvider"])
+        _LOCAL_RERANKER = (tokenizer, session, [item.name for item in session.get_inputs()])
+        _LOCAL_RERANKER_KEY = key
+        return _LOCAL_RERANKER
+
+
+def _score_pair(tokenizer, session, input_names, query: str, text: str,
+                detail: dict | None = None) -> float:
+    """逐对计时分词和推理；输入长度保持不变。"""
     import numpy as np
 
+    start = time.perf_counter()
     encoding = tokenizer.encode(query, text)
     feed = {"input_ids": np.array([encoding.ids], dtype=np.int64),
             "attention_mask": np.array([encoding.attention_mask], dtype=np.int64)}
     if "token_type_ids" in input_names:
-        feed["token_type_ids"] = np.zeros((1, len(encoding.ids)), dtype=np.int64)
-    logits = session.run(None, feed)[0]
-    return _sigmoid(float(logits.reshape(-1)[0]))
+        feed["token_type_ids"] = np.array([encoding.type_ids], dtype=np.int64)
+    tokenization = time.perf_counter() - start
+    start = time.perf_counter()
+    logits = session.run(None, feed)[0].reshape(-1)
+    if len(logits) != 1 or not math.isfinite(float(logits[0])):
+        raise ValueError("精排模型输出不是单个有限分数")
+    inference = time.perf_counter() - start
+    if detail is not None:
+        detail.update(token_count=len(encoding.ids), tokenization=tokenization, inference=inference)
+    return _sigmoid(float(logits[0]))
 
 
 def rerank_local(question: str, items: list[RetrievedItem], top_k: int,
                  config: AppConfig | None = None) -> RerankOutcome:
-    """本地 cross-encoder 对候选逐对打相关度分（sigmoid × 10，与 LLM 打分同尺度 0~10）。
-
-    失败（模型缺失 / 推理异常）时 outcome.ok=False，由分发器降级到 LLM 精排。
-    """
-    outcome = RerankOutcome(before_order=[f"[{it.rank}] {it.metadata.get('source')}" for it in items])
-    engine = _get_local_reranker()
-    if engine is None:
-        outcome.error = "本地精排模型未就绪（缺模型文件或运行库）"
-        outcome.items = items
+    """本地打分并保留原始候选编号；sigmoid×10 仅为展示尺度，不是回答正确率。"""
+    cfg = config or get_config()
+    outcome = RerankOutcome(backend="local_onnx", system_prompt="",
+                            before_order=[f"[{it.rank}] {it.metadata.get('source')}" for it in items])
+    outcome.timings = {"load": 0.0, "tokenization": 0.0, "inference": 0.0}
+    start = time.perf_counter()
+    if not items:
+        outcome.ok = True
         return outcome
-    tokenizer, session, input_names = engine
-    start = time.time()
     score_map: dict[str, float] = {}
     try:
-        # 逐对推理（不批填充）：CPU 上各对长度差异大，填充反而增加计算量；
-        # 单对约 0.05s，10 条候选实测约 0.5s（不含首次模型加载）
-        for i, item in enumerate(items, start=1):
-            score01 = _score_pair(tokenizer, session, input_names,
-                                  question, item.text[:_LOCAL_DOC_CHARS])
-            score_map[f"C{i}"] = round(score01 * 10.0, 2)
+        load_start = time.perf_counter()
+        outcome.cold_load = _LOCAL_RERANKER is None or _LOCAL_RERANKER_KEY != _local_cache_key(cfg)
+        try:
+            engine = _get_local_reranker(cfg)
+        finally:
+            outcome.timings["load"] = time.perf_counter() - load_start
+        tokenizer, session, input_names = engine
+        outcome.tokenizer_type = type(tokenizer.model).__name__
+        # 避免多个会话同时争用本地 CPU；等待时间也纳入精排总耗时。
+        wait_start = time.perf_counter()
+        with _LOCAL_SCORE_LOCK:
+            outcome.timings["queue"] = time.perf_counter() - wait_start
+            for i, item in enumerate(items, start=1):
+                detail = {"id": f"C{i}", "source": item.metadata.get("source", "?"),
+                          "document_chars": len(item.text[:_LOCAL_DOC_CHARS])}
+                score01 = _score_pair(tokenizer, session, input_names, question,
+                                      item.text[:_LOCAL_DOC_CHARS], detail)
+                score_map[f"C{i}"] = score01 * 10.0
+                outcome.pair_details.append(detail)
+                outcome.pair_tokens.append(detail["token_count"])
+                outcome.timings["tokenization"] += detail["tokenization"]
+                outcome.timings["inference"] += detail["inference"]
 
-        ordered = [item for _, item in sorted(enumerate(items),
-                    key=lambda pair: (-score_map.get(f"C{pair[0] + 1}", -1.0), pair[0]))]
-        outcome.items = ordered
-        outcome.scores = [
-            (f"C{i + 1}", it.metadata.get("source", "?"), score_map.get(f"C{i + 1}", -1.0))
-            for i, it in enumerate(ordered)
-        ]
-        outcome.after_order = [
-            f"[{i + 1}] {it.metadata.get('source')}（{score_map.get(f'C{i + 1}', -1.0):.1f} 分）"
-            for i, it in enumerate(ordered[:top_k])
-        ]
+        ordered_pairs = sorted(enumerate(items),
+                               key=lambda pair: (-score_map[f"C{pair[0] + 1}"], pair[0]))
+        outcome.items = [item for _, item in ordered_pairs]
+        outcome.scores = [(f"C{idx + 1}", item.metadata.get("source", "?"),
+                           round(score_map[f"C{idx + 1}"], 4)) for idx, item in ordered_pairs]
+        outcome.after_order = [f"[{rank}] {source}（{score:.2f} 分，{cid}）"
+                               for rank, (cid, source, score) in enumerate(outcome.scores[:top_k], start=1)]
+        outcome.raw_output = json.dumps([{"id": cid, "score": score} for cid, _, score in outcome.scores],
+                                        ensure_ascii=False)
         outcome.ok = True
-        outcome.raw_output = json.dumps(
-            [{"id": f"C{i + 1}", "score": score_map.get(f"C{i + 1}", -1.0)} for i in range(len(items))],
-            ensure_ascii=False)
     except Exception as exc:
-        outcome.ok = False
         outcome.error = f"{type(exc).__name__}: {exc}"
         outcome.items = items
-    outcome.elapsed = time.time() - start
+    outcome.elapsed = time.perf_counter() - start
     return outcome

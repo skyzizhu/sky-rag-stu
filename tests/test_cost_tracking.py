@@ -191,6 +191,10 @@ class PipelineUsageTests(IngestHarness):
 
     def setUp(self) -> None:
         super().setUp()
+        from dataclasses import replace
+
+        # 本组验证 LLM 计费用量，不能继承开发机本地精排设置。
+        self.cfg = replace(self.cfg, rerank_backend="llm")
         self.use_fakes()
         from src.pipeline import clear_qa_cache
         clear_qa_cache()

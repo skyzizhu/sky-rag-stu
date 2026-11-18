@@ -799,8 +799,9 @@ def query_evidence(
                 items=[("展开明细", "\n".join(expand_notes)),
                        ("展开后候选池", f"{len(result.retrieved)} 条")],
             ))
-    result.elapsed["retrieval"] = time.time() - t0
-    # 节点 ⑦：Rerank 精排（V2.5：LLM 逐条打分，宽召回精选）
+    result.elapsed["retrieval_only"] = time.time() - t0
+    result.elapsed["rerank"] = 0.0
+    # 精排包含模型加载、句对推理和实际发生的后端降级。
     if use_rerank_now and result.retrieved:
         _p("🏆 Rerank 精排中…")
         rr_start = now_str()
@@ -809,16 +810,20 @@ def query_evidence(
                                llm=get_llm_client(), config=cfg)
         record_stage_usage(result, "rerank", outcome.usage)
         rr_elapsed = time.time() - t_rr
+        result.elapsed["rerank"] = rr_elapsed
         # 全部打分候选交给上下文组装，由「多样性 + Top K」规则统一精选
         # 注意：不能按 Rerank 分数过滤 0 分卡片——实测发现 Rerank 可能误判
         # （给含答案的卡片打 0 分），过滤后反而丢失正确内容
         result.retrieved = outcome.items
-        rr_backend = (cfg.rerank_backend or "llm").strip().lower()
+        rr_backend = getattr(outcome, "backend", "llm")
+        rr_status = ("已执行" if outcome.ok else f"回退（粗排顺序：{outcome.error[:50]}）")
+        if getattr(outcome, "fallback_reason", ""):
+            rr_status = f"本地失败，降级 LLM：{outcome.fallback_reason[:80]}"
         if rr_backend == "local_onnx":
             trace.append(make_node(
                 "🏆", "Rerank（精排）", time_str=rr_start,
                 elapsed=rr_elapsed,
-                status="已执行" if outcome.ok else f"回退（{outcome.error[:50]}）",
+                status=rr_status,
                 summary=f"召回先扩宽到 {recall_k} 条候选，本地精排模型（bge-reranker-v2-m3）"
                         f"对每对「问题+候选」打相关度分（sigmoid 归一 0~10），按分精排后取 Top {top_k}"
                         "——粗排只看文字和指纹，精排才理解内容",
@@ -829,7 +834,15 @@ def query_evidence(
                     ("本地精排模型", f"{cfg.rerank_model_dir}\n"
                      "model_quantized.onnx（约 570MB，动态 int8 量化）\n"
                      "tokenizer.json（分词器，模型自带）\n"
-                     "分词规则：WordPiece 子词切分，(query, doc) 句对拼接，截断至 2048 token；无需提示词"),
+                     f"分词规则：{getattr(outcome, 'tokenizer_type', '') or '模型配套规则'}，"
+                     "(query, doc) 句对拼接，截断至 2048 token；无需提示词"),
+                    ("精排分项计时", "首次加载" if getattr(outcome, "cold_load", False) else "缓存引擎（热运行）"),
+                    ("模型加载 / 分词 / 推理", " / ".join(
+                        f"{key}={float(getattr(outcome, 'timings', {}).get(key, 0)):.3f}s"
+                        for key in ("load", "queue", "tokenization", "inference"))),
+                    ("句对 token 数与耗时", "\n".join(
+                        f"{d['id']} · {d['token_count']} tokens · 分词 {d['tokenization']:.3f}s · 推理 {d['inference']:.3f}s"
+                        for d in getattr(outcome, "pair_details", []))),
                     ("本地精排的结果", "\n".join(
                         f"{cid}  {source}  {score:.1f} 分" for cid, source, score in outcome.scores
                     ) or "（无候选）"),
@@ -841,7 +854,7 @@ def query_evidence(
             trace.append(make_node(
                 "🏆", "Rerank（精排）", time_str=rr_start,
                 elapsed=rr_elapsed,
-                status="已执行" if outcome.ok else f"回退（粗排顺序：{outcome.error[:50]}）",
+                status=rr_status,
                 summary=f"召回先扩宽到 {recall_k} 条候选，LLM 逐条阅读并按相关度打 0~10 分，"
                         f"按分精排后取 Top {top_k}——粗排只看文字和指纹，精排才理解内容",
                 items=[
@@ -890,7 +903,9 @@ def query_evidence(
         context = f"【时间说明】以下资料均已按时间范围筛选：{tr['from']} ~ {tr['to']}。\n\n" + context
         result.context = context
     merge_elapsed = time.time() - t1
-    result.elapsed["retrieval"] = time.time() - t0
+    result.elapsed["assembly"] = merge_elapsed
+    result.elapsed["retrieval"] = (result.elapsed["retrieval_only"]
+                                   + result.elapsed["rerank"] + result.elapsed["assembly"])
     result.sources = [
         {
             "rank": item.rank,
@@ -955,6 +970,9 @@ def query_evidence(
     evidence_meta = {"coverage": coverage, "dropped": len(dropped or []),
                      "enumeration": enumeration_mode,
                      "ctx_max_items": ctx_max_items, "recall_k": recall_k}
+    result.elapsed["assembly"] = time.time() - t1
+    result.elapsed["retrieval"] = sum(result.elapsed[key] for key in ("retrieval_only", "rerank", "assembly"))
+    result.elapsed["total"] = result.elapsed["retrieval"] + result.elapsed.get("query_understanding", 0.0)
     return result, evidence_meta
 
 
@@ -1089,6 +1107,8 @@ def answer_stream(
     messages = build_messages(context, question, history=history,
                               enumerate_mode=result.enumeration)
     llm = get_llm_client()
+    result.elapsed["assembly"] += time.time() - t2
+    result.elapsed["retrieval"] = sum(result.elapsed[key] for key in ("retrieval_only", "rerank", "assembly"))
 
     def _generate():
         _p("✍️ 生成回答中…")
@@ -1114,11 +1134,10 @@ def answer_stream(
                             "可在 .env 调大 `LLM_MAX_TOKENS`，或换更聚焦的问法。")
             result.answer = cleaned or None
             result.elapsed["llm"] = time.time() - t3
-            # 总耗时 = 全部节点：Query 理解（LLM 调用）+ 检索/展开/精排/组装 + 生成（LLM 调用）
-            qu_seconds = float(result.elapsed.get("query_understanding", 0.0) or 0.0)
-            result.elapsed["query_understanding"] = qu_seconds
-            result.elapsed["total"] = (result.elapsed.get("retrieval", 0)
-                                       + result.elapsed["llm"] + qu_seconds)
+            # 五个独立阶段求和；retrieval 保留为旧接口的聚合值，不能再次重复相加。
+            result.elapsed["query_understanding"] = float(result.elapsed.get("query_understanding", 0.0) or 0.0)
+            result.elapsed["total"] = sum(result.elapsed.get(key, 0.0) for key in
+                                           ("query_understanding", "retrieval_only", "rerank", "assembly", "llm"))
             usage_line = ""
             if result.usage.get("calls"):
                 usage_line = (f"｜消耗：{result.usage['input']} tokens 输入"

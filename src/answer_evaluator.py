@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import time
 from dataclasses import dataclass
@@ -100,7 +101,7 @@ def compute_signals(result) -> dict:
         if "Rerank" not in str(node.get("name", "")) or "精排" not in str(node.get("name", "")):
             continue
         for label, value in node.get("items", []):
-            if "LLM 重排的结果" not in str(label):
+            if not any(name in str(label) for name in ("LLM 重排的结果", "本地精排的结果")):
                 continue
             scores = [float(x) for x in _RERANK_LINE_RE.findall(str(value))]
             if scores:
@@ -148,6 +149,29 @@ def compute_signals(result) -> dict:
 
     return {"split": split, "rerank": rerank, "context": context,
             "cite": cite, "refusal": refusal}
+
+
+# ---------------------------------------------------------------- 阶段计时（兼容历史聚合值，绝不把推算当独立测量）
+def stage_timing(elapsed: dict, trace: list | None = None) -> dict:
+    timing = {key: float(elapsed.get(key, 0.0) or 0.0) for key in
+              ("retrieval", "llm", "query_understanding", "total")}
+    stages = ("retrieval_only", "rerank", "assembly")
+    if all(key in elapsed for key in stages):
+        timing.update({key: float(elapsed[key]) for key in stages})
+        timing["mode"] = "measured"
+        return timing
+    trace = trace or []
+    rerank_nodes = [n for n in trace if n.get("name") == "Rerank（精排）"]
+    assembly_nodes = [n for n in trace if n.get("name") == "合并 / 去重"]
+    if len(rerank_nodes) == len(assembly_nodes) == 1:
+        rr, assembly = rerank_nodes[0].get("elapsed"), assembly_nodes[0].get("elapsed")
+        if all(isinstance(v, (int, float)) and math.isfinite(v) and v >= 0 for v in (rr, assembly)):
+            retrieval_only = timing["retrieval"] - rr - assembly
+            total_expected = timing["query_understanding"] + timing["retrieval"] + timing["llm"]
+            if retrieval_only >= 0 and abs(total_expected - timing["total"]) < 0.02:
+                timing.update(retrieval_only=retrieval_only, rerank=rr, assembly=assembly, mode="inferred")
+                return timing
+    return timing
 
 
 # ---------------------------------------------------------------- LLM 三维评审
@@ -222,13 +246,8 @@ def run_evaluation(result, llm: LLMClient | None = None,
     start = time.time()
     payload: dict = {"ok": False, "error": "", "elapsed": 0.0, "overall": None,
                      "faithfulness": None, "relevance": None, "signals": {}}
-    # 本次提问的全流程耗时（全部节点加总：Query 理解 + 检索/展开/精排/组装 + 生成）：
-    # 来自 result.elapsed（缓存命中时为产生这份答案的原始运行的耗时）
-    _elapsed = getattr(result, "elapsed", {}) or {}
-    payload["timing"] = {"retrieval": float(_elapsed.get("retrieval", 0.0)),
-                         "llm": float(_elapsed.get("llm", 0.0)),
-                         "query_understanding": float(_elapsed.get("query_understanding", 0.0)),
-                         "total": float(_elapsed.get("total", 0.0))}
+    # 原始运行阶段计时；质量评估本身的耗时单独记录，不计入问答总时间。
+    payload["timing"] = stage_timing(getattr(result, "elapsed", {}) or {}, result.trace)
     try:
         payload["signals"] = compute_signals(result)
         answer = (result.answer or "").strip()

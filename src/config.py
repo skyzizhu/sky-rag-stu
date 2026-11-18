@@ -88,6 +88,8 @@ class AppConfig:
     rerank_recall_k: int = field(default_factory=lambda: _env_int("RERANK_RECALL_K", 10))
     # 精排后端：local_onnx（本地 bge-reranker-v2-m3 ONNX，CPU 离线）| llm（云端 LLM 逐条打分）
     rerank_backend: str = field(default_factory=lambda: _env("RERANK_BACKEND", "llm"))
+    # 0 使用 ONNX Runtime 默认线程策略；正整数限制本地精排的计算线程。
+    rerank_threads: int = field(default_factory=lambda: _env_int("RERANK_THREADS", 0))
     rerank_model_dir: Path = field(
         default_factory=lambda: (PROJECT_ROOT / _env("RERANK_MODEL_DIR",
                                                      "models/bge-reranker-v2-m3-onnx")).resolve()

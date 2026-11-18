@@ -139,16 +139,16 @@ class Retriever:
 
         # —— 节点：BM25 关键词检索 + 混合融合（V2.3 / V2.4）——
         if use_hybrid:
-            from src.keyword_search import _get_cached_index
-            _cached = _get_cached_index(self.store, used_filters)
-            cache_status = "缓存命中（直接复用索引）" if _cached else "首次构建（已缓存，下次复用）"
+            bm25_diagnostics: dict = {}
             bm25_query = " ".join(keyword_query) if keyword_query else query
             kw_source = "来自 Query 理解 / 改写的关键词" if keyword_query else "原始问题"
             bm25_start = now_str()
             t2 = time.time()
             bm25_hits = bm25_search(bm25_query, top_k=top_k, filters=used_filters,
-                                    config=self.cfg)
+                                    config=self.cfg, store=self.store, diagnostics=bm25_diagnostics)
             bm25_elapsed = time.time() - t2
+            cache_status = ("缓存命中（直接复用索引）" if bm25_diagnostics.get("cache_hit")
+                            else "首次构建（已缓存，下次复用）")
             keyword_items = [
                 RetrievedItem(rank=i + 1, score=hit["score"], text=hit["payload"].get("text", ""),
                               metadata={k: v for k, v in hit["payload"].items() if k != "text"},
