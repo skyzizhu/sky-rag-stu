@@ -246,6 +246,67 @@ def api_overview(_: dict = Depends(require_admin_api)):
     }
 
 
+# ---------------------------------------------------------------- JSON API：服务状态与控制
+_SERVICE_PROBES = [
+    ("知识库前台（8501）", "http://localhost:8501"),
+    ("管理后台（8700）", "http://localhost:8700/admin/login"),
+    ("Qdrant 向量库（6333）", "http://localhost:6333"),
+    ("Ollama（11434）", "http://localhost:11434"),
+]
+
+
+@app.get("/api/services")
+def api_services(_: dict = Depends(require_admin_api)):
+    """探测后端服务运行状态（前台 / 管理后台 / Qdrant / Ollama）。"""
+    import requests as _requests
+
+    services = []
+    for name, url in _SERVICE_PROBES:
+        try:
+            resp = _requests.get(url, timeout=3)
+            ok = resp.status_code < 500
+        except Exception:
+            ok = False
+        services.append({"name": name, "ok": ok})
+    return {"ok": True, "services": services}
+
+
+def _run_service_script(script_name: str) -> dict:
+    """分离进程执行服务控制脚本（stop_services.bat / restart_services.bat）。
+
+    Popen 立即返回、不等脚本完成——脚本会停止/重启本管理后台自身（预期行为），
+    因此响应必须先于脚本动作完成并送达浏览器。
+    """
+    import subprocess
+
+    bat = Path(__file__).resolve().parent.parent / script_name
+    if not bat.exists():
+        return {"ok": False, "detail": f"未找到控制脚本：{script_name}"}
+    flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    subprocess.Popen(["cmd", "/c", str(bat)], cwd=str(bat.parent), creationflags=flags,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL)
+    return {"ok": True}
+
+
+@app.post("/api/services/restart")
+def api_services_restart(_: dict = Depends(require_admin_api)):
+    """一键重启全部服务：分离进程执行 restart_services.bat（停止后按序拉起）。"""
+    result = _run_service_script("restart_services.bat")
+    if result["ok"]:
+        result["detail"] = "重启指令已发出：约 15 秒后服务恢复，稍候刷新本页"
+    return JSONResponse(result, status_code=200 if result["ok"] else 400)
+
+
+@app.post("/api/services/stop")
+def api_services_stop(_: dict = Depends(require_admin_api)):
+    """一键关闭全部服务（分离进程执行 stop_services.bat）。"""
+    result = _run_service_script("stop_services.bat")
+    if result["ok"]:
+        result["detail"] = "关闭指令已发出：全部服务正在停止"
+    return JSONResponse(result, status_code=200 if result["ok"] else 400)
+
+
 # ---------------------------------------------------------------- JSON API：部门
 @app.get("/api/departments")
 def api_departments(_: dict = Depends(require_admin_api)):

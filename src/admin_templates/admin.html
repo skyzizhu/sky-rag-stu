@@ -168,6 +168,7 @@ const TABS = [
   { id: 'tokens',  name: '访问令牌',   render: renderTokens },
   { id: 'authlog', name: '登录日志',   render: renderAuthLog },
   { id: 'qalog',   name: 'RAG 日志',   render: renderQaLog },
+  { id: 'services', name: '服务状态',  render: renderServices },
 ];
 let current = 'dash';
 
@@ -228,6 +229,48 @@ async function renderDash() {
       ④ 「访问令牌」页可为员工签发 MCP 调用凭证（mcp_pat_…）。
       管理员的登录日志在「管理员」标签下方查看（与员工日志分表存储）。</div></div>`;
   $('#dash-log').innerHTML = logTableHTML(d.recent_logins);
+}
+
+/* ---------- 服务状态与控制 ---------- */
+async function renderServices() {
+  let d;
+  try { d = await api('GET', '/api/services'); }
+  catch (e) { $('#view').innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`; return; }
+  const rows = d.services.map(s => `
+    <tr><td><b>${esc(s.name)}</b></td>
+    <td>${s.ok ? '<span class="tag on">🟢 运行中</span>' : '<span class="tag off">🔴 未运行</span>'}</td></tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card"><h3>服务运行状态</h3>
+      <table><tr><th>服务</th><th>状态</th></tr>${rows}</table>
+      <div class="muted" style="margin-top:8px">每次进入本页实时探测。一键重启 = 全部停止后按序拉起，约 15 秒恢复（本后台会随之短暂中断）。</div>
+    </div>
+    <div class="card"><h3>服务控制</h3>
+      <div class="toolbar">
+        <button type="button" class="danger" onclick="svcRestart()">🔄 一键重启所有服务</button>
+        <button type="button" class="danger" onclick="svcStop()">🛑 一键关闭所有服务</button>
+      </div>
+      <div class="muted" style="margin-top:8px">关闭后重新启动：在服务器上运行 start.bat，或服务恢复后回到本页点击一键重启。</div>
+    </div>`;
+}
+
+function svcRestart() {
+  confirmDo('确认重启所有服务',
+    '<div class="log-detail">全部服务（Qdrant / Ollama / 前台 / 管理后台）将停止并按序重新拉起，'
+    + '约 15 秒恢复；本管理后台会随之短暂中断，稍候刷新本页即可。确认重启吗？</div>',
+    async () => {
+      try { await api('POST', '/api/services/restart'); } catch (e) {}
+      toast('重启指令已发出：约 15 秒后恢复，稍候刷新本页');
+    }, '确认重启');
+}
+
+function svcStop() {
+  confirmDo('确认关闭所有服务',
+    '<div class="log-detail">全部服务将停止（本管理后台也会中断）。'
+    + '重新启动：在服务器上运行 start.bat，或服务恢复后回到本页点击一键重启。确认关闭吗？</div>',
+    async () => {
+      try { await api('POST', '/api/services/stop'); } catch (e) {}
+      toast('关闭指令已发出');
+    }, '确认关闭');
 }
 
 /* ---------- 部门管理 ---------- */
