@@ -69,6 +69,11 @@ chmod +x tools/qdrant/qdrant
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull qwen3-embedding:4b
 
+# 3.5 LibreOffice（老格式 doc/xls/ppt/wps/et/dps 解析依赖；不装只影响老格式，
+#     新格式 docx/xlsx/pptx/pdf/图片/OCR 均不受影响）
+sudo apt install -y libreoffice
+soffice --version   # 验证：能打印版本号即可
+
 # 4. 配置
 cp /path/to/本地/.env .env          # LLM_API_KEY 等
 # 按需拷贝 knowledge/ 与 storage/auth.db（见第三节）

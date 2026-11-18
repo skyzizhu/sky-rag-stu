@@ -40,7 +40,8 @@ def main() -> int:
     # 2. 依赖包
     missing = []
     for module in ("streamlit", "openai", "qdrant_client", "pypdf", "docx", "bs4",
-                   "striprtf", "dotenv", "requests"):
+                   "striprtf", "dotenv", "requests", "openpyxl", "pptx",
+                   "rapidocr_onnxruntime"):
         try:
             __import__(module)
         except ImportError:
@@ -56,11 +57,12 @@ def main() -> int:
 
     # 4. 知识目录
     from src.config import get_config
+    from src.parser import SUPPORTED_EXTENSIONS
 
     cfg = get_config()
     knowledge_files = (
         [p for p in cfg.knowledge_dir.rglob("*") if p.is_file() and not p.name.startswith(".")
-         and p.suffix.lower() in {".txt", ".md", ".rtf", ".html", ".htm", ".docx", ".pdf"}]
+         and p.suffix.lower() in SUPPORTED_EXTENSIONS]
         if cfg.knowledge_dir.exists() else []
     )
     record(
@@ -96,6 +98,19 @@ def main() -> int:
                f"已存 {count} 张知识卡片" if count else "运行正常，还没有数据（先入库）")
     except Exception as exc:
         record(FAIL, "Qdrant 向量数据库", f"{exc}（先启动 Qdrant：bash scripts/start_qdrant.sh）")
+
+    # 7. LibreOffice（可选：仅 .doc/.xls/.ppt/.wps/.et/.dps 老格式解析需要）
+    import shutil
+
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    record(
+        OK if soffice else WARN,
+        "LibreOffice（老格式解析）",
+        soffice if soffice else
+        "未找到 soffice：.doc/.xls/.ppt/.wps/.et/.dps 老格式将无法入库"
+        "（新格式与 OCR 不受影响。Windows 官网安装后把 soffice.exe 所在目录加入 PATH；"
+        "Linux: apt install libreoffice）",
+    )
 
     # 7. LLM 配置
     if cfg.llm_api_key and cfg.llm_base_url and cfg.llm_model:
