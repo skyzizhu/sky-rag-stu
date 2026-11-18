@@ -247,6 +247,14 @@ def api_overview(_: dict = Depends(require_admin_api)):
 
 
 # ---------------------------------------------------------------- JSON API：服务状态与控制
+_SERVICE_PROBES = [
+    ("front", "知识库前台（8501）", "http://localhost:8501"),
+    ("admin", "管理后台（8700）", "http://localhost:8700/admin/login"),
+    ("qdrant", "Qdrant 向量库（6333）", "http://localhost:6333"),
+    ("ollama", "Ollama 向量化模型（11434）", "http://localhost:11434"),
+]
+
+
 @app.get("/api/services")
 def api_services(_: dict = Depends(require_admin_api)):
     """探测后端服务运行状态（前台 / 管理后台 / Qdrant / Ollama 向量化模型）。"""
@@ -255,25 +263,21 @@ def api_services(_: dict = Depends(require_admin_api)):
 
     # 与入库使用同一份配置：读取 .env，而不是仅依赖进程环境变量。
     embedding_model = get_config().embedding_model
-    probes = [
-        ("知识库前台（8501）", "http://localhost:8501"),
-        ("管理后台（8700）", "http://localhost:8700/admin/login"),
-        ("Qdrant 向量库（6333）", "http://localhost:6333"),
-        (f"Ollama-向量模型 {embedding_model}（11434）", "http://localhost:11434"),
-    ]
     services = []
-    for name, url in probes:
+    for key, name, url in _SERVICE_PROBES:
+        if key == "ollama":
+            name = f"Ollama-向量模型 {embedding_model}（11434）"
         try:
             resp = _requests.get(url, timeout=3)
             ok = resp.status_code < 500
         except Exception:
             ok = False
-        services.append({"name": name, "ok": ok})
+        services.append({"key": key, "name": name, "ok": ok})
     return {"ok": True, "services": services}
 
 
-def _run_service_script(script_name: str) -> dict:
-    """分离进程执行服务控制脚本（stop_services.bat / restart_services.bat）。
+def _run_service_script(script_name: str, args: list[str] | None = None) -> dict:
+    """分离进程执行服务控制脚本（stop/restart_services.bat / service_ctl.bat）。
 
     Popen 立即返回、不等脚本完成——脚本会停止/重启本管理后台自身（预期行为），
     因此响应必须先于脚本动作完成并送达浏览器。
@@ -283,10 +287,16 @@ def _run_service_script(script_name: str) -> dict:
     bat = Path(__file__).resolve().parent.parent / script_name
     if not bat.exists():
         return {"ok": False, "detail": f"未找到控制脚本：{script_name}"}
+    if os.name != "nt":
+        return {"ok": False, "detail": "当前服务控制脚本仅支持 Windows，请使用服务器的服务管理工具"}
     flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
-    subprocess.Popen(["cmd", "/c", str(bat)], cwd=str(bat.parent), creationflags=flags,
-                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                     stderr=subprocess.DEVNULL)
+    cmd = ["cmd", "/c", str(bat)] + list(args or [])
+    try:
+        subprocess.Popen(cmd, cwd=str(bat.parent), creationflags=flags,
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+    except OSError as exc:
+        return {"ok": False, "detail": f"控制脚本启动失败：{exc}"}
     return {"ok": True}
 
 
@@ -305,6 +315,20 @@ def api_services_stop(_: dict = Depends(require_admin_api)):
     result = _run_service_script("stop_services.bat")
     if result["ok"]:
         result["detail"] = "关闭指令已发出：全部服务正在停止"
+    return JSONResponse(result, status_code=200 if result["ok"] else 400)
+
+
+_SERVICE_KEYS = {"front", "admin", "qdrant", "ollama"}
+
+
+@app.post("/api/services/{key}/{action}")
+def api_service_control(key: str, action: str, _: dict = Depends(require_admin_api)):
+    """单服务控制：start / stop（粒度到每个服务，供"服务状态"页的操作列调用）。"""
+    if key not in _SERVICE_KEYS or action not in ("start", "stop"):
+        raise HTTPException(status_code=404, detail="未知的服务或操作")
+    result = _run_service_script("service_ctl.bat", [key, action])
+    if result["ok"]:
+        result["detail"] = f"指令已发出：{key} {action}"
     return JSONResponse(result, status_code=200 if result["ok"] else 400)
 
 

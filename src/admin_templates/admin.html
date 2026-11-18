@@ -53,6 +53,7 @@
   button.ghost { background: transparent; color: #3d5af1; border: 1px solid #c3cdF5; }
   button.mini { padding: 4px 10px; font-size: 12.5px; }
   button:disabled { opacity: .45; cursor: not-allowed; }
+  #svc-status-box button:disabled { background: #a5adba; color: #fff; opacity: 1; }
   .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
   .tag.on  { background: #e6f7e9; color: #176b32; }
   .tag.off { background: #fdeaea; color: #a12622; }
@@ -171,6 +172,7 @@ const TABS = [
   { id: 'services', name: '服务状态',  render: renderServices },
 ];
 let current = 'dash';
+let svcBusy = false;  // 服务控制动作进行中：防重复点击，按钮按当前状态禁用
 
 function switchTab(id) {
   current = id;
@@ -232,11 +234,17 @@ async function renderDash() {
 }
 
 /* ---------- 服务状态与控制 ---------- */
-function serviceStatusTable(services) {
-  const rows = services.map(s => `
+function serviceStatusTable(services, busy) {
+  const rows = services.map(s => {
+    const running = s.ok;
+    const btn = (label, action, enabled) =>
+      `<button type="button" class="mini" onclick="svcAct('${s.key}','${action}')"${enabled ? '' : ' disabled'}>${label}</button>`;
+    return `
     <tr><td><b>${esc(s.name)}</b></td>
-    <td>${s.ok ? '<span class="tag on">🟢 运行中</span>' : '<span class="tag off">🔴 未运行</span>'}</td></tr>`).join('');
-  return `<table><tr><th>服务</th><th>状态</th></tr>${rows}</table>`;
+    <td>${s.ok ? '<span class="tag on">🟢 运行中</span>' : '<span class="tag off">🔴 未运行</span>'}</td>
+    <td>${btn('开启', 'start', !running && !busy)} ${btn('停止', 'stop', running && !busy)}</td></tr>`;
+  }).join('');
+  return `<table><tr><th>服务</th><th>状态</th><th>操作</th></tr>${rows}</table>`;
 }
 
 async function fetchServices() {
@@ -245,7 +253,7 @@ async function fetchServices() {
 
 function updateServiceRows(services) {
   const box = $('#svc-status-box');
-  if (box) box.innerHTML = serviceStatusTable(services);
+  if (box) box.innerHTML = serviceStatusTable(services, svcBusy);
 }
 
 async function renderServices() {
@@ -254,7 +262,7 @@ async function renderServices() {
   catch (e) { $('#view').innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`; return; }
   $('#view').innerHTML = `
     <div class="card"><h3>服务运行状态</h3>
-      <div id="svc-status-box">${serviceStatusTable(d.services)}</div>
+      <div id="svc-status-box">${serviceStatusTable(d.services, svcBusy)}</div>
       <div class="muted" style="margin-top:8px">每次进入本页实时探测。一键重启 = 全部停止后按序拉起，约 15 秒恢复（本后台会随之短暂中断，恢复后状态自动刷新）。</div>
     </div>
     <div class="card"><h3>服务控制</h3>
@@ -281,6 +289,49 @@ async function pollServices(matcher, maxMs = 45000) {
     if (services && matcher(services)) return true;
   }
   return false;
+}
+
+/* 单服务开启/停止：收到指令后等待实际状态变化，不提前宣称操作成功。 */
+function svcAct(key, action) {
+  if (svcBusy) return;
+  if (action === 'stop') {
+    const message = key === 'admin'
+      ? '停止管理后台后，本页面将无法访问。需要在电脑上重新启动后台或运行 start.bat，才能再次进入。确认停止吗？'
+      : '停止此服务会影响正在进行的问答或入库任务。确认停止吗？';
+    confirmDo('确认停止服务', message, () => runServiceAction(key, action), '确认停止', true);
+    return;
+  }
+  return runServiceAction(key, action);
+}
+
+async function runServiceAction(key, action) {
+  if (svcBusy) return;
+  svcBusy = true;
+  document.querySelectorAll('#svc-status-box button').forEach(b => { b.disabled = true; });
+  try {
+    await api('POST', `/api/services/${key}/${action}`);
+    closeDlg();
+    if (key === 'admin' && action === 'stop') {
+      const row = $('#svc-status-box');
+      if (row) row.innerHTML = '<div class="empty">后台停止指令已发出，本页面即将无法访问。请在电脑上重新启动后台后再刷新。</div>';
+      toast('后台停止指令已发出');
+      return;
+    }
+    toast(action === 'start' ? '开启指令已发出，正在等待服务就绪…' : '停止指令已发出，正在等待状态更新…');
+    const reached = await pollServices(list => {
+      const service = list.find(s => s.key === key);
+      return service && service.ok === (action === 'start');
+    });
+    if (current === 'services') await renderServices();
+    toast(reached ? (action === 'start' ? '服务已开启' : '服务已停止') : '服务状态尚未达到预期，请查看日志或稍后刷新', reached);
+  } catch (e) {
+    toast(e.message || '操作失败，请检查后台连接', false);
+  } finally {
+    svcBusy = false;
+    if (current === 'services' && !(key === 'admin' && action === 'stop')) {
+      try { await renderServices(); } catch (e) {}
+    }
+  }
 }
 
 async function svcRestart() {

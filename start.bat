@@ -26,7 +26,7 @@ set no_proxy=localhost,127.0.0.1
 
 echo [0/4] 清理残留服务（占用 6333/8700/8501 端口的旧进程）...
 for %%p in (6333 8700 8501) do (
-    for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":%%p .*LISTENING" 2^>nul') do taskkill /F /PID %%a >nul 2>&1
+    for /f "tokens=5" %%a in ('netstat -aon ^| findstr /R /C:":%%p .*LISTENING" 2^>nul') do taskkill /F /T /PID %%a >nul 2>&1
 )
 taskkill /F /IM qdrant.exe >nul 2>&1
 
