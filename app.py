@@ -81,6 +81,13 @@ cfg = get_config()
 
 SUPPORTED_UPLOAD_TYPES = [ext.lstrip(".") for ext in sorted(SUPPORTED_EXTENSIONS) if ext != ".htm"]
 
+
+def _is_hidden_relpath(parts: tuple[str, ...]) -> bool:
+    """目录导入路径里任何一段以 . 开头（隐藏目录/文件，如 .rag_converted 转换缓存、
+    .git）都视为隐藏——CLI 入库对它们视而不见（pipeline._skip_hidden），
+    前端目录导入同样跳过，避免转换缓存被当新文档重复入库（幻影）。"""
+    return any(seg.startswith(".") for seg in parts if seg)
+
 # 跨页面共享的设置项：在「设置与状态」里改，问答页即时生效
 st.session_state.setdefault("top_k", cfg.top_k)
 st.session_state.setdefault("domain_choice", "all")
@@ -1561,6 +1568,10 @@ def page_upload():
                         for upload in native_directory_uploads
                     ]
                     batch_id = "native:" + "|".join(upload_ids)
+                # 隐藏目录/文件（.rag_converted 转换缓存、.git 等）与 CLI 入库同一规则跳过，
+                # 避免转换缓存被当新文档重复入库（幻影）
+                decoded_entries = [entry for entry in decoded_entries
+                                   if not _is_hidden_relpath(entry[0])]
                 roots = []
                 for parts, _content in decoded_entries:
                     root = _clean_directory_name(parts[0])

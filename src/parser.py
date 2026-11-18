@@ -172,7 +172,9 @@ def _read_html(path: Path) -> tuple[str, str, dict]:
         tag.decompose()
 
     # 先转换会包含其他标签的结构，再处理普通块级元素。
-    for table in list(root.find_all("table")):
+    # 表格从最内层开始处理（reversed 文档序）：嵌套表先转成文本，外层再读行，
+    # 否则外层 find_all("tr") 会把内层行也抓进来——单元格泄漏成列 + 内容重复
+    for table in reversed(list(root.find_all("table"))):
         rows = []
         for row in table.find_all("tr"):
             cells = [
