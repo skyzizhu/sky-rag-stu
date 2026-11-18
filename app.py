@@ -1547,7 +1547,7 @@ def page_upload():
   function fix() {{
     root.querySelectorAll('[data-testid="stFileUploaderDropzoneInstructions"] span').forEach(function(span) {{
       if (/per file/.test(span.textContent) && !/文档/.test(span.textContent)) {{
-        span.textContent = GROUPED + ' · ' + SIZE;
+        span.innerHTML = GROUPED + '<br>' + SIZE;
       }}
     }});
   }}
