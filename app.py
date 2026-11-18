@@ -436,7 +436,12 @@ div[data-baseweb="radio"] label {color: var(--text-secondary) !important;}
   left: 50% !important; transform: translateX(-50%); width: min(920px, 94vw) !important; z-index: 200;}
 .st-key-chat_composer {position:fixed !important;bottom:10px !important;left:50% !important;
   transform:translateX(-50%) !important;width:min(920px,94vw) !important;z-index:200 !important;}
-body:has([data-testid="stSidebar"][aria-expanded="true"]) .st-key-chat_composer {
+/* 侧边栏展开时（宽 300px），输入框应在内容区内居中：中心 = 50vw + 150px。
+   展开判定用「收起按钮存在性」——本版 Streamlit 的侧边栏没有 aria-expanded
+   属性，旧选择器 body:has(...[aria-expanded="true"]) 永不命中，导致输入框
+   恒按视口中心定位、在内容区内整体偏左。收起时按钮消失、出现
+   stExpandSidebarButton，回落到基础 50% 规则（此时内容区即全屏）。 */
+body:has([data-testid="stSidebarCollapseButton"]) .st-key-chat_composer {
   left:calc(50% + 150px) !important;width:min(920px,calc(100vw - 340px)) !important;}
 .st-key-chat_composer,
 .st-key-chat_composer > div,
@@ -693,7 +698,6 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
   .hero {padding:15px 17px;border-radius:15px;}
   .hero h1 {font-size:1.1rem;}
   .block-container {padding-top:1rem !important;}
-  body:has([data-testid="stSidebar"][aria-expanded="true"]) .st-key-chat_composer,
   .st-key-chat_composer {left:50% !important;width:94vw !important;}
 }
 </style>
