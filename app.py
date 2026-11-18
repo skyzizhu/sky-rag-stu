@@ -711,6 +711,9 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
 
 [data-testid="stFileUploaderDropzone"] button {
   font-family: 'Inter', sans-serif !important;}
+/* 上传组件默认的「200MB per file • 平铺扩展名」小字隐藏——格式说明由上方
+   按类别归组的 caption 呈现（组件内这行是逗号平铺、无法分组） */
+[data-testid="stFileUploaderDropzoneInstructions"] {display: none !important;}
 @media (max-width: 760px) {
   .hero {padding:15px 17px;border-radius:15px;}
   .hero h1 {font-size:1.1rem;}

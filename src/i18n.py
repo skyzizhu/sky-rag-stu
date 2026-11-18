@@ -303,7 +303,7 @@ _CATALOG: dict[str, dict[str, str]] = {
 
         # 上传页
         "upload.title": "导入知识",
-        "upload.caption": "支持 {types} · 文件会复制到领域目录后再入库",
+        "upload.caption": "支持：{types} · 单文件不超过 200MB · 拖拽或点击下方虚线框选择，文件会复制到领域目录后再入库",
         "upload.tab.file": "📄 上传文件",
         "upload.tab.dir": "📁 导入目录",
         "upload.tab.web": "🌐 添加网页",
@@ -768,7 +768,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "debug.col.page": "頁碼",
 
         "upload.title": "匯入知識",
-        "upload.caption": "支援 {types} · 文件會複製到領域目錄後再入庫",
+        "upload.caption": "支援：{types} · 單檔不超過 200MB · 拖拽或點擊下方虛線框選擇，檔案會複製到領域目錄後再入庫",
         "upload.tab.file": "📄 上傳文件",
         "upload.tab.dir": "📁 匯入目錄",
         "upload.tab.web": "🌐 加入網頁",
@@ -1221,7 +1221,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "debug.col.page": "Page",
 
         "upload.title": "Import Knowledge",
-        "upload.caption": "Supports {types} · files are copied into the domain folder before ingest",
+        "upload.caption": "Supports: {types} · up to 200MB per file · drag into the dashed area or click to browse; files are copied into the domain folder before ingest",
         "upload.tab.file": "📄 Upload files",
         "upload.tab.dir": "📁 Import folder",
         "upload.tab.web": "🌐 Add web page",
@@ -1674,7 +1674,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "debug.col.page": "ページ",
 
         "upload.title": "ナレッジの取り込み",
-        "upload.caption": "対応形式：{types} · ファイルはドメインフォルダにコピーしてから取り込まれます",
+        "upload.caption": "対応形式：{types} · 1ファイル 200MB まで · 点線枠にドラッグ＆ドロップまたはクリックで選択；ファイルはドメインフォルダにコピーしてから取り込まれます",
         "upload.tab.file": "📄 ファイルアップロード",
         "upload.tab.dir": "📁 フォルダ取り込み",
         "upload.tab.web": "🌐 Webページ追加",
