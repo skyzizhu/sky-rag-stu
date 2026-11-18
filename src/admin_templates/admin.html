@@ -924,7 +924,7 @@ async function renderLlmCost() {
       <td>${r.estimated ? '≈' : ''}</td>
       <td><b>${r.cost.toFixed(4)}</b> 元</td>
     </tr>`).join('');
-  return `
+  $('#view').innerHTML = `
     <h3>云端 LLM 消耗与费用（仅云上模型；本地模型不计费）</h3>
     <div style="margin: 8px 0;">统计范围：
       <select onchange="llmCostFilter.days = parseInt(this.value); renderLlmCost();">${daysSel}</select>
