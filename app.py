@@ -79,7 +79,17 @@ from src.vector_store import VectorStoreError, get_vector_store  # noqa: E402
 st.set_page_config(page_title="Sky Personal RAG", page_icon="🧠", layout="wide")
 cfg = get_config()
 
-SUPPORTED_UPLOAD_TYPES = [ext.lstrip(".") for ext in sorted(SUPPORTED_EXTENSIONS) if ext != ".htm"]
+# 上传页格式显示：按类别归组（文档 → 表格 → 演示 → 图片 → 网页），仅影响显示顺序；
+# 实际接受范围仍以 parser 白名单（SUPPORTED_EXTENSIONS，带点）为准
+_UPLOAD_TYPE_GROUPS = [
+    ("文档", [".doc", ".docx", ".pdf", ".md", ".txt", ".rtf"]),
+    ("表格", [".xls", ".xlsx", ".et"]),
+    ("演示", [".ppt", ".pptx", ".dps"]),
+    ("图片", [".png", ".jpg", ".jpeg", ".bmp"]),
+    ("网页", [".html", ".htm"]),
+]
+SUPPORTED_UPLOAD_TYPES = [ext.lstrip(".") for _label, exts in _UPLOAD_TYPE_GROUPS
+                          for ext in exts if ext in SUPPORTED_EXTENSIONS]
 
 
 def _is_hidden_relpath(parts: tuple[str, ...]) -> bool:
@@ -1479,7 +1489,13 @@ def page_chat():
 def page_upload():
     require_perm('upload')
     st.markdown(f'<div class="section-title">{t("upload.title")}</div>', unsafe_allow_html=True)
-    st.caption(t("upload.caption", types=", ".join("." + x for x in SUPPORTED_UPLOAD_TYPES)))
+    # 格式说明按类别归组显示（与上方上传组件的格式顺序一致）
+    types_grouped = " · ".join(
+        f"{label} {'/'.join(ext.lstrip('.') for ext in exts)}"
+        for label, exts in _UPLOAD_TYPE_GROUPS
+        if any(ext in SUPPORTED_EXTENSIONS for ext in exts)
+    )
+    st.caption(t("upload.caption", types=types_grouped))
 
     _tabs = [t("upload.tab.file"), t("upload.tab.dir")]
     _has_web = is_installed("web_fetcher")
