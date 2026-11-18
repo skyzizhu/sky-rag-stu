@@ -276,7 +276,8 @@ class VectorStore:
                 offset=offset,
                 with_payload=["document_id", "source", "path", "domain", "category",
                               "topic", "version", "status", "allowed_groups", "file_type",
-                              "indexed_at", "owner", "title", "effective_date"],
+                              "indexed_at", "owner", "title", "effective_date",
+                              "classification"],
             )
             for point in points:
                 payload = point.payload or {}
@@ -297,6 +298,7 @@ class VectorStore:
                         "owner": payload.get("owner") or "",
                         "title": payload.get("title") or "",
                         "effective_date": payload.get("effective_date") or "",
+                        "classification": payload.get("classification") or "公开",
                         "version": key[1],
                         "status": key[2],
                         "chunks": 0,

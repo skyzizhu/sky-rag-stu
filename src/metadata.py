@@ -61,6 +61,8 @@ DEFAULTS = {
     "status": "active",
     # V3.7 权限：可见部门名列表；["all"] = 全员可见；空值一律落为 ["all"]
     "allowed_groups": ["all"],
+    # 密级（建档要求）：默认"公开"；Markdown 可在 Front Matter 声明，如 classification: 秘密
+    "classification": "公开",
 }
 
 _FRONT_MATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
@@ -212,6 +214,9 @@ def build_document_metadata(
     effective_date = str(fm.get("effective_date") or "").strip()
     # version：FM 可手动指定，默认 1.0
     version = str(fm.get("version")).strip() if fm.get("version") is not None else DEFAULTS["version"]
+    # 密级（建档要求）：FM 声明 > 默认"公开"；自由文本暂不做档位白名单（后续完善），
+    # 仅做长度与默认兜底
+    classification = str(fm.get("classification") or "").strip()[:20] or DEFAULTS["classification"]
 
     warn = []
     if fm.get("domain") is not None and _valid_domain(fm.get("domain")) is None:
@@ -240,6 +245,8 @@ def build_document_metadata(
         "category": category,
         "topic": topic,
         "tags": tags,
+        # 密级（建档要求）
+        "classification": classification,
         # V3.7 权限字段
         "allowed_groups": allowed_groups,
         # 生命周期字段

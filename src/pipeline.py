@@ -263,7 +263,7 @@ def _ingest_files_impl(
         overrides = state.get(rel, {}).get("overrides", {})
         for key, value in overrides.items():
             if key in ("title", "category", "topic", "tags", "version", "status",
-                       "allowed_groups") and value:
+                       "allowed_groups", "classification") and value:
                 parsed.metadata[key] = value
         # V3.7 权限：上传表单的"可见部门"作为批级默认——只在 Front Matter 未显式
         # 声明（即仍为默认全员）时生效，不覆盖档案的显式设置

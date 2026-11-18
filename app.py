@@ -2084,7 +2084,8 @@ def page_manage():
             + tag(f"🗂 {html.escape(domain_label(str(d['domain'])))}", "blue")
             + tag(f"📁 {html.escape(str(d['category']))}", "blue")
             + (tag("🏷 " + html.escape(" / ".join(d["topic"]))) if d["topic"] else "")
-            + tag(f"v{html.escape(str(d['version']))}", "green"),
+            + tag(f"v{html.escape(str(d['version']))}", "green")
+            + tag("🔒 " + html.escape(str(d.get("classification") or "公开")), "blue"),
             unsafe_allow_html=True,
         )
         st.caption(t("manage.detail.cards", id=d["document_id"], n=d["chunks"]))
