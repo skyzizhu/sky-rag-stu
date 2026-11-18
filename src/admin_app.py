@@ -276,23 +276,39 @@ def api_services(_: dict = Depends(require_admin_api)):
     return {"ok": True, "services": services}
 
 
+def _service_script_name(script_name: str) -> str:
+    """按平台返回控制脚本名：Windows 用 .bat，macOS/Linux 用同名 .sh。"""
+    if os.name == "nt":
+        return script_name
+    return script_name.replace(".bat", ".sh")
+
+
 def _run_service_script(script_name: str, args: list[str] | None = None) -> dict:
-    """分离进程执行服务控制脚本（stop/restart_services.bat / service_ctl.bat）。
+    """分离进程执行服务控制脚本（Windows: *.bat / macOS·Linux: 同名 *.sh）。
 
     Popen 立即返回、不等脚本完成——脚本会停止/重启本管理后台自身（预期行为），
     因此响应必须先于脚本动作完成并送达浏览器。
     """
     import subprocess
 
-    bat = Path(__file__).resolve().parent.parent / script_name
-    if not bat.exists():
+    script_name = _service_script_name(script_name)
+    script = Path(__file__).resolve().parent.parent / script_name
+    if not script.exists():
         return {"ok": False, "detail": f"未找到控制脚本：{script_name}"}
-    if os.name != "nt":
-        return {"ok": False, "detail": "当前服务控制脚本仅支持 Windows，请使用服务器的服务管理工具"}
-    flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
-    cmd = ["cmd", "/c", str(bat)] + list(args or [])
+    if os.name == "nt":
+        flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        cmd = ["cmd", "/c", str(script)] + list(args or [])
+        try:
+            subprocess.Popen(cmd, cwd=str(script.parent), creationflags=flags,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
+        except OSError as exc:
+            return {"ok": False, "detail": f"控制脚本启动失败：{exc}"}
+        return {"ok": True}
+    # macOS / Linux：setsid 分离进程组（脱离管理后台进程树，后台自身被停后脚本继续跑完）
+    cmd = ["bash", str(script)] + list(args or [])
     try:
-        subprocess.Popen(cmd, cwd=str(bat.parent), creationflags=flags,
+        subprocess.Popen(cmd, cwd=str(script.parent), start_new_session=True,
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
     except OSError as exc:

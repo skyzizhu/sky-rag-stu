@@ -1679,6 +1679,28 @@ Streamlit 前台（8501）          FastAPI 管理后台（8700）        MCP Se
 
 部门改名（需全库 payload 同步）、OAuth/SSO、注册审批流（现为注册即启用+管理员停用）、
 审计日志、员工多部门归属、MySQL/PostgreSQL（SQLite 迁移路径已留）。
+## 明确没做的（留给后续版本）
+
+部门改名（需全库 payload 同步）、OAuth/SSO、注册审批流（现为注册即启用+管理员停用）、
+审计日志、员工多部门归属、MySQL/PostgreSQL（SQLite 迁移路径已留）。
+
+## V3.9 补齐：管理后台服务控制（双平台，2026-11-18）
+
+**功能**（管理后台「服务状态」页）：四服务实时探测（前台/管理后台/Qdrant/Ollama+模型名）、
+一键重启全部、一键关闭全部、单服务 start/stop。`_run_service_script` **按平台分发脚本**：
+
+| 平台 | 脚本 | 分离方式 |
+|---|---|---|
+| Windows | `service_ctl.bat` / `stop_services.bat` / `restart_services.bat` | `cmd /c` + DETACHED_PROCESS |
+| macOS / Linux | 同名 `.sh`（`service_ctl.sh` / `stop_services.sh` / `restart_services.sh`） | `bash` + `start_new_session`（脱离管理后台进程树，自停后脚本继续跑完） |
+
+**要点**：
+- **Popen 立即返回**——脚本会停止/重启管理后台自身，HTTP 响应必须先送达浏览器（约 15 秒后恢复）；
+- **admin 自停延迟 2 秒**：让 HTTP 响应先出去；
+- **端口防重复**：启动前检测端口监听，已运行则不重复实例化；
+- **Qdrant 保持原工作目录与 storage 位置**（绝对路径注入）；
+- 脚本内部日志**纯 ASCII**（曾因 UTF-8 中文日志被截断字节触发 `set -u` 的 unbound variable）；
+- 测试：`test_service_control.py` 8 用例（401 越权/allowlist/非法参数 404/跨域 403/启动失败不报成功）。
 
 ---
 

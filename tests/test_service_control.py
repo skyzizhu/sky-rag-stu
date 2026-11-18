@@ -1,5 +1,7 @@
 """单服务控制 API：临时认证库，模拟脚本执行，不停止真实服务。"""
 
+import os
+
 from unittest import mock
 
 from src import admin_app
@@ -41,6 +43,7 @@ class ServiceControlTests(ApiTestCase):
         self.assertTrue(all(not s["ok"] for s in services))
 
     def test_each_action_passes_only_allowlisted_arguments(self):
+        """调用方固定传 .bat 原名；平台转换在 _run_service_script 内部（被 mock 隔离）。"""
         self.login_admin()
         with mock.patch.object(admin_app, "_run_service_script", return_value={"ok": True}) as run:
             for key in ("front", "admin", "qdrant", "ollama"):
