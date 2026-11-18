@@ -255,8 +255,8 @@ async function renderServices() {
 
 function svcRestart() {
   confirmDo('确认重启所有服务',
-    '<div class="log-detail">全部服务（Qdrant / Ollama / 前台 / 管理后台）将停止并按序重新拉起，'
-    + '约 15 秒恢复；本管理后台会随之短暂中断，稍候刷新本页即可。确认重启吗？</div>',
+    '全部服务（Qdrant / Ollama / 前台 / 管理后台）将停止并按序重新拉起，'
+    + '约 15 秒恢复；本管理后台会随之短暂中断，稍候刷新本页即可。确认重启吗？',
     async () => {
       try { await api('POST', '/api/services/restart'); } catch (e) {}
       toast('重启指令已发出：约 15 秒后恢复，稍候刷新本页');
@@ -265,8 +265,8 @@ function svcRestart() {
 
 function svcStop() {
   confirmDo('确认关闭所有服务',
-    '<div class="log-detail">全部服务将停止（本管理后台也会中断）。'
-    + '重新启动：在服务器上运行 start.bat，或服务恢复后回到本页点击一键重启。确认关闭吗？</div>',
+    '全部服务将停止（本管理后台也会中断）。'
+    + '重新启动：在服务器上运行 start.bat，或服务恢复后回到本页点击一键重启。确认关闭吗？',
     async () => {
       try { await api('POST', '/api/services/stop'); } catch (e) {}
       toast('关闭指令已发出');
