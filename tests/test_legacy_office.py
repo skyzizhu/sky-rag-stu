@@ -8,20 +8,59 @@ from __future__ import annotations
 import contextlib
 import io
 import unittest
+import tempfile
+from types import SimpleNamespace
+from unittest import mock
 from pathlib import Path
 
 from src.parser import ParseError, parse_file
 from tests._helpers import IngestHarness
 
 
-class LegacyConvertTests(unittest.TestCase):
-    """soffice 转换层：真样例端到端（转换 → 解析）。"""
+def isolated_conversion(case):
+    """临时样例 + 假转换命令；真实 reader 仍解析有效 docx/xlsx/pptx 产物。"""
+    tmp = tempfile.TemporaryDirectory(prefix="sky-office-test-")
+    case.addCleanup(tmp.cleanup)
+    samples = Path(tmp.name)
+    for name in ("sample.doc", "sample.ppt", "sample.xls", "sample_wps_test.wps"):
+        (samples / name).write_bytes(b"legacy fixture")
 
-    SAMPLES = Path("/tmp/lang_probe/conv_test")
+    def convert(args, **kwargs):
+        assert args[1:3] == ["--headless", "--convert-to"]
+        ext = args[3]
+        output = Path(args[5]) / (Path(args[6]).stem + "." + ext)
+        if ext == "docx":
+            from docx import Document
+            doc = Document()
+            doc.add_paragraph("测试DOC内容")
+            doc.save(output)
+        elif ext == "pptx":
+            from pptx import Presentation
+            doc = Presentation()
+            slide = doc.slides.add_slide(doc.slide_layouts[1])
+            slide.shapes.title.text = "测试PPT真实样例内容"
+            doc.save(output)
+        elif ext == "xlsx":
+            from openpyxl import Workbook
+            doc = Workbook()
+            doc.active["A1"] = "A1"
+            doc.save(output)
+        else:
+            raise AssertionError(ext)
+        return SimpleNamespace(returncode=0, stdout="converted", stderr="")
+
+    for patch in (mock.patch("shutil.which", return_value="/fake/soffice"),
+                  mock.patch("subprocess.run", side_effect=convert)):
+        patch.start()
+        case.addCleanup(patch.stop)
+    return samples
+
+
+class LegacyConvertTests(unittest.TestCase):
+    """soffice 命令协议、转换产物解析与缓存（外部转换命令打桩）。"""
 
     def setUp(self) -> None:
-        if not self.SAMPLES.exists():
-            self.skipTest("缺少转换测试样例目录 /tmp/lang_probe/conv_test")
+        self.SAMPLES = isolated_conversion(self)
 
     def test_doc_converts_and_parses(self):
         doc = parse_file(self.SAMPLES / "sample.doc")
@@ -62,9 +101,7 @@ class LegacyIngestTests(IngestHarness):
     def setUp(self) -> None:
         super().setUp()
         self.use_fakes()
-        self.samples = Path("/tmp/lang_probe/conv_test")
-        if not self.samples.exists():
-            self.skipTest("缺少转换测试样例目录")
+        self.samples = isolated_conversion(self)
 
     def test_doc_file_ingests_end_to_end(self):
         src = self.samples / "sample.doc"

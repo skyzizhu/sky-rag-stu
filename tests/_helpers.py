@@ -122,7 +122,7 @@ class FakeEmbedding:
             vectors.append(vec)
         return vectors
 
-    def embed_query(self, text: str) -> list[float]:
+    def embed_query(self, text: str, *, timeout=None) -> list[float]:
         """检索流水线对单条查询向量化走这个方法（与真实 EmbeddingClient 接口一致）。"""
         return self.embed_texts([text])[0]
 
@@ -139,10 +139,20 @@ class IngestHarness(unittest.TestCase):
 
         self._tmp = tempfile.TemporaryDirectory()
         root = Path(self._tmp.name)
+        # MCP/问答审计也可能落认证库：不能只隔离向量库与台账。
+        for name, value in (
+            ("AUTH_DIR", root / "auth"), ("DB_PATH", root / "auth/auth.db"),
+            ("SECRET_PATH", root / "auth/admin_secret.key"),
+            ("_SECRET_CACHE", None), ("_used_proofs", {}),
+        ):
+            auth_patch = mock.patch.object(auth_db, name, value)
+            auth_patch.start()
+            self.addCleanup(auth_patch.stop)
+        auth_db.init_db()
         self.knowledge = root / "knowledge"
         (self.knowledge / "learning" / "general").mkdir(parents=True)
         self.cfg = replace(get_config(), knowledge_dir=self.knowledge, auto_tag=False,
-                           qdrant_collection="test_kb", debug=False)
+                           qdrant_collection="test_kb", debug=False, rerank_backend="llm")
         self.store = memory_store(self.cfg)
         self.embedding = FakeEmbedding()
         patcher = mock.patch.object(istate, "STATE_PATH", root / "index_state.json")

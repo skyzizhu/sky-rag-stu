@@ -95,6 +95,35 @@ class AppConfig:
                                                      "models/bge-reranker-v2-m3-onnx")).resolve()
     )
 
+    # 列举第一阶段：文档精排/展开与目录扫描预算；不与普通问答 Top K 绑定。
+    enum_rerank_docs: int = field(default_factory=lambda: max(1, _env_int("ENUM_RERANK_DOCS", 24)))
+    enum_expand_docs: int = field(default_factory=lambda: max(1, _env_int("ENUM_EXPAND_DOCS", 12)))
+    enum_doc_cards: int = field(default_factory=lambda: max(1, _env_int("ENUM_DOC_CARDS", 40)))
+    enum_catalog_docs: int = field(default_factory=lambda: max(1, _env_int("ENUM_CATALOG_DOCS", 200)))
+    enum_catalog_points: int = field(default_factory=lambda: max(1, _env_int("ENUM_CATALOG_POINTS", 50000)))
+
+    # 列举第二阶段：预算只针对分批提取与补查，不包含首轮检索。
+    enum_stage2_enabled: bool = field(default_factory=lambda: _env_bool("ENUM_STAGE2_ENABLED", True))
+    enum_max_rounds: int = field(default_factory=lambda: max(0, _env_int("ENUM_MAX_ROUNDS", 2)))
+    enum_queries_per_round: int = field(default_factory=lambda: max(1, _env_int("ENUM_QUERIES_PER_ROUND", 2)))
+    enum_no_new_rounds: int = field(default_factory=lambda: max(1, _env_int("ENUM_NO_NEW_ROUNDS", 2)))
+    enum_max_calls: int = field(default_factory=lambda: max(1, _env_int("ENUM_MAX_CALLS", 12)))
+    enum_max_seconds: float = field(default_factory=lambda: max(1.0, _env_float("ENUM_MAX_SECONDS", 90)))
+    enum_max_tokens: int = field(default_factory=lambda: max(256, _env_int("ENUM_MAX_TOKENS", 32000)))
+    enum_batch_tokens: int = field(default_factory=lambda: max(256, _env_int("ENUM_BATCH_TOKENS", 3000)))
+    enum_page_cards: int = field(default_factory=lambda: max(1, _env_int("ENUM_PAGE_CARDS", 8)))
+    enum_max_cards: int = field(default_factory=lambda: max(1, _env_int("ENUM_MAX_CARDS", 240)))
+    enum_max_documents: int = field(default_factory=lambda: max(1, _env_int("ENUM_MAX_DOCUMENTS", 24)))
+    enum_max_items: int = field(default_factory=lambda: max(1, _env_int("ENUM_MAX_ITEMS", 120)))
+    enum_output_tokens: int = field(default_factory=lambda: max(128, _env_int("ENUM_OUTPUT_TOKENS", 2048)))
+
+    # 单会话历史预算，独立于检索资料上下文；摘要每达到一批新增旧消息才压缩一次。
+    chat_context_max_tokens: int = field(default_factory=lambda: max(512, _env_int("CHAT_CONTEXT_MAX_TOKENS", 6000)))
+    chat_recent_turns: int = field(default_factory=lambda: max(1, _env_int("CHAT_RECENT_TURNS", 4)))
+    chat_summary_tokens: int = field(default_factory=lambda: max(128, _env_int("CHAT_SUMMARY_TOKENS", 1200)))
+    chat_summary_trigger_tokens: int = field(default_factory=lambda: max(256, _env_int("CHAT_SUMMARY_TRIGGER_TOKENS", 4000)))
+    chat_recall_messages: int = field(default_factory=lambda: max(0, _env_int("CHAT_RECALL_MESSAGES", 2)))
+
     # V2.6：上下文组装的来源多样性（同一文档最多进入回答的卡片数）
     context_max_per_doc: int = field(default_factory=lambda: _env_int("CONTEXT_MAX_PER_DOC", 3))
 

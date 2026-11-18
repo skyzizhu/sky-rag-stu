@@ -101,29 +101,32 @@ class LLMClient:
             cleaned = cleaned.split("<think>")[-1].strip()
         return cleaned or text
 
-    def _create(self, messages: list[dict], stream: bool = False, include_usage: bool = False):
+    def _create(self, messages: list[dict], stream: bool = False, include_usage: bool = False,
+                timeout: float | None = None, max_tokens: int | None = None):
         """调用 OpenAI 兼容接口。include_usage：流式末尾附带 usage 统计 chunk——
         个别兼容服务不支持该参数（报 400 / TypeError），此时去掉重试一次。"""
         kwargs = dict(
             model=self.cfg.llm_model,
             messages=messages,
             temperature=self.cfg.llm_temperature,
-            max_tokens=self.cfg.llm_max_tokens,
+            max_tokens=max_tokens if max_tokens is not None else self.cfg.llm_max_tokens,
             stream=stream,
         )
         if include_usage:
             kwargs["stream_options"] = {"include_usage": True}
+        client = self.client.with_options(timeout=timeout, max_retries=0) if timeout is not None else self.client
         try:
-            return self.client.chat.completions.create(**kwargs)
+            return client.chat.completions.create(**kwargs)
         except (APIStatusError, TypeError) as exc:
             if not include_usage:
                 raise
             if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) != 400:
                 raise
             kwargs.pop("stream_options", None)
-            return self.client.chat.completions.create(**kwargs)
+            return client.chat.completions.create(**kwargs)
 
-    def chat(self, messages: list[dict], usage_out: dict | None = None) -> tuple[str, float]:
+    def chat(self, messages: list[dict], usage_out: dict | None = None, *,
+             timeout: float | None = None, max_tokens: int | None = None) -> tuple[str, float]:
         """发送对话，返回 (完整答案文本, 耗时秒)。
 
         usage_out：可选的用量字典——调用后写入本次 token 统计（服务商返回 usage 用真实值，
@@ -131,7 +134,7 @@ class LLMClient:
         """
         start = time.time()
         try:
-            response = self._create(messages)
+            response = self._create(messages, timeout=timeout, max_tokens=max_tokens)
         except Exception as exc:
             raise self._translate_error(exc) from exc
 

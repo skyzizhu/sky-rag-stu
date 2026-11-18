@@ -13,10 +13,9 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 from src.parser import parse_directory, parse_file
-from src.config import get_config
+from tests._helpers import IngestHarness
 
 
 def _make_legacy_samples(base: Path) -> None:
@@ -29,18 +28,16 @@ def _make_legacy_samples(base: Path) -> None:
     doc.save(hidden / "phantom.docx")
 
 
-class HiddenDirectoryTests(unittest.TestCase):
+class HiddenDirectoryTests(IngestHarness):
     """幻影入库修复：隐藏目录里的转换缓存不被扫描/解析/元数据调试发现。"""
 
     def setUp(self) -> None:
-        self.tmp = Path(tempfile.mkdtemp(prefix="sky-hidden-"))
+        super().setUp()
+        self.use_fakes()
+        self.tmp = self.knowledge
         self.real = self.tmp / "real.md"
         self.real.write_text("# 真实文档\n\n正文 MD_REAL_FILE\n", encoding="utf-8")
         _make_legacy_samples(self.tmp)
-
-    def tearDown(self) -> None:
-        import shutil
-        shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_ingest_scan_skips_hidden_directory(self):
         """入库扫描走 pipeline._skip_hidden：只发现真实文件，幻影 docx 被跳过。"""
@@ -57,13 +54,10 @@ class HiddenDirectoryTests(unittest.TestCase):
         """端到端：ingest_files 扫描 knowledge 目录时忽略 .rag_converted 缓存。"""
         import contextlib
         import io
-        import shutil
-        from src.pipeline import ingest_files, clear_qa_cache
-        cfg = get_config()
-        object.__setattr__(cfg, "knowledge_dir", self.tmp)
-        with mock.patch("src.pipeline.get_config", return_value=cfg):
-            with contextlib.redirect_stdout(io.StringIO()):
-                summary = ingest_files(rebuild=True, config=cfg)
+        from src.pipeline import ingest_files
+        with contextlib.redirect_stdout(io.StringIO()):
+            summary = ingest_files(rebuild=True, config=self.cfg,
+                                   embedding_client=self.embedding, store=self.store)
         sources = [row["source"] for row in summary.file_rows]
         self.assertEqual(sources, ["real.md"])
 
@@ -74,8 +68,6 @@ class HiddenDirectoryTests(unittest.TestCase):
 
     def test_metadata_debug_scan_skips_hidden_directory(self):
         """元数据调试脚本同一过滤口径。"""
-        from src import metadata
-        cfg = get_config()
         files = sorted(
             p for p in self.tmp.rglob("*")
             if p.is_file() and not p.name.startswith(".")

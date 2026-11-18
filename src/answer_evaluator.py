@@ -155,6 +155,10 @@ def compute_signals(result) -> dict:
 def stage_timing(elapsed: dict, trace: list | None = None) -> dict:
     timing = {key: float(elapsed.get(key, 0.0) or 0.0) for key in
               ("retrieval", "llm", "query_understanding", "total")}
+    if "conversation" in elapsed:
+        timing["conversation"] = float(elapsed["conversation"])
+    if "enumeration" in elapsed:
+        timing["enumeration"] = float(elapsed["enumeration"])
     stages = ("retrieval_only", "rerank", "assembly")
     if all(key in elapsed for key in stages):
         timing.update({key: float(elapsed[key]) for key in stages})

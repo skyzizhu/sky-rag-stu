@@ -76,7 +76,7 @@ class Retriever:
     def retrieve(self, query: str, top_k: int | None = None,
                  filters: dict | None = None, trace: list | None = None,
                  keyword_query: list[str] | None = None,
-                 use_hybrid: bool = False) -> list[RetrievedItem]:
+                 use_hybrid: bool = False, deadline: float | None = None) -> list[RetrievedItem]:
         """检索：问题 → 问题向量 → 默认过滤 + Metadata 过滤 → 最相近的 top_k 张卡片。
 
         use_hybrid=True（V2.4 混合检索）：并行执行 BM25 关键词检索通道，
@@ -89,7 +89,14 @@ class Retriever:
         # —— 节点：Query Embedding ——
         embed_start = now_str()
         t0 = time.time()
-        query_vector = self.embedding.embed_query(query)
+        def remaining():
+            seconds = deadline - time.monotonic() if deadline is not None else None
+            if seconds is not None and seconds <= 0:
+                raise TimeoutError("列举补查已达到耗时预算")
+            return seconds
+        seconds = remaining()
+        query_vector = (self.embedding.embed_query(query, timeout=seconds) if seconds is not None
+                        else self.embedding.embed_query(query))
         embed_elapsed = time.time() - t0
         if trace is not None:
             trace.append(make_node(
@@ -119,7 +126,8 @@ class Retriever:
         # —— 节点：数据库检索（向量通道）——
         search_start = now_str()
         t1 = time.time()
-        hits = self.store.search(query_vector, top_k=top_k, filters=used_filters)
+        hits = self.store.search(query_vector, top_k=top_k, filters=used_filters,
+                                 **({"timeout": remaining()} if deadline is not None else {}))
         search_elapsed = time.time() - t1
         if trace is not None:
             trace.append(make_node(
@@ -139,6 +147,7 @@ class Retriever:
 
         # —— 节点：BM25 关键词检索 + 混合融合（V2.3 / V2.4）——
         if use_hybrid:
+            remaining()
             bm25_diagnostics: dict = {}
             bm25_query = " ".join(keyword_query) if keyword_query else query
             kw_source = "来自 Query 理解 / 改写的关键词" if keyword_query else "原始问题"

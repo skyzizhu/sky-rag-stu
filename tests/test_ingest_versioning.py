@@ -46,6 +46,19 @@ class VectorStoreContractTests(_IngestCase):
 
 
 class IngestVersioningTests(_IngestCase):
+    def test_repeated_reingest_preserves_manual_visibility(self):
+        path = self.write_note("部门资料")
+        self.ingest([path])
+        rel = path.relative_to(self.knowledge).as_posix()
+        state = istate.load_state()
+        state[rel]["overrides"] = {"allowed_groups": ["hr"], "title": "人工标题"}
+        istate.save_state(state)
+        for _ in range(2):
+            self.ingest([path])
+            self.assertEqual(istate.load_state()[rel]["overrides"]["allowed_groups"], ["hr"])
+            self.assertTrue(all(d["allowed_groups"] == ["hr"]
+                                for d in self.store.list_documents()))
+
     def test_content_update_expires_old_version_and_bumps(self):
         """事故场景本体：改内容后重新入库 → 旧版 expired、新版 1.1 active。"""
         path = self.write_note("第一版内容")

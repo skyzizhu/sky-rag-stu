@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import sys
+import math
 from functools import lru_cache
 
 from qdrant_client import QdrantClient, models
@@ -135,6 +136,7 @@ class VectorStore:
         query_vector: list[float],
         top_k: int,
         filters: dict | None = None,
+        timeout: float | None = None,
     ) -> list[dict]:
         """拿一张指纹找最相近的 top_k 张卡片，可叠加 Metadata 过滤条件。
 
@@ -151,6 +153,7 @@ class VectorStore:
             limit=top_k,
             query_filter=self.build_filter(filters),
             with_payload=True,
+            **({"timeout": max(1, math.ceil(timeout))} if timeout is not None else {}),
         )
         return [{"score": point.score, "payload": point.payload or {}} for point in result.points]
 
@@ -307,6 +310,63 @@ class VectorStore:
             if offset is None:
                 break
         return sorted(docs.values(), key=lambda d: d["path"])
+
+    def categories(self, filters: dict | None = None) -> list[str]:
+        """查询理解只需分类名，使用索引分面，不逐张卡片扫描全库。"""
+        if not self.collection_exists():
+            return []
+        response = self.client.facet(collection_name=self.cfg.qdrant_collection, key="category",
+                                     facet_filter=self.build_filter(filters), limit=128)
+        return sorted(str(hit.value) for hit in response.hits)
+
+    def document_catalog(self, filters: dict | None = None, max_documents: int = 200,
+                         max_points: int = 50000, date_field: str = "updated_at",
+                         dates: dict | None = None) -> dict:
+        """只滚动读取元数据，按 document_id 去重；达到预算时明确返回不完整标记。"""
+        documents = {}
+        offset = None
+        scanned = 0
+        unknown_dates = set()
+        if self.collection_exists():
+            while scanned < max_points:
+                points, offset = self.client.scroll(
+                    collection_name=self.cfg.qdrant_collection,
+                    scroll_filter=self.build_filter(filters), offset=offset,
+                    limit=min(256, max_points - scanned), with_vectors=False,
+                    with_payload=["document_id", "source", "path", "title", "domain", "category",
+                                  "version", "status", "indexed_at", "updated_at"],
+                )
+                scanned += len(points)
+                for point in points:
+                    meta = point.payload or {}
+                    if dates:
+                        date = str(meta.get(date_field) or "")[:10]
+                        if not date:
+                            unknown_dates.add(meta.get("document_id") or meta.get("path"))
+                            continue
+                        if not (dates.get("from", "") <= date <= dates.get("to", "9999-12-31")):
+                            continue
+                    key = meta.get("document_id") or meta.get("path")
+                    if key:
+                        documents.setdefault(key, meta)
+                if offset is None:
+                    break
+        ordered = sorted(documents.values(), key=lambda m: m.get("path") or m.get("source") or "")
+        return {"documents": ordered[:max_documents], "matched_documents": len(ordered),
+                "scan_truncated": offset is not None, "scanned_points": scanned,
+                "unknown_date_documents": len(unknown_dates),
+                "list_truncated": len(ordered) > max_documents}
+
+    def card_page(self, filters: dict, offset=None, limit: int = 8, timeout: float | None = None):
+        """第二阶段按游标读取卡片；每一页都在服务端执行相同权限/状态/版本条件。"""
+        if not self.collection_exists():
+            return [], None
+        points, next_offset = self.client.scroll(
+            collection_name=self.cfg.qdrant_collection, scroll_filter=self.build_filter(filters),
+            offset=offset, limit=limit, with_vectors=False, with_payload=True,
+            **({"timeout": max(1, math.ceil(timeout))} if timeout is not None else {}),
+        )
+        return [{"id": str(p.id), "payload": p.payload or {}} for p in points], next_offset
 
     def get_all_cards(self, filters: dict | None = None, limit: int = 5000) -> list[dict]:
         """拉取（可按 Metadata 过滤的）全部卡片：[{"id", "payload"}, ...]。供 BM25 通道建索引用。"""

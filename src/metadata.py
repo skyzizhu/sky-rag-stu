@@ -15,6 +15,7 @@ Domain 固定枚举（系统内部一律英文，界面可显示中文）：
 from __future__ import annotations
 
 import hashlib
+import unicodedata
 import re
 import sys
 from datetime import datetime
@@ -32,11 +33,84 @@ STATUSES = ["active", "archive", "expired"]
 
 
 def bump_version(version: str) -> str:
-    """内容变化时版本号自动 +0.1（1.0 → 1.1 → 1.2 …）。解析失败回退 1.1。"""
+    """内容变化时版本号自动递增。
+
+    两段版本（主.次）走浮点进位（1.9→2.0，继承旧规则）；
+    三段及以上只递增末段（2.0.9→2.0.10）。解析失败回退 1.1。
+    """
+    parts = version.split(".")
+    if len(parts) <= 2:
+        try:
+            return f"{float(version) + 0.1:.1f}"
+        except (TypeError, ValueError):
+            return "1.1"
     try:
-        return f"{float(version) + 0.1:.1f}"
-    except (TypeError, ValueError):
+        parts[-1] = str(int(parts[-1]) + 1)
+        return ".".join(parts)
+    except (TypeError, ValueError, IndexError):
         return "1.1"
+
+# ---------------- 文件名版本识别（V3.9：显式标记优先，模糊数字不猜测） ----------------
+# 各段使用同一种分隔符，避免把版本后面的日期/副本编号并入版本。
+_VERSION_NUMBER = (
+    r"(?:[0-9]+(?:\.[0-9]+)+|[0-9]+(?:_[0-9]+)+|[0-9]+(?:-[0-9]+)+|[0-9]+)"
+)
+_EXPLICIT_FILENAME_VERSION_RE = re.compile(
+    r"(?<![A-Za-z0-9])(?:version|ver|v|版本号?|版次)\s*[:=_-]?\s*"
+    r"(?P<number>" + _VERSION_NUMBER + r")(?![A-Za-z0-9.]|-(?:alpha|beta|rc|dev))",
+    re.IGNORECASE,
+)
+_CHINESE_FILENAME_VERSION_RE = re.compile(
+    r"(?<![A-Za-z0-9.])(?:第\s*)?(?P<number>" + _VERSION_NUMBER + r")\s*版"
+)
+_BARE_FILENAME_VERSION_RE = re.compile(
+    r"(?:^|[_\-\s(【\[])(?P<number>" + _VERSION_NUMBER + r")\s*[)】\]]?$"
+)
+
+
+def _normalize_filename_version(raw: str, *, bare: bool = False) -> str | None:
+    parts = re.split(r"[._-]", raw)
+    # 裸数字只在末尾至少两段时识别；长数字通常是日期/编号，不推断。
+    if not (2 if bare else 1) <= len(parts) <= 4 or any(len(p) > 3 for p in parts):
+        return None
+    if bare and "." in raw:
+        # 裸的「数字.数字」无 v 标记：很可能是章节号（说明_1.2 = 第1.2节），不猜测。
+        return None
+    if bare and len(parts) == 3 and len(parts[0]) == 2:
+        # 裸的 YY_MM_DD / YY.MM.DD 也可能是日期，宁可交回默认规则。
+        from datetime import date
+        try:
+            date(2000 + int(parts[0]), int(parts[1]), int(parts[2]))
+            return None
+        except ValueError:
+            pass
+    normalized = ".".join(str(int(p)) for p in parts)
+    return normalized if len(parts) > 1 else normalized + ".0"
+
+
+def version_from_filename(source: str) -> str | None:
+    """显式标记/中文版次优先，其次末尾的多段数字；冲突或日期不猜测。"""
+    stem = unicodedata.normalize("NFKC", Path(source).stem)
+    matches = list(_EXPLICIT_FILENAME_VERSION_RE.finditer(stem))
+    matches += list(_CHINESE_FILENAME_VERSION_RE.finditer(stem))
+    if matches:
+        versions = set()
+        for match in matches:
+            raw = match.group("number")
+            tail = stem[match.end("number"):]
+            # 不接受从不完整或混合分隔符数字串中截出一个整数版本。
+            if not re.search(r"[._-]", raw) and re.match(r"[._-][0-9]", tail):
+                return None
+            value = _normalize_filename_version(raw)
+            if value is None:
+                return None
+            versions.add(value)
+        return next(iter(versions)) if len(versions) == 1 else None
+    match = _BARE_FILENAME_VERSION_RE.search(stem)
+    if not match:
+        return None
+    return _normalize_filename_version(match.group("number"), bare=True)
+
 
 # 已知「目录名 → Topic 展示名」对照；不在表里的目录名原样作为 topic
 TOPIC_NAME_MAP = {
@@ -213,7 +287,8 @@ def build_document_metadata(
     # effective_date（V3.9）：FM 声明的生效日期（企业文档的版本有效性），缺省为空不造假
     effective_date = str(fm.get("effective_date") or "").strip()
     # version：FM 可手动指定，默认 1.0
-    version = str(fm.get("version")).strip() if fm.get("version") is not None else DEFAULTS["version"]
+    version = (version_from_filename(source)
+               or str(fm.get("version") or "").strip() or DEFAULTS["version"])
     # 密级（建档要求）：FM 声明 > 默认"公开"；自由文本暂不做档位白名单（后续完善），
     # 仅做长度与默认兜底
     classification = str(fm.get("classification") or "").strip()[:20] or DEFAULTS["classification"]

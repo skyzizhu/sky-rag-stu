@@ -15,6 +15,8 @@
 from __future__ import annotations
 
 import os
+import hashlib
+import json
 import threading
 import time
 from collections import Counter
@@ -23,24 +25,26 @@ from pathlib import Path
 
 from src import index_epoch
 from src.answer_evaluator import merge_usage
+from src.enumeration_processing import process_enumeration, render_records
+from src.conversation_context import prepare_context
 from src.chunker import clean_and_chunk
 from src.config import AppConfig, get_config
 from src.context import build_context, estimate_tokens
 from src.embedding import EmbeddingClient, get_embedding_client
+from src.enumeration import (enumeration_route, catalog_time, document_representatives,
+                             document_key, group_documents, expand_documents, coverage_notice)
 from src.llm import LLMClient, get_llm_client, new_usage, strip_think_tags
-from src.metadata import build_document_metadata, document_id_for
+from src.metadata import build_document_metadata, document_id_for, version_from_filename
 from src.parser import ParsedDocument, SUPPORTED_EXTENSIONS, parse_file
 from src.answer_language import resolve_answer_language
 from src.prompt import build_messages
 from src.query_understanding import understand_query
-from src.reranker import rerank as rerank_items
+from src.reranker import rerank as rerank_items, rerank_local as rerank_documents_local
 from src.retriever import RetrievedItem, effective_filters, get_retriever
 from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
 
-# V3.8.1 枚举通道参数（列举/计数类提问专用——目标是"全"而不是"精"）：
-# 召回池 50、上下文名额 40（容纳单文档全量卡片）、跳过精排（省一次 LLM 调用）、
-# token 预算放宽到 12000（全量卡片进上下文）。支持 .env 覆盖。
+# 列举召回与上下文预算（不代表全库完整覆盖）；文档精排/展开预算见 AppConfig。
 ENUM_RECALL_K = int(os.getenv("ENUM_RECALL_K", "50"))
 ENUM_CTX_ITEMS = int(os.getenv("ENUM_CTX_ITEMS", "40"))
 ENUM_CTX_TOKENS = int(os.getenv("ENUM_CTX_TOKENS", "12000"))
@@ -77,6 +81,8 @@ class QAResult:
     trace: list = field(default_factory=list)    # 节点时间线（调试面板）
     elapsed: dict = field(default_factory=dict)
     evaluation: dict | None = None  # V3.6 回答质量评估载荷（见 src/answer_evaluator.py）
+    conversation_meta: dict = field(default_factory=dict)  # 本轮单会话上下文的范围、压缩与召回信息
+    enumerated_items: list[dict] = field(default_factory=list)  # 带已验证原文引用的提取记录
     enumeration: bool = False  # V3.9：本次提问是否走枚举通道（Evidence/生成共用）
     evidence_meta: dict | None = None  # V3.9：coverage 粗判定等 Evidence 元信息
     usage: dict = field(default_factory=dict)  # 本次回答的 LLM 消耗合计（B16.1；评估的用量在 evaluation["usage"]）
@@ -187,8 +193,7 @@ def _ingest_files_impl(
             summary.skipped_files.append(rel)
             continue
         if unchanged:
-            # 强制重跑且内容未变：按 new 处理（同 point_id 覆盖旧卡片，
-            # 不升版本、不 expire），否则重新入库会让版本号虚涨
+            # 强制重跑且内容未变：沿用现有版本，同 point_id 更新当前卡片。
             summary.new_files.append(rel)
         else:
             # 分类必须无条件进行：updated_files 驱动旧版本 expire，
@@ -247,10 +252,16 @@ def _ingest_files_impl(
         # V3.2 版本管理：只有内容真的变化（updated）才升版本号；
         # 强制重入库（内容未变）不涨版本，否则每次点「重新入库」版本都 +0.1
         prev_version = state.get(rel, {}).get("version")
-        if (rel in summary.updated_files and prev_version
-                and "version" not in (parsed.front_matter or {})):
-            from src.metadata import bump_version
-            parsed.metadata["version"] = bump_version(prev_version)
+        explicit_version = version_from_filename(path.name) or str(
+            (parsed.front_matter or {}).get("version") or ""
+        ).strip()
+        if prev_version and not explicit_version:
+            if rel in summary.updated_files:
+                from src.metadata import bump_version
+                parsed.metadata["version"] = bump_version(prev_version)
+            else:
+                # 内容未变的强制重入库必须沿用台账版本，不能回落到默认 1.0。
+                parsed.metadata["version"] = prev_version
         # V3.3 自动打标签：topic/tags 皆空时由 LLM 补全（失败静默跳过，不阻断入库）
         if cfg.auto_tag and llm and not parsed.metadata["topic"] and not parsed.metadata["tags"]:
             from src.auto_tagger import auto_tag
@@ -348,14 +359,14 @@ def _ingest_files_impl(
         vector_store.clear()
     vector_store.ensure_collection(summary.vector_dimension)
     if not rebuild:
-        # 台账损坏/丢失时 new 文件在向量库里可能有旧残留，入库前清掉（幂等），
-        # 避免「台账说新、库里有旧」时新旧两代卡片同时 active
+        # 仅对台账未知的文档清残留；强制重跑已知文档不能清掉其版本历史。
         for doc in cleaned_docs:
-            if doc.metadata["path"] in summary.new_files:
+            if doc.metadata["path"] in summary.new_files and doc.metadata["path"] not in state:
                 vector_store.delete_documents([doc.metadata["document_id"]])
-        # V3.2 版本管理：内容有变化的文件，旧版本整体转 expired 留作历史（新版本随后写入）
+        # 已知文档先过期，再写回当前卡片；同版本点 ID 不变，历史版本保留，
+        # 切片数减少或人工更改版本时，也不会残留旧的 active 卡片。
         for doc in cleaned_docs:
-            if doc.metadata["path"] in summary.updated_files:
+            if doc.metadata["path"] in state:
                 vector_store.expire_document(doc.metadata["document_id"])
     print("⑥ 存入 Qdrant 向量库")
     stored = vector_store.upsert_chunks(chunks, vectors)
@@ -529,9 +540,9 @@ def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool,
                history: list[dict] | None = None) -> str:
     # 对话历史参与键：同样的短追问（"继续""展开讲讲"）在不同上下文里答案完全不同，
     # 不带 history 会跨会话/跨轮次串答案
-    hist_sig = "|".join(
-        f"{m.get('role')}:{(m.get('content') or '')[:60]}" for m in (history or [])
-    )
+    hist_sig = hashlib.sha256(json.dumps(
+        [{"role": m.get("role"), "content": m.get("content")} for m in (history or [])],
+        ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     # 回答语言参与键（B14.1）：判断不出语言的追问会沿用历史提问的语言，而 hist_sig 只取前 60 字，
     # 显式带上判定结果，保证同一键永远对应同一回答语言
     answer_lang = resolve_answer_language(question, history)
@@ -567,6 +578,38 @@ def _sync_qa_cache_epoch() -> str:
 
 
 # ---------------------------------------------------------------- 问答
+def _catalog_evidence(question, filters, cfg):
+    """精确目录查询：服务端权限过滤后扫描元数据，不调用向量化/生成模型。"""
+    start = time.time()
+    date_field, dates = catalog_time(question)
+    effective = effective_filters(filters)
+    catalog = get_vector_store().document_catalog(
+        effective, cfg.enum_catalog_docs, cfg.enum_catalog_points, date_field, dates)
+    docs = catalog.pop("documents")
+    partial = catalog["scan_truncated"] or catalog["list_truncated"] or catalog["unknown_date_documents"] > 0
+    meta = {**catalog, "route": "catalog", "enumeration": True,
+            "coverage": "partial" if partial else "complete",
+            "processed_documents": len(docs), "date_field": date_field, "dates": dates}
+    items = [RetrievedItem(rank=i, score=0.0,
+                          text=f"文件：{d.get('source')}\n路径：{d.get('path')}\n入库时间：{d.get('indexed_at') or '-'}",
+                          metadata=d, channels="目录元数据") for i, d in enumerate(docs, 1)]
+    context = "\n\n".join(f"[{it.rank}] {it.text}" for it in items)
+    notice = coverage_notice(meta)
+    answer = notice + (f"\n筛选日期：{dates['from']} 至 {dates['to']}（{'入库时间' if date_field == 'indexed_at' else '文件修改时间'}）。" if dates else "")
+    answer += "\n\n" + "\n".join(f"- `{d.get('path')}` [{i}]" for i, d in enumerate(docs, 1))
+    elapsed = time.time() - start
+    result = QAResult(question=question, answer=answer, retrieved=items, context=context,
+                      sources=[{**it.metadata, "rank": it.rank, "score": 0.0,
+                                "text": it.text, "channels": it.channels} for it in items],
+                      filters=effective, enumeration=True, evidence_meta=meta,
+                      elapsed={"query_understanding": 0.0, "retrieval_only": elapsed,
+                               "rerank": 0.0, "assembly": 0.0, "retrieval": elapsed, "total": elapsed},
+                      trace=[make_node("📁", "目录统计", time_str=now_str(), elapsed=elapsed,
+                                       summary=notice, items=[("实际过滤条件", str(effective)),
+                                                              ("日期条件", f"{date_field}: {dates}")])])
+    return result, meta
+
+
 def query_evidence(
     question: str,
     top_k: int | None = None,
@@ -579,13 +622,14 @@ def query_evidence(
     on_progress=None,
     config: AppConfig | None = None,
     user_groups: list[str] | None = None,
+    conversation_context: str = "",
 ) -> tuple[QAResult, dict]:
     """Evidence 统一查询入口（V3.9）：检索半程（意图→检索→融合→筛选→组装）。
 
     Web 答案模式（answer_stream）与 MCP 证据模式（knowledge_search）共用本函数，
     保证两个出口的检索规则永远一致。返回 QAResult（retrieved=入选卡片、sources=含相邻
     补全的最终条目、trace=检索半程全部节点、elapsed、usage）+ evidence_meta（coverage
-    粗判定：not_found/partial/unknown，V1 不签 complete）。
+    语义查询粗判定：not_found/partial/unknown；精确目录完整扫描且完整展示才签 complete）。
 
     filters 应为 scope_filters 之后的条件；本函数内部对 user_groups 再做一次注入
     （直接调用方传 None 即可，MCP 层传令牌属主的可见部门）。
@@ -600,12 +644,15 @@ def query_evidence(
     from src.permissions import scope_filters
     filters = scope_filters(filters, user_groups)
 
+    if enumeration_route(question, True) == "catalog":
+        return _catalog_evidence(question, filters, cfg)
+
     retriever = get_retriever()
     trace: list = []
     result = QAResult(question=question, answer=None, retrieved=[], context="",
                       sources=[], filters=effective_filters(filters), trace=trace)
 
-    # 列举/盘点类提问：进入枚举通道（V3.8.1：召回 50 / 名额 40、跳过精排、token 12000）。
+    # 列举/盘点类提问：进入独立预算的文档定位/跨文档精排通道。
     # 双通道判定：Query 理解的语义识别（enumeration 字段）为主，
     # 关键词词表为兜底（Query 理解关闭或解析失败时依然生效）。
     # 注意：判定必须用原始问题——Query 理解改写后的查询已丢失计数语气。
@@ -631,10 +678,11 @@ def query_evidence(
         qu_start = now_str()
         llm = get_llm_client()
         try:
-            catalog = sorted({d["category"] for d in get_vector_store().list_documents()})
+            catalog = get_vector_store().categories(effective_filters(filters))
         except Exception:
             catalog = []
-        qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history)
+        qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history,
+                              conversation_context=conversation_context)
         record_stage_usage(result, "query_understanding", qu.usage)
         result.elapsed["query_understanding"] = qu.elapsed  # 生成半程的 total 依赖此项
         search_query = qu.vector_query or question
@@ -677,12 +725,17 @@ def query_evidence(
             items=[("输入 / 输出", question)],
         ))
 
+    route = enumeration_route(question, enumeration_mode,
+                              source=(filters or {}).get("source") or qu_filters.get("source"),
+                              hint=getattr(qu, "enumeration_scope", "") if qu and qu.ok else "")
+    enum_stats = {"route": route}
+    enum_truncated = False
+
     # 节点 ③④⑤⑥：Query Embedding → Metadata Filter → 数据库检索 → 召回 Chunk
     # 过滤条件优先级：界面手动设置 > Query 理解推断 > 默认 status=active
     # Rerank 开启时先宽召回（默认 10 条候选），精排后再取 Top K
     # V3.8.1 枚举通道：识别到列举/计数意图后，整条管线切换到枚举参数集——
-    # 召回 50（全文档卡片全量进池）、跳过精排（枚举要"全"不要"精"，还省一次 LLM 调用）、
-    # 名额 40、token 预算 12000（全量卡片进上下文）。非枚举提问完全不受影响。
+    # 召回与上下文预算独立于普通 Top K；文档级精排在召回后单独执行，完整性由 coverage 描述。
     if enumeration_mode:
         recall_k = ENUM_RECALL_K
         ctx_max_items = ENUM_CTX_ITEMS
@@ -759,7 +812,7 @@ def query_evidence(
     # 渐进式放宽（检索容错）：LLM 推断的过滤条件猜错时可能把正确答案挡在门外——
     # 如果「带推断条件」检索为 0 条，自动去掉推断条件（保留手动设置）重试一次。
     # filters 里是手动设置与权限域（V3.7 起登录用户必带），重试时原样保留，不会越权。
-    if not result.retrieved and qu_filters:
+    if not result.retrieved and qu_filters and route != "document":
         relax_start = now_str()
         t_relax = time.time()
         manual_filters = filters or {}
@@ -782,25 +835,56 @@ def query_evidence(
             ],
         ))
 
-    # 节点 ⑥.5（枚举模式）：文档展开——列举题要的是「某一文档的全部条目」，按相关度召回只能
-    # 接近全量（跨语言时部分条目排在召回上限之外）。只在单查询枚举时展开：
-    # 复合问题拆分时各子问题靠保底配额保护，展开某一篇会挤占其他子问题的证据
-    if enumeration_mode and len(sub_q_lists) < 2 and result.retrieved:
-        expand_start = now_str()
-        result.retrieved, expand_notes = expand_dominant_documents(
-            result.retrieved, result.filters, max_doc_cards=ctx_max_items)
-        if expand_notes:
-            trace.append(make_node(
-                "📚", "文档展开（枚举模式）", time_str=expand_start,
-                status="已执行" if any("补入" in n for n in expand_notes) else "未展开（文档超出上下文名额）",
-                summary=f"列举题要「某一文档的全部条目」：候选池中卡片最多的文档（≥4 张，最多 2 篇，"
-                        f"全文 ≤{ctx_max_items} 张才展开）按同样的权限与状态条件补齐全部卡片；"
-                        f"候选池原有前 10 名位置不动，展开的卡片排在其后",
-                items=[("展开明细", "\n".join(expand_notes)),
-                       ("展开后候选池", f"{len(result.retrieved)} 条")],
-            ))
+    # 文档定位/跨文档精排与普通问答的卡片精排分开，避免 Top K 截掉列举条目。
+    if enumeration_mode and result.retrieved:
+        if len(sub_q_lists) >= 2:
+            route = "cross_document"
+            enum_stats["route"] = route
+        reps = document_representatives(result.retrieved)
+        candidate_documents = len(reps)
+        enum_truncated = len(result.retrieved) >= recall_k
+        rr_elapsed = 0.0
+        if route == "cross_document" and use_rerank and (use_llm or cfg.rerank_backend == "local_onnx"):
+            rr_start = time.time()
+            ranked = reps[:cfg.enum_rerank_docs]
+            # 保留未进入精排预算的文档在尾部，所有预算损失均进入 coverage。
+            if use_llm:
+                outcome = rerank_items(question, ranked, top_k=len(ranked),
+                                       llm=get_llm_client(), config=cfg)
+            else:
+                # MCP 证据模式只允许本地推理；本地失败不降级为云端 LLM。
+                outcome = rerank_documents_local(question, ranked, len(ranked), cfg)
+            record_stage_usage(result, "rerank", outcome.usage)
+            reps = outcome.items + reps[cfg.enum_rerank_docs:]
+            rr_elapsed = time.time() - rr_start
+            trace.append(make_node("🏆", "文档级精排", time_str=now_str(), elapsed=rr_elapsed,
+                                   status="已执行" if outcome.ok else "回退（原文档顺序）",
+                                   summary="按标题、章节和代表性命中片段对文档评分；不按普通问答 Top K 截断。",
+                                   items=[("候选文档", str(candidate_documents)),
+                                          ("评分文档", str(len(ranked))),
+                                          ("后端", str(outcome.backend))]))
+        # 明确指定 source 时保留同名但不同路径的文档；未明确时选择最相关的一篇。
+        selected = reps[:(cfg.enum_expand_docs if route == "cross_document" or result.filters.get("source") else 1)]
+        enum_truncated |= len(selected) < len(reps)
+        expanded, expansion_truncated = expand_documents(
+            get_vector_store(), selected, result.retrieved, result.filters, cfg.enum_doc_cards)
+        result.retrieved = expanded
+        enum_truncated |= expansion_truncated
+        enum_stats.update(candidate_documents=candidate_documents,
+                          candidate_document_keys=[list(document_key(r)) for r in reps],
+                          selected_documents_meta=[{k: r.metadata.get(k) for k in
+                                                    ("document_id", "version", "source", "path")} for r in selected],
+                          selected_documents=len(selected), rerank_documents=min(candidate_documents, cfg.enum_rerank_docs)
+                          if rr_elapsed else 0, expansion_truncated=expansion_truncated,
+                          rerank_elapsed=rr_elapsed)
+        trace.append(make_node("📚", "列举文档展开", time_str=now_str(),
+                               summary=f"路径：{route}；候选 {candidate_documents} 篇，展开 {len(selected)} 篇，"
+                                       f"每篇最多 {cfg.enum_doc_cards} 张；沿用权限、状态与版本过滤。",
+                               items=[("展开候选卡片", str(len(expanded))),
+                                      ("展开截断", str(expansion_truncated))]))
     result.elapsed["retrieval_only"] = time.time() - t0
-    result.elapsed["rerank"] = 0.0
+    result.elapsed["rerank"] = enum_stats.get("rerank_elapsed", 0.0)
+    result.elapsed["retrieval_only"] -= result.elapsed["rerank"]
     # 精排包含模型加载、句对推理和实际发生的后端降级。
     if use_rerank_now and result.retrieved:
         _p("🏆 Rerank 精排中…")
@@ -879,11 +963,11 @@ def query_evidence(
             summary="候选卡片按粗排顺序（向量相似度 / RRF 融合）直接使用",
             items=[("说明", "开启后：召回先扩宽（默认 10 条候选），LLM 逐条打分精排，再取 Top K 进入回答")],
         ))
-    elif enumeration_mode and result.retrieved:
+    elif enumeration_mode and result.retrieved and not enum_stats.get("rerank_documents"):
         trace.append(make_node(
             "🏆", "Rerank（精排）", time_str=now_str(),
             status="跳过（枚举模式）",
-            summary="列举/计数类提问要「全」不要「精」：候选按粗排顺序（RRF 融合）直接进入组装，省一次 LLM 调用",
+            summary="列举路径独立处理：指定文档直接展开；跨文档按文档精排，不再逐卡片精排。",
             items=[("说明", f"枚举模式：召回 {recall_k} 条候选；上下文最多 {ctx_max_items} 条、"
                            f"约 {ENUM_CTX_TOKENS} tokens，同文档不限条数")],
         ))
@@ -911,6 +995,9 @@ def query_evidence(
             "rank": item.rank,
             "score": item.score,
             "source": item.metadata.get("source"),
+            "document_id": item.metadata.get("document_id"),
+            "path": item.metadata.get("path"),
+            "chunk_id": item.metadata.get("chunk_id"),
             "section": item.metadata.get("section"),
             "section_path": item.metadata.get("section_path"),
             "page": item.metadata.get("page"),
@@ -927,12 +1014,11 @@ def query_evidence(
     drop_lines = [f"[{d['rank']}] {d['source']} —— {d['reason']}" for d in dropped]
     trace.append(make_node(
         "🧩", "合并 / 去重", time_str=merge_start, elapsed=merge_elapsed,
-        summary="对召回结果做合并与去重：内容相同的卡片只留相关度最高的一条；"
-                "同一文档最多采用 3 条（保持来源多样）；达到 Top K 上限后停止选取",
+        summary="对召回结果做合并与去重，按本次路径的条数、单文档配额和 token 预算选取；截断计入覆盖提示。",
         items=[
             ("去重 / 合并逻辑", "忽略空白差异后比较卡片全文，重复的只保留第一条；"
              "剩余卡片按相关度依次放入，直到达到条数或字数上限"),
-            ("多样性限制", f"同一文档最多采用 {cfg.context_max_per_doc} 条"),
+            ("多样性限制", f"同一文档最多采用 {ctx_max_per_doc if ctx_max_per_doc is not None else cfg.context_max_per_doc} 条；本次总名额 {ctx_max_items}"),
             ("被丢弃的卡片", "\n".join(drop_lines) if drop_lines else "（没有需要丢弃的卡片）"),
             ("输出", f"采用 {len(used)} 条，丢弃 {len(dropped)} 条"),
         ],
@@ -945,10 +1031,10 @@ def query_evidence(
                 "同文档相邻卡片自动拼接，恢复被切片切断的上下文",
         items=[
             ("组装规则", f"相关度降序编号 [1][2]…；每条标注来源/领域/章节/页码；"
-             f"token 上限 {cfg.context_max_tokens} 字"),
+             f"token 上限约 {enum_ctx_cfg.context_max_tokens}"),
             ("相邻补全", "\n".join(merge_notes) if merge_notes else "（没有可拼接的相邻卡片）"),
             ("输出（最终 Context）", context),
-            ("规模", f"共 {len(used)} 条资料，合计 {estimate_tokens(context)} tokens（上限约 {cfg.context_max_tokens} tokens）"),
+            ("规模", f"共 {len(used)} 条资料，合计 {estimate_tokens(context)} tokens（上限约 {enum_ctx_cfg.context_max_tokens} tokens）"),
         ],
     ))
 
@@ -967,9 +1053,17 @@ def query_evidence(
     else:
         coverage = "unknown"
     result.enumeration = enumeration_mode
-    evidence_meta = {"coverage": coverage, "dropped": len(dropped or []),
+    if enum_truncated and result.retrieved:
+        coverage = "partial"
+    enum_stats["processed_documents"] = len(group_documents(used))
+    evidence_meta = {**enum_stats, "coverage": coverage, "dropped": len(dropped or []),
                      "enumeration": enumeration_mode,
                      "ctx_max_items": ctx_max_items, "recall_k": recall_k}
+    if enumeration_mode:
+        trace.append(make_node("📋", "列举覆盖范围", time_str=now_str(),
+                               summary=coverage_notice(evidence_meta),
+                               items=[("覆盖信息", str(evidence_meta))]))
+    result.evidence_meta = evidence_meta
     result.elapsed["assembly"] = time.time() - t1
     result.elapsed["retrieval"] = sum(result.elapsed[key] for key in ("retrieval_only", "rerank", "assembly"))
     result.elapsed["total"] = result.elapsed["retrieval"] + result.elapsed.get("query_understanding", 0.0)
@@ -989,6 +1083,8 @@ def answer_stream(
     config: AppConfig | None = None,
     user_groups: list[str] | None = None,
     username: str | None = None,
+    session_id: str | None = None,
+    conversation_state: dict | None = None,
 ):
     def _p(msg):
         if on_progress:
@@ -1011,13 +1107,54 @@ def answer_stream(
     from src.permissions import scope_filters
     filters = scope_filters(filters, user_groups)
 
+    archive_history = history or []
+    prepared = None
+    memory_text = ""
+    if session_id:
+        # No global session-memory store: only this caller's archive/state is read.
+        summary_llm = (get_llm_client() if use_llm and len(archive_history) > cfg.chat_recent_turns * 2
+                       and enumeration_route(question, True) != "catalog"
+                       and sum(estimate_tokens(m.get("content", "")) for m in archive_history)
+                           >= cfg.chat_summary_trigger_tokens else None)
+        prepared = prepare_context(question, archive_history,
+                                   conversation_state if conversation_state is not None else {},
+                                   session_id, username or "", filters or {}, index_epoch.current(), cfg, summary_llm)
+        history, memory_text = prepared.history, prepared.memory or "（当前单会话无旧摘要，近期对话已按预算提供。）"
+
+    def _attach_conversation(result):
+        if prepared is not None:
+            result.conversation_meta = prepared.meta
+            result.elapsed["conversation"] = prepared.elapsed
+            result.elapsed["total"] = result.elapsed.get("total", 0.0) + prepared.elapsed
+            record_stage_usage(result, "conversation_summary", prepared.usage)
+            result.trace.append(make_node("💬", "单会话上下文", time_str=now_str(), elapsed=prepared.elapsed,
+                                          summary="近期对话 + 可追溯摘要 + 当前会话历史召回；旧引用不作为本轮知识证据。",
+                                          items=[("范围与预算", str(prepared.meta))]))
+        return result
+
+    if enumeration_route(question, True) == "catalog":
+        result, _ = _catalog_evidence(question, filters, cfg)
+        return _attach_conversation(result), iter(())
+
     # Q→A 缓存：同一问题+同一配置+同一对话上下文直接返回上次结果；
     # 仅检索模式（use_llm=False）不读缓存——它要的是检索结果而非缓存的 LLM 答案
     cache_key = _cache_key(question, top_k, filters or {}, use_query_understanding,
-                           use_hybrid, use_rerank, history=history)
+                           use_hybrid, use_rerank, history=archive_history)
+    cache_key = ("enumeration-processing-v2|" + cache_key
+                 + f"|enum={ENUM_RECALL_K},{ENUM_CTX_ITEMS},{ENUM_CTX_TOKENS},"
+                   f"{cfg.enum_rerank_docs},{cfg.enum_expand_docs},{cfg.enum_doc_cards}")
+    cache_key += "|stage2=" + str(tuple(getattr(cfg, key) for key in (
+        "enum_stage2_enabled", "enum_max_rounds", "enum_queries_per_round", "enum_no_new_rounds",
+        "enum_max_calls", "enum_max_seconds", "enum_max_tokens", "enum_batch_tokens", "enum_page_cards",
+        "enum_max_cards", "enum_max_documents", "enum_max_items", "enum_output_tokens")))
+    cache_key += "|session=" + hashlib.sha256(json.dumps(
+        [username or "", session_id or "stateless", memory_text,
+         cfg.chat_context_max_tokens, cfg.chat_recent_turns, cfg.chat_summary_tokens,
+         cfg.chat_summary_trigger_tokens, cfg.chat_recall_messages], ensure_ascii=False).encode()).hexdigest()
+    cache_allowed = bool(session_id) or not archive_history
     epoch_at_start = _sync_qa_cache_epoch()  # 知识库已变 → 旧答案作废
     # .get 取一次：判断与读取分两步时，并发清空会让第二步抛 KeyError
-    cached_entry = _qa_cache.get(cache_key) if use_llm else None
+    cached_entry = _qa_cache.get(cache_key) if use_llm and cache_allowed else None
     if cached_entry is not None:
         import copy
         cached = copy.deepcopy(cached_entry)
@@ -1094,18 +1231,87 @@ def answer_stream(
         question=question, top_k=top_k, filters=filters,
         use_query_understanding=use_query_understanding, use_hybrid=use_hybrid,
         use_rerank=use_rerank, history=history, use_llm=use_llm,
-        on_progress=_p, config=cfg)
+        on_progress=_p, config=cfg, conversation_context=memory_text)
+    _attach_conversation(result)
     result.evidence_meta = evidence_meta   # V3.9：MCP 证据模式透出 coverage
     result.trace[:0] = trace   # 早期节点（就绪/提问/会话记忆）并入时间线头部
     trace = result.trace
     context = result.context  # 生成半程需要的组装资料（Evidence 已含四道检查）
     if not use_llm:
+        if result.enumeration:
+            evidence_meta["stage2"] = {"status": "not_run", "reason": "evidence_only"}
         return result, iter(())
+
+    if (cfg.enum_stage2_enabled and result.enumeration and result.retrieved
+            and evidence_meta.get("route") in {"document", "cross_document"}):
+        _p("📋 分批提取与补查中…")
+        locked_filters = dict(result.filters)
+        def _supplement(query, deadline):
+            return get_retriever().retrieve(query, top_k=ENUM_RECALL_K, filters=locked_filters,
+                                            use_hybrid=use_hybrid, deadline=deadline)
+        def _rank_documents(reps, bounded_llm):
+            ranked = rerank_items(question, reps, top_k=len(reps), llm=bounded_llm, config=cfg)
+            if not ranked.ok:
+                state = bounded_llm.outcome.stats
+                state["rerank_failures"] = state.get("rerank_failures", 0) + 1
+            return ranked.items
+        outcome = process_enumeration(
+            question, evidence_meta.get("selected_documents_meta") or
+                      [it.metadata for it in result.retrieved],
+            [tuple(k) for k in evidence_meta.get("candidate_document_keys", [])],
+            locked_filters, get_vector_store(), _supplement,
+            _rank_documents if use_rerank else None,
+            get_llm_client(), cfg, evidence_meta["route"], on_progress=_p,
+            conversation_context=memory_text + "\n" + json.dumps(history or [], ensure_ascii=False))
+        for index, usage in enumerate(outcome.calls, 1):
+            record_stage_usage(result, f"enumeration_{index}", usage)
+        result.elapsed["enumeration"] = outcome.stats["elapsed"]
+        evidence_meta["stage2"] = {"status": "executed", **outcome.stats}
+        evidence_meta["candidate_documents"] = outcome.stats["candidate_documents"]
+        evidence_meta["processed_documents"] = outcome.stats["processed_documents"]
+        # 语义条目提取不签 complete；达到预算、无效证据或错误均明确 partial。
+        limited = (outcome.stats["stop_reason"].endswith("budget") or outcome.stats["errors"]
+                   or outcome.stats["rejected_items"] or outcome.stats["selection_truncated"]
+                   or outcome.stats.get("rerank_failures") or evidence_meta["coverage"] == "partial")
+        evidence_meta["coverage"] = "partial" if limited else "unknown"
+        trace.append(make_node("📋", "分批提取与多轮补查", time_str=now_str(),
+                               elapsed=outcome.stats["elapsed"], summary=str(outcome.stats),
+                               items=[("停止原因", outcome.stats["stop_reason"]),
+                                      ("提取记录", str(len(outcome.records))),
+                                      ("范围说明", "每轮沿用原权限、状态、日期和文件过滤；停止不证明全库完整。")]))
+        if outcome.records or (outcome.stats["valid_batches"] and not outcome.stats["errors"]):
+            result.enumerated_items = outcome.records
+            result.sources = outcome.sources
+            result.retrieved = [RetrievedItem(rank=s["rank"], score=s["score"], text=s["text"],
+                                              metadata={k: v for k, v in s.items() if k not in
+                                                        ("rank", "score", "text", "channels")},
+                                              channels=s["channels"]) for s in outcome.sources]
+            result.context = "\n\n".join(f"[{s['rank']}] {s.get('source')} | {s.get('section') or '-'}\n{s['text']}" for s in outcome.sources)
+            result.answer = render_records(outcome, resolve_answer_language(question, history))
+            result.elapsed["llm"] = 0.0  # 提取/规划的模型用量与耗时单列在 enumeration。
+            result.elapsed["total"] = sum(result.elapsed.get(k, 0.0) for k in
+                                          ("query_understanding", "retrieval_only", "rerank", "assembly", "enumeration", "conversation"))
+            if index_epoch.current() != epoch_at_start:
+                evidence_meta["coverage"] = "partial"
+                evidence_meta["stage2"]["index_changed"] = True
+                result.answer += "\n\n处理期间知识库发生变化，本次结果可能不一致，请重新查询。"
+            elif not limited and cache_allowed:
+                while len(_qa_cache) >= _QA_CACHE_MAX:
+                    _qa_cache.pop(next(iter(_qa_cache)), None)
+                _qa_cache[cache_key] = result
+                _qa_cache_owner[cache_key] = username or ""
+            return result, iter(())
+        # 提取未成功时保留首轮检索证据，回退普通生成并提示不完整。
+        evidence_meta["coverage"] = "partial"
+        evidence_meta["stage2"]["fallback"] = True
+    elif result.enumeration:
+        evidence_meta["stage2"] = {"status": "not_run", "reason": "disabled_or_empty"}
 
     # 节点 ⑩⑪：LLM 调用（Prompt 组装 + 生成回答，合并展示）
     t2 = time.time()
     messages = build_messages(context, question, history=history,
-                              enumerate_mode=result.enumeration)
+                              enumerate_mode=result.enumeration, evidence_meta=evidence_meta,
+                              conversation_context=memory_text)
     llm = get_llm_client()
     result.elapsed["assembly"] += time.time() - t2
     result.elapsed["retrieval"] = sum(result.elapsed[key] for key in ("retrieval_only", "rerank", "assembly"))
@@ -1137,7 +1343,7 @@ def answer_stream(
             # 五个独立阶段求和；retrieval 保留为旧接口的聚合值，不能再次重复相加。
             result.elapsed["query_understanding"] = float(result.elapsed.get("query_understanding", 0.0) or 0.0)
             result.elapsed["total"] = sum(result.elapsed.get(key, 0.0) for key in
-                                           ("query_understanding", "retrieval_only", "rerank", "assembly", "llm"))
+                                           ("query_understanding", "retrieval_only", "rerank", "assembly", "enumeration", "conversation", "llm"))
             usage_line = ""
             if result.usage.get("calls"):
                 usage_line = (f"｜消耗：{result.usage['input']} tokens 输入"
@@ -1174,7 +1380,7 @@ def answer_stream(
             # 只缓存「完整且非空」的回答：LLM 失败（异常）或用户中断（半截答案）不缓存，
             # 否则之后同样的问题永远命中这份坏结果
             # V3.8：生成期间知识库被改过（纪元变了）→ 这份答案基于旧数据，不能缓存
-            if completed and result.answer and index_epoch.current() == epoch_at_start:
+            if completed and result.answer and cache_allowed and index_epoch.current() == epoch_at_start:
                 # list() 快照 + pop(默认值)：并发 clear 时不抛 StopIteration/KeyError
                 while len(_qa_cache) >= _QA_CACHE_MAX:
                     for oldest in list(_qa_cache)[: len(_qa_cache) - _QA_CACHE_MAX + 1]:
@@ -1199,6 +1405,8 @@ def answer_question(
     config: AppConfig | None = None,
     user_groups: list[str] | None = None,
     username: str | None = None,
+    session_id: str | None = None,
+    conversation_state: dict | None = None,
 ) -> QAResult:
     """完整问答链路（一次性返回完整答案）。use_llm=False 时只做检索（不花钱）。"""
     result, deltas = answer_stream(
@@ -1206,7 +1414,7 @@ def answer_question(
         use_query_understanding=use_query_understanding,
         use_hybrid=use_hybrid, use_rerank=use_rerank,
         history=history, config=config, user_groups=user_groups,
-        username=username,
+        username=username, session_id=session_id, conversation_state=conversation_state,
     )
     for _ in deltas:  # 消费生成器，把答案收集完整
         pass

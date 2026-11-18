@@ -90,11 +90,12 @@ class EmbeddingClient:
             print(f"    向量化完成：{total} 条，耗时 {time.time() - start:.1f} 秒")
         return vectors
 
-    def embed_query(self, query: str) -> list[float]:
+    def embed_query(self, query: str, *, timeout: float | None = None) -> list[float]:
         """把用户的一个问题转成向量（和文档用同一个模型）。"""
         if not query or not query.strip():
             raise EmbeddingError("问题不能为空。")
-        data = self._request("POST", "/api/embed", {"model": self.cfg.embedding_model, "input": [query]})
+        data = self._request("POST", "/api/embed", {"model": self.cfg.embedding_model, "input": [query]},
+                             timeout=timeout if timeout is not None else 300)
         embeddings = data.get("embeddings")
         if not embeddings:
             raise EmbeddingError("Ollama 没有返回向量结果。")

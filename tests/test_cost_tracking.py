@@ -26,10 +26,11 @@ from tests._helpers import IngestHarness
 
 def make_client_with(fake_create):
     """构造一个不联网的 LLMClient：合法配置 + 替换底层 client。"""
-    cfg = get_config()
-    client = LLMClient(config=cfg)
+    from dataclasses import replace
+    cfg = replace(get_config(), llm_api_key="test-key", llm_base_url="https://example.invalid/v1")
     fake = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create)))
-    client.client = fake
+    with mock.patch("src.llm.OpenAI", return_value=fake):
+        client = LLMClient(config=cfg)
     return client
 
 
