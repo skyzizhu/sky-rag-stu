@@ -683,6 +683,63 @@ def api_logs_qa(limit: int = Query(20, le=100), page: int = Query(1, ge=1),
             "page": page, "page_size": limit}
 
 
+@app.get("/api/llm/costs")
+def api_llm_costs(_: dict = Depends(require_admin_api),
+                  days: int = Query(0, ge=0, le=365),
+                  username: str = ""):
+    """云端 LLM 消耗统计（V3.9）：从 qa_logs 的 usage 逐条计算费用并汇总。
+
+    费用 = 未命中输入 × 输入单价 + 命中缓存输入 × 缓存单价 + 输出 × 输出单价；
+    单价（元/百万 tokens）实时读取 settings.json（与前台「模型配置」页同一来源），
+    改单价后历史记录按新价重算。days：最近 N 天（0=全部）；username：按用户过滤。
+    """
+    from datetime import datetime, timedelta
+
+    from src.app_settings import PRICE_DEFAULTS, load_app_settings
+
+    settings = load_app_settings()
+    price_in = float(settings.get("llm_price_input", PRICE_DEFAULTS["llm_price_input"]))
+    price_cached = float(settings.get("llm_price_input_cached",
+                                      PRICE_DEFAULTS["llm_price_input_cached"]))
+    price_out = float(settings.get("llm_price_output", PRICE_DEFAULTS["llm_price_output"]))
+
+    def _cost(u: dict) -> float:
+        uncached = max(0, int(u.get("input", 0)) - int(u.get("input_cached", 0)))
+        return (uncached / 1_000_000 * price_in
+                + int(u.get("input_cached", 0)) / 1_000_000 * price_cached
+                + int(u.get("output", 0)) / 1_000_000 * price_out)
+
+    rows = []
+    totals = {"calls": 0, "input": 0, "input_cached": 0, "output": 0, "cost": 0.0}
+    logs = auth_db.list_qa_logs(limit=300, username=username)
+    cutoff = (datetime.now() - timedelta(days=days)).strftime(
+        "%Y-%m-%dT%H:%M:%S") if days else ""
+    for log in logs:
+        usage = log.get("usage") or {}
+        if not usage.get("calls"):
+            continue  # 老（换制前）记录无 usage：不计入
+        if cutoff and log["created_at"] < cutoff:
+            continue
+        cost = _cost(usage)
+        totals["calls"] += int(usage.get("calls", 0))
+        totals["input"] += int(usage.get("input", 0))
+        totals["input_cached"] += int(usage.get("input_cached", 0))
+        totals["output"] += int(usage.get("output", 0))
+        totals["cost"] += cost
+        rows.append({"created_at": log["created_at"], "username": log["username"],
+                     "entry": log["entry"], "question": log["question"][:80],
+                     "input": int(usage.get("input", 0)),
+                     "input_cached": int(usage.get("input_cached", 0)),
+                     "output": int(usage.get("output", 0)),
+                     "calls": int(usage.get("calls", 0)),
+                     "estimated": bool(usage.get("estimated")),
+                     "cost": round(cost, 4)})
+    totals["cost"] = round(totals["cost"], 2)
+    return {"ok": True, "totals": totals, "rows": rows,
+            "prices": {"input": price_in, "input_cached": price_cached,
+                       "output": price_out}}
+
+
 # ---------------------------------------------------------------- 认证 API（Streamlit 前台调用）
 class ContextFields(BaseModel):
     """浏览器上下文（Streamlit 转发真实用户的 UA/语言/IP，用于登录日志指纹与溯源）。"""

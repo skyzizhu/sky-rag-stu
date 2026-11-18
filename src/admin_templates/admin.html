@@ -169,6 +169,7 @@ const TABS = [
   { id: 'tokens',  name: '访问令牌',   render: renderTokens },
   { id: 'authlog', name: '登录日志',   render: renderAuthLog },
   { id: 'qalog',   name: 'RAG 日志',   render: renderQaLog },
+  { id: 'llmcost', name: 'LLM 费用',   render: renderLlmCost },
   { id: 'services', name: '服务状态',  render: renderServices },
 ];
 let current = 'dash';
@@ -902,6 +903,49 @@ function actionLabel(a) {
     admin_create: '新增管理员', admin_delete: '删除管理员',
     token_create: '签发令牌', token_revoke: '吊销令牌' };
   return m[a] || a;
+}
+
+/* ---------- 云端 LLM 费用（V3.9：qa_logs.usage × 模型单价） ---------- */
+let llmCostFilter = { days: 30 };
+async function renderLlmCost() {
+  const d = await api('GET', '/api/llm/costs');
+  const t = d.totals, p = d.prices;
+  const daysSel = [0, 7, 30, 90].map(v =>
+    `<option value="${v}" ${llmCostFilter.days === v ? 'selected' : ''}>${v === 0 ? '全部' : '最近 ' + v + ' 天'}</option>`).join('');
+  const rows = d.rows.map(r => `
+    <tr>
+      <td class="muted">${esc(r.created_at)}</td>
+      <td><b>${esc(r.username) || '—'}</b></td>
+      <td>${esc(r.entry)}</td>
+      <td class="wrap">${esc(r.question)}</td>
+      <td>${r.input.toLocaleString()}（含缓存 ${r.input_cached.toLocaleString()}）</td>
+      <td>${r.output.toLocaleString()}</td>
+      <td>${r.calls}</td>
+      <td>${r.estimated ? '≈' : ''}</td>
+      <td><b>${r.cost.toFixed(4)}</b> 元</td>
+    </tr>`).join('');
+  return `
+    <h3>云端 LLM 消耗与费用（仅云上模型；本地模型不计费）</h3>
+    <div style="margin: 8px 0;">统计范围：
+      <select onchange="llmCostFilter.days = parseInt(this.value); renderLlmCost();">${daysSel}</select>
+      <span class="muted" style="margin-left: 16px;">单价（元/百万 tokens）：
+        输入 ${p.input} ｜ 命中缓存 ${p.input_cached} ｜ 输出 ${p.output}
+        —— 在前台「模型配置」页修改</span>
+    </div>
+    <div class="stat-cards" style="display:flex; gap:24px; margin: 12px 0;">
+      <div><div class="muted">调用次数</div><div style="font-size:1.6em"><b>${t.calls}</b></div></div>
+      <div><div class="muted">输入 tokens</div><div style="font-size:1.6em"><b>${t.input.toLocaleString()}</b></div>
+        <div class="muted">其中命中缓存 ${t.input_cached.toLocaleString()}</div></div>
+      <div><div class="muted">输出 tokens</div><div style="font-size:1.6em"><b>${t.output.toLocaleString()}</b></div></div>
+      <div><div class="muted">总费用</div><div style="font-size:1.6em"><b>${t.cost.toFixed(2)}</b> 元</div></div>
+    </div>
+    <table class="data-table">
+      <thead><tr>
+        <th>时间</th><th>用户</th><th>入口</th><th>问题</th>
+        <th>输入 tokens</th><th>输出 tokens</th><th>调用次数</th><th>估算</th><th>费用（元）</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="9" class="muted">所选范围内没有云端 LLM 消耗记录</td></tr>'}</tbody>
+    </table>`;
 }
 
 /* ---------- RAG 使用日志（只有员工会产生——管理员不能登录前台/MCP） ---------- */

@@ -120,6 +120,7 @@ def _log_qa(question: str, result, top_k: int, elapsed: float,
         entry=_ENTRY, question=question, answer=result.answer or "",
         sources=result.sources, filters=result.filters,
         top_k=top_k, elapsed=elapsed,
+        usage=getattr(result, "usage", None),
     )
 
 
@@ -229,8 +230,8 @@ def _tool_knowledge_qa_impl(
     - 用户询问涉及其个人经历、个人数据的问题（如个人工作经历、项目经验、联系方式）
     - 用户明确要求查询知识库、或问题指向用户曾收录的文档
     禁止：在未查询本工具的情况下，用模型通用知识回答上述个人资料类问题。
-    权威声明：知识库检索结果即用户个人资料的权威完整来源——基于检索结果回答即可，
-    除非用户明确要求，不要额外搜索用户磁盘/文件系统来"确认完整性"。
+    证据边界：知识库检索结果是可引用的私有资料证据；coverage=partial/unknown 时不能声称已列全或给出全库确定总数。
+    除非用户明确要求，不要额外搜索用户磁盘/文件系统。
     未命中边界：检索结果为空或资料不足时，如实告知用户"知识库中没有找到相关内容"，
     不要用模型通用知识替答、也不要转而搜索磁盘；由用户决定是否换用其他途径
     （补充资料入库、或明确要求你另找途径）。
@@ -268,6 +269,9 @@ def _tool_knowledge_qa_impl(
     return json.dumps(
         {
             "answer": result.answer or "知识库中没有找到足够的信息回答这个问题。",
+            "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
+            "coverage_details": getattr(result, "evidence_meta", None) or {},
+            "items": getattr(result, "enumerated_items", []),
             "sources": _sources_payload(result.sources),
             "filters_applied": result.filters,
             "refused": result.answer is None,
@@ -289,8 +293,8 @@ def _tool_knowledge_search_impl(
 
     使用时机：需要用户私有资料的原文证据、或想在回答前先核实知识库内容时使用；
     返回片段与相关度分数，供 Agent 自行推理。
-    权威声明：知识库检索结果即用户个人资料的权威完整来源——基于检索结果回答即可，
-    除非用户明确要求，不要额外搜索用户磁盘/文件系统来"确认完整性"。
+    证据边界：知识库检索结果是可引用的私有资料证据；coverage=partial/unknown 时不能声称已列全或给出全库确定总数。
+    除非用户明确要求，不要额外搜索用户磁盘/文件系统。
     枚举类问题（"我有哪些…"）以检索结果为准作答，不要转而搜索磁盘文件。
     未命中边界：检索结果为空或资料不足时，如实告知用户"知识库中没有找到相关内容"，
     不要用模型通用知识替答、也不要转而搜索磁盘；由用户决定是否换用其他途径
@@ -327,6 +331,7 @@ def _tool_knowledge_search_impl(
         {
             "query": question.strip(),
             "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
+            "coverage_details": getattr(result, "evidence_meta", None) or {},
             "matches": [
                 {
                     "rank": i,
@@ -351,8 +356,8 @@ def _tool_knowledge_digest_impl(topic: str, ctx=None) -> str:
     """跨文档知识总结：围绕一个主题，综合用户知识库中的多个文档生成结构化摘要（要点+出处）。
 
     使用时机：用户要求"总结/归纳/梳理某主题在资料中的内容"时使用；不新建或修改知识文件。
-    权威声明：知识库检索结果即用户个人资料的权威完整来源——基于检索结果回答即可，
-    除非用户明确要求，不要额外搜索用户磁盘/文件系统来"确认完整性"。
+    证据边界：知识库检索结果是可引用的私有资料证据；coverage=partial/unknown 时不能声称已列全或给出全库确定总数。
+    除非用户明确要求，不要额外搜索用户磁盘/文件系统。
     未命中边界：检索结果为空或资料不足时，如实告知用户"知识库中没有找到相关内容"，
     不要用模型通用知识替答、也不要转而搜索磁盘；由用户决定是否换用其他途径
     （补充资料入库、或明确要求你另找途径）。
@@ -378,7 +383,9 @@ def _tool_knowledge_digest_impl(topic: str, ctx=None) -> str:
         {
             "topic": topic.strip(),
             "digest": result.answer or "知识库中没有与该主题相关的足够内容。",
+            "items": getattr(result, "enumerated_items", []),
             "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
+            "coverage_details": getattr(result, "evidence_meta", None) or {},
             "sources": _sources_payload(result.sources),
             "refused": result.answer is None,
         },

@@ -15,6 +15,7 @@ import html
 import re
 import sys
 import dataclasses
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote, unquote  # front_auth Cookie 值转 ASCII（中文名兼容）
 
@@ -57,7 +58,10 @@ from src.i18n import (  # noqa: E402
     tr,
 )
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
-from src.pipeline import QAResult, answer_question, answer_stream, ingest_files  # noqa: E402
+from src.pipeline import (  # noqa: E402
+    QAResult, answer_question, answer_stream, ingest_files,
+    ENUM_RECALL_K, ENUM_CTX_ITEMS, ENUM_CTX_TOKENS,
+)
 from src import index_state as istate  # noqa: E402  # V3.8 上传冲突预检读入库台账
 from src.upload_plan import (  # noqa: E402  # V3.8 上传/目录导入的重复文档防护
     COPY, KIND_BATCH_DUPLICATE, KIND_BATCH_SAME_NAME, KIND_DUPLICATE, KIND_SAME_NAME,
@@ -68,7 +72,8 @@ from src.answer_evaluator import compute_cost, merge_usage, run_evaluation, stag
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import (
     SESSIONS_DIR,
-    _session_path,
+    delete_session,
+    SessionConflict,
     list_sessions,
     load_session,
     new_session_id,
@@ -132,14 +137,17 @@ def confirm_session_delete() -> None:
         width="stretch",
     ):
         sid = request["session_id"]
-        session_file = _session_path(sid)
-        if session_file is not None and session_file.exists():
-            session_file.unlink()
+        owner = str((st.session_state.get("auth_user") or {}).get("username") or "")
+        if not delete_session(sid, username=owner):
+            st.error(t("chat.session_unavailable"))
+            return
         # 删除的是当前正在聊的会话时，同步重置本地状态——否则下次提问会把
         # 刚删除的文件原样重建（会话"复活"）
         if st.session_state.get("session_id") == sid:
             st.session_state["session_id"] = new_session_id()
             st.session_state.messages = []
+            st.session_state["conversation_state"] = {}
+            st.query_params.pop("session", None)
         # 删除后会话数量变化会让 Expander 以新组件重建；下一次渲染强制保持展开。
         st.session_state["keep_history_expanded_once"] = True
         st.session_state.pop("delete_session_request", None)
@@ -165,6 +173,9 @@ def confirm_logout() -> None:
         st.session_state["auth_user"] = None
         st.session_state["messages"] = []
         st.session_state["session_id"] = new_session_id()
+        st.session_state["conversation_state"] = {}
+        st.query_params.pop("session", None)
+        st.query_params.pop("load", None)
         st.stop()
     if c2.button(t("auth.logout.confirm.no"), width="stretch"):
         st.session_state.pop("logout_request", None)
@@ -226,10 +237,20 @@ try:
     if not load_target and "load" in st.query_params:
         load_target = st.query_params["load"]
         del st.query_params["load"]
+    if not load_target and st.query_params.get("session") != st.session_state["session_id"]:
+        load_target = st.query_params.get("session")
 except Exception:
     pass
 if load_target:
-    data = load_session(load_target)
+    st.session_state["pending_session_load"] = load_target
+
+
+def _load_requested_session():
+    # 在登录门之后处理，不能通过 ?load= 读取别人的会话。
+    load_target = st.session_state.pop("pending_session_load", None)
+    if not load_target:
+        return
+    data = load_session(load_target, username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
     if data:
         loaded_messages = []
         for m in data.get("messages", []):
@@ -238,6 +259,8 @@ if load_target:
             if not isinstance(m, dict) or not (m.get("role") and m.get("content") is not None):
                 continue
             entry = {"role": m["role"], "content": m["content"]}
+            if isinstance(m.get("created_at"), str):
+                entry["created_at"] = m["created_at"]
             res = m.get("result")
             if res and isinstance(res, dict):
                 fields = dataclasses.fields(QAResult)
@@ -250,9 +273,14 @@ if load_target:
                         k: v for k, v in res.items() if k in {f.name for f in fields}
                     })
             loaded_messages.append(entry)
+        st.session_state["conversation_state"] = data.get("context") if isinstance(data.get("context"), dict) else {}
         st.session_state.messages = loaded_messages
         st.session_state.session_id = load_target
+        st.session_state.pop("chat_save_conflict", None)
+        st.query_params["session"] = load_target
         st.session_state["scroll_loaded_session_once"] = True
+    else:
+        st.warning(t("chat.session_unavailable"))
 st.session_state.setdefault("hybrid_search", cfg.hybrid_search)
 st.session_state.setdefault("rerank", cfg.rerank_enabled)
 st.session_state.setdefault("answer_eval", True)  # V3.6 回答质量评估卡片
@@ -708,6 +736,17 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
 .stAlert {color: var(--text-primary) !important;}
 [data-testid="stMetric"] label {color: var(--text-secondary) !important;
   font-weight: 500 !important; opacity: 1 !important;}
+
+/* 知识管理台：压缩汇总区；页码保留键入，翻页统一用上一页/下一页。 */
+.st-key-manage_summary [data-testid="stMetric"] {
+  padding: 8px 14px; border-radius: 12px; min-height: 0;}
+.st-key-manage_summary [data-testid="stMetricValue"] {
+  font-size: 1.5rem !important; line-height: 1.25 !important;}
+.st-key-manage_pagination [data-testid="stNumberInputStepUp"],
+.st-key-manage_pagination [data-testid="stNumberInputStepDown"] {display: none !important;}
+.st-key-manage_pagination input[type="number"] {appearance: textfield; -moz-appearance: textfield;}
+.st-key-manage_pagination input::-webkit-inner-spin-button,
+.st-key-manage_pagination input::-webkit-outer-spin-button {appearance: none; margin: 0;}
 
 [data-testid="stFileUploaderDropzone"] button {
   font-family: 'Inter', sans-serif !important;}
@@ -1191,6 +1230,10 @@ def _render_eval_card(evaluation: dict, usage: dict | None = None,
                 for name, key in (("qu", "query_understanding"), ("retrieval", "retrieval_only"),
                                   ("rerank", "rerank"), ("assembly", "assembly"), ("generation", "llm")):
                     lines.append(t(f"eval.signal.timing.{name}", seconds=f"{timing.get(key, 0.0):.3f}"))
+                if "conversation" in timing:
+                    lines.append(t("eval.signal.timing.conversation", seconds=f"{timing['conversation']:.3f}"))
+                if "enumeration" in timing:
+                    lines.append(t("eval.signal.timing.enumeration", seconds=f"{timing['enumeration']:.3f}"))
                 if timing.get("mode") == "inferred":
                     lines.append(t("eval.signal.timing.inferred"))
             else:
@@ -1223,11 +1266,15 @@ def _render_eval_card(evaluation: dict, usage: dict | None = None,
                       cached=f"{total['input_cached']:,}", out=f"{total['output']:,}",
                       cost_part=price_part),
                     unsafe_allow_html=True)
-        stage_names = (("query_understanding", "eval.cost.stage.qu"), ("rerank", "eval.cost.stage.rerank"),
+        display_stages = dict(stages)
+        enumeration_parts = [value for key, value in stages.items() if key.startswith("enumeration_")]
+        if enumeration_parts:
+            display_stages["enumeration"] = merge_usage(enumeration_parts)
+        stage_names = (("conversation_summary", "eval.cost.stage.conversation"), ("enumeration", "eval.cost.stage.enumeration"), ("query_understanding", "eval.cost.stage.qu"), ("rerank", "eval.cost.stage.rerank"),
                        ("generation", "eval.cost.stage.generation"), ("evaluation", "eval.cost.stage.evaluation"))
         stage_lines = []
         for stage_key, name_key in stage_names:
-            part = stages.get(stage_key)
+            part = display_stages.get(stage_key)
             if not part:
                 continue
             part_cost = compute_cost(part, *prices)
@@ -1245,6 +1292,31 @@ def _render_eval_card(evaluation: dict, usage: dict | None = None,
 
 def show_answer_sources(result) -> None:
     """卡片式参考来源 + 调试面板。"""
+    conversation = getattr(result, "conversation_meta", None) or {}
+    if conversation:
+        st.caption(t("chat.context.status", recent=conversation.get("recent_messages", 0),
+                     recalled=len(conversation.get("recalled_indices", [])),
+                     status=t("chat.context.summary." + conversation.get("summary_status", "not_needed"))))
+        if conversation.get("invalidated"):
+            st.caption(t("chat.context.invalidated"))
+    coverage = getattr(result, "evidence_meta", None) or {}
+    if coverage.get("route") in {"catalog", "document", "cross_document"}:
+        st.caption(t("sources.coverage.range",
+                     n=coverage.get("matched_documents", coverage.get("candidate_documents", 0)),
+                     m=coverage.get("processed_documents", 0)))
+        if coverage.get("coverage") == "partial":
+            st.warning(t("sources.coverage.partial"))
+        elif coverage.get("coverage") != "complete":
+            st.caption(t("sources.coverage.unknown"))
+    stage2 = coverage.get("stage2") or {}
+    if stage2.get("status") == "executed":
+        st.caption(t("sources.processing", n=stage2.get("items", 0),
+                     b=stage2.get("valid_batches", 0), r=stage2.get("rounds", 0)))
+        from src.enumeration_processing import stop_reason_text
+        st.caption(t("sources.processing.stop", reason=stop_reason_text(
+            stage2.get("stop_reason", "processing_error"), current_language())))
+        if stage2.get("fallback"):
+            st.warning(t("sources.processing.fallback"))
     with st.expander(t("sources.title", n=len(result.sources)), expanded=False):
         if not result.sources:
             st.write(t("sources.empty"))
@@ -1326,7 +1398,24 @@ def show_answer_sources(result) -> None:
 
 
 # ---------------------------------------------------------------- 页面 1：知识库问答
+def _save_current_chat():
+    try:
+        sid = save_session(st.session_state["session_id"], st.session_state.messages,
+                           username=str((st.session_state.get("auth_user") or {}).get("username") or ""),
+                           context_state=st.session_state.get("conversation_state"))
+    except SessionConflict:
+        st.session_state["chat_save_conflict"] = True
+        return False
+    st.session_state["session_id"] = sid
+    st.query_params["session"] = sid
+    return True
+
+
 def page_chat():
+    _load_requested_session()
+    st.session_state.setdefault("conversation_state", {})
+    if st.session_state.get("chat_save_conflict"):
+        st.warning(t("chat.save_conflict"))
     st.markdown(
         f"""
         <div class="hero">
@@ -1354,6 +1443,10 @@ def page_chat():
             def _new_session_cb():
                 st.session_state["session_id"] = new_session_id()
                 st.session_state.messages = []
+                st.session_state["conversation_state"] = {}
+                st.session_state.pop("chat_save_conflict", None)
+                st.query_params.pop("session", None)
+                st.query_params.pop("load", None)
             if c2.button(
                 t("chat.new_session"),
                 width="stretch",
@@ -1390,7 +1483,8 @@ def page_chat():
         )
 
     def _process_question(question: str) -> None:
-        st.session_state.messages.append({"role": "user", "content": question})
+        st.session_state.messages.append({"role": "user", "content": question,
+                                          "created_at": datetime.now().isoformat(timespec="seconds")})
         with st.chat_message("user", avatar="🙋"):
             st.markdown(f'<div class="user-bubble">{html.escape(question)}</div>',
                         unsafe_allow_html=True)
@@ -1402,8 +1496,7 @@ def page_chat():
             if not cfg.llm_api_key:
                 st.error(t("chat.no_api_key"))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.no_api_key.msg")})
-                save_session(st.session_state["session_id"], st.session_state.messages,
-                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
+                _save_current_chat()
                 return
             try:
                 progress_ph = st.empty()  # 实时进度占位符
@@ -1418,11 +1511,8 @@ def page_chat():
                     # 传入历史消息实现多轮对话（Query 理解解析代词 + LLM 上下文连贯）。
                     # 最后一条是刚 append 的当前问题本身，必须排除——否则 LLM 收到两遍，
                     # 且 -6 滑窗实际只剩 2.5 轮历史
-                    chat_history = [
-                        {"role": m["role"], "content": m["content"]}
-                        for m in st.session_state.messages[:-1]
-                        if m.get("role") in ("user", "assistant") and m.get("content")
-                    ][-6:]  # 最近 3 轮
+                    # 完整记录仅供单会话管理器选择，不再在前端丢掉第 4 轮之前的内容。
+                    chat_history = st.session_state.messages[:-1]
                     # V3.7 权限：登录者注入可见部门（服务端强制，UI 改不掉）；
                     # 规则统一在 src/permissions.visible_groups
                     _au = st.session_state.get("auth_user") or {}
@@ -1435,6 +1525,8 @@ def page_chat():
                         use_hybrid=st.session_state["hybrid_search"],
                         use_rerank=st.session_state["rerank"],
                         history=chat_history,
+                        session_id=st.session_state["session_id"],
+                        conversation_state=st.session_state["conversation_state"],
                         on_progress=_show_progress,
                         user_groups=_user_groups,
                         username=str((st.session_state.get("auth_user") or {}).get("username") or ""),
@@ -1461,6 +1553,7 @@ def page_chat():
                     filters=result.filters,
                     top_k=st.session_state.get("top_k", 5),
                     elapsed=float(result.elapsed.get("total", 0)),
+                    usage=getattr(result, "usage", None),
                 )
                 # V3.6 回答质量评估：回答完成后才执行（不阻塞流式输出），
                 # 失败降级为仅结构信号，绝不影响问答主流程
@@ -1478,10 +1571,10 @@ def page_chat():
                     eval_ph.empty()
                 show_answer_sources(result)
                 st.session_state.messages.append(
-                    {"role": "assistant", "content": formatted_answer, "result": result}
+                    {"role": "assistant", "content": formatted_answer, "result": result,
+                     "created_at": datetime.now().isoformat(timespec="seconds")}
                 )
-                save_session(st.session_state["session_id"], st.session_state.messages,
-                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
+                _save_current_chat()
                 scroll_chat_to_latest(
                     key=f"scroll_answer_{st.session_state['session_id']}_{len(st.session_state.messages)}",
                 )
@@ -1492,12 +1585,10 @@ def page_chat():
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
                 st.error(str(exc))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.error_occurred", err=exc)})
-                save_session(st.session_state["session_id"], st.session_state.messages,
-                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
+                _save_current_chat()
             except Exception as exc:
                 st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
-                save_session(st.session_state["session_id"], st.session_state.messages,
-                            username=str((st.session_state.get("auth_user") or {}).get("username") or ""))
+                _save_current_chat()
 
     # 嵌套在普通容器中，避免 Streamlit 的底部聊天容器在 Expander 展开时强制滚到底部。
     # CSS 仍将该容器固定在页面底部，交互与原聊天输入框一致。
@@ -1957,6 +2048,7 @@ def page_manage():
                 filters=result.filters,
                 top_k=10,
                 elapsed=float(result.elapsed.get("total", 0)),
+                usage=getattr(result, "usage", None),
             )
             st.markdown(result.answer or t("manage.sum.empty"))
             if result.sources:
@@ -1976,13 +2068,12 @@ def page_manage():
     total_chunks = sum(d["chunks"] for d in documents)
     archived = sum(1 for d in documents if d["status"] == "archive")
     domains_covered = len({d["domain"] for d in documents})
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric(t("manage.metric.files"), len(documents))
-    m2.metric(t("manage.metric.chunks"), total_chunks)
-    m3.metric(t("manage.metric.domains"), f"{domains_covered} / {len(domain_reg.all_codes())}")
-    m4.metric(t("manage.metric.archived"), archived)
-
-    st.divider()
+    with st.container(key="manage_summary"):
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric(t("manage.metric.files"), len(documents))
+        m2.metric(t("manage.metric.chunks"), total_chunks)
+        m3.metric(t("manage.metric.domains"), f"{domains_covered} / {len(domain_reg.all_codes())}")
+        m4.metric(t("manage.metric.archived"), archived)
 
     f1, f2, f3, f4 = st.columns([3, 1.2, 1.2, 1.2])
     keyword = f1.text_input(t("manage.search"), placeholder=t("manage.search.ph"))
@@ -2014,20 +2105,31 @@ def page_manage():
 
     filtered = [d for d in documents if _match(d)]
 
+    # 筛选变化回到首页；先清理失效选择，包括筛选结果为空的情况。
+    selection_key = "manage_selected_documents"
+    visible_ids = {d["document_id"] for d in filtered}
+    selected_ids = set(st.session_state.get(selection_key, [])) & visible_ids
+    st.session_state[selection_key] = sorted(selected_ids)
+    filter_signature = (keyword, dom_filter, status_filter, origin_filter)
+    if st.session_state.get("manage_filter_signature") != filter_signature:
+        st.session_state["manage_page"] = 1
+        st.session_state["manage_filter_signature"] = filter_signature
+
     if not filtered:
         st.info(t("manage.no_match"))
         return
 
     # 列表头部多选工具栏。多选只改变当前选择，不直接触发归档/删除等操作。
-    selection_key = "manage_selected_documents"
-    visible_ids = {d["document_id"] for d in filtered}
-    selected_ids = set(st.session_state.get(selection_key, [])) & visible_ids
+    def _reset_manage_table():
+        st.session_state["manage_table_revision"] = st.session_state.get("manage_table_revision", 0) + 1
 
     def _select_visible_documents(ids=tuple(sorted(visible_ids))):
         st.session_state[selection_key] = list(ids)
+        _reset_manage_table()
 
     def _clear_visible_documents():
         st.session_state[selection_key] = []
+        _reset_manage_table()
 
     list_head, select_col, clear_col = st.columns([5, 1.35, 1.2], vertical_alignment="center")
     list_head.markdown(f"{t('manage.list_header')}　<span style='color:var(--text-muted);font-size:.78rem'>"
@@ -2048,6 +2150,45 @@ def page_manage():
         on_click=_clear_visible_documents,
     )
 
+    def _reset_manage_page():
+        st.session_state["manage_page"] = 1
+
+    def _move_manage_page(delta):
+        st.session_state["manage_page"] += delta
+
+    # 先占列表位置，分页控件在下方渲染，其值仍可用于本次列表切片。
+    table_slot = st.empty()
+    with st.container(key="manage_pagination"):
+        size_col, prev_col, page_col, next_col = st.columns(
+            [2, 1, 1.5, 1], vertical_alignment="bottom"
+        )
+    page_size = size_col.selectbox(t("manage.page_size"), [10, 20, 50],
+                                    key="manage_page_size", on_change=_reset_manage_page)
+    total_pages = max(1, (len(filtered) + page_size - 1) // page_size)
+    # 删除末页文件后自动回到最后一个有效页码。
+    st.session_state["manage_page"] = min(
+        max(1, st.session_state.get("manage_page", 1)), total_pages
+    )
+    page = st.session_state["manage_page"]
+    prev_col.button(t("manage.prev_page"), key="manage_prev_page", width="stretch",
+                    disabled=page == 1, on_click=_move_manage_page, args=(-1,))
+    page_col.number_input(t("manage.page_number", n=total_pages),
+                          min_value=1, max_value=total_pages, step=1, key="manage_page")
+    next_col.button(t("manage.next_page"), key="manage_next_page", width="stretch",
+                    disabled=page == total_pages, on_click=_move_manage_page, args=(1,))
+    start = (page - 1) * page_size
+    page_documents = filtered[start:start + page_size]
+    page_ids = {d["document_id"] for d in page_documents}
+    st.caption(t("manage.page_stats", start=start + 1, end=start + len(page_documents),
+                 n=len(filtered)))
+
+    # 编辑器按行号记录勾选：换页/筛选/刷新后重建，防止旧行号勾到另一份文件。
+    table_signature = (filter_signature, page, page_size, current_language(),
+                       tuple(d["document_id"] for d in page_documents))
+    if st.session_state.get("manage_table_signature") != table_signature:
+        _reset_manage_table()
+        st.session_state["manage_table_signature"] = table_signature
+
     def _row(d) -> dict:
         origin = origins.get(d["path"]) or {}
         file_cell = ("🌐 " if origin else "") + str(d["source"])
@@ -2064,12 +2205,11 @@ def page_manage():
                 "Status": d["status"], t("manage.col.chunks"): d["chunks"],
                 t("manage.col.url"): (origin.get("url") or None)}
 
-    rows = [_row(d) for d in filtered]
-    edited = st.data_editor(
+    rows = [_row(d) for d in page_documents]
+    edited = table_slot.data_editor(
         rows,
         width="stretch",
-        # 默认高度只显示约 10 行，更多的要在表格里再滚动——排在后面的网页因此被当成"看不到"。
-        # 最多 15 行内全部直接展开（行高 35px + 表头）
+        # 大页保留表格滚动，页面只传输当前页的数据。
         height=(min(len(rows), 15) + 1) * 35 + 3,
         hide_index=True,
         key=f"manage_document_table_{st.session_state.get('manage_table_revision', 0)}",
@@ -2086,8 +2226,13 @@ def page_manage():
                   t("manage.col.url")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
-    selected_ids = {row["_id"] for row in records if row.get(t("manage.col.select"))}
-    st.session_state[selection_key] = sorted(selected_ids)
+    updated_ids = (selected_ids - page_ids) | {
+        row["_id"] for row in records if row.get(t("manage.col.select"))
+    }
+    st.session_state[selection_key] = sorted(updated_ids)
+    if updated_ids != selected_ids:
+        st.rerun()  # 同步列表头部计数和全选/清空按钮状态。
+    selected_ids = updated_ids
 
     if not selected_ids:
         return
@@ -2436,12 +2581,15 @@ def page_system_status():
 # ---------------------------------------------------------------- 页面 8：参数总览
 def page_params_overview():
     st.markdown(f'<div class="section-title">{t("params.title")}</div>', unsafe_allow_html=True)
-    # 高度 = (行数 + 表头) × 行高：全部行直接铺开，表格内不再滚动
+    st.subheader(t("params.group.general"))
+    # 高度 = (行数 + 表头) × 行高：按组展开，避免在表格内部滚动。
     params_rows = [
         (t("params.chunk_size"), cfg.chunk_size, t("params.chunk_size.note")),
         (t("params.chunk_overlap"), cfg.chunk_overlap, t("params.chunk_overlap.note")),
         (t("params.top_k"), st.session_state["top_k"], t("params.top_k.note")),
         (t("params.context_max_tokens"), cfg.context_max_tokens, t("params.context_max_tokens.note")),
+        (t("params.llm_max_tokens"), cfg.llm_max_tokens, t("params.llm_max_tokens.note")),
+        (t("params.rerank_recall_k"), cfg.rerank_recall_k, t("params.rerank_recall_k.note")),
         (t("params.temperature"), cfg.llm_temperature, t("params.temperature.note")),
         (t("params.max_per_doc"), cfg.context_max_per_doc, t("params.max_per_doc.note")),
         (t("params.embedding"), cfg.embedding_model, t("params.embedding.note")),
@@ -2452,12 +2600,46 @@ def page_params_overview():
          t("params.rerank_model.note")),
         (t("params.collection"), cfg.qdrant_collection, t("params.collection.note")),
     ]
-    st.dataframe(
-        [{t("params.col.name"): k, t("params.col.value"): str(v), t("params.col.note"): note}
-         for k, v, note in params_rows],
-        height=(len(params_rows) + 1) * 35 + 3,
-        width="stretch", hide_index=True,
+    def _show_parameters(rows):
+        st.dataframe(
+            [{t("params.col.name"): name,
+              t("params.col.value"): str(value).lower() if isinstance(value, bool) else str(value),
+              t("params.col.note"): note} for name, value, note in rows],
+            height=(len(rows) + 1) * 35 + 3,
+            width="stretch", hide_index=True,
+        )
+
+    _show_parameters(params_rows)
+    st.subheader(t("params.group.enumeration"))
+    enumeration_values = [
+        ("ENUM_RECALL_K", ENUM_RECALL_K),
+        ("ENUM_CTX_ITEMS", ENUM_CTX_ITEMS),
+        ("ENUM_CTX_TOKENS", ENUM_CTX_TOKENS),
+        ("ENUM_RERANK_DOCS", cfg.enum_rerank_docs),
+        ("ENUM_EXPAND_DOCS", cfg.enum_expand_docs),
+        ("ENUM_DOC_CARDS", cfg.enum_doc_cards),
+        ("ENUM_CATALOG_DOCS", cfg.enum_catalog_docs),
+        ("ENUM_CATALOG_POINTS", cfg.enum_catalog_points),
+    ]
+    _show_parameters([(f"{t('params.' + key + '.label')} {key}", value, t("params." + key + ".note"))
+                      for key, value in enumeration_values])
+    st.caption(t("params.enumeration.caption"))
+
+    st.subheader(t("params.group.processing"))
+    processing_keys = (
+        "ENUM_STAGE2_ENABLED", "ENUM_MAX_ROUNDS", "ENUM_QUERIES_PER_ROUND", "ENUM_NO_NEW_ROUNDS",
+        "ENUM_MAX_CALLS", "ENUM_MAX_SECONDS", "ENUM_MAX_TOKENS", "ENUM_BATCH_TOKENS",
+        "ENUM_OUTPUT_TOKENS", "ENUM_PAGE_CARDS", "ENUM_MAX_CARDS", "ENUM_MAX_DOCUMENTS", "ENUM_MAX_ITEMS",
     )
+    _show_parameters([(f"{t('params.' + key + '.label')} {key}", getattr(cfg, key.lower()),
+                       t("params." + key + ".note")) for key in processing_keys])
+    st.caption(t("params.processing.caption"))
+    st.subheader(t("params.group.conversation"))
+    conversation_keys = ("CHAT_CONTEXT_MAX_TOKENS", "CHAT_RECENT_TURNS", "CHAT_SUMMARY_TOKENS",
+                         "CHAT_SUMMARY_TRIGGER_TOKENS", "CHAT_RECALL_MESSAGES")
+    _show_parameters([(f"{t('params.' + key + '.label')} {key}", getattr(cfg, key.lower()),
+                       t("params." + key + ".note")) for key in conversation_keys])
+    st.caption(t("params.conversation.caption"))
     st.caption(t("params.caption"))
 
 
