@@ -247,21 +247,22 @@ def api_overview(_: dict = Depends(require_admin_api)):
 
 
 # ---------------------------------------------------------------- JSON API：服务状态与控制
-_SERVICE_PROBES = [
-    ("知识库前台（8501）", "http://localhost:8501"),
-    ("管理后台（8700）", "http://localhost:8700/admin/login"),
-    ("Qdrant 向量库（6333）", "http://localhost:6333"),
-    ("Ollama（11434）", "http://localhost:11434"),
-]
-
-
 @app.get("/api/services")
 def api_services(_: dict = Depends(require_admin_api)):
-    """探测后端服务运行状态（前台 / 管理后台 / Qdrant / Ollama）。"""
+    """探测后端服务运行状态（前台 / 管理后台 / Qdrant / Ollama 向量化模型）。"""
     import requests as _requests
+    from src.config import get_config
 
+    # 与入库使用同一份配置：读取 .env，而不是仅依赖进程环境变量。
+    embedding_model = get_config().embedding_model
+    probes = [
+        ("知识库前台（8501）", "http://localhost:8501"),
+        ("管理后台（8700）", "http://localhost:8700/admin/login"),
+        ("Qdrant 向量库（6333）", "http://localhost:6333"),
+        (f"Ollama-向量模型 {embedding_model}（11434）", "http://localhost:11434"),
+    ]
     services = []
-    for name, url in _SERVICE_PROBES:
+    for name, url in probes:
         try:
             resp = _requests.get(url, timeout=3)
             ok = resp.status_code < 500
