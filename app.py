@@ -2422,23 +2422,26 @@ def page_system_status():
 # ---------------------------------------------------------------- 页面 8：参数总览
 def page_params_overview():
     st.markdown(f'<div class="section-title">{t("params.title")}</div>', unsafe_allow_html=True)
+    # 高度 = (行数 + 表头) × 行高：全部行直接铺开，表格内不再滚动
+    params_rows = [
+        (t("params.chunk_size"), cfg.chunk_size, t("params.chunk_size.note")),
+        (t("params.chunk_overlap"), cfg.chunk_overlap, t("params.chunk_overlap.note")),
+        (t("params.top_k"), st.session_state["top_k"], t("params.top_k.note")),
+        (t("params.context_max_tokens"), cfg.context_max_tokens, t("params.context_max_tokens.note")),
+        (t("params.temperature"), cfg.llm_temperature, t("params.temperature.note")),
+        (t("params.max_per_doc"), cfg.context_max_per_doc, t("params.max_per_doc.note")),
+        (t("params.embedding"), cfg.embedding_model, t("params.embedding.note")),
+        (t("params.llm"), cfg.llm_model or t("params.llm.unconfigured"), t("params.llm.note")),
+        (t("params.rerank_backend"), cfg.rerank_backend, t("params.rerank_backend.note")),
+        (t("params.rerank_model"),
+         f"{cfg.rerank_model_dir.name}（model_quantized.onnx + tokenizer.json）",
+         t("params.rerank_model.note")),
+        (t("params.collection"), cfg.qdrant_collection, t("params.collection.note")),
+    ]
     st.dataframe(
         [{t("params.col.name"): k, t("params.col.value"): str(v), t("params.col.note"): note}
-         for k, v, note in [
-            (t("params.chunk_size"), cfg.chunk_size, t("params.chunk_size.note")),
-            (t("params.chunk_overlap"), cfg.chunk_overlap, t("params.chunk_overlap.note")),
-            (t("params.top_k"), st.session_state["top_k"], t("params.top_k.note")),
-            (t("params.context_max_tokens"), cfg.context_max_tokens, t("params.context_max_tokens.note")),
-            (t("params.temperature"), cfg.llm_temperature, t("params.temperature.note")),
-            (t("params.max_per_doc"), cfg.context_max_per_doc, t("params.max_per_doc.note")),
-            (t("params.embedding"), cfg.embedding_model, t("params.embedding.note")),
-            (t("params.llm"), cfg.llm_model or t("params.llm.unconfigured"), t("params.llm.note")),
-            (t("params.rerank_backend"), cfg.rerank_backend, t("params.rerank_backend.note")),
-            (t("params.rerank_model"),
-             f"{cfg.rerank_model_dir.name}（model_quantized.onnx + tokenizer.json）",
-             t("params.rerank_model.note")),
-            (t("params.collection"), cfg.qdrant_collection, t("params.collection.note")),
-        ]],
+         for k, v, note in params_rows],
+        height=(len(params_rows) + 1) * 35 + 3,
         width="stretch", hide_index=True,
     )
     st.caption(t("params.caption"))
