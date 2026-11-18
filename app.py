@@ -1996,6 +1996,7 @@ def page_manage():
                 "Topic": ", ".join(d["topic"]) or "-",
                 "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
                 "Version": d["version"],
+                "密级": d.get("classification") or "公开",
                 "Status": d["status"], t("manage.col.chunks"): d["chunks"],
                 t("manage.col.url"): (origin.get("url") or None)}
 
@@ -2017,7 +2018,7 @@ def page_manage():
                                                              help=t("manage.col.url.help")),
         },
         disabled=[t("manage.col.file"), t("manage.col.path"), t("manage.col.type"), "Domain",
-                  "Category", "Topic", "Groups", "Version", "Status", t("manage.col.chunks"),
+                  "Category", "Topic", "Groups", "Version", "密级", "Status", t("manage.col.chunks"),
                   t("manage.col.url")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
