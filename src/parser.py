@@ -25,6 +25,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import io
 import re
 import sys
@@ -299,6 +300,57 @@ def _ocr_image(data: bytes, hint: str = "") -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------- 格式嗅探
+# 公司文档里「后缀被人为改错」的文件很常见（docx 改名成 doc、反之亦然）。
+# 按扩展名路由会把真 docx 送去 LibreOffice 绕远路、把真 doc 交给 python-docx 直接报错。
+# 文件头（magic bytes）不会说谎：PK 头 = OOXML 家族（docx/xlsx/pptx），
+# OLE2 头 = 老家族（doc/xls/ppt）。
+
+_OOXML_MAGIC = b"PK\x03\x04"                      # ZIP 头：docx/xlsx/pptx 家族
+_OLE_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"  # OLE2 复合文档头：doc/xls/ppt 老家族
+
+
+def _sniff_binary_kind(path: Path) -> str:
+    """按文件头嗅探真实容器格式，不信扩展名。
+
+    返回 'ooxml'（PK 头：docx/xlsx/pptx 家族）/ 'ole'（OLE2 复合文档：doc/xls/ppt
+    老家族）/ ''（两者都不是：rtf、文本等——交给原扩展名路由处理）。
+    """
+    try:
+        with open(path, "rb") as f:
+            head = f.read(8)
+    except OSError:
+        return ""
+    if head.startswith(_OOXML_MAGIC):
+        return "ooxml"
+    if head.startswith(_OLE_MAGIC):
+        return "ole"
+    return ""
+
+
+@contextlib.contextmanager
+def _with_fixed_ext(path: Path, target_ext: str):
+    """内容与扩展名不符时的解析辅助：复制一份扩展名正确的临时副本再解析。
+
+    只有 openpyxl 按扩展名校验格式（.xls 后缀装着 xlsx 内容会被直接拒绝），
+    python-docx / python-pptx 都按文件内容打开、无此检查，无需此辅助。
+    """
+    import shutil
+    import tempfile
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="rag_sniff_"))
+    tmp = tmp_dir / f"fixed{target_ext}"
+    try:
+        shutil.copyfile(path, tmp)
+        yield tmp
+    finally:
+        try:
+            tmp.unlink()
+            tmp_dir.rmdir()
+        except OSError:
+            pass
+
+
 # 老格式转换的进程锁：soffice 并发实例之间会互相争抢用户配置目录，必须串行
 _soffice_lock = __import__("threading").Lock()
 
@@ -378,26 +430,43 @@ def _read_legacy_office(path: Path, target_ext: str, family: str):
 
 
 def _read_doc(path: Path) -> tuple[str, str, dict]:
+    if _sniff_binary_kind(path) == "ooxml":
+        # 假 .doc：文件头是 PK（实为 docx）——直接按 docx 解析，不走 LibreOffice
+        return _read_docx(path)
     return _read_legacy_office(path, "docx", "writer")
 
 
 def _read_wps(path: Path) -> tuple[str, str, dict]:
+    if _sniff_binary_kind(path) == "ooxml":
+        return _read_docx(path)
     return _read_legacy_office(path, "docx", "writer")
 
 
 def _read_xls(path: Path) -> tuple[str, str, dict]:
+    if _sniff_binary_kind(path) == "ooxml":
+        # 假 .xls：实为 xlsx——复制成 .xlsx 临时副本再解析（openpyxl 按扩展名校验格式）
+        with _with_fixed_ext(path, ".xlsx") as fixed:
+            return _read_xlsx(fixed)
     return _read_legacy_office(path, "xlsx", "calc")
 
 
 def _read_et(path: Path) -> tuple[str, str, dict]:
+    if _sniff_binary_kind(path) == "ooxml":
+        with _with_fixed_ext(path, ".xlsx") as fixed:
+            return _read_xlsx(fixed)
     return _read_legacy_office(path, "xlsx", "calc")
 
 
 def _read_ppt(path: Path) -> tuple[str, str, dict]:
+    if _sniff_binary_kind(path) == "ooxml":
+        # 假 .ppt：实为 pptx——直接按 pptx 解析
+        return _read_pptx(path)
     return _read_legacy_office(path, "pptx", "impress")
 
 
 def _read_dps(path: Path) -> tuple[str, str, dict]:
+    if _sniff_binary_kind(path) == "ooxml":
+        return _read_pptx(path)
     return _read_legacy_office(path, "pptx", "impress")
 
 
@@ -440,7 +509,11 @@ def _docx_table_text(table, title_state: dict) -> str:
 def _read_docx(path: Path) -> tuple[str, str, dict]:
     """Word：按文档流顺序读（段落与表格穿插，V3.9 修复表格被挪到文档尾部）；
     标题样式转 Markdown # 标记；嵌套表递归；读取各节页眉/页脚文字。
-    （文本框 / SmartArt 文字暂不支持，读取范围记录在 realize.md A1。）"""
+    （文本框 / SmartArt 文字暂不支持，读取范围记录在 realize.md A1。）
+    后缀改错的文件（.docx 实为 doc 老格式）按文件头嗅探自动走转换链路。"""
+    if _sniff_binary_kind(path) == "ole":
+        # 文件头是 OLE2 复合文档 → 实为老格式，交给 LibreOffice 转换
+        return _read_legacy_office(path, "docx", "writer")
     doc = DocxDocument(str(path))
     parts: list[str] = []
     title_state: dict = {"title": ""}
@@ -531,6 +604,9 @@ def _read_xlsx(path: Path) -> tuple[str, str, dict]:
     - 合并单元格的值存在左上角单元格，其余为空——按原样输出即可读
     - 单表超过 5000 行截断：表格知识入库的意义在内容而非全量数据，防巨型表拖垮切片
     """
+    if _sniff_binary_kind(path) == "ole":
+        # 假 .xlsx：文件头是 OLE2 → 实为 xls 老格式，交给 LibreOffice 转换
+        return _read_legacy_office(path, "xlsx", "calc")
     from openpyxl import load_workbook
 
     # 图片提取用普通模式（read_only 模式不加载内嵌图片）；表格读完后对每张图 OCR
@@ -585,6 +661,9 @@ def _read_pptx(path: Path) -> tuple[str, str, dict]:
     """PPT：逐页读——标题占位符转 # 标题，文本框/表格按序读取，页面内图片交给
     OCR（组合形状递归展开），演讲者备注跟在页尾。
     页与页之间插分页标记（与 PDF 同机制，切片时页码进元数据）。"""
+    if _sniff_binary_kind(path) == "ole":
+        # 假 .pptx：文件头是 OLE2 → 实为 ppt 老格式，交给 LibreOffice 转换
+        return _read_legacy_office(path, "pptx", "impress")
     from pptx import Presentation
     from pptx.enum.shapes import MSO_SHAPE_TYPE
 
