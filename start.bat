@@ -24,6 +24,12 @@ set ALL_PROXY=
 set NO_PROXY=localhost,127.0.0.1
 set no_proxy=localhost,127.0.0.1
 
+echo [0/4] 清理残留服务（占用 6333/8700/8501 端口的旧进程）...
+for %%p in (6333 8700 8501) do (
+    for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":%%p .*LISTENING" 2^>nul') do taskkill /F /PID %%a >nul 2>&1
+)
+taskkill /F /IM qdrant.exe >nul 2>&1
+
 echo [1/4] 启动 Qdrant 向量数据库...
 cd /d "%QDRANT_DIR%"
 start "Qdrant (6333)" qdrant.exe
