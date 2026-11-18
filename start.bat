@@ -11,6 +11,8 @@ REM ============================================================
 set ROOT=%~dp0
 set QDRANT_DIR=C:\Users\skyzi\sky-rag-setup\qdrant\bin
 set OLLAMA_APP=C:\Users\skyzi\AppData\Local\Programs\Ollama\ollama app.exe
+REM LibreOffice：老格式（doc/xls/ppt/wps/et/dps）解析依赖 soffice.exe
+set "PATH=C:\Program Files\LibreOffice\program;%PATH%"
 
 REM 摘除代理变量：本机服务必须直连，防止代理软件劫持 localhost 请求
 set http_proxy=
