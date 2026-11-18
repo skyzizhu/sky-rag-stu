@@ -813,27 +813,52 @@ def query_evidence(
         # 注意：不能按 Rerank 分数过滤 0 分卡片——实测发现 Rerank 可能误判
         # （给含答案的卡片打 0 分），过滤后反而丢失正确内容
         result.retrieved = outcome.items
-        trace.append(make_node(
-            "🏆", "Rerank（精排）", time_str=rr_start,
-            elapsed=rr_elapsed,
-            status="已执行" if outcome.ok else f"回退（粗排顺序：{outcome.error[:50]}）",
-            summary=f"召回先扩宽到 {recall_k} 条候选，LLM 逐条阅读并按相关度打 0~10 分，"
-                    f"按分精排后取 Top {top_k}——粗排只看文字和指纹，精排才理解内容",
-            items=[
-                ("精排方式（共 1 种启用）", "✅ 启用：LLM 重排 —— 用已配置的大模型逐条阅读候选内容，"
-                 "按相关度打 0~10 分\n"
-                 "○ 未启用：专用重排模型（bge-reranker / Cohere Rerank 等）——"
-                 "专为此任务训练、打分更稳定更快，可在 src/reranker.py 中替换接入"),
-                ("方式 1 · LLM 重排的结果", "\n".join(
-                    f"{cid}  {source}  {score:.0f} 分" for cid, source, score in outcome.scores
-                ) or "（无候选）"),
-                ("排序前后对比", "粗排: " + " → ".join(outcome.before_order)
-                 + "\n精排 Top K: " + " → ".join(outcome.after_order)),
-                ("方式 1 · 给 LLM 的 System Prompt", outcome.system_prompt),
-                ("方式 1 · 给 LLM 的 User Prompt", outcome.user_prompt),
-                ("LLM 原始输出", outcome.raw_output or outcome.error),
-            ],
-        ))
+        rr_backend = (cfg.rerank_backend or "llm").strip().lower()
+        if rr_backend == "local_onnx":
+            trace.append(make_node(
+                "🏆", "Rerank（精排）", time_str=rr_start,
+                elapsed=rr_elapsed,
+                status="已执行" if outcome.ok else f"回退（{outcome.error[:50]}）",
+                summary=f"召回先扩宽到 {recall_k} 条候选，本地精排模型（bge-reranker-v2-m3）"
+                        f"对每对「问题+候选」打相关度分（sigmoid 归一 0~10），按分精排后取 Top {top_k}"
+                        "——粗排只看文字和指纹，精排才理解内容",
+                items=[
+                    ("精排方式（共 1 种启用）", "✅ 启用：本地 cross-encoder —— bge-reranker-v2-m3 "
+                     "ONNX 量化版（CPU 逐对打分，零 API 费用、离线可用）\n"
+                     "○ 未启用：LLM 重排 —— 用已配置的大模型逐条打分（RERANK_BACKEND=llm 可切换）"),
+                    ("本地精排模型", f"{cfg.rerank_model_dir}\n"
+                     "model_quantized.onnx（约 570MB，动态 int8 量化）\n"
+                     "tokenizer.json（分词器，模型自带）\n"
+                     "分词规则：WordPiece 子词切分，(query, doc) 句对拼接，截断至 2048 token；无需提示词"),
+                    ("本地精排的结果", "\n".join(
+                        f"{cid}  {source}  {score:.1f} 分" for cid, source, score in outcome.scores
+                    ) or "（无候选）"),
+                    ("排序前后对比", "粗排: " + " → ".join(outcome.before_order)
+                     + "\n精排 Top K: " + " → ".join(outcome.after_order)),
+                ],
+            ))
+        else:
+            trace.append(make_node(
+                "🏆", "Rerank（精排）", time_str=rr_start,
+                elapsed=rr_elapsed,
+                status="已执行" if outcome.ok else f"回退（粗排顺序：{outcome.error[:50]}）",
+                summary=f"召回先扩宽到 {recall_k} 条候选，LLM 逐条阅读并按相关度打 0~10 分，"
+                        f"按分精排后取 Top {top_k}——粗排只看文字和指纹，精排才理解内容",
+                items=[
+                    ("精排方式（共 1 种启用）", "✅ 启用：LLM 重排 —— 用已配置的大模型逐条阅读候选内容，"
+                     "按相关度打 0~10 分\n"
+                     "○ 未启用：专用重排模型（bge-reranker / Cohere Rerank 等）——"
+                     "专为此任务训练、打分更稳定更快（RERANK_BACKEND=local_onnx 可切换）"),
+                    ("方式 1 · LLM 重排的结果", "\n".join(
+                        f"{cid}  {source}  {score:.0f} 分" for cid, source, score in outcome.scores
+                    ) or "（无候选）"),
+                    ("排序前后对比", "粗排: " + " → ".join(outcome.before_order)
+                     + "\n精排 Top K: " + " → ".join(outcome.after_order)),
+                    ("方式 1 · 给 LLM 的 System Prompt", outcome.system_prompt),
+                    ("方式 1 · 给 LLM 的 User Prompt", outcome.user_prompt),
+                    ("LLM 原始输出", outcome.raw_output or outcome.error),
+                ],
+            ))
     elif not use_rerank:
         trace.append(make_node(
             "🏆", "Rerank（精排）", time_str=now_str(),

@@ -839,6 +839,16 @@ def system_status(lang: str = "zh-CN") -> dict[str, tuple[bool, str]]:
     elif llm_ok:
         llm_note = t("status.cloud_llm", model=cfg.llm_model)
     status[t("status.llm")] = (llm_ok, llm_note)
+    # 精排模型灯：local_onnx 检查本地模型文件；llm 后端依赖大模型灯（此处恒绿）
+    if (cfg.rerank_backend or "llm").strip().lower() == "local_onnx":
+        rerank_ready = ((cfg.rerank_model_dir / "model_quantized.onnx").exists()
+                        and (cfg.rerank_model_dir / "tokenizer.json").exists())
+        status[t("status.rerank")] = (
+            rerank_ready,
+            t("status.rerank.local") if rerank_ready else t("status.rerank.missing"),
+        )
+    else:
+        status[t("status.rerank")] = (True, t("status.rerank.llm"))
     return status
 
 
@@ -2423,6 +2433,10 @@ def page_params_overview():
             (t("params.max_per_doc"), cfg.context_max_per_doc, t("params.max_per_doc.note")),
             (t("params.embedding"), cfg.embedding_model, t("params.embedding.note")),
             (t("params.llm"), cfg.llm_model or t("params.llm.unconfigured"), t("params.llm.note")),
+            (t("params.rerank_backend"), cfg.rerank_backend, t("params.rerank_backend.note")),
+            (t("params.rerank_model"),
+             f"{cfg.rerank_model_dir.name}（model_quantized.onnx + tokenizer.json）",
+             t("params.rerank_model.note")),
             (t("params.collection"), cfg.qdrant_collection, t("params.collection.note")),
         ]],
         width="stretch", hide_index=True,
