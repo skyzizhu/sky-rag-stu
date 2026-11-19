@@ -87,6 +87,8 @@ class QAResult:
     enumeration: bool = False  # V3.9：本次提问是否走枚举通道（Evidence/生成共用）
     evidence_meta: dict | None = None  # V3.9：coverage 粗判定等 Evidence 元信息
     usage: dict = field(default_factory=dict)  # 本次回答的 LLM 消耗合计（B16.1；评估的用量在 evaluation["usage"]）
+    request_usage: dict | None = None  # 本次实际用量；缓存命中时与原回答展示用量分离。
+    cache_hit: bool = False
 
 
 # ---------------------------------------------------------------- 入库
@@ -318,6 +320,8 @@ def _ingest_files_impl(
         if default_groups is not None and parsed.metadata.get("allowed_groups") == ["all"]:
             groups = [str(g).strip() for g in default_groups if str(g).strip()]
             parsed.metadata["allowed_groups"] = groups or ["all"]
+        from src.auth_db import normalize_department_groups
+        parsed.metadata['allowed_groups'] = normalize_department_groups(parsed.metadata['allowed_groups'])
         docs.append(parsed)
     summary.ok_files = len(docs)
     print(f"   成功 {len(docs)} 个，失败 {len(summary.failed_files)} 个")
@@ -1221,6 +1225,10 @@ def answer_stream(
     if cached_entry is not None:
         import copy
         cached = copy.deepcopy(cached_entry)
+        cached.cache_hit = True
+        cached.request_usage = {'stages': {}}
+        if prepared is not None and (prepared.usage.get('input') or prepared.usage.get('output')):
+            cached.request_usage['stages']['conversation_summary'] = dict(prepared.usage)
         # 缓存命中：加一条时间线节点说明（不重跑流水线）
         cached.trace.append(make_node(
             "⚡", "Q→A 缓存命中", time_str=now_str(), status="已命中",

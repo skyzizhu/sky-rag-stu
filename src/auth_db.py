@@ -1,15 +1,15 @@
 """V3.7：用户体系数据层（SQLite）。
 
 FastAPI 管理后台（8700）与 Streamlit 前台共用同一份数据与逻辑：
-- departments / users / admins / tokens / user_prefs 五张表 +
-  user_login_logs / admin_login_logs / qa_logs 三张日志表
+- departments / business_directions / users / admins / tokens / user_prefs 主数据表 +
+  user_login_logs / admin_login_logs / admin_operation_logs / qa_logs 日志表
 - V3.8 硬性规则：管理员与员工彻底分表——admins 独立存储，users 只放员工；
   管理员禁止登录前台（authenticate 只查员工表，前台登录入口显式拒绝管理员账户名）；
   登录日志按身份分表（user_login_logs / admin_login_logs，按 entry 路由）
 - 每次操作独立短连接 + WAL（多线程两服务并发写安全）
 - 密码 pbkdf2_hmac(sha256, 200_000 轮) + secrets 盐；令牌只存 SHA-256 哈希
 - 账户名全局唯一：admins 与 users 不允许重名（否则前台登录会被管理员拦截规则挡住）
-- 约定：卡片 allowed_groups 存**部门名**列表；部门不支持改名（name 是稳定标识）
+- 卡片 allowed_groups 存不可变的部门权限键（初始名称）；部门名称创建后不可编辑，名称保留归属。
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ import secrets
 import sqlite3
 import threading
 import time
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
@@ -74,8 +75,20 @@ _SCHEMA = """
 CREATE TABLE IF NOT EXISTS departments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
+    permission_key TEXT NOT NULL DEFAULT '',
     description TEXT NOT NULL DEFAULT '',
     disabled INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS department_aliases (
+    name TEXT PRIMARY KEY,
+    department_id INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS business_directions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    code TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS admins (
@@ -120,6 +133,25 @@ CREATE INDEX IF NOT EXISTS idx_user_login_logs_time ON user_login_logs(created_a
 CREATE TABLE IF NOT EXISTS admin_login_logs (""" + _LOG_COLS + """
 );
 CREATE INDEX IF NOT EXISTS idx_admin_login_logs_time ON admin_login_logs(created_at DESC);
+CREATE TABLE IF NOT EXISTS admin_operation_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id INTEGER,
+    username TEXT NOT NULL DEFAULT '',
+    authenticated INTEGER NOT NULL DEFAULT 0,
+    action TEXT NOT NULL,
+    target TEXT NOT NULL DEFAULT '',
+    detail TEXT NOT NULL DEFAULT '',
+    method TEXT NOT NULL DEFAULT '',
+    path TEXT NOT NULL DEFAULT '',
+    status_code INTEGER NOT NULL,
+    success INTEGER NOT NULL,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    ip TEXT NOT NULL DEFAULT '',
+    user_agent TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_admin_operations_actor ON admin_operation_logs(username, id DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_operations_action ON admin_operation_logs(action, id DESC);
 CREATE TABLE IF NOT EXISTS qa_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL DEFAULT '',
@@ -165,6 +197,7 @@ def init_db() -> None:
     """
     with _write_lock, _connect() as conn:
         conn.executescript(_SCHEMA)
+        _init_department_permissions(conn)
         # V3.9 存量迁移：qa_logs 补 usage 列（老行默认 '{}'）
         qa_cols = {r["name"] for r in conn.execute("PRAGMA table_info(qa_logs)")}
         if "usage" not in qa_cols:
@@ -236,21 +269,105 @@ def _token_hash(plaintext: str) -> str:
 
 
 # ---------------------------------------------------------------- 部门
-def create_department(name: str, description: str = "") -> dict:
-    name = (name or "").strip()
-    if not 1 <= len(name) <= 32:
-        raise ValueError("部门名长度需在 1~32 字符之间")
+def _department_name(name: str) -> str:
+    name = unicodedata.normalize('NFKC', name).strip()
+    if not 1 <= len(name) <= 32 or any(unicodedata.category(c).startswith('C') for c in name):
+        raise ValueError('部门名长度需在 1～32 字符之间，不能包含控制字符')
+    if name.casefold() == 'all':
+        raise ValueError('all 是全员可见标识，不能作为部门名称')
+    return name
+
+
+def _department_fields(name: str, description: str) -> tuple[str, str]:
+    name = _department_name(name)
+    description = description.strip()
+    if len(description) > 1000 or any(unicodedata.category(c) in {'Cc', 'Cf', 'Cs'}
+                                     for c in description if c not in '\n\r\t'):
+        raise ValueError('备注最多 1000 个字符，不能包含无效控制字符')
+    return name, description
+
+
+def _reserve_department_alias(conn, name: str, department_id: int) -> None:
+    owner = conn.execute('SELECT department_id FROM department_aliases WHERE name=?', (name,)).fetchone()
+    if owner and owner['department_id'] != department_id:
+        raise ValueError('部门名称已被其他部门使用（含历史名称），请更换')
+    conn.execute('INSERT OR IGNORE INTO department_aliases(name,department_id) VALUES(?,?)', (name, department_id))
+
+
+def _init_department_permissions(conn) -> None:
+    """保留部门权限键和名称归属；移除不参与授权的拼音编号。"""
+    conn.execute('BEGIN IMMEDIATE')
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(departments)')}
+    if 'permission_key' not in columns:
+        conn.execute("ALTER TABLE departments ADD COLUMN permission_key TEXT NOT NULL DEFAULT ''")
+    rows = conn.execute('SELECT * FROM departments ORDER BY id').fetchall()
+    for row in rows:
+        key = row['permission_key'] or row['name']
+        # 只移除旧编号映射，名称及实际权限键始终保留。
+        if 'code' in columns and row['code'] and row['code'] not in (row['name'], key):
+            conn.execute('DELETE FROM department_aliases WHERE name=? AND department_id=?',
+                         (row['code'], row['id']))
+        _reserve_department_alias(conn, row['name'], row['id'])
+        _reserve_department_alias(conn, key, row['id'])
+        conn.execute('UPDATE departments SET permission_key=? WHERE id=?', (key, row['id']))
+    if 'code' in columns:
+        conn.execute('DROP INDEX IF EXISTS idx_department_code')
+        conn.execute('ALTER TABLE departments DROP COLUMN code')
+    conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_department_permission_key ON departments(permission_key)')
+
+
+def create_department(name: str, description: str = '') -> dict:
+    name, description = _department_fields(name, description)
     try:
         with _connect() as conn:
-            conn.execute(
-                "INSERT INTO departments(name, description, created_at) VALUES(?,?,?)",
-                (name, (description or "").strip(), _now()),
-            )
-            row = conn.execute("SELECT * FROM departments WHERE name=?",
-                               (name,)).fetchone()
+            conn.execute('BEGIN IMMEDIATE')
+            cursor = conn.execute(
+                'INSERT INTO departments(name,permission_key,description,created_at) VALUES(?,?,?,?)',
+                (name, name, description, _now()))
+            _reserve_department_alias(conn, name, cursor.lastrowid)
+            row = conn.execute('SELECT * FROM departments WHERE id=?', (cursor.lastrowid,)).fetchone()
     except sqlite3.IntegrityError as exc:
-        raise ValueError("同名部门已存在") from exc
+        raise ValueError('同名部门已存在') from exc
     return dict(row)
+
+
+def get_department(department_id: int) -> dict | None:
+    with _connect() as conn:
+        row = conn.execute('SELECT * FROM departments WHERE id=?', (department_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def department_permission_key(name: str | None = None, department_id: int | None = None) -> str | None:
+    """授权按 ID/不可变键解析；无 ID 时按部门名称解析。"""
+    if department_id is not None:
+        with _connect() as conn:
+            row = conn.execute('SELECT permission_key FROM departments WHERE id=?', (department_id,)).fetchone()
+        return row['permission_key'] if row else None
+    if not name or name == 'all':
+        return name
+    try:
+        with _connect() as conn:
+            row = conn.execute('SELECT d.permission_key FROM department_aliases a LEFT JOIN departments d '
+                               'ON a.department_id=d.id WHERE a.name=?', (name,)).fetchone()
+    except sqlite3.OperationalError as exc:
+        if 'no such table' not in str(exc):
+            raise
+        return name  # 首次个人模式 CLI 入库尚未初始化认证库。
+    return row['permission_key'] if row else name
+
+
+def normalize_department_groups(groups: list[str]) -> list[str]:
+    # 已删除部门不能回退成全员可见，保留其孤立标识以继续限制访问。
+    return list(dict.fromkeys(department_permission_key(group) or group for group in groups))
+
+
+def department_label(group: str) -> str:
+    if group == 'all':
+        return group
+    with _connect() as conn:
+        row = conn.execute('SELECT d.name FROM department_aliases a JOIN departments d '
+                           'ON a.department_id=d.id WHERE a.name=?', (group,)).fetchone()
+    return row['name'] if row else group
 
 
 def list_departments(include_disabled: bool = True) -> list[dict]:
@@ -359,7 +476,7 @@ def _valid_permissions(perms: list[str] | None) -> list[str]:
 def get_user(username: str) -> dict | None:
     with _connect() as conn:
         row = conn.execute(
-            "SELECT u.*, d.name AS department FROM users u "
+            "SELECT u.*, d.name AS department, d.permission_key AS department_group FROM users u "
             "LEFT JOIN departments d ON d.id = u.department_id WHERE u.username=?",
             (username,),
         ).fetchone()
@@ -375,7 +492,7 @@ def get_user(username: str) -> dict | None:
 def get_user_by_id(user_id: int) -> dict | None:
     with _connect() as conn:
         row = conn.execute(
-            "SELECT u.*, d.name AS department FROM users u "
+            "SELECT u.*, d.name AS department, d.permission_key AS department_group FROM users u "
             "LEFT JOIN departments d ON d.id = u.department_id WHERE u.id=?",
             (user_id,),
         ).fetchone()
@@ -392,7 +509,7 @@ def list_users(department_id: int | None = None) -> list[dict]:
     """员工列表（users 表只放员工；管理员在 admins 表，见 list_admins）。"""
     sql = ("SELECT u.id, u.username, u.department_id, u.status, "
            "u.created_at, u.permissions, u.real_name, u.note, "
-           "d.name AS department FROM users u "
+           "d.name AS department, d.permission_key AS department_group FROM users u "
            "LEFT JOIN departments d ON d.id = u.department_id")
     where, params = [], []
     if department_id is not None:
@@ -470,7 +587,7 @@ def authenticate(username: str, password: str) -> tuple[dict | None, str]:
     if user["status"] != "active":
         return None, "该账户已被停用，请联系管理员"
     info = {"username": user["username"], "department": user["department"],
-            "department_id": user["department_id"],
+            "department_id": user["department_id"], "department_group": user.get("department_group"),
             "permissions": user.get("permissions") or [],
             "real_name": user.get("real_name") or "", "note": user.get("note") or ""}
     return info, ""
@@ -627,7 +744,8 @@ def verify_token(plaintext: str) -> dict | None:
         conn.execute("UPDATE tokens SET last_used=? WHERE token_hash=?",
                      (_now(), row["token_hash"]))
     return {"username": user["username"], "department": user["department"],
-            "token_name": row["name"]}
+            "token_name": row["name"], "department_group": user.get("department_group"),
+            "department_id": user["department_id"]}
 
 
 def list_tokens() -> list[dict]:
@@ -740,9 +858,11 @@ def _log_table(scope: str | None) -> str:
     return "admin_login_logs" if scope == "admins" else "user_login_logs"
 
 
-def _login_logs_where(username: str, action: str) -> tuple[str, list]:
+def _login_logs_where(username: str, action: str, login_only: bool = False) -> tuple[str, list]:
     """登录日志的公共 WHERE 构造（列表与计数共用，保证分页总数一致）。"""
     where, params = [], []
+    if login_only:
+        where.append("action IN ('login','logout')")
     if username:
         where.append("username LIKE ?")
         params.append(f"%{username}%")
@@ -755,9 +875,9 @@ def _login_logs_where(username: str, action: str) -> tuple[str, list]:
 
 def list_login_logs(limit: int = 200, username: str = "",
                     action: str = "", scope: str | None = None,
-                    offset: int = 0) -> list[dict]:
+                    offset: int = 0, login_only: bool = False) -> list[dict]:
     """scope="admins" 读管理员登录日志表，"users"/None 读员工表（分表后无 JOIN）。"""
-    where_sql, params = _login_logs_where(username, action)
+    where_sql, params = _login_logs_where(username, action, login_only)
     sql = f"SELECT * FROM {_log_table(scope)}" + where_sql
     sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
     params.extend([max(1, min(int(limit), 500)), max(0, int(offset))])
@@ -767,8 +887,8 @@ def list_login_logs(limit: int = 200, username: str = "",
 
 
 def count_login_logs(username: str = "", action: str = "",
-                     scope: str | None = None) -> int:
-    where_sql, params = _login_logs_where(username, action)
+                     scope: str | None = None, login_only: bool = False) -> int:
+    where_sql, params = _login_logs_where(username, action, login_only)
     with _connect() as conn:
         row = conn.execute(
             f"SELECT COUNT(*) AS n FROM {_log_table(scope)}" + where_sql,

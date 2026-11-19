@@ -222,6 +222,8 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
         elif key == "allowed_groups":
             value = [v.strip() for v in (value if isinstance(value, list) else [value]) if str(v).strip()]
             value = value or ["all"]  # 空列表 = 全员可见，保证 payload 永不为空列表
+            from src.auth_db import normalize_department_groups
+            value = normalize_department_groups(value)
         else:
             value = str(value).strip()
             if not value:

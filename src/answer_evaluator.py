@@ -252,6 +252,7 @@ def run_evaluation(result, llm: LLMClient | None = None,
                      "faithfulness": None, "relevance": None, "signals": {}}
     # 原始运行阶段计时；质量评估本身的耗时单独记录，不计入问答总时间。
     payload["timing"] = stage_timing(getattr(result, "elapsed", {}) or {}, result.trace)
+    eval_usage = new_usage()
     try:
         payload["signals"] = compute_signals(result)
         answer = (result.answer or "").strip()
@@ -259,7 +260,6 @@ def run_evaluation(result, llm: LLMClient | None = None,
             payload["error"] = "empty_answer"
             payload["elapsed"] = time.time() - start
             return payload
-        eval_usage = new_usage()
         faith, rel, comp = judge_dimensions(
             result.question or "", answer, getattr(result, "context", "") or "",
             llm=llm, config=config, usage_out=eval_usage,
@@ -280,6 +280,8 @@ def run_evaluation(result, llm: LLMClient | None = None,
         payload["ok"] = True
     except Exception as exc:  # 评估失败绝不影响问答主流程
         payload["error"] = f"{type(exc).__name__}: {exc}"
+    if eval_usage.get('input') or eval_usage.get('output'):
+        payload['usage'] = eval_usage  # JSON 解析失败也不能漏掉已经发生的模型消耗。
     payload["elapsed"] = time.time() - start
     return payload
 

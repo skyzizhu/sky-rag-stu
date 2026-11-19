@@ -253,6 +253,10 @@ class PipelineUsageTests(IngestHarness):
         second = self._ask(fake, self.QUESTION)
         self.assertEqual(fake.chat_calls, 1)  # 缓存命中：没有新调用
         self.assertEqual(second.usage, first.usage)
+        from src.usage_reporting import usage_for_log
+        self.assertTrue(second.cache_hit)
+        self.assertEqual(usage_for_log(first)['calls'], 2)
+        self.assertEqual(usage_for_log(second)['calls'], 0)
 
     def test_total_elapsed_includes_query_understanding(self):
         """全流程耗时必须包含 Query 理解（LLM 调用）：total = QU + 检索/精排/组装 + 生成。"""

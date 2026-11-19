@@ -3,7 +3,7 @@
 前台问答、跨文档总结、MCP 三个入口共用同一份规则——此前三处各写一遍，
 改规则时漏改一处就是权限漏洞。所有入口统一从这里取，测试也只需覆盖这里。
 
-约定：卡片 payload 的 allowed_groups 存部门名列表，"all" 表示全员可见。
+约定：卡片 payload 的 allowed_groups 存不可变部门权限键列表（初始部门名），"all" 表示全员可见。
 """
 
 from __future__ import annotations

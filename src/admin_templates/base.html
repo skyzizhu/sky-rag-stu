@@ -33,9 +33,11 @@
   input.wide { width: 240px; }
   button { padding: 6px 14px; border: 0; border-radius: 6px; background: #3d5af1;
            color: #fff; font-size: 14px; cursor: pointer; }
-  button.gray { background: #7a869e; }
+  button.secondary { background: #eaf1ff; color: #2453b3; border: 1px solid #b8cef2; }
+  button.secondary:not(:disabled):hover { background: #dce8ff; border-color: #86a9e6; }
   button.danger { background: #d64545; }
   button.mini { padding: 4px 10px; font-size: 13px; }
+  button:disabled { background: #edf0f5; color: #8993a4; border: 1px solid #d9dfe8; cursor: not-allowed; }
   .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
   .tag.on  { background: #e6f7e9; color: #176b32; }
   .tag.off { background: #fdeaea; color: #a12622; }

@@ -90,7 +90,7 @@ def _identity_from_ctx(ctx) -> tuple[list[str] | None, str, dict]:
             from src.permissions import visible_groups
             ident = auth_db.verify_token(token)
             if ident:
-                groups = visible_groups(ident["department"])
+                groups = visible_groups(ident.get("department_group", ident["department"]))
                 user = {"username": ident["username"], "department": ident["department"]}
                 return groups, str(ident["username"]), user
     # 兜底：中间件写入的 contextvar（stdio 个人模式 = None/空）
@@ -116,6 +116,7 @@ def _log_qa(question: str, result, top_k: int, elapsed: float,
     username/department：调用方从 ctx 逐次验出的身份（V3.9）；缺省回退 contextvar。
     """
     from src import auth_db
+    from src.usage_reporting import usage_for_log
 
     user = _request_user.get() or {}
     username = username if username is not None else str(user.get("username") or "local")
@@ -126,7 +127,7 @@ def _log_qa(question: str, result, top_k: int, elapsed: float,
         entry=_ENTRY, question=question, answer=result.answer or "",
         sources=result.sources, filters=result.filters,
         top_k=top_k, elapsed=elapsed,
-        usage=getattr(result, "usage", None),
+        usage=usage_for_log(result),
     )
 
 
@@ -798,7 +799,7 @@ class _TokenAuthMiddleware:
             await send({"type": "http.response.body", "body": payload})
             return
         from src.permissions import visible_groups
-        groups = visible_groups(ident["department"])
+        groups = visible_groups(ident.get("department_group", ident["department"]))
         _request_groups.set(groups)
         _request_user.set({"username": ident["username"],
                            "department": ident["department"]})

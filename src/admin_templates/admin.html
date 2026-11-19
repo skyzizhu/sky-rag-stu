@@ -15,12 +15,16 @@
   .sidebar .brand { font-weight: 700; font-size: 15px; padding: 4px 10px 16px;
                     border-bottom: 1px solid rgba(255,255,255,.12); line-height: 1.5; }
   .sidebar .brand span { display: block; font-size: 12px; font-weight: 400; color: #cdd6f0; }
-  .sidebar nav { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; overflow-y: auto; }
   .sidebar nav button { text-align: left; background: transparent; color: #cdd6f0;
                         border: 0; font-size: 14px; padding: 9px 14px;
                         border-radius: 8px; cursor: pointer; }
   .sidebar nav button.active { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
   .sidebar nav button:hover { color: #fff; }
+  .sidebar .nav-submenu { display: flex; flex-direction: column; gap: 3px; }
+  .sidebar .nav-submenu[hidden] { display: none; }
+  .sidebar .nav-submenu button { padding-left: 28px; font-size: 13px; white-space: normal; }
+  .sidebar .nav-group { display: flex; justify-content: space-between; align-items: center; }
   .sidebar .spacer { flex: 1; }
   .sidebar .who { font-size: 12.5px; color: #cdd6f0; padding: 12px 10px 0;
                   border-top: 1px solid rgba(255,255,255,.12); line-height: 1.9; }
@@ -44,16 +48,17 @@
   th { color: #5a6478; font-weight: 600; background: #f8f9fd; position: sticky; top: 0; }
   td.wrap { white-space: normal; max-width: 340px; }
   form.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
-  input, select { padding: 7px 10px; border: 1px solid #ccd3e0; border-radius: 7px; font-size: 13.5px; }
+  input, select, textarea { padding: 7px 10px; border: 1px solid #ccd3e0; border-radius: 7px; font-size: 13.5px; }
   input.wide { width: 260px; }
   button { padding: 7px 14px; border: 0; border-radius: 7px; background: #3d5af1;
            color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
-  button.gray { background: #7a869e; }
+  button.secondary { background: #eaf1ff; color: #2453b3; border: 1px solid #b8cef2; }
+  button.secondary:not(:disabled):hover { background: #dce8ff; border-color: #86a9e6; }
+  button:focus-visible { outline: 3px solid #a9c3ff; outline-offset: 2px; }
   button.danger { background: #d64545; }
   button.ghost { background: transparent; color: #3d5af1; border: 1px solid #c3cdF5; }
   button.mini { padding: 4px 10px; font-size: 12.5px; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  #svc-status-box button:disabled { background: #a5adba; color: #fff; opacity: 1; }
+  button:disabled { background: #edf0f5; color: #8993a4; border: 1px solid #d9dfe8; opacity: 1; cursor: not-allowed; }
   .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
   .tag.on  { background: #e6f7e9; color: #176b32; }
   .tag.off { background: #fdeaea; color: #a12622; }
@@ -66,6 +71,7 @@
            max-width: 420px; box-shadow: 0 4px 16px rgba(0,0,0,.18); word-break: break-all; }
   .toast.ok { background: #1f9d55; } .toast.err { background: #d64545; }
   dialog { border: 0; border-radius: 12px; padding: 22px 24px; width: 420px; }
+  dialog:has(#business-edit-form) { width: 600px; max-width: calc(100vw - 48px); }
   dialog::backdrop { background: rgba(20,28,50,.45); }
   dialog h3 { margin: 0 0 14px; font-size: 16px; }
   dialog label { display: block; font-size: 12.5px; color: #5a6478; margin: 10px 0 4px; }
@@ -94,14 +100,64 @@
   .cost-page { display: flex; gap: 8px; align-items: center; justify-content: center;
                margin: 14px 0; }
   .cost-page button { padding: 4px 12px; border: 1px solid #c8d0dc; border-radius: 6px;
-                      background: #fff; cursor: pointer; font-size: 13px; }
-  .cost-page button:disabled { opacity: .4; cursor: default; }
-  .cost-page button.current { background: #2a5db0; color: #fff; border-color: #2a5db0; }
+                      background: #eaf1ff; color: #2453b3; cursor: pointer; font-size: 13px; }
+  .cost-page button:not(:disabled):hover { background: #dce8ff; }
+  .cost-page button:disabled { background: #edf0f5; color: #8993a4; border-color: #d9dfe8; cursor: not-allowed; }
+  .cost-page button.current:not(:disabled) { background: #2a5db0; color: #fff; border-color: #2a5db0; }
   .cost-page .info { color: #6b7688; font-size: 12px; margin: 0 8px; }
   .log-detail { background: #f8f9fd; border-radius: 8px; padding: 10px 12px; margin-top: 6px;
                 font-size: 12.5px; white-space: pre-wrap; word-break: break-all; }
   .clickable { cursor: pointer; }
   .clickable:hover td { background: #f6f8ff; }
+  .business-form { width: 100%; max-width: 880px; }
+  .business-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .business-field { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #45516b; }
+  .business-field input { width: 100%; height: 42px; font-size: 14px; }
+  .business-form #business-code-hint { margin-top: 9px; color: #64748b; line-height: 1.6; }
+  .business-note { margin-top: 18px; }
+  .business-note textarea { width: 100%; min-height: 88px; max-height: 240px; resize: vertical; font: inherit; }
+  .business-field input:focus, .business-field textarea:focus { border-color: #5278df; outline: 3px solid #e8efff; }
+  .business-actions { display: flex; margin-top: 18px; }
+  .business-actions button { min-height: 38px; padding: 8px 20px; }
+  @media (max-width: 900px) { .business-fields { grid-template-columns: 1fr; gap: 16px; } }
+  .dash-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin: 22px 0 12px; }
+  .dash-head h3 { margin: 0 0 5px; font-size: 17px; }
+  .dash-head .toolbar { margin: 0; }
+  .dashboard-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dashboard-counts .stat { min-width: 0; }
+  .dash-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .dash-metric { background: #fff; border: 1px solid #e3e8f2; border-radius: 10px; padding: 14px 16px; }
+  .dash-metric span { color: #64748b; font-size: 12px; }
+  .dash-metric b { display: block; font-size: 27px; margin-top: 5px; color: #263e71; }
+  .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; }
+  .dash-grid > .card { min-width: 0; }
+  .dash-subtitle { color: #64748b; font-size: 12px; margin: -3px 0 16px; line-height: 1.6; }
+  .dash-bars { max-height: 300px; overflow-y: auto; }
+  .dash-bar-row { display: grid; grid-template-columns: minmax(80px, 130px) minmax(0, 1fr) 48px; gap: 10px; align-items: center; min-height: 36px; font-size: 13px; }
+  .dash-bar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dash-bar-track { background: #f0f4fb; border-radius: 4px; height: 10px; }
+  .dash-bar-fill { background: #5277de; border-radius: 4px; height: 100%; }
+  .dash-bar-value { text-align: right; color: #334155; font-variant-numeric: tabular-nums; }
+  .dash-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+  .dash-legend button { background: #f2f6ff; color: #334155; padding: 5px 9px; border: 1px solid #d7e3f8; font-size: 12px; }
+  .dash-legend button[aria-pressed="false"] { background: #fff; text-decoration: line-through; }
+  .dash-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dash-trend { width: 100%; height: auto; display: block; }
+  #dash-trend-area { position: relative; }
+  .dash-point-hit { fill: transparent; cursor: crosshair; outline: none; }
+  .dash-point:hover .dash-point-dot, .dash-point:focus-within .dash-point-dot { r: 5; stroke: #fff; stroke-width: 2; }
+  .dash-tooltip { position: absolute; z-index: 10; pointer-events: none; min-width: 156px;
+    padding: 11px 13px; border: 1px solid #d7e3f8; border-radius: 9px; background: #fff;
+    color: #334155; font-size: 12px; box-shadow: 0 5px 20px rgba(35, 55, 98, .14); }
+  .dash-tooltip > b { display: block; margin-bottom: 8px; }
+  .dash-tip-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 6px; }
+  .dash-channels { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 16px; }
+  .dash-channel { flex: 1; min-width: 100px; border: 1px solid #e3e8f2; border-radius: 8px; padding: 12px; }
+  .dash-channel b { display: block; font-size: 22px; color: #263e71; margin-top: 5px; }
+  .dash-note { color: #64748b; font-size: 12px; line-height: 1.7; margin-top: 8px; }
+  @media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } .dash-trend text { font-size: 14px; } }
+  @media (max-width: 1000px) { .dashboard-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 800px) { .dash-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dash-trend text { font-size: 16px; } }
   .hidden { display: none; }
 </style>
 </head>
@@ -122,7 +178,7 @@
   <h3 id="dlg-title"></h3>
   <div id="dlg-body"></div>
   <div class="actions">
-    <button class="gray" onclick="closeDlg()">取消</button>
+    <button class="secondary" onclick="closeDlg()">取消</button>
     <button id="dlg-ok" type="button">确认</button>
   </div>
 </dialog>
@@ -180,25 +236,51 @@ function confirmDo(title, msg, fn, okText = '确认', danger = false) {
 const TABS = [
   { id: 'dash',    name: '工作台',     render: renderDash },
   { id: 'deps',    name: '部门管理',   render: renderDeps },
+  { id: 'business', name: '业务方向', render: renderBusinessDirections },
   { id: 'emps',    name: '员工管理',   render: renderEmps },
   { id: 'admins',  name: '管理员',     render: renderAdmins },
-  { id: 'tokens',  name: '访问令牌',   render: renderTokens },
-  { id: 'authlog', name: '登录日志',   render: renderAuthLog },
-  { id: 'qalog',   name: 'RAG 日志',   render: renderQaLog },
+  { id: 'tokens',  name: 'MCP访问令牌', render: renderTokens },
+  { id: 'logs', name: '日志', children: [
+    { id: 'adminauth', name: '管理员登录日志', render: renderAdminLoginLog },
+    { id: 'adminops', name: '管理员操作日志', render: renderAdminOperations },
+    { id: 'authlog', name: '员工登录日志', render: renderAuthLog },
+    { id: 'qalog', name: '员工检索日志', render: renderQaLog },
+  ] },
   { id: 'llmcost', name: 'LLM 费用',   render: renderLlmCost },
   { id: 'services', name: '服务状态',  render: renderServices },
 ];
 let current = 'dash';
 let svcBusy = false;  // 服务控制动作进行中：防重复点击，按钮按当前状态禁用
 
+let logsMenuOpen = false;
+function renderNavigation() {
+  const leaf = tab => `<button type="button" data-id="${tab.id}" class="${current === tab.id ? 'active' : ''}"
+    ${current === tab.id ? 'aria-current="page"' : ''} onclick="switchTab('${tab.id}')">${esc(tab.name)}</button>`;
+  $('#tabs').innerHTML = TABS.map(tab => {
+    if (!tab.children) return leaf(tab);
+    const active = tab.children.some(child => child.id === current);
+    return `<button type="button" data-id="${tab.id}" class="nav-group ${active ? 'active' : ''}"
+      aria-expanded="${logsMenuOpen}" aria-controls="logs-submenu" onclick="toggleLogsMenu()">
+        ${esc(tab.name)}<span aria-hidden="true">${logsMenuOpen ? '▾' : '▸'}</span></button>
+      <div id="logs-submenu" class="nav-submenu" ${logsMenuOpen ? '' : 'hidden'}>
+        ${tab.children.map(leaf).join('')}
+      </div>`;
+  }).join('');
+}
+function toggleLogsMenu() {
+  logsMenuOpen = !logsMenuOpen;
+  renderNavigation();
+}
 function switchTab(id) {
+  const tab = TABS.flatMap(item => item.children || [item]).find(item => item.id === id);
+  if (!tab) return;
   current = id;
-  document.querySelectorAll('#tabs button').forEach(b =>
-    b.classList.toggle('active', b.dataset.id === id));
-  const tab = TABS.find(t => t.id === id);
+  if (TABS.some(item => item.children?.some(child => child.id === id))) logsMenuOpen = true;
+  renderNavigation();
   $('#view').innerHTML = '<div class="empty">加载中…</div>';
-  tab.render().catch(e => { $('#view').innerHTML =
-    `<div class="empty">加载失败：${esc(e.message)}</div>`; });
+  return tab.render().catch(e => {
+    if (current === id) $('#view').innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`;
+  });
 }
 
 async function logout() {
@@ -209,45 +291,153 @@ async function logout() {
 }
 
 /* ---------- 工作台 ---------- */
-function logTableHTML(logs) {
-  const rows = logs.map(l => `
-    <tr>
-      <td class="muted">${esc(l.created_at)}</td>
-      <td><b>${esc(l.username) || '—'}</b></td>
-      <td>${actionLabel(l.action)}</td>
-      <td>${l.success ? '<span class="tag on">成功</span>'
-                      : '<span class="tag off">失败</span>'}</td>
-      <td>${esc(l.browser)} / ${esc(l.os_name)}</td>
-      <td class="muted">${esc(l.ip || '—')}</td>
-    </tr>`).join('');
-  return `<table><tr><th>时间</th><th>账户</th><th>动作</th><th>结果</th><th>设备</th><th>IP</th></tr>
-    ${rows || '<tr><td colspan="6" class="empty">暂无记录</td></tr>'}</table>`;
+let dashboardDays = 30;
+let dashboardRequest = 0;
+let dashboardData = null;
+let dashboardVisible = {web: true, mcp: true, other: true};
+const dashboardColors = {web: '#4263d7', mcp: '#0c9488', other: '#9b6bce'};
+const dashNum = n => Math.max(0, Number(n) || 0).toLocaleString();
+function dashboardBars(rows, key, emptyText) {
+  if (!rows.length) return `<div class="empty">${esc(emptyText)}</div>`;
+  const max = Math.max(1, ...rows.map(row => Number(row[key]) || 0));
+  return `<div class="dash-bars">${rows.map(row => `<div class="dash-bar-row">
+    <span class="dash-bar-name" title="${esc(row.name)}">${esc(row.name)}</span>
+    <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${Math.max(0, Number(row[key]) || 0) / max * 100}%"></div></div>
+    <span class="dash-bar-value">${dashNum(row[key])}</span></div>`).join('')}</div>`;
 }
-
+function dashboardToggleChannel(key) {
+  dashboardVisible[key] = !dashboardVisible[key];
+  $('#dash-trend-area').innerHTML = dashboardTrend(dashboardData);
+}
+function dashboardHideTooltip() {
+  const tip = document.querySelector('#dash-trend-tooltip');
+  if (tip) tip.hidden = true;
+  const guide = document.querySelector('#dash-trend-guide');
+  if (guide) guide.style.display = 'none';
+}
+function dashboardMoveOnChart(event) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const x = (event.clientX - rect.left) / rect.width * 760;
+  const y = (event.clientY - rect.top) / rect.height * 250;
+  if (x < 34 || x > 744 || y < 8 || y > 218 || !dashboardData?.daily.length) {
+    dashboardHideTooltip();
+    return;
+  }
+  const index = Math.max(0, Math.min(dashboardData.daily.length - 1,
+    Math.round((x - 44) / 690 * (dashboardData.daily.length - 1))));
+  dashboardShowTooltip(event, index);
+}
+function dashboardShowTooltip(event, index) {
+  const area = document.querySelector('#dash-trend-area');
+  const tip = document.querySelector('#dash-trend-tooltip');
+  const day = dashboardData?.daily[index];
+  if (!area || !tip || !day) return;
+  const channels = dashboardData.channels.filter(c => dashboardVisible[c.key] && (c.key !== 'other' || c.requests > 0));
+  tip.innerHTML = `<b>${esc(day.date)}</b>${channels.map(c => `<div class="dash-tip-row">
+    <span><span class="dash-dot" style="background:${dashboardColors[c.key]}"></span>${esc(c.name)}</span>
+    <strong>${dashNum(day[c.key])} 次</strong></div>`).join('')}`;
+  tip.hidden = false;
+  const bounds = area.getBoundingClientRect();
+  const point = event.currentTarget.tagName.toLowerCase() === 'svg'
+    ? {right: event.clientX, top: event.clientY, bottom: event.clientY}
+    : event.currentTarget.getBoundingClientRect();
+  const left = point.right - bounds.left + 10;
+  const top = point.top - bounds.top - tip.offsetHeight - 10;
+  tip.style.left = Math.max(0, Math.min(left, area.clientWidth - tip.offsetWidth)) + 'px';
+  tip.style.top = Math.max(0, top < 0 ? point.bottom - bounds.top + 10 : top) + 'px';
+  const guide = document.querySelector('#dash-trend-guide');
+  if (guide) {
+    const x = 44 + index / Math.max(1, dashboardData.daily.length - 1) * 690;
+    guide.setAttribute('x1', x); guide.setAttribute('x2', x); guide.style.display = 'block';
+  }
+}
+function dashboardTrend(stats) {
+  const channels = stats.channels.filter(c => c.key !== 'other' || c.requests > 0);
+  const legend = `<div class="dash-legend">${channels.map(c => `<button type="button" aria-pressed="${dashboardVisible[c.key]}"
+    onclick="dashboardToggleChannel('${c.key}')"><span class="dash-dot" style="background:${dashboardColors[c.key]}"></span>${esc(c.name)} · ${dashNum(c.requests)} 次</button>`).join('')}</div>`;
+  const shown = channels.filter(c => dashboardVisible[c.key]);
+  if (!stats.requests || !shown.length) return legend + `<div class="empty">${stats.requests ? '请选择要显示的入口' : '所选时间内暂无检索记录'}</div>`;
+  const daily = stats.daily, left = 44, top = 18, width = 690, height = 190;
+  const maximum = Math.max(4, Math.ceil(Math.max(...daily.flatMap(d => shown.map(c => d[c.key] || 0))) / 4) * 4);
+  const x = i => left + i / Math.max(1, daily.length - 1) * width;
+  const y = value => top + height - value / maximum * height;
+  let parts = [];
+  for (let i = 0; i <= 4; i++) {
+    const value = maximum / 4 * i;
+    parts.push(`<line x1="${left}" y1="${y(value)}" x2="${left + width}" y2="${y(value)}" stroke="#e5eaf3"/>
+      <text x="${left - 9}" y="${y(value) + 4}" text-anchor="end" fill="#64748b" font-size="11">${value}</text>`);
+  }
+  const labels = new Set([0, daily.length - 1, ...daily.map((_, i) => i).filter(i => i % Math.max(1, Math.ceil(daily.length / 6)) === 0)]);
+  for (const i of labels) parts.push(`<text x="${x(i)}" y="235" text-anchor="middle" fill="#64748b" font-size="11">${esc(daily[i].date.slice(5))}</text>`);
+  for (const c of shown) {
+    parts.push(`<polyline points="${daily.map((d, i) => `${x(i)},${y(d[c.key] || 0)}`).join(' ')}" fill="none" stroke="${dashboardColors[c.key]}" stroke-width="2.5" stroke-linejoin="round"/>`);
+    for (let i = 0; i < daily.length; i++) parts.push(`<g class="dash-point">
+      <circle class="dash-point-dot" cx="${x(i)}" cy="${y(daily[i][c.key] || 0)}" r="3.5" fill="${dashboardColors[c.key]}" pointer-events="none"/>
+      <circle class="dash-point-hit" cx="${x(i)}" cy="${y(daily[i][c.key] || 0)}" r="10" tabindex="0"
+        aria-label="${esc(daily[i].date)} ${esc(c.name)}：${dashNum(daily[i][c.key])} 次" aria-describedby="dash-trend-tooltip"
+        onpointerenter="dashboardShowTooltip(event, ${i})" onpointermove="dashboardShowTooltip(event, ${i})"
+        onpointerleave="dashboardHideTooltip()" onfocus="dashboardShowTooltip(event, ${i})" onblur="dashboardHideTooltip()"
+        onkeydown="if(event.key === 'Escape') dashboardHideTooltip()"/>
+    </g>`);
+  }
+  return legend + `<svg class="dash-trend" viewBox="0 0 760 250" role="img" aria-label="员工每日检索次数，按 Web 和 MCP 区分"
+    onpointermove="dashboardMoveOnChart(event)" onpointerleave="dashboardHideTooltip()">
+    <line id="dash-trend-guide" y1="18" y2="208" stroke="#b8c5df" stroke-dasharray="4 4" pointer-events="none" style="display:none"/>
+    ${parts.join('')}</svg><div id="dash-trend-tooltip" class="dash-tooltip" role="tooltip" hidden></div>`;
+}
+function dashboardChangeDays(value) {
+  dashboardDays = Number(value);
+  renderDash().catch(e => toast(e.message, false));
+}
 async function renderDash() {
-  const d = await api('GET', '/api/overview');
+  const requestId = ++dashboardRequest;
+  const d = await api('GET', '/api/overview?days=' + dashboardDays);
+  if (current !== 'dash' || requestId !== dashboardRequest) return;
+  const s = d.usage_statistics, llm = s.llm;
+  dashboardData = s;
   $('#view').innerHTML = `
-    <div class="stats">
-      <div class="stat"><b>${d.departments}</b><span>部门（启用 ${d.departments_enabled}）</span></div>
-      <div class="stat"><b>${d.users}</b><span>员工账户（启用 ${d.users_active}）</span></div>
-      <div class="stat"><b>${d.admins}</b><span>管理员账户（启用 ${d.admins_active}）</span></div>
+    <div class="stats dashboard-counts">
+      <div class="stat"><b>${dashNum(d.departments)}</b><span>部门（启用 ${dashNum(d.departments_enabled)}）</span></div>
+      <div class="stat"><b>${dashNum(d.business_directions)}</b><span>业务方向</span></div>
+      <div class="stat"><b>${dashNum(d.users)}</b><span>员工账户（启用 ${dashNum(d.users_active)}）</span></div>
+      <div class="stat"><b>${dashNum(d.admins)}</b><span>管理员账户（启用 ${dashNum(d.admins_active)}）</span></div>
     </div>
-    <div class="card"><h3>快速操作</h3>
-      <div class="toolbar">
-        <button type="button" onclick="switchTab('deps')">＋ 创建部门</button>
-        <button type="button" onclick="switchTab('emps'); empCreateDlg()">＋ 创建员工</button>
-        <button type="button" onclick="switchTab('tokens')">🔑 签发访问令牌</button>
-        <button type="button" onclick="switchTab('qalog')">📄 查看 RAG 使用情况</button>
+    <div class="card"><h3>快速操作</h3><div class="toolbar">
+      <button type="button" onclick="switchTab('deps')">＋ 创建部门</button>
+      <button type="button" onclick="switchTab('business').then(() => document.querySelector('#business-form input[name=name]')?.focus())">＋ 新增业务方向</button>
+      <button type="button" onclick="switchTab('emps'); empCreateDlg()">＋ 创建员工</button>
+      <button type="button" onclick="switchTab('tokens')">签发访问令牌</button>
+    </div></div>
+    <div class="dash-head"><div><h3>检索使用统计</h3><span class="muted">${esc(s.period.start)} 至 ${esc(s.period.end)}</span></div>
+      <div class="toolbar"><select aria-label="工作台统计范围" onchange="dashboardChangeDays(this.value)">
+        ${[7, 30, 90].map(n => `<option value="${n}" ${n === dashboardDays ? 'selected' : ''}>最近 ${n} 天</option>`).join('')}
+      </select><button class="secondary" onclick="renderDash().catch(e => toast(e.message, false))">刷新统计</button></div></div>
+    <div class="dash-metrics">
+      <div class="dash-metric"><span>检索请求</span><b>${dashNum(s.requests)}</b></div>
+      <div class="dash-metric"><span>活跃员工</span><b>${dashNum(s.active_employees)}</b></div>
+      <div class="dash-metric"><span>活跃部门</span><b>${dashNum(s.active_departments)}</b></div>
+      <div class="dash-metric"><span>可核验 LLM 调用</span><b>${dashNum(llm.calls)}</b></div>
+    </div>
+    <div class="dash-grid">
+      <div class="card"><h3>部门检索次数</h3><div class="dash-subtitle">按请求发生时的员工部门统计，包含所有入口</div>
+        ${dashboardBars(s.departments, 'requests', '暂无部门检索记录')}</div>
+      <div class="card"><h3>员工检索趋势</h3><div class="dash-subtitle">每条已完成的检索日志计一次请求，点击入口可切换显示</div>
+        <div id="dash-trend-area">${dashboardTrend(s)}</div>
+        <div class="dash-note">Web 含知识库问答和跨文档总结；MCP 含 HTTP 与 stdio。未识别入口单列。</div></div>
+    </div>
+    <div class="dash-grid">
+      <div class="card"><h3>LLM 调用环节</h3><div class="dash-subtitle">检索流程中有用量记录的模型调用，含回答评估</div>
+        ${dashboardBars(llm.stages.filter(row => row.calls > 0), 'calls', '所选时间暂无可核验的 LLM 调用')}
+        <div class="dash-note">已采集本次用量的请求：${dashNum(llm.verified_requests)} 次；平均每次 ${llm.average_calls} 次模型调用。<br>
+          不含 Embedding、本地精排、入库自动标签，以及没有返回用量的失败调用。</div>
+        ${llm.legacy_requests ? `<div class="dash-note">历史 ${dashNum(llm.legacy_requests)} 条请求缺少本次用量标记；原日志登记 ${dashNum(llm.legacy_reference_calls)} 次调用，仅供参考，未并入上方总数。</div>` : ''}
       </div>
-      <div class="muted" style="margin-top:8px">常用操作一键直达；也可从左侧标签页进入。</div>
+      <div class="card"><h3>RAG 检索入口</h3><div class="dash-subtitle">按 Web、MCP 等入口统计检索请求次数</div>
+        <div class="dash-channels">${s.channels.map(c => `<div class="dash-channel"><span class="muted">${esc(c.name)}</span><b>${dashNum(c.requests)} <small>次</small></b></div>`).join('')}</div>
+        <div class="dash-note">所选时间共 ${dashNum(s.requests)} 次检索请求，包含答案缓存命中的请求；一次请求只按入口计一次，不按模型调用次数累加。</div>
+      </div>
     </div>
-    <div class="card"><h3>最近登录（员工侧）</h3><div id="dash-log"></div></div>
-    <div class="card"><h3>使用说明</h3>
-      <div class="muted">① 部门管理里创建部门 → ② 员工在知识库前台自助注册（选部门），或在此处创建账户
-      → ③ 员工登录知识库后只能检索本部门与全员可见的知识；管理员与员工分表存储，管理员不能登录前台，只使用本管理后台。
-      ④ 「访问令牌」页可为员工签发 MCP 调用凭证（mcp_pat_…）。
-      管理员的登录日志在「管理员」标签下方查看（与员工日志分表存储）。</div></div>`;
-  $('#dash-log').innerHTML = logTableHTML(d.recent_logins);
+    <div class="dash-note">仅统计能归属到员工的检索记录，匿名个人模式不计入。</div>`;
 }
 
 /* ---------- 服务状态与控制 ---------- */
@@ -374,62 +564,178 @@ async function svcStop() {
     }, '确认关闭');
 }
 
+/* ---------- 业务方向 ---------- */
+let businessCodeTimer;
+let businessEditRequest = 0;
+async function renderBusinessDirections() {
+  const d = await api('GET', '/api/business-directions');
+  if (current !== 'business') return;
+  const rows = d.business_directions.map(item => `<tr>
+    <td>${item.id}</td><td><b>${esc(item.name)}</b></td><td class="mono">${esc(item.code)}</td>
+    <td class="wrap">${esc(item.note) || '—'}</td><td>${esc(item.created_at)}</td>
+    <td><button type="button" class="mini secondary" onclick="businessEdit(${item.id})">编辑</button></td>
+  </tr>`).join('');
+  $('#view').innerHTML = `
+    <div class="card">
+      <h3>新增业务方向</h3>
+      <form id="business-form" class="business-form" onsubmit="businessCreate(event)">
+        <div class="business-fields">
+          <label class="business-field">业务方向名称<input name="name" placeholder="例如：智慧园区" maxlength="80"
+            required oninput="businessNameChanged(this.form)"></label>
+          <label class="business-field">英文 / 字母编号<input name="code" placeholder="输入名称后自动生成拼音"
+            maxlength="64" pattern="[a-zA-Z][a-zA-Z0-9_]{0,63}"
+            oninput="this.form.dataset.manualCode=this.value ? '1' : ''"></label>
+        </div>
+        <div class="muted business-code-hint" id="business-code-hint">自动生成无声调拼音，可手动修改为英文或调整多音字；编号不可重复。</div>
+        <label class="business-field business-note">备注<textarea name="note" maxlength="1000" rows="3"
+          placeholder="可选，补充业务方向说明，最多 1000 个字符"></textarea></label>
+        <div class="business-actions"><button type="submit">创建业务方向</button></div>
+      </form>
+    </div>
+    <div class="card"><h3>业务方向列表（${d.business_directions.length}）</h3>
+      <div style="overflow-x:auto"><table><tr><th>ID</th><th>名称</th><th>英文 / 字母编号</th><th>备注</th><th>创建时间</th><th>操作</th></tr>
+        ${rows || '<tr><td colspan="6" class="empty">暂无业务方向，请先创建</td></tr>'}
+      </table></div>
+    </div>`;
+}
+function businessNameChanged(form) {
+  clearTimeout(businessCodeTimer);
+  const name = form.elements.name.value.trim();
+  if (form.dataset.manualCode === '1') return;
+  // 清空旧预览：名称改变后立即提交时，由服务端生成新名称对应的编号。
+  form.elements.code.value = '';
+  if (!name) return;
+  businessCodeTimer = setTimeout(async () => {
+    try {
+      const d = await api('GET', (form.dataset.codeEndpoint || '/api/business-directions/suggest-code') + '?name=' + encodeURIComponent(name));
+      if (form.isConnected && form.elements.name.value.trim() === name && form.dataset.manualCode !== '1') {
+        form.elements.code.value = d.code;
+        const hint = form.querySelector('.business-code-hint');
+        if (hint) hint.textContent = '已自动生成拼音，可手动调整；名称和编号均不可重复。';
+      }
+    } catch (e) {
+      if (form.isConnected && form.elements.name.value.trim() === name && form.dataset.manualCode !== '1') {
+        const hint = form.querySelector('.business-code-hint');
+        if (hint) hint.textContent = e.message + '；也可以手动填写字母编号。';
+      }
+    }
+  }, 250);
+}
+async function prepareAutomaticCode(form) {
+  if (!form.elements.name.reportValidity()) throw new Error('请检查名称');
+  clearTimeout(businessCodeTimer);
+  if (!form.elements.code.value.trim() && form.dataset.manualCode !== '1') {
+    // 名称输入后立即保存，也要等待新名称对应的拼音，不能提交旧编号。
+    const name = form.elements.name.value.trim();
+    const d = await api('GET', (form.dataset.codeEndpoint || '/api/business-directions/suggest-code') + '?name=' + encodeURIComponent(name));
+    if (!form.isConnected) throw new Error('编辑窗口已关闭，请重新确认后保存');
+    if (form.elements.name.value.trim() !== name) throw new Error('名称已变化，请确认后重新保存');
+    if (!form.elements.code.value.trim() && form.dataset.manualCode !== '1') form.elements.code.value = d.code;
+  }
+  if (!form.reportValidity()) throw new Error('请检查名称和字母编号');
+}
+async function businessCreate(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const button = f.querySelector('button[type="submit"]');
+  if (button.disabled) return;
+  button.disabled = true;
+  try {
+    await api('POST', '/api/business-directions', {
+      name: f.elements.name.value.trim(), code: f.elements.code.value.trim(), note: f.elements.note.value.trim(),
+    });
+    toast('业务方向已创建');
+    await renderBusinessDirections();
+  } catch (e) { toast(e.message, false); }
+  finally { button.disabled = false; }
+}
+async function businessEdit(id) {
+  const requestId = ++businessEditRequest;
+  let direction;
+  try { direction = (await api('GET', '/api/business-directions/' + id)).business_direction; }
+  catch (e) { toast(e.message, false); return; }
+  if (current !== 'business' || requestId !== businessEditRequest) return;
+  const original = {name: direction.name, code: direction.code, note: direction.note};
+  openDlg('编辑业务方向', `<form id="business-edit-form" onsubmit="event.preventDefault()">
+    <label for="business-edit-name">业务方向名称</label>
+    <input id="business-edit-name" name="name" value="${esc(direction.name)}" maxlength="80" required
+      oninput="businessNameChanged(this.form)">
+    <label for="business-edit-code">英文 / 字母编号</label>
+    <input id="business-edit-code" name="code" value="${esc(direction.code)}" maxlength="64"
+      pattern="[a-zA-Z][a-zA-Z0-9_]{0,63}" required
+      oninput="this.form.dataset.manualCode=this.value.trim() ? '1' : ''; if(!this.value.trim()) businessNameChanged(this.form)">
+    <div class="muted business-code-hint" style="margin-top:8px">修改名称后自动生成拼音编号；手动填写后保留手填值，清空编号可恢复自动生成。</div>
+    <label for="business-edit-note">备注</label>
+    <textarea id="business-edit-note" name="note" rows="4" maxlength="1000">${esc(direction.note)}</textarea>
+  </form>`, async () => {
+    const form = document.querySelector('#business-edit-form');
+    if (!form) throw new Error('编辑窗口已关闭');
+    const button = $('#dlg-ok');
+    button.disabled = true;
+    try {
+      await prepareAutomaticCode(form);
+      await api('PUT', '/api/business-directions/' + id, {
+        name: form.elements.name.value.trim(), code: form.elements.code.value.trim(),
+        note: form.elements.note.value.trim(), original,
+      });
+      toast('业务方向已更新');
+      try { await renderBusinessDirections(); }
+      catch (e) { toast('已保存，列表刷新失败：' + e.message, false); }
+    } finally { button.disabled = false; }
+  }, '保存修改');
+  $('#dlg-ok').className = '';
+}
 /* ---------- 部门管理 ---------- */
 async function renderDeps() {
   const d = await api('GET', '/api/departments');
+  if (current !== 'deps') return;
   const rows = d.departments.map(dep => `
     <tr>
       <td>${dep.id}</td><td><b>${esc(dep.name)}</b></td>
-      <td class="wrap">${esc(dep.description) || '—'}</td>
-      <td>${dep.employees}</td>
-      <td>${dep.disabled ? '<span class="tag off">已停用</span>'
-                         : '<span class="tag on">启用中</span>'}</td>
-      <td>
-        <button class="mini gray" onclick="depToggle(${dep.id})">
-          ${dep.disabled ? '启用' : '停用'}</button>
-        <button class="mini danger" ${dep.employees > 0
-          ? 'disabled title="该部门下仍有员工，请先转移"' : ''}
-          onclick="depDelete(${dep.id}, '${esc(dep.name)}', ${dep.employees})">删除</button>
-      </td>
+      <td class="wrap">${esc(dep.description) || '—'}</td><td>${dep.employees}</td>
+      <td>${dep.disabled ? '<span class="tag off">已停用</span>' : '<span class="tag on">启用中</span>'}</td>
+      <td><button class="mini secondary" onclick="depToggle(${dep.id})">${dep.disabled ? '启用' : '停用'}</button>
+        <button class="mini danger" ${dep.employees > 0 ? 'disabled title="该部门下仍有员工，请先转移"' : ''}
+          onclick="depDelete(${dep.id})">删除</button></td>
     </tr>`).join('');
-  $('#view').innerHTML = `
-    <div class="card">
-      <h3>新增部门</h3>
-      <form class="row" onsubmit="return depCreate(event)">
-        <input name="name" class="wide" placeholder="部门名（如 hr / develop，创建后不可修改）" required>
-        <input name="description" style="width:280px" placeholder="备注（可选）">
-        <button type="submit">创建</button>
-      </form>
-      <div class="muted">部门名是知识可见性的稳定标识，创建后不可改名；停用后不再出现在注册与上传选项中。</div>
-    </div>
-    <div class="card">
-      <h3>部门列表（${d.departments.length}）</h3>
-      <table><tr><th>ID</th><th>部门名</th><th>备注</th><th>员工数</th><th>状态</th><th>操作</th></tr>
+  $('#view').innerHTML = `<div class="card"><h3>新增部门</h3>
+    <form id="department-form" class="business-form" onsubmit="depCreate(event)">
+      <div class="business-fields">
+        <label class="business-field">部门名称<input name="name" placeholder="例如：研发部" maxlength="32" required></label>
+      </div>
+      <label class="business-field business-note">备注<textarea name="description" maxlength="1000" rows="3" placeholder="可选，最多 1000 个字符"></textarea></label>
+      <div class="business-actions"><button type="submit">创建部门</button></div>
+    </form>
+    <div class="dash-note">部门创建后不支持编辑名称和备注；停用后不再出现在新员工注册选项中。</div>
+  </div>
+  <div class="card"><h3>部门列表（${d.departments.length}）</h3><div style="overflow-x:auto">
+    <table><tr><th>ID</th><th>部门名称</th><th>备注</th><th>员工数</th><th>状态</th><th>操作</th></tr>
       ${rows || '<tr><td colspan="6" class="empty">还没有部门</td></tr>'}</table>
-    </div>`;
+  </div></div>`;
 }
 async function depCreate(ev) {
   ev.preventDefault();
-  const f = ev.target;
+  const form = ev.target, button = form.querySelector('button[type="submit"]');
+  if (button.disabled) return;
+  button.disabled = true;
   try {
-    await api('POST', '/api/departments',
-              { name: f.name.value.trim(), description: f.description.value.trim() });
-    toast(`部门「${f.name.value.trim()}」已创建`);
-    renderDeps();
+    await api('POST', '/api/departments', {name:form.elements.name.value.trim(),
+      description:form.elements.description.value.trim()});
+    toast('部门已创建'); await renderDeps();
   } catch (e) { toast(e.message, false); }
-  return false;
+  finally { button.disabled = false; }
 }
 async function depToggle(id) {
   try { const r = await api('POST', `/api/departments/${id}/toggle`);
         toast(r.disabled ? '已停用' : '已启用'); renderDeps(); }
   catch (e) { toast(e.message, false); }
 }
-async function depDelete(id, name, employees) {
-  confirmDo('删除部门', `确认删除部门「${name}」？${employees > 0
-    ? `该部门下有 ${employees} 名员工，需先转移。` : '此操作不可撤销。'}`,
-    async () => { await api('DELETE', `/api/departments/${id}`);
-                  toast(`部门「${name}」已删除`); renderDeps(); },
-    '删除', true);
+async function depDelete(id) {
+  let dep;
+  try { dep=(await api('GET','/api/departments/'+id)).department; }
+  catch(e) { toast(e.message,false);return; }
+  confirmDo('删除部门',`确认删除部门「${dep.name}」？${dep.employees>0 ? '该部门下仍有员工，请先转移。' : '此操作不可撤销。'}`,
+    async()=>{await api('DELETE',`/api/departments/${id}`);toast('部门已删除');await renderDeps();},'删除',true);
 }
 
 /* ---------- 员工管理（仅员工；管理员账户在「管理员」标签单独管理） ---------- */
@@ -455,8 +761,8 @@ async function renderEmps() {
       <td class="muted">${esc((u.created_at || '').slice(0, 10))}</td>
       <td style="white-space:nowrap">
         <button class="mini ghost" onclick="event.stopPropagation(); empView(${u.id})">详情</button>
-        <button class="mini gray" onclick="event.stopPropagation(); empEdit(${u.id})">编辑</button>
-        <button class="mini gray" onclick="event.stopPropagation(); empPwdDep(${u.id})">密码/部门</button>
+        <button class="mini secondary" onclick="event.stopPropagation(); empEdit(${u.id})">编辑</button>
+        <button class="mini secondary" onclick="event.stopPropagation(); empPwdDep(${u.id})">密码/部门</button>
       </td>
     </tr>`).join('');
   $('#view').innerHTML = `
@@ -466,7 +772,7 @@ async function renderEmps() {
         <input id="emp-search-input" class="wide"
           placeholder="搜索账户名 / 姓名…" value="${esc(empSearchInput)}">
         <button type="button" onclick="empDoSearch()">🔍 搜索</button>
-        <button class="mini gray" type="button"
+        <button class="mini secondary" type="button"
           onclick="empSearchInput=''; empPage=1; renderEmps()">清空</button>
         <select onchange="empFilterDep=this.value; empPage=1; renderEmps()">
           <option value="">全部部门</option>
@@ -479,10 +785,10 @@ async function renderEmps() {
       <table><tr><th>ID</th><th>账户名</th><th>姓名</th><th>部门</th><th>备注（职责/职位）</th><th>状态</th><th>创建</th><th>操作</th></tr>
       ${rows || '<tr><td colspan="8" class="empty">没有匹配的员工</td></tr>'}</table>
       <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
-        <button class="mini gray" ${empPage <= 1 ? 'disabled' : ''}
+        <button class="mini secondary" ${empPage <= 1 ? 'disabled' : ''}
           onclick="empPage--; renderEmps()">上一页</button>
         <span class="muted">第 ${empPage} / ${totalPages} 页（共 ${d.total} 名）</span>
-        <button class="mini gray" ${empPage >= totalPages ? 'disabled' : ''}
+        <button class="mini secondary" ${empPage >= totalPages ? 'disabled' : ''}
           onclick="empPage++; renderEmps()">下一页</button>
       </div>
     </div>`;
@@ -616,7 +922,7 @@ async function empEdit(id) {
     <label>前台权限（默认无——员工仅可检索；勾选后登录可见对应功能页）</label>
     <div class="perm-list">${permItems}</div>
     <label>状态</label>
-    <button class="${u.status === 'active' ? 'danger' : 'gray'}" type="button"
+    <button class="${u.status === 'active' ? 'danger' : 'secondary'}" type="button"
       onclick="empToggle(${u.id})">${u.status === 'active' ? '停用该员工' : '启用该员工'}</button>`,
     async () => {
       const name = document.querySelector('#emp-name-edit').value.trim();
@@ -657,7 +963,7 @@ async function empPwdDep(id) {
         ${deps.filter(x => x.id !== u.department_id)
               .map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
       </select>
-      <button class="gray" type="button" onclick="empTransfer(${u.id})">调入</button>
+      <button class="secondary" type="button" onclick="empTransfer(${u.id})">调入</button>
     </div>`);
 }
 async function empReset(uid) {
@@ -689,10 +995,71 @@ function userResetDlg(id, username) {
     }, '重置');
 }
 
+/* ---------- 管理员操作日志 ---------- */
+let adminOperationFilter = { username: '', action: '', success: '', page: 1, page_size: 20, snapshot_id: 0 };
+let adminOperationRequest = 0;
+function adminOperationChange(key, value) {
+  adminOperationFilter[key] = value;
+  adminOperationFilter.page = 1;
+  adminOperationFilter.snapshot_id = 0;
+  renderAdminOperations().catch(e => toast(e.message, false));
+}
+function adminOperationPage(delta) {
+  adminOperationFilter.page = Math.max(1, adminOperationFilter.page + delta);
+  renderAdminOperations().catch(e => toast(e.message, false));
+}
+async function renderAdminOperations() {
+  const requestId = ++adminOperationRequest;
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(adminOperationFilter)) {
+    if (value !== '') qs.set(key, value);
+  }
+  const d = await api('GET', '/api/logs/admin-operations?' + qs);
+  if (current !== 'adminops' || requestId !== adminOperationRequest) return;
+  adminOperationFilter.snapshot_id = d.snapshot_id;
+  adminOperationFilter.page = d.page;
+  const rows = d.logs.map(l => `<tr>
+    <td class="muted">${esc(l.created_at)}</td>
+    <td><b>${esc(l.username) || '未认证'}</b>${l.username && !l.authenticated ? '<br><span class="muted">尝试账户</span>' : ''}</td>
+    <td>${esc(l.action_label)}</td><td class="wrap">${esc(l.target) || '—'}</td>
+    <td class="wrap">${esc(l.detail) || '—'}</td>
+    <td>${l.success ? '<span class="tag on">成功</span>' : '<span class="tag off">失败</span>'}<br><span class="muted">HTTP ${l.status_code}</span></td>
+    <td>${esc(l.ip) || '—'}</td><td>${l.duration_ms} ms</td>
+    <td><details><summary>查看</summary><div class="wrap mono">${esc(l.method)} ${esc(l.path)}<br>${esc(l.user_agent)}</div></details></td>
+  </tr>`).join('');
+  $('#view').innerHTML = `<div class="card">
+    <h3>管理员操作日志</h3>
+    <div class="toolbar">
+      <input aria-label="管理员账户" placeholder="按管理员账户筛选" maxlength="80" value="${esc(adminOperationFilter.username)}"
+        onchange="adminOperationChange('username', this.value.trim())">
+      <select aria-label="操作类型" onchange="adminOperationChange('action', this.value)">
+        <option value="">全部操作</option>
+        ${d.actions.map(a => `<option value="${esc(a.value)}" ${a.value === adminOperationFilter.action ? 'selected' : ''}>${esc(a.label)}</option>`).join('')}
+      </select>
+      <select aria-label="操作结果" onchange="adminOperationChange('success', this.value)">
+        <option value="">全部结果</option><option value="true" ${adminOperationFilter.success === 'true' ? 'selected' : ''}>成功</option>
+        <option value="false" ${adminOperationFilter.success === 'false' ? 'selected' : ''}>失败</option>
+      </select>
+      <button class="mini secondary" onclick="adminOperationChange('snapshot_id', 0)">刷新最新日志</button>
+    </div>
+    <div class="muted" style="margin-bottom:10px">记录新增、编辑、删除、服务启停、令牌签发/吊销，登录登出在管理员登录日志中查看，不记录查看操作。分页保持当前查询范围，点击刷新查看新记录。</div>
+    <div style="overflow-x:auto"><table><tr><th>时间</th><th>管理员</th><th>操作</th><th>对象</th><th>说明</th><th>结果</th><th>IP</th><th>耗时</th><th>请求详情</th></tr>
+      ${rows || '<tr><td colspan="9" class="empty">暂无符合条件的操作日志</td></tr>'}
+    </table></div>
+    <div class="toolbar" style="margin-top:12px">
+      <button class="mini secondary" ${d.page <= 1 ? 'disabled' : ''} onclick="adminOperationPage(-1)">上一页</button>
+      <span class="muted">第 ${d.page} / ${d.total_pages} 页，共 ${d.total} 条</span>
+      <button class="mini secondary" ${d.page >= d.total_pages ? 'disabled' : ''} onclick="adminOperationPage(1)">下一页</button>
+      <select aria-label="每页条数" onchange="adminOperationChange('page_size', +this.value)">
+        ${[20, 50, 100].map(n => `<option value="${n}" ${n === adminOperationFilter.page_size ? 'selected' : ''}>每页 ${n} 条</option>`).join('')}
+      </select>
+    </div>
+  </div>`;
+}
+
 /* ---------- 管理员（admins 表，与员工分列分表） ---------- */
 async function renderAdmins() {
   const d = await api('GET', '/api/admins');
-  const logs = (await api('GET', '/api/logs/auth?scope=admins&limit=20')).logs;
   const rows = d.admins.map(u => `
     <tr>
       <td>${u.id}</td>
@@ -711,15 +1078,6 @@ async function renderAdmins() {
           onclick="admDelete(${u.id}, '${esc(u.username)}')">删除</button>
       </td>
     </tr>`).join('');
-  const logRows = logs.map(l => `
-    <tr>
-      <td class="muted">${esc(l.created_at)}</td>
-      <td><b>${esc(l.username)}</b></td>
-      <td>${l.success ? '<span class="tag on">成功</span>'
-                      : '<span class="tag off">失败</span>'}</td>
-      <td>${esc(l.browser)} / ${esc(l.os_name)}</td>
-      <td class="muted">${esc(l.ip || '—')}</td>
-    </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
       <h3>管理员列表（${d.admins.length}）</h3>
@@ -734,12 +1092,7 @@ async function renderAdmins() {
       <table><tr><th>ID</th><th>账户名</th><th>状态</th><th>备注</th><th>创建时间</th><th>操作</th></tr>
       ${rows || '<tr><td colspan="6" class="empty">没有管理员</td></tr>'}</table>
     </div>
-    <div class="card">
-      <h3>管理员登录日志（最近 ${logs.length} 条）</h3>
-      <table><tr><th>时间</th><th>账户</th><th>结果</th><th>设备</th><th>IP</th></tr>
-      ${logRows || '<tr><td colspan="5" class="empty">暂无登录记录</td></tr>'}</table>
-      <div class="muted" style="margin-top:8px">员工登录日志在「登录日志」标签单独查看（与这里的日志分表存储）。</div>
-    </div>`;
+`;
 }
 function admCreateDlg() {
   openDlg('新增管理员', `
@@ -866,7 +1219,58 @@ function fallbackCopy(text, done) {
   document.body.removeChild(ta);
 }
 
-/* ---------- 登录日志（员工专属；管理员的在「管理员」标签下查看） ---------- */
+/* ---------- 管理员登录日志（登录/登出，与管理操作日志分开） ---------- */
+let adminLoginFilter = { username: '', action: '', page: 1, page_size: 20 };
+let adminLoginRequest = 0;
+function adminLoginChange(key, value) {
+  adminLoginFilter[key] = value;
+  if (key !== 'page') adminLoginFilter.page = 1;
+  renderAdminLoginLog().catch(e => toast(e.message, false));
+}
+async function renderAdminLoginLog() {
+  const requestId = ++adminLoginRequest;
+  const qs = new URLSearchParams({scope: 'admins', login_only: 'true',
+    page: adminLoginFilter.page, limit: adminLoginFilter.page_size});
+  if (adminLoginFilter.username) qs.set('username', adminLoginFilter.username);
+  if (adminLoginFilter.action) qs.set('action', adminLoginFilter.action);
+  const d = await api('GET', '/api/logs/auth?' + qs);
+  if (current !== 'adminauth' || requestId !== adminLoginRequest) return;
+  adminLoginFilter.page = d.page;
+  const rows = d.logs.map(l => `<tr>
+    <td class="muted">${esc(l.created_at)}</td><td><b>${esc(l.username) || '—'}</b></td>
+    <td>${esc(actionLabel(l.action))}</td>
+    <td>${l.success ? '<span class="tag on">成功</span>' : '<span class="tag off">失败</span>'}</td>
+    <td class="wrap">${esc(l.detail) || '—'}</td>
+    <td>${esc(l.browser)} / ${esc(l.os_name)}</td><td>${esc(l.ip) || '—'}</td>
+    <td><details><summary>查看</summary><div class="log-detail">指纹：${esc(l.fingerprint)}<br>UA：${esc(l.user_agent)}</div></details></td>
+  </tr>`).join('');
+  $('#view').innerHTML = `<div class="card">
+    <h3>管理员登录日志（共 ${d.total} 条）</h3>
+    <div class="toolbar">
+      <input aria-label="管理员账户" placeholder="按管理员账户筛选" value="${esc(adminLoginFilter.username)}"
+        onchange="adminLoginChange('username', this.value.trim())">
+      <select aria-label="登录动作" onchange="adminLoginChange('action', this.value)">
+        <option value="">全部登录 / 登出</option>
+        ${['login', 'logout'].map(a => `<option value="${a}" ${a === adminLoginFilter.action ? 'selected' : ''}>${actionLabel(a)}</option>`).join('')}
+      </select>
+      <button class="mini secondary" onclick="renderAdminLoginLog().catch(e => toast(e.message, false))">刷新</button>
+    </div>
+    <div class="muted" style="margin-bottom:10px">仅显示管理员登录、登出及登录失败记录；新增、编辑、删除等行为在「管理员操作日志」中查看。</div>
+    <div style="overflow-x:auto"><table><tr><th>时间</th><th>管理员账户</th><th>动作</th><th>结果</th><th>说明</th><th>设备</th><th>IP</th><th>详情</th></tr>
+      ${rows || '<tr><td colspan="8" class="empty">暂无符合条件的管理员登录日志</td></tr>'}
+    </table></div>
+    <div class="toolbar" style="margin-top:12px">
+      <button class="mini secondary" ${d.page <= 1 ? 'disabled' : ''} onclick="adminLoginChange('page', adminLoginFilter.page - 1)">上一页</button>
+      <span class="muted">第 ${d.page} / ${d.total_pages} 页，共 ${d.total} 条</span>
+      <button class="mini secondary" ${d.page >= d.total_pages ? 'disabled' : ''} onclick="adminLoginChange('page', adminLoginFilter.page + 1)">下一页</button>
+      <select aria-label="每页条数" onchange="adminLoginChange('page_size', +this.value)">
+        ${[20, 50, 100].map(n => `<option value="${n}" ${n === adminLoginFilter.page_size ? 'selected' : ''}>每页 ${n} 条</option>`).join('')}
+      </select>
+    </div>
+  </div>`;
+}
+
+/* ---------- 员工登录日志 ---------- */
 let authLogFilter = { username: '', action: '', page: 1 };
 const AUTH_PAGE_SIZE = 20;
 async function renderAuthLog() {
@@ -877,7 +1281,8 @@ async function renderAuthLog() {
   if (authLogFilter.username) qs.set('username', authLogFilter.username);
   if (authLogFilter.action) qs.set('action', authLogFilter.action);
   const d = await api('GET', '/api/logs/auth?' + qs.toString());
-  const totalPages = Math.max(1, Math.ceil(d.total / AUTH_PAGE_SIZE));
+  authLogFilter.page = d.page;
+  const totalPages = d.total_pages;
   const rows = d.logs.map(l => `
     <tr class="clickable" onclick="this.nextElementSibling.classList.toggle('hidden')">
       <td class="muted">${esc(l.created_at)}</td>
@@ -917,19 +1322,19 @@ async function renderAuthLog() {
             .map(a => `<option value="${a}" ${a === authLogFilter.action
               ? 'selected' : ''}>${actionLabel(a)}</option>`).join('')}
         </select>
-        <button class="mini gray" onclick="renderAuthLog()">刷新</button>
+        <button class="mini secondary" onclick="renderAuthLog()">刷新</button>
       </div>
       <div class="muted" style="margin-bottom:10px">本页只记录<b>员工</b>的登录与相关操作
-        （管理员日志在「管理员」标签下方）。IP 为浏览器真实局域网地址（登录门已直连认证服务获取）。
+        （管理员登录日志在「日志 → 管理员登录日志」中查看）。IP 为浏览器真实局域网地址（登录门已直连认证服务获取）。
         点击任意行展开浏览器指纹与完整 UA，失败的登录尝试同样完整保留（含原因）。</div>
       <table><tr><th>时间</th><th>账户</th><th>动作</th><th>结果</th><th>说明</th>
         <th>部门</th><th>入口</th><th>IP</th></tr>
       ${rows || '<tr><td colspan="8" class="empty">暂无登录日志</td></tr>'}</table>
       <div class="pager" style="display:flex;gap:8px;align-items:center;margin:10px 0 0">
-        <button class="mini gray" ${authLogFilter.page <= 1 ? 'disabled' : ''}
+        <button class="mini secondary" ${authLogFilter.page <= 1 ? 'disabled' : ''}
           onclick="authLogFilter.page--; renderAuthLog()">上一页</button>
         <span class="muted">第 ${authLogFilter.page} / ${totalPages} 页（共 ${d.total} 条）</span>
-        <button class="mini gray" ${authLogFilter.page >= totalPages ? 'disabled' : ''}
+        <button class="mini secondary" ${authLogFilter.page >= totalPages ? 'disabled' : ''}
           onclick="authLogFilter.page++; renderAuthLog()">下一页</button>
       </div>
     </div>`;
@@ -941,6 +1346,7 @@ function actionLabel(a) {
     employee_create: '创建员工', employee_toggle: '停用/启用员工',
     employee_transfer: '调整部门', department_create: '创建部门',
     department_toggle: '停用/启用部门', department_delete: '删除部门',
+    business_direction_create: '创建业务方向',
     admin_create: '新增管理员', admin_delete: '删除管理员',
     token_create: '签发令牌', token_revoke: '吊销令牌' };
   return m[a] || a;
@@ -1054,7 +1460,7 @@ async function renderQaLog() {
     </td></tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
-      <h3>RAG 使用 / 提问记录（员工）—— 共 ${d.total} 条</h3>
+      <h3>员工检索日志—— 共 ${d.total} 条</h3>
       <div class="toolbar">
         <select onchange="qaLogFilter.department=this.value; qaLogFilter.page=1; renderQaLog()">
           <option value="">全部部门</option>
@@ -1072,25 +1478,23 @@ async function renderQaLog() {
           ${Object.keys(entryLabel).map(k =>
             `<option value="${k}" ${k === qaLogFilter.entry ? 'selected' : ''}>${entryLabel[k]}</option>`).join('')}
         </select>
-        <button class="mini gray" onclick="renderQaLog()">刷新</button>
+        <button class="mini secondary" onclick="renderQaLog()">刷新</button>
       </div>
       <div class="muted" style="margin-bottom:10px">只有员工会产生使用记录（管理员不能登录前台/MCP）。
         记录所有入口的检索与提问，点击行展开回答全文、命中来源与生效的过滤条件（含部门权限域）。</div>
       <table><tr><th>时间</th><th>账户</th><th>部门</th><th>入口</th><th>问题</th><th>命中</th><th>耗时</th></tr>
       ${rows || `<tr><td colspan="7" class="empty">暂无使用记录</td></tr>`}</table>
       <div class="pager" style="display:flex;gap:8px;align-items:center;margin:10px 0 0">
-        <button class="mini gray" ${qaLogFilter.page <= 1 ? 'disabled' : ''}
+        <button class="mini secondary" ${qaLogFilter.page <= 1 ? 'disabled' : ''}
           onclick="qaLogFilter.page--; renderQaLog()">上一页</button>
         <span class="muted">第 ${qaLogFilter.page} / ${totalPages} 页（共 ${d.total} 条）</span>
-        <button class="mini gray" ${qaLogFilter.page >= totalPages ? 'disabled' : ''}
+        <button class="mini secondary" ${qaLogFilter.page >= totalPages ? 'disabled' : ''}
           onclick="qaLogFilter.page++; renderQaLog()">下一页</button>
       </div>
     </div>`;
 }
 
 /* ---------- 启动 ---------- */
-$('#tabs').innerHTML = TABS.map(t =>
-  `<button data-id="${t.id}" onclick="switchTab('${t.id}')">${t.name}</button>`).join('');
 switchTab('dash');
 // 部门下拉缓存：工作台快速入口「创建员工」不走员工管理页，启动时预取一次
 api('GET', '/api/departments').then(d => { window._emp_deps = d.departments; }).catch(() => {});

@@ -80,7 +80,7 @@ class ManagePaginationTests(IngestHarness):
         self.assertEqual(self.ids(at), ['doc-20', 'doc-21', 'doc-22'])
         self.assertTrue(at.button(key='manage_next_page').disabled)
         self.click(at, 'manage_prev_page')
-        self.assertEqual(self.ids(at)[0], 'doc-20')
+        self.assertEqual(self.ids(at)[0], 'doc-00')
         at.selectbox(key='manage_page_size').select(50)
         self.render(at)
         self.assertEqual(at.number_input(key='manage_page').value, 1)

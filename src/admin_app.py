@@ -23,9 +23,12 @@ from urllib.parse import urlsplit
 from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
+from starlette.routing import Match
 
-from src import auth_db
+from src import auth_db, business_directions, admin_audit
+from src.dashboard_stats import usage_statistics
 
 app = FastAPI(title="Sky Personal RAG · 管理后台", docs_url=None, redoc_url=None)
 # V3.8 安全收紧：不再挂全局 CORS（原 allow_origin_regex=".*" + allow_credentials，
@@ -53,6 +56,57 @@ async def _same_origin_guard(request: Request, call_next):
             if urlsplit(origin).netloc not in allowed:
                 return JSONResponse({"ok": False, "detail": "跨站请求被拒绝"}, status_code=403)
     return await call_next(request)
+
+
+@app.middleware('http')
+async def _admin_operation_audit(request: Request, call_next):
+    path = request.url.path
+    tracked = path.startswith('/api/') and request.method in _STATE_CHANGING_METHODS
+    if not tracked:
+        return await call_next(request)
+    started = time.perf_counter()
+    try:
+        actor = await run_in_threadpool(current_admin, request)
+    except (ValueError, TypeError):
+        actor = None
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        route = request.scope.get('route')
+        endpoint = request.scope.get('endpoint')
+        path_params = request.path_params
+        if endpoint is None:
+            # CSRF 在路由执行前拒绝请求，也应记录原本尝试的管理动作。
+            for candidate in app.routes:
+                matched, child_scope = candidate.matches(request.scope)
+                if matched == Match.FULL:
+                    route = candidate
+                    endpoint = child_scope.get('endpoint')
+                    path_params = child_scope.get('path_params', {})
+                    break
+        action = admin_audit.OPERATIONS.get(getattr(endpoint, '__name__', ''), ('admin_request', ''))[0]
+        event = getattr(request.state, 'admin_audit_event', {})
+        # 身份在操作前快照：停用/删除自身或登出之后仍能追溯操作者。
+        parts = []
+        for key, value in path_params.items():
+            if key.endswith('_id') and str(value).isdigit():
+                parts.append(f'{key}={value}')
+            elif key == 'key' and value in _SERVICE_KEYS:
+                parts.append(f'service={value}')
+            elif key == 'action' and value in {'start', 'stop'}:
+                parts.append(f'action={value}')
+        # 只存路由模板，不存查询参数、原始请求体/响应体、Cookie 或令牌。
+        route_path = getattr(route, 'path', '[unknown route]')
+        await run_in_threadpool(
+            admin_audit.record, admin=actor, event=event, action=action, target=', '.join(parts),
+            method=request.method, path=route_path, status_code=status,
+            duration_ms=int((time.perf_counter() - started) * 1000),
+            ip=request.client.host if request.client else '',
+            user_agent=request.headers.get('user-agent', ''),
+        )
 
 _SESSION_COOKIE = "admin_sess"
 _SESSION_TTL = 7 * 24 * 3600
@@ -116,7 +170,8 @@ def require_admin_api(request: Request) -> dict:
 def _log_from_admin(request: Request, action: str, username: str,
                     success: bool = True, detail: str = "",
                     department: str = "") -> None:
-    """管理后台自身发生的认证事件（真实浏览器 UA + IP）。"""
+    """保留原认证日志，并为统一审计补充业务摘要（每个请求只记录一次审计）。"""
+    request.state.admin_audit_event = dict(username=username, success=success, detail=detail)
     auth_db.log_auth_event(
         action=action, username=username, success=success, detail=detail,
         department=department, entry="admin",
@@ -230,11 +285,10 @@ def admin_shell(request: Request, admin: dict = Depends(require_admin)):
 
 # ---------------------------------------------------------------- JSON API：概览
 @app.get("/api/overview")
-def api_overview(_: dict = Depends(require_admin_api)):
+def api_overview(days: int = Query(30, ge=1, le=90), _: dict = Depends(require_admin_api)):
     deps = auth_db.list_departments()
     users = auth_db.list_users()
     admins = auth_db.list_admins()
-    logs = auth_db.list_login_logs(limit=10, scope="users")
     return {
         "departments": len(deps),
         "departments_enabled": len([d for d in deps if not d["disabled"]]),
@@ -242,7 +296,8 @@ def api_overview(_: dict = Depends(require_admin_api)):
         "users_active": len([u for u in users if u["status"] == "active"]),
         "admins": len(admins),
         "admins_active": len([a for a in admins if a["status"] == "active"]),
-        "recent_logins": logs,
+        "business_directions": len(business_directions.list_directions()),
+        "usage_statistics": usage_statistics(days),
     }
 
 
@@ -351,6 +406,75 @@ def api_service_control(key: str, action: str, _: dict = Depends(require_admin_a
     return JSONResponse(result, status_code=200 if result["ok"] else 400)
 
 
+# ---------------------------------------------------------------- JSON API：业务方向（与权限部门独立）
+class BusinessDirectionBody(BaseModel):
+    name: str = Field(max_length=80)
+    code: str = Field(default='', max_length=64)
+    note: str = Field(default='', max_length=1000)
+
+
+class BusinessDirectionEditBody(BusinessDirectionBody):
+    original: BusinessDirectionBody | None = None
+
+
+@app.get('/api/business-directions')
+def api_business_directions(_: dict = Depends(require_admin_api)):
+    return {'ok': True, 'business_directions': business_directions.list_directions()}
+
+
+@app.get('/api/business-directions/suggest-code')
+def api_business_direction_code(name: str = Query(min_length=1, max_length=80),
+                                _: dict = Depends(require_admin_api)):
+    try:
+        return {'ok': True, 'code': business_directions.suggest_code(name)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post('/api/business-directions')
+def api_business_direction_create(body: BusinessDirectionBody, request: Request,
+                                  admin: dict = Depends(require_admin_api)):
+    try:
+        direction = business_directions.create_direction(body.name, body.code, body.note)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _log_from_admin(request, 'business_direction_create', admin['username'],
+                    detail=f"{direction['name']} ({direction['code']})")
+    return {'ok': True, 'business_direction': direction}
+
+
+@app.get('/api/business-directions/{direction_id}')
+def api_business_direction_detail(direction_id: int, _: dict = Depends(require_admin_api)):
+    direction = business_directions.get_direction(direction_id)
+    if direction is None:
+        raise HTTPException(status_code=404, detail='业务方向不存在')
+    return {'ok': True, 'business_direction': direction}
+
+
+@app.put('/api/business-directions/{direction_id}')
+def api_business_direction_update(direction_id: int, body: BusinessDirectionEditBody, request: Request,
+                                  admin: dict = Depends(require_admin_api)):
+    try:
+        before, after = business_directions.update_direction(
+            direction_id, body.name, body.code, body.note,
+            original=body.original.model_dump() if body.original is not None else None)
+    except business_directions.DirectionConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    changes = []
+    for key, label in [('name', '名称'), ('code', '编号')]:
+        if before[key] != after[key]:
+            changes.append(f'{label}「{before[key]}」→「{after[key]}」')
+    if before['note'] != after['note']:
+        changes.append('备注已更新')
+    _log_from_admin(request, 'business_direction_update', admin['username'],
+                    detail=f"编辑业务方向 #{direction_id}：" + ('；'.join(changes) or '无字段变更'))
+    return {'ok': True, 'business_direction': after}
+
+
 # ---------------------------------------------------------------- JSON API：部门
 @app.get("/api/departments")
 def api_departments(_: dict = Depends(require_admin_api)):
@@ -362,8 +486,17 @@ def api_departments(_: dict = Depends(require_admin_api)):
 
 
 class DepartmentBody(BaseModel):
-    name: str
-    description: str = ""
+    name: str = Field(max_length=32)
+    description: str = Field(default='', max_length=1000)
+
+
+@app.get('/api/departments/{dep_id}')
+def api_department_detail(dep_id: int, _: dict = Depends(require_admin_api)):
+    dep = auth_db.get_department(dep_id)
+    if dep is None:
+        raise HTTPException(status_code=404, detail='部门不存在')
+    dep['employees'] = auth_db.department_counts().get(dep_id, 0)
+    return {'ok': True, 'department': dep}
 
 
 @app.post("/api/departments")
@@ -660,18 +793,31 @@ def api_token_revoke(request: Request, admin: dict = Depends(require_admin_api),
 
 
 # ---------------------------------------------------------------- JSON API：日志
+@app.get('/api/logs/admin-operations')
+def api_admin_operations(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
+                         username: str = Query('', max_length=80),
+                         action: str = Query('', max_length=100), success: bool | None = None,
+                         snapshot_id: int = Query(0, ge=0),
+                         _: dict = Depends(require_admin_api)):
+    return admin_audit.list_operations(page=page, page_size=page_size, username=username,
+                                       action=action, success=success, snapshot_id=snapshot_id)
+
+
 @app.get("/api/logs/auth")
-def api_logs_auth(limit: int = Query(20, le=200), page: int = Query(1, ge=1),
+def api_logs_auth(limit: int = Query(20, ge=1, le=200), page: int = Query(1, ge=1),
                   username: str = "", action: str = "",
                   scope: str | None = Query(None),
+                  login_only: bool = False,
                   _: dict = Depends(require_admin_api)):
     """登录日志：分页（page 从 1 起）；scope="admins"/"users" 分离管理员与员工。"""
+    total = auth_db.count_login_logs(username=username, action=action, scope=scope, login_only=login_only)
+    total_pages = max(1, (total + limit - 1) // limit)
+    page = min(page, total_pages)
     offset = (page - 1) * limit
     logs = auth_db.list_login_logs(limit=limit, offset=offset,
-                                   username=username, action=action, scope=scope)
-    total = auth_db.count_login_logs(username=username, action=action, scope=scope)
+                                   username=username, action=action, scope=scope, login_only=login_only)
     return {"ok": True, "logs": logs, "total": total,
-            "page": page, "page_size": limit}
+            "page": page, "page_size": limit, "total_pages": total_pages}
 
 
 @app.get("/api/logs/qa")
@@ -905,6 +1051,7 @@ def api_bootstrap_admin(body: BootstrapAdminBody, request: Request):
                            entry="admin", ip=(body.client_ip or _web_ip(request)),
                            user_agent=body.user_agent,
                            accept_language=body.accept_language)
+    request.state.admin_audit_event = dict(username=admin['username'], success=True, detail='初始化管理员')
     return {"ok": True, "username": admin["username"]}
 
 

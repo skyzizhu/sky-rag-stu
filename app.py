@@ -72,6 +72,7 @@ from src.upload_plan import (  # noqa: E402  # V3.8 上传/目录导入的重复
     plan_uploads, write_directory_import,
 )
 from src.answer_evaluator import compute_cost, merge_usage, run_evaluation, stage_timing  # noqa: E402
+from src.usage_reporting import usage_for_log  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import (
     SESSIONS_DIR,
@@ -1023,7 +1024,7 @@ def group_write_options(current: list[str] | None = None) -> list[str]:
     规则本体在 src/permissions.write_group_options（纯函数，有单测）。
     """
     _au = st.session_state.get("auth_user") or {}
-    return write_group_options(_au.get("department"), current)
+    return write_group_options(auth_db.department_permission_key(_au.get("department"), _au.get("department_id")), current)
 
 
 def _apply_user_prefs(username: str) -> None:
@@ -1621,7 +1622,7 @@ def page_chat():
                     # V3.7 权限：登录者注入可见部门（服务端强制，UI 改不掉）；
                     # 规则统一在 src/permissions.visible_groups
                     _au = st.session_state.get("auth_user") or {}
-                    _user_groups = visible_groups(_au.get("department"))
+                    _user_groups = visible_groups(auth_db.department_permission_key(_au.get("department"), _au.get("department_id")))
                     result, deltas = answer_stream(
                         question,
                         top_k=st.session_state["top_k"],
@@ -1645,20 +1646,6 @@ def page_chat():
                 answer_ph.markdown(formatted_answer)
                 progress_ph.empty()
                 result.answer = formatted_answer or None
-                # V3.7.1 使用记录：本次问答落 SQLite（回答完成才写，失败不影响主流程）
-                _qa_user = st.session_state.get("auth_user") or {}
-                auth_db.log_qa_event(
-                    username=str(_qa_user.get("username") or "local"),
-                    department=str(_qa_user.get("department") or ""),
-                    entry="web",
-                    question=question,
-                    answer=result.answer or "",
-                    sources=result.sources,
-                    filters=result.filters,
-                    top_k=st.session_state.get("top_k", 5),
-                    elapsed=float(result.elapsed.get("total", 0)),
-                    usage=getattr(result, "usage", None),
-                )
                 # V3.6 回答质量评估：回答完成后才执行（不阻塞流式输出），
                 # 失败降级为仅结构信号，绝不影响问答主流程
                 if st.session_state.get("answer_eval", True):
@@ -1673,6 +1660,20 @@ def page_chat():
                                              "error": f"{type(exc).__name__}: {exc}",
                                              "elapsed": 0.0}
                     eval_ph.empty()
+                # V3.7.1 使用记录：本次问答落 SQLite（回答完成才写，失败不影响主流程）
+                _qa_user = st.session_state.get("auth_user") or {}
+                auth_db.log_qa_event(
+                    username=str(_qa_user.get("username") or "local"),
+                    department=str(_qa_user.get("department") or ""),
+                    entry="web",
+                    question=question,
+                    answer=result.answer or "",
+                    sources=result.sources,
+                    filters=result.filters,
+                    top_k=st.session_state.get("top_k", 5),
+                    elapsed=float(result.elapsed.get("total", 0)),
+                    usage=usage_for_log(result, result.evaluation if st.session_state.get('answer_eval', True) else None),
+                )
                 show_answer_sources(result)
                 st.session_state.messages.append(
                     {"role": "assistant", "content": formatted_answer, "result": result,
@@ -1752,7 +1753,7 @@ def page_upload():
             # V3.7 权限：可见部门多选（默认全员）；写入侧只能选 全员 + 自己部门
             _dep_options = group_write_options()
             upload_groups = st.multiselect(t("upload.groups"), _dep_options,
-                                           default=["all"], help=t("upload.groups.help"))
+                                           default=["all"], format_func=auth_db.department_label, help=t("upload.groups.help"))
         uploads = st.file_uploader(t("upload.dropzone"),
                                    type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
         if uploads:
@@ -1805,7 +1806,7 @@ def page_upload():
             # V3.7 权限：本批目录导入的可见部门（默认全员）；写入侧限自己部门
             _dep_options_dir = group_write_options()
             dir_groups = st.multiselect(t("upload.groups"), _dep_options_dir,
-                                        default=["all"], key="dir_groups",
+                                        default=["all"], key="dir_groups", format_func=auth_db.department_label,
                                         help=t("upload.groups.help"))
         directory_mode = st.segmented_control(
             t("dir.mode"),
@@ -1911,7 +1912,7 @@ def page_upload():
                                              key="web_doc_type", help=t("doc_type.default.help"))
                 web_groups = st.multiselect(t("upload.groups"),
                                             group_write_options(),
-                                            default=["all"], key="web_groups",
+                                            default=["all"], key="web_groups", format_func=auth_db.department_label,
                                             help=t("upload.groups.help"))
 
             if st.button(t("web.ingest"), disabled=not web_url.strip(), width="stretch", type="primary"):
@@ -2190,7 +2191,7 @@ def page_manage():
             with st.spinner(t("manage.sum.spinner")):
                 # V3.7.2 权限：跨文档总结同样按登录者部门过滤（规则同问答）
                 _sum_au = st.session_state.get("auth_user") or {}
-                _sum_groups = visible_groups(_sum_au.get("department"))
+                _sum_groups = visible_groups(auth_db.department_permission_key(_sum_au.get("department"), _sum_au.get("department_id")))
                 result = answer_question(
                     f"请综合知识库中与「{sum_topic.strip()}」相关的全部内容，"
                     "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
@@ -2209,7 +2210,7 @@ def page_manage():
                 filters=result.filters,
                 top_k=10,
                 elapsed=float(result.elapsed.get("total", 0)),
-                usage=getattr(result, "usage", None),
+                usage=usage_for_log(result),
             )
             st.markdown(result.answer or t("manage.sum.empty"))
             if result.sources:
@@ -2561,7 +2562,7 @@ def page_manage():
         _group_options = group_write_options(current=d.get("allowed_groups") or ["all"])
         new_groups = st.multiselect(t("manage.edit.groups"), _group_options,
                                     default=d.get("allowed_groups") or ["all"],
-                                    key=f"ed_groups_{_ed_suffix}",
+                                    key=f"ed_groups_{_ed_suffix}", format_func=auth_db.department_label,
                                     help=t("manage.edit.groups.help"))
         new_version = st.text_input(t("manage.edit.version"), value=d["version"],
                                     key=f"ed_ver_{_ed_suffix}")
