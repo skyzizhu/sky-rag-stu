@@ -54,6 +54,8 @@ def build_messages(context: str, question: str, history: list[dict] | None = Non
     system_prompt = SYSTEM_PROMPT + (
         "\n\n【枚举模式】用户的问题是枚举型提问：请将资料中与问题主题相关的条目逐条完整列出"
         "（每条附一句简要说明和出处），相同实体的重复记录合并并保留出处，不同条目不得概括合并。只统计有证据的条目，文档数量不等于条目数量；资料未覆盖的部分如实说明，不要编造。"
+        "资料中没有问题所问类别的条目时，直接如实说明未找到；"
+        "不得把仅有字面关联（名称或描述恰好含相同字词，但本身不是该类别实例）的内容当条目列出凑数。"
         if enumerate_mode else ""
     )
     if enumerate_mode and evidence_meta:

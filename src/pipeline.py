@@ -670,19 +670,27 @@ def query_evidence(
                       sources=[], filters=effective_filters(filters), trace=trace)
 
     # 列举/盘点类提问：进入独立预算的文档定位/跨文档精排通道。
-    # 双通道判定：Query 理解的语义识别（enumeration 字段）为主，
-    # 关键词词表为兜底（Query 理解关闭或解析失败时依然生效）。
+    # 判定严谨性（语义为主，词表分级兜底）：
+    # - Query 理解成功时以语义判定为准；enumeration=false 时，仅弱信号词
+    #   （哪些/几个/多少——普通疑问句常用）不再强制进入重通道，
+    #   防止"这个方法有哪些缺点"这类单对象属性提问误入 12 次调用的列举流水线；
+    # - 强信号（列出/列举/盘点等明确盘点动词）仍可覆盖语义漏判；
+    # - Query 理解关闭或解析失败时，词表全量兜底（彼时是唯一防线，保持旧行为）。
     # 注意：判定必须用原始问题——Query 理解改写后的查询已丢失计数语气。
     # 参数在节点②之后统一应用（见 use_rerank_now 处）
-    enumeration_mode = any(w in question for w in (
-        "有哪些", "列出", "都有什么", "列举", "全部",
-        "那些", "哪些", "都有", "所有", "什么功能", "什么工具",
-        "功能列表", "几个", "多少个", "多少种",
+    _enum_strong = any(w in question for w in (
+        "列出", "列举", "盘点", "都有什么", "什么功能", "什么工具", "功能列表",
+    ))
+    _enum_weak = any(w in question for w in (
+        "有哪些", "哪些", "全部", "那些", "都有", "所有",
+        "几个", "多少个", "多少种",
         # 计数类问法（如「工作经历有几份」）：答案需要凑齐全部条目，
         # 漏一个词就会召回不全导致计数偏小
         "几份", "几段", "几条", "几次", "几轮", "几家", "几个方面",
         "多少份", "多少段", "多少条", "多少次", "多少轮", "多少家",
     ))
+    # 词表兜底初值：Query 理解不可用时它就是唯一判定（保持旧行为）
+    enumeration_mode = _enum_weak or _enum_strong
     recall_k = top_k            # 基线：非枚举 = top_k（精排开启时在下方过采样）
     ctx_max_items = top_k
 
@@ -705,9 +713,13 @@ def query_evidence(
         search_query = qu.vector_query or question
         qu_filters = dict(qu.filters)
         # 语义判定合并：LLM 识别出计数/列举意图而词表没命中时，同样进入枚举通道——
-        # 覆盖「经历过几家公司」这类词表外的任意计数问法
+        # 覆盖「经历过几家公司」这类词表外的任意计数问法。
+        # 语义明确否定（qu.enumeration=false）时尊重判定：仅弱词命中不再进入重通道；
+        # 强信号（列出/列举/盘点等明确盘点动词）仍可覆盖，防语义漏判清单类提问。
         if qu.enumeration:
             enumeration_mode = True
+        elif qu.ok and not _enum_strong:
+            enumeration_mode = False
         # 返回字段逐项解析：B3 规范的 7 个字段全部展示（未输出 = LLM 按规范省略，取默认值）
         fields_dump = (
             f"intent（意图概括）: {qu.intent or '（未输出）'}\n"
@@ -1073,8 +1085,11 @@ def query_evidence(
     if enum_truncated and result.retrieved:
         coverage = "partial"
     enum_stats["processed_documents"] = len(group_documents(used))
+    # Query 理解的意图概括随证据元数据透出：分批提取与语义复审共用同一次类别理解，
+    # 避免每一级各自重新解读问题（"建模方法"被当成任何名称含"建模"的东西）。
     evidence_meta = {**enum_stats, "coverage": coverage, "dropped": len(dropped or []),
                      "enumeration": enumeration_mode,
+                     "intent": (qu.intent or "") if (use_query_understanding and use_llm and qu) else "",
                      "ctx_max_items": ctx_max_items, "recall_k": recall_k}
     if enumeration_mode:
         trace.append(make_node("📋", "列举覆盖范围", time_str=now_str(),
@@ -1279,7 +1294,8 @@ def answer_stream(
             locked_filters, get_vector_store(), _supplement,
             _rank_documents if use_rerank else None,
             get_llm_client(), cfg, evidence_meta["route"], on_progress=_p,
-            conversation_context=memory_text + "\n" + json.dumps(history or [], ensure_ascii=False))
+            conversation_context=memory_text + "\n" + json.dumps(history or [], ensure_ascii=False),
+            intent=evidence_meta.get("intent", ""))
         for index, usage in enumerate(outcome.calls, 1):
             record_stage_usage(result, f"enumeration_{index}", usage)
         result.elapsed["enumeration"] = outcome.stats["elapsed"]

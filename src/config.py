@@ -22,6 +22,20 @@ def _env(key: str, default: str = "") -> str:
     return value
 
 
+def _local_service_url(key: str, default: str) -> str:
+    """本机服务（Ollama/Qdrant）地址：把 loopback 的 localhost 统一改写为 127.0.0.1。
+
+    Windows 把 localhost 优先解析成 IPv6 ::1，而本机服务只监听 IPv4 时，每个新
+    TCP 连接要先等 ::1 的延迟拒绝（实测 ~2 秒才返回 RST），表现为 chat 回车后
+    答案气泡长时间空白、检索就绪检查卡顿。localhost 与 127.0.0.1 语义等价
+    （都是本机回环），统一走 IPv4 直连零等待；显式配置的其他主机名不受影响。
+    """
+    value = _env(key, default)
+    if value.startswith("http://localhost"):
+        value = "http://127.0.0.1" + value[len("http://localhost"):]
+    return value
+
+
 def _env_int(key: str, default: int) -> int:
     try:
         return int(_env(key, str(default)))
@@ -54,14 +68,17 @@ class AppConfig:
     # 单次回答的输出 token 上限（含思考模型的内部思考；枚举模式答案长，2000 容易被截断）
     llm_max_tokens: int = field(default_factory=lambda: _env_int("LLM_MAX_TOKENS", 8192))
 
-    # 本地向量化（Ollama）
-    ollama_url: str = field(default_factory=lambda: _env("OLLAMA_URL", "http://localhost:11434"))
+    # 本地向量化（Ollama）。地址经 _local_service_url 规范化：localhost → 127.0.0.1，
+    # 避开 Windows localhost IPv6 解析的 ~2 秒连接延迟（详见函数注释）。
+    ollama_url: str = field(default_factory=lambda: _local_service_url(
+        "OLLAMA_URL", "http://127.0.0.1:11434"))
     embedding_model: str = field(
         default_factory=lambda: _env("EMBEDDING_MODEL", "qwen3-embedding:4b")
     )
 
-    # 向量数据库（Qdrant）
-    qdrant_url: str = field(default_factory=lambda: _env("QDRANT_URL", "http://localhost:6333"))
+    # 向量数据库（Qdrant）。同上，localhost → 127.0.0.1。
+    qdrant_url: str = field(default_factory=lambda: _local_service_url(
+        "QDRANT_URL", "http://127.0.0.1:6333"))
     qdrant_collection: str = field(
         default_factory=lambda: _env("QDRANT_COLLECTION", "personal_knowledge")
     )
@@ -104,6 +121,8 @@ class AppConfig:
 
     # 列举第二阶段：预算只针对分批提取与补查，不包含首轮检索。
     enum_stage2_enabled: bool = field(default_factory=lambda: _env_bool("ENUM_STAGE2_ENABLED", True))
+    # 提取后语义复审：剔除仅字面命中关键词、并未真正回答问题的记录（失败保守放行）
+    enum_verify_enabled: bool = field(default_factory=lambda: _env_bool("ENUM_VERIFY_ENABLED", True))
     enum_max_rounds: int = field(default_factory=lambda: max(0, _env_int("ENUM_MAX_ROUNDS", 2)))
     enum_queries_per_round: int = field(default_factory=lambda: max(1, _env_int("ENUM_QUERIES_PER_ROUND", 2)))
     enum_no_new_rounds: int = field(default_factory=lambda: max(1, _env_int("ENUM_NO_NEW_ROUNDS", 2)))

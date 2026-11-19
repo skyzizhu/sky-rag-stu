@@ -5,8 +5,9 @@ import re
 from unittest import mock
 
 from src.enumeration_processing import (process_enumeration, EXTRACTION_PROMPT, PLANNER_PROMPT,
-                                        validated_records, merge_record, BudgetClient, BudgetExceeded,
-                                        ProcessingOutcome, evidence_fragments, render_records)
+                                        VERIFICATION_PROMPT, validated_records, merge_record,
+                                        BudgetClient, BudgetExceeded, ProcessingOutcome,
+                                        evidence_fragments, render_records)
 from src.permissions import scope_filters
 from src.retriever import get_retriever
 from src.pipeline import answer_question
@@ -25,6 +26,10 @@ class FakeExtractor:
             usage_out.update(input=10, output=10, input_cached=0)
         if messages[0]['content'] == PLANNER_PROMPT:
             return json.dumps({'queries': self.plans.pop(0) if self.plans else []}), 0.0
+        if messages[0]['content'] == VERIFICATION_PROMPT:
+            count = len(data.get('candidates', []))
+            return json.dumps({'verdicts': [{'index': i + 1, 'relevant': True}
+                                            for i in range(count)]}), 0.0
         items = []
         for source in data['materials']:
             for match in re.finditer(r'(项目[甲乙丙丁]) (PRJ-\d+) 使用RAG[^。]*。', source['text']):
@@ -45,13 +50,14 @@ class EnumerationProcessingTests(IngestHarness):
         self.ingest([path], default_groups=groups)
         return next(d for d in self.store.list_documents() if d['source'] == name)
 
-    def run_processing(self, docs=None, llm=None, route='document', cfg=None, retrieve=None, filters=None):
+    def run_processing(self, docs=None, llm=None, route='document', cfg=None, retrieve=None, filters=None,
+                       question='哪些项目使用RAG', intent=""):
         docs = self.store.list_documents() if docs is None else docs
         filters = filters or {'status': 'active', 'allowed_groups': ['all']}
-        return process_enumeration('哪些项目使用RAG', docs,
+        return process_enumeration(question, docs,
                                    [(d['document_id'], d['version']) for d in docs], filters,
                                    self.store, retrieve or (lambda query, deadline: []), None,
-                                   llm or FakeExtractor(), cfg or self.cfg, route)
+                                   llm or FakeExtractor(), cfg or self.cfg, route, intent=intent)
 
     def test_reads_multiple_pages_and_extracts_tail(self):
         body = '项目甲 PRJ-101 使用RAG完成检索。' + '背景正文。' * 300
@@ -300,3 +306,98 @@ class EnumerationProcessingTests(IngestHarness):
         self.assertFalse(outcome.records)
         self.assertEqual(outcome.stats['stop_reason'], 'processing_error')
         self.assertEqual(outcome.stats['valid_batches'], 0)
+
+    # ---------- 提取后语义复审（相关性把关） ----------
+
+    def _verify_llm(self, llm, verdicts=None, error=False):
+        """包一层语义复审应答：verdicts 为判定表，error=True 时复审直接抛错。"""
+        original = llm.chat
+        def chat(messages, usage_out=None, **kwargs):
+            if messages[0]['content'] == VERIFICATION_PROMPT:
+                if error:
+                    raise RuntimeError('verifier down')
+                if usage_out is not None:
+                    usage_out.update(input=5, output=5, input_cached=0)
+                return json.dumps({'verdicts': verdicts or []}), 0.0
+            return original(messages, usage_out=usage_out, **kwargs)
+        llm.chat = chat
+        return llm
+
+    def test_irrelevant_keyword_hits_are_removed_by_relevance_review(self):
+        self.note('项目甲 PRJ-101 使用RAG 做无人机实时建模产品展示。')
+        llm = self._verify_llm(FakeExtractor(), verdicts=[{'index': 1, 'relevant': False}])
+        outcome = self.run_processing(llm=llm)
+        self.assertEqual(outcome.records, [])
+        self.assertEqual(outcome.stats['verify_removed'], 1)
+        self.assertFalse(outcome.stats['verify_error'])
+        self.assertEqual(outcome.sources, [])
+        self.assertIn('0 条', render_records(outcome))
+
+    def test_relevant_records_survive_relevance_review(self):
+        self.note('项目甲 PRJ-101 使用RAG。')
+        llm = self._verify_llm(FakeExtractor(), verdicts=[{'index': 1, 'relevant': True}])
+        outcome = self.run_processing(llm=llm)
+        self.assertEqual(len(outcome.records), 1)
+        self.assertEqual(outcome.stats['verify_removed'], 0)
+        self.assertEqual(len(outcome.sources), 1)
+        self.assertEqual(outcome.records[0]['citations'], [1])
+
+    def test_mixed_review_filters_orphan_sources_and_keeps_citations(self):
+        self.note('项目甲 PRJ-101 使用RAG。')
+        self.note('项目乙 PRJ-102 使用RAG。', 'b.md')
+        llm = self._verify_llm(FakeExtractor(), verdicts=[{'index': 1, 'relevant': True},
+                                                          {'index': 2, 'relevant': False}])
+        outcome = self.run_processing(llm=llm)
+        self.assertEqual([r['name'] for r in outcome.records], ['项目甲'])
+        self.assertEqual(outcome.stats['verify_removed'], 1)
+        self.assertEqual(len(outcome.sources), 1)
+        self.assertEqual(outcome.records[0]['citations'], [1])
+
+    def test_relevance_review_failure_fails_open(self):
+        self.note('项目甲 PRJ-101 使用RAG。')
+        llm = self._verify_llm(FakeExtractor(), error=True)
+        outcome = self.run_processing(llm=llm)
+        self.assertEqual(len(outcome.records), 1)
+        self.assertEqual(outcome.stats['verify_removed'], 0)
+        self.assertTrue(outcome.stats['verify_error'])
+        self.assertEqual(len(outcome.sources), 1)
+        # fail-open 不能是静默的：输出里必须可见标注复审未完成
+        self.assertIn('语义复审未完成', render_records(outcome))
+
+    def test_relevance_review_can_be_disabled(self):
+        self.note('项目甲 PRJ-101 使用RAG。')
+        llm = FakeExtractor()
+        outcome = self.run_processing(llm=llm, cfg=replace(self.cfg, enum_verify_enabled=False))
+        self.assertEqual(len(outcome.records), 1)
+        self.assertFalse(any(messages[0]['content'] == VERIFICATION_PROMPT
+                             for messages, _ in llm.inputs))
+
+    # ---------- 意图锚点（target_intent）贯通提取与复审 ----------
+
+    def test_intent_anchor_reaches_extraction_and_review(self):
+        self.note('项目甲 PRJ-101 使用RAG。')
+        llm = FakeExtractor()
+        self.run_processing(llm=llm, question='知识库里有哪些建模方法？',
+                            intent='用户想知道建模的方法/技术/流程本身')
+        extraction_payloads = [json.loads(messages[-1]['content'])
+                               for messages, _ in llm.inputs
+                               if messages[0]['content'] == EXTRACTION_PROMPT]
+        self.assertTrue(extraction_payloads)
+        for payload in extraction_payloads:
+            self.assertEqual(payload['target_intent'], '用户想知道建模的方法/技术/流程本身')
+        review_payloads = [json.loads(messages[-1]['content'])
+                           for messages, _ in llm.inputs
+                           if messages[0]['content'] == VERIFICATION_PROMPT]
+        self.assertTrue(review_payloads)
+        for payload in review_payloads:
+            self.assertEqual(payload['target_intent'], '用户想知道建模的方法/技术/流程本身')
+
+    def test_intent_defaults_to_empty_when_absent(self):
+        self.note('项目甲 PRJ-101 使用RAG。')
+        llm = FakeExtractor()
+        outcome = self.run_processing(llm=llm)
+        payloads = [json.loads(messages[-1]['content'])
+                    for messages, _ in llm.inputs
+                    if messages[0]['content'] == EXTRACTION_PROMPT]
+        self.assertTrue(all(payload['target_intent'] == '' for payload in payloads))
+        self.assertEqual(len(outcome.records), 1)

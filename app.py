@@ -528,6 +528,24 @@ body:has([data-testid="stSidebarCollapseButton"]) .st-key-chat_composer {
 .hero .pill {display: inline-block; background: rgba(99,102,241,.15);
   border: 1px solid rgba(129,140,248,.2); border-radius: 999px;
   padding:2px 9px;font-size:.66rem;margin-right:5px;color:#A5B4FC;}
+/* 开启新会话按钮并入 hero 蓝卡：有消息时 hero 与按钮同行，整行承担卡片底色，
+   .hero 自身退化为透明内容区（空会话时 .hero 仍是独立卡片，样式不变） */
+div[data-testid="stHorizontalBlock"]:has(.hero) {
+  position:relative;overflow:hidden;margin-bottom:12px;padding:14px 20px 18px 24px;gap:12px;
+  background:linear-gradient(125deg,#17163A 0%,#302B78 48%,#5046E5 100%);
+  border-radius:18px;border:1px solid rgba(129,140,248,.2);box-shadow:0 12px 32px rgba(49,46,129,.16);}
+div[data-testid="stHorizontalBlock"]:has(.hero) .hero {
+  background:none;border:none;box-shadow:none;border-radius:0;padding:0;margin-bottom:0;}
+/* 卡片内白底按钮：深色渐变上高对比、一眼可见 */
+div[data-testid="stHorizontalBlock"]:has(.hero) button[kind="primary"] {
+  white-space:nowrap;background:#FFFFFF !important;color:#4338CA !important;
+  border:1px solid rgba(255,255,255,.7) !important;
+  box-shadow:0 2px 10px rgba(15,23,42,.22) !important;font-weight:600;}
+div[data-testid="stHorizontalBlock"]:has(.hero) button[kind="primary"]:hover {
+  background:#EEF2FF !important;border-color:#FFFFFF !important;transform:translateY(-1px);}
+/* 状态胶囊与卡片底部留出间距（换行成多行时行距同样生效） */
+div[data-testid="stHorizontalBlock"]:has(.hero) .hero .pill,
+.hero .pill {margin:3px 5px 5px 0;}
 [data-testid="stMetric"] {background: var(--bg-card);
   border: 1px solid var(--border-subtle); border-radius: 16px; padding: 16px 18px;box-shadow:var(--shadow-card);}
 [data-testid="stMetric"]:hover {border-color: rgba(129,140,248,.15);}
@@ -588,7 +606,7 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
 [data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stPageLink"] a {
   position:absolute !important;inset:0 !important;width:100% !important;height:100% !important;
   min-height:100% !important;border-radius:9px !important;padding:7px 40px 22px 10px !important;
-  display:flex !important;gap:0 !important;font-size:.64rem !important;font-weight:500 !important;line-height:1.35 !important;
+  display:flex !important;gap:0 !important;font-size:calc(.64rem + 1px) !important;font-weight:500 !important;line-height:1.35 !important;
   justify-content:flex-start !important;align-items:flex-start !important;text-align:left !important;z-index:1 !important;
   color:var(--text-secondary) !important;background:transparent !important;text-decoration:none !important;}
 [data-testid="stSidebar"] [class*="st-key-hs_"] .stButton > button:hover,
@@ -609,7 +627,7 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
   width:100% !important;text-align:left !important;justify-content:flex-start !important;}
 [data-testid="stSidebar"] [class*="st-key-hs_"] [data-testid="stMarkdownContainer"] p {
   display:block !important;width:100% !important;margin:0 !important;padding:0 !important;
-  color:var(--text-secondary) !important;font-size:.64rem !important;font-weight:500 !important;
+  color:var(--text-secondary) !important;font-size:calc(.64rem + 1px) !important;font-weight:500 !important;
   line-height:1.35 !important;text-align:left !important;white-space:nowrap !important;
   overflow:hidden !important;text-overflow:ellipsis !important;}
 [data-testid="stSidebar"] [class*="st-key-del_"] .stButton > button {
@@ -638,7 +656,7 @@ hr {border: none; border-top: 1px solid rgba(148,163,184,.06);}
   position:absolute !important;left:10px !important;bottom:6px !important;width:auto !important;
   z-index:2 !important;pointer-events:none !important;}
 [data-testid="stSidebar"] [class*="st-key-session_item_"] [data-testid="stCaptionContainer"] {
-  color:var(--text-muted) !important;font-size:.62rem !important;line-height:1.2 !important;
+  color:var(--text-muted) !important;font-size:calc(.62rem + 1px) !important;line-height:1.2 !important;
   position:static !important;padding:0 !important;margin:0 !important;letter-spacing:.01em;}
 [data-testid="stSidebar"] [class*="st-key-session_item_"] [data-testid="stCaptionContainer"] p {
   margin:0 !important;}
@@ -752,6 +770,7 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
   font-family: 'Inter', sans-serif !important;}
 @media (max-width: 760px) {
   .hero {padding:15px 17px;border-radius:15px;}
+  div[data-testid="stHorizontalBlock"]:has(.hero) {padding:14px 16px 18px;border-radius:15px;}
   .hero h1 {font-size:1.1rem;}
   .block-container {padding-top:1rem !important;}
   .st-key-chat_composer {left:50% !important;width:94vw !important;}
@@ -1416,30 +1435,12 @@ def page_chat():
     st.session_state.setdefault("conversation_state", {})
     if st.session_state.get("chat_save_conflict"):
         st.warning(t("chat.save_conflict"))
-    st.markdown(
-        f"""
-        <div class="hero">
-          <h1>{t("chat.hero.title")}</h1>
-          <p>{t("chat.hero.sub")}</p>
-          {status_pills()}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
     if "messages" not in st.session_state:
         st.session_state.messages = []
-
-    # V3.7.1 空会话引导：示例问题一键提问（点击后走与手输完全相同的问答流程）
-    if not st.session_state.messages:
-        ex_cols = st.columns(3)
-        for i, ex_key in enumerate(("chat.ex.1", "chat.ex.2", "chat.ex.3")):
-            if ex_cols[i].button(t(ex_key), key=f"chat_example_{i}", width="stretch"):
-                st.session_state["chat_ask_example"] = t(ex_key)
-
+    # 「开启新会话」并入 hero 蓝卡右侧：有消息才显示——空会话点了也只是把空状态重置一遍
     if st.session_state.messages:
-        c1, c2 = st.columns([4, 1])
-        with c2:
+        hero_col, new_col = st.columns([5, 1.2], gap="small", vertical_alignment="center")
+        with new_col:
             def _new_session_cb():
                 st.session_state["session_id"] = new_session_id()
                 st.session_state.messages = []
@@ -1447,15 +1448,29 @@ def page_chat():
                 st.session_state.pop("chat_save_conflict", None)
                 st.query_params.pop("session", None)
                 st.query_params.pop("load", None)
-            if c2.button(
-                t("chat.new_session"),
-                width="stretch",
-                type="primary",
-                icon=":material/add_comment:",
-                key="new_chat_session",
-                on_click=_new_session_cb,
-            ):
-                pass
+            st.button(t("chat.new_session"), width="stretch", type="primary",
+                      icon=":material/add_comment:", key="new_chat_session",
+                      on_click=_new_session_cb)
+    else:
+        hero_col = st.container()
+    with hero_col:
+        st.markdown(
+            f"""
+            <div class="hero">
+              <h1>{t("chat.hero.title")}</h1>
+              <p>{t("chat.hero.sub")}</p>
+              {status_pills()}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # V3.7.1 空会话引导：示例问题一键提问（点击后走与手输完全相同的问答流程）
+    if not st.session_state.messages:
+        ex_cols = st.columns(3)
+        for i, ex_key in enumerate(("chat.ex.1", "chat.ex.2", "chat.ex.3")):
+            if ex_cols[i].button(t(ex_key), key=f"chat_example_{i}", width="stretch"):
+                st.session_state["chat_ask_example"] = t(ex_key)
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"], avatar="🙋" if message["role"] == "user" else "🧠"):
@@ -2165,7 +2180,7 @@ def page_manage():
         size_col, prev_col, page_col, next_col = st.columns(
             [2, 1, 1.5, 1], vertical_alignment="bottom"
         )
-    page_size = size_col.selectbox(t("manage.page_size"), [10, 20, 50],
+    page_size = size_col.selectbox(t("manage.page_size"), [20, 50, 100],
                                     key="manage_page_size", on_change=_reset_manage_page)
     total_pages = max(1, (len(filtered) + page_size - 1) // page_size)
     # 删除末页文件后自动回到最后一个有效页码。
@@ -2654,9 +2669,10 @@ def page_params_overview():
 
     st.subheader(t("params.group.processing"))
     processing_keys = (
-        "ENUM_STAGE2_ENABLED", "ENUM_MAX_ROUNDS", "ENUM_QUERIES_PER_ROUND", "ENUM_NO_NEW_ROUNDS",
-        "ENUM_MAX_CALLS", "ENUM_MAX_SECONDS", "ENUM_MAX_TOKENS", "ENUM_BATCH_TOKENS",
-        "ENUM_OUTPUT_TOKENS", "ENUM_PAGE_CARDS", "ENUM_MAX_CARDS", "ENUM_MAX_DOCUMENTS", "ENUM_MAX_ITEMS",
+        "ENUM_STAGE2_ENABLED", "ENUM_VERIFY_ENABLED", "ENUM_MAX_ROUNDS", "ENUM_QUERIES_PER_ROUND",
+        "ENUM_NO_NEW_ROUNDS", "ENUM_MAX_CALLS", "ENUM_MAX_SECONDS", "ENUM_MAX_TOKENS",
+        "ENUM_BATCH_TOKENS", "ENUM_OUTPUT_TOKENS", "ENUM_PAGE_CARDS", "ENUM_MAX_CARDS",
+        "ENUM_MAX_DOCUMENTS", "ENUM_MAX_ITEMS",
     )
     _show_parameters([(f"{t('params.' + key + '.label')} {key}", getattr(cfg, key.lower()),
                        t("params." + key + ".note")) for key in processing_keys])

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import unittest
 from unittest import mock
 
@@ -97,6 +98,79 @@ class EnumerationChannelTests(IngestHarness):
         rerank_nodes = [n for n in result.trace if "Rerank" in str(n.get("name", ""))]
         self.assertEqual(len(rerank_nodes), 1)
         self.assertEqual(rerank_nodes[0].get("status"), "跳过（枚举模式）")
+
+
+class EnumeratePromptGuardTests(unittest.TestCase):
+    """兜底生成的枚举模式提示：没有目标类别条目就如实说，不拿字面关联凑数。"""
+
+    def test_prompt_forbids_padding_missing_items(self):
+        from src.prompt import build_messages
+        messages = build_messages('资料附页', '知识库里有哪些建模方法？',
+                                  enumerate_mode=True,
+                                  evidence_meta={'coverage': 'partial', 'route': 'document'})
+        system = messages[0]['content']
+        self.assertIn('直接如实说明未找到', system)
+        self.assertIn('不得把仅有字面关联', system)
+        self.assertIn('coverage=partial', system)
+
+
+
+
+class EnumerationRoutingRigorTests(IngestHarness):
+    """列举路由严谨性：语义判定为主，词表分级（强/弱信号）兜底。"""
+
+    def setUp(self):
+        super().setUp()
+        self.use_fakes()
+
+    def _ingest_doc(self, n_sections: int = 2):
+        sections = "\n".join(f"### 功能 {i:02d}\n这是功能 {i:02d} 的详细说明。" for i in range(1, n_sections + 1))
+        path = self.knowledge / "learning" / "general" / "rigor.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"# 测试文档\n\n{sections}\n", encoding="utf-8")
+        self.ingest([path])
+        return path
+
+    def _ask_with_qu(self, question, qu_enumeration):
+        from types import SimpleNamespace
+        qu = SimpleNamespace(ok=True, enumeration=qu_enumeration, intent='', vector_query='',
+                             keyword_query=[], filters={}, sub_queries=[], time_range='',
+                             enumeration_scope='', usage={}, elapsed=0.0,
+                             system_prompt='', user_prompt='', raw_output='', error='')
+        llm = mock.Mock()
+        llm.chat.return_value = (json.dumps({'items': []}), 0.0)
+        llm.chat_stream.return_value = iter(['普通回答'])
+        with mock.patch('src.pipeline.understand_query', return_value=qu),              mock.patch('src.pipeline.get_llm_client', return_value=llm),              contextlib.redirect_stdout(io.StringIO()):
+            return answer_question(question, use_llm=True, use_rerank=False,
+                                   use_query_understanding=True, config=self.cfg)
+
+    def test_weak_keyword_with_semantic_negative_stays_ordinary(self):
+        """语义明确否定 + 仅弱词（有哪些）命中 → 不进入列举重通道。"""
+        self._ingest_doc(2)
+        result = self._ask_with_qu('这个方法有哪些缺点？', qu_enumeration=False)
+        self.assertFalse(result.enumeration)
+        self.assertNotIn('stage2', result.evidence_meta)
+        self.assertEqual(result.answer, '普通回答')
+
+    def test_strong_keyword_overrides_semantic_negative(self):
+        """强信号（列出）防语义漏判：QU 误判 false 仍进列举通道。"""
+        self._ingest_doc(2)
+        result = self._ask_with_qu('把使用RAG的工具列出来', qu_enumeration=False)
+        self.assertTrue(result.enumeration)
+        self.assertEqual(result.evidence_meta.get('stage2', {}).get('status'), 'executed')
+
+    def test_keyword_fallback_when_query_understanding_disabled(self):
+        """QU 关闭时词表全量兜底（旧行为保持）：弱词也能触发。"""
+        self._ingest_doc(2)
+        llm = mock.Mock()
+        llm.chat.return_value = (json.dumps({'items': []}), 0.0)
+        llm.chat_stream.return_value = iter(['普通回答'])
+        with mock.patch('src.pipeline.get_llm_client', return_value=llm),              contextlib.redirect_stdout(io.StringIO()):
+            result = answer_question('有哪些项目使用RAG', use_llm=True, use_rerank=False,
+                                     use_query_understanding=False, config=self.cfg)
+        self.assertTrue(result.enumeration)
+
+
 
 
 if __name__ == "__main__":
