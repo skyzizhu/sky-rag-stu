@@ -104,8 +104,9 @@ class FilenameVersionIngestTests(IngestHarness):
         self.assertEqual(self.versions(), {'2.3': 'active'})
 
     def test_standardized_names_reach_both_ledger_and_vector_cards(self):
-        for name in ['xxx_1_2.md', 'xxx_V_1_2.md', 'xxx_v_1_2.md', 'xxx_第1_2版.md']:
-            path = self.write_note('内容', name)
+        for index, name in enumerate(['xxx_1_2.md', 'xxx_V_1_2.md', 'xxx_v_1_2.md', 'xxx_第1_2版.md']):
+            # Windows 文件名不区分大小写，V/v 用例放不同目录避免互相覆盖。
+            path = self.write_note('内容', name, folder=f'learning/case{index}')
             self.ingest([path])
             self.assertEqual(self.ledger_version(path), '1.2')
             self.assertEqual(self.versions(name), {'1.2': 'active'})

@@ -1978,7 +1978,10 @@ def _show_ingest_result(summary):
         st.dataframe(
             [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): domain_label(r["domain"]),
               t("ingest.col.category"): r["category"],
-              t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"]}
+              t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"],
+              t("version.col.declared"): r.get("document_version") or t("version.empty"),
+              t("version.col.status"): t("version.state." + r.get("document_version_status", "unavailable")),
+              t("version.source"): r.get("document_version_source") or "—"}
              for r in summary.file_rows],
             width="stretch", hide_index=True)
     for f in summary.failed_files:
@@ -2201,6 +2204,8 @@ def page_manage():
                 "Topic": ", ".join(d["topic"]) or "-",
                 "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
                 "Version": d["version"],
+                t("version.col.declared"): d.get("document_version") or t("version.empty"),
+                t("version.col.status"): t("version.state." + d.get("document_version_status", "unavailable")),
                 "密级": d.get("classification") or "公开",
                 "Status": d["status"], t("manage.col.chunks"): d["chunks"],
                 t("manage.col.url"): (origin.get("url") or None)}
@@ -2222,7 +2227,8 @@ def page_manage():
                                                              help=t("manage.col.url.help")),
         },
         disabled=[t("manage.col.file"), t("manage.col.path"), t("manage.col.type"), "Domain",
-                  "Category", "Topic", "Groups", "Version", "密级", "Status", t("manage.col.chunks"),
+                  "Category", "Topic", "Groups", "Version", t("version.col.declared"),
+                  t("version.col.status"), "密级", "Status", t("manage.col.chunks"),
                   t("manage.col.url")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
@@ -2282,7 +2288,8 @@ def page_manage():
         return
 
     selected_id = next(iter(selected_ids))
-    d = next(item for item in filtered if item["document_id"] == selected_id)
+    choices = [item for item in filtered if item["document_id"] == selected_id]
+    d = next((item for item in choices if item["status"] in ("active", "archive")), choices[0])
     st.divider()
 
     head_l, head_r = st.columns([2.2, 1])
@@ -2299,6 +2306,15 @@ def page_manage():
             unsafe_allow_html=True,
         )
         st.caption(t("manage.detail.cards", id=d["document_id"], n=d["chunks"]))
+        st.caption(t("version.detail", value=d.get("document_version") or t("version.empty"),
+                     source=t("version.manual") if d.get("document_version_source") == "manual"
+                     else d.get("document_version_source") or "—"))
+        st.caption(t("version.revision_note"))
+        if d.get("document_version_status") == "needs_review":
+            st.warning(t("version.conflict"))
+        if d.get("document_version_evidence"):
+            with st.expander(t("version.evidence")):
+                st.dataframe(d["document_version_evidence"], hide_index=True, width="stretch")
         if origin:
             if origin.get("title") and origin["title"] != d["source"]:
                 st.caption(f"{t('manage.col.url')}：{html.escape(origin['title'])}")
@@ -2359,12 +2375,23 @@ def page_manage():
                                     help=t("manage.edit.groups.help"))
         new_version = st.text_input(t("manage.edit.version"), value=d["version"],
                                     key=f"ed_ver_{_ed_suffix}")
+        _declared_suffix = f"{_ed_suffix}_{d['version']}_{d.get('version_content_hash', '')}_{st.session_state.get('manage_table_revision', 0)}"
+        declared_version = st.text_input(t("version.col.declared"), value=d.get("document_version") or "",
+                                         key=f"ed_declared_{_declared_suffix}")
+        confirm_version = st.checkbox(t("version.confirm"), key=f"ed_confirm_{_declared_suffix}",
+                                      disabled=d["status"] not in ("active", "archive"))
         if st.button(t("manage.edit.save"), type="primary"):
             updates = {"title": new_title, "category": new_category,
                        "topic": [t.strip() for t in new_topic.split(",") if t.strip()],
-                       "version": new_version,
                        "allowed_groups": new_groups}
+            if new_version != d["version"]:
+                updates["version"] = new_version
             try:
+                if confirm_version:
+                    if new_version != d["version"]:
+                        raise ManageError(t("version.no_revision_change"))
+                    __import__("src.manage", fromlist=["confirm_document_version"]).confirm_document_version(
+                        d["path"], declared_version, d["version"], d.get("version_content_hash", ""))
                 info = __import__("src.manage", fromlist=["update_metadata"]).update_metadata(d["path"], updates)
                 st.toast(info["message"], icon="✅")
                 st.session_state["manage_table_revision"] = \

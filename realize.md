@@ -140,6 +140,26 @@
   `owner`（入库人登录名，ingest_files 新增 owner 参数，Web 上传自动记录，切片继承进卡片 payload）。
   注意：切片/元数据规则变化不自动作用于已入库文件，需重建或重新入库后这些字段才有值。
 
+### A2.0 文档声明版本识别（2026-11-19）
+
+正式文档版本与入库 `version` 分开记录。`version` 仍沿用文件名/FM/覆盖/自动递增逻辑，参与切片ID；新字段不改变该逻辑。
+
+```text
+原文件 → 现有解析器 → 正文 + 限定版本线索（version_regions）
+  → 明确版本标签匹配 + 文件名/FM候选 → 规范化数字
+  → 来源一致：declared；仅文件名：filename_only
+  → 多值冲突/无效标记/仅OCR：needs_review（不选最大值）
+  → 无声明：undeclared；无可用范围：unavailable
+  → 文档metadata → 全部切片payload + 台账version_info
+```
+
+- `src/document_version.py`：保守正则只匹配独立声明行/表格单元格（文档版本、版本号、版次、Document Version），代码围栏内的示例不识别。复用文件名数字规范化，不把裸末尾编号作为正式声明依据。
+- `src/parser.py`：PDF第1页、PPT第1张可见原生文字各最多4000字符；PPT备注排除；DOCX仅开头20个非空块、最多4000字符，遇显式分页停止，不宣称有物理页码。TXT/MD/RTF/HTML为开头文本；Excel不根据常规表格猜测版本。现有OCR有线索时单列并标非权威，源正文输出不变。
+- 字段：`document_version`（空=未定）、`document_version_status`、`document_version_source`、`document_version_evidence`（有限候选原文/规范值/位置/是否原生）。没有LLM或Office自定义属性推断。
+- 人工确认：在原编辑档案入口明确勾选，只写当前文件指纹及入库版本的决定。当前active/archive卡片可确认；历史expired不重标；源文件不改写。内容变更、入库版本改变后确认失效。归档/恢复重新提取，避免旧路径的确认默默沿用。
+- 确认并发边界：`version_content_hash` 随卡片进入列表，UI key及确认请求绑定页面所见指纹；后端核验指纹、台账修订和active/archive卡片，零匹配拒绝，不更新确认台账。台账保留自动检测结果 `version_detection`，与人工覆盖 `version_info` 独立；手动改入库Version时撤销确认并恢复检测信息，同时同步台账修订，不重标expired历史。
+- `Version` 和正式声明不是同一个数字：前者维持既有身份行为，后者支持业务建档；原有默认1.0不被冒充为文件明确声明。不迁移旧数据。
+
 ### A2.1 领域注册表（V3.8）——编号是数据身份，名称只用于显示
 
 领域不再写死在代码里，改由前台「知识库 → 领域管理」页维护（需要管理后台分配「领域管理」权限），存在 `storage/domains.json`，前台、入库流水线、MCP、命令行入库共用。文件不存在时等价于原来的 6 个内置领域，存量数据无需迁移。

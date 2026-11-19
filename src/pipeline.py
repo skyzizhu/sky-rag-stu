@@ -228,6 +228,7 @@ def _ingest_files_impl(
     # ② 解析 + 生成统一 Metadata（目录推断 → Front Matter 覆盖 → 系统兜底）
     print("② 解析文件 → 统一文本 + Metadata")
     docs: list[ParsedDocument] = []
+    detection_by_rel: dict[str, dict] = {}
     llm = get_llm_client() if cfg.auto_tag else None
     for path in files:
         try:
@@ -249,6 +250,10 @@ def _ingest_files_impl(
             updated_at=parsed.metadata["updated_at"],
             front_matter=parsed.front_matter,
         )
+        from src.document_version import detect_document_version, apply_confirmation
+        declared = detect_document_version(path.name, parsed.version_regions, parsed.front_matter)
+        detection_by_rel[rel] = declared
+        parsed.metadata.update(declared)
         # V3.2 版本管理：只有内容真的变化（updated）才升版本号；
         # 强制重入库（内容未变）不涨版本，否则每次点「重新入库」版本都 +0.1
         prev_version = state.get(rel, {}).get("version")
@@ -276,6 +281,11 @@ def _ingest_files_impl(
             if key in ("title", "category", "topic", "tags", "version", "status",
                        "allowed_groups", "classification") and value:
                 parsed.metadata[key] = value
+        current_hash = next(h for _p, r, h in processed if r == rel)
+        parsed.metadata["version_content_hash"] = current_hash
+        parsed.metadata.update(apply_confirmation(
+            declared, state.get(rel, {}).get("version_confirmation"),
+            current_hash, str(parsed.metadata["version"])))
         # V3.7 权限：上传表单的"可见部门"作为批级默认——只在 Front Matter 未显式
         # 声明（即仍为默认全员）时生效，不覆盖档案的显式设置
         if default_groups is not None and parsed.metadata.get("allowed_groups") == ["all"]:
@@ -310,6 +320,9 @@ def _ingest_files_impl(
             "category": meta["category"],
             "status": meta["status"],
             "chunks": chunks_by_file.get(meta["path"], 0),
+            "document_version": meta["document_version"],
+            "document_version_status": meta["document_version_status"],
+            "document_version_source": meta["document_version_source"],
         })
     print(f"   共切出 {len(chunks)} 张知识卡片")
     # 空文本文件（0 卡片，如无文字的扫描件/图片）：显式警告并跳过台账指纹——
@@ -337,8 +350,12 @@ def _ingest_files_impl(
                 document_id_for(rel),
             )
             chunk_count = sum(1 for c in chunks if c.metadata["path"] == rel)
+            version_info = next(({key: d.metadata[key] for key in
+                                  ("document_version", "document_version_status", "document_version_source", "document_version_evidence")}
+                                 for d in cleaned_docs if d.metadata["path"] == rel), {})
             istate.update_entry(state, rel, doc_id, chunk_count, file_hash_value,
-                                version=versions_by_rel[rel])
+                                version=versions_by_rel[rel], version_info=version_info,
+                                version_detection=detection_by_rel[rel])
 
     if not chunks:
         # 全部文件都没有切出卡片（空文件等）：也记台账（0 卡片），

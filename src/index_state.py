@@ -52,11 +52,15 @@ def save_state(state: dict) -> None:
 
 
 def update_entry(state: dict, relative_path: str, document_id: str,
-                 chunks: int, file_hash_value: str, version: str = "1.0") -> None:
+                 chunks: int, file_hash_value: str, version: str = "1.0",
+                 version_info: dict | None = None,
+                 version_detection: dict | None = None) -> None:
     from datetime import datetime
 
     # 重新入库更新指纹时保留人工档案（尤其是可见部门），避免下次入库丢失权限。
-    overrides = state.get(relative_path, {}).get("overrides")
+    previous = state.get(relative_path, {})
+    overrides = previous.get("overrides")
+    confirmation = previous.get("version_confirmation")
     state[relative_path] = {
         "hash": file_hash_value,
         "document_id": document_id,
@@ -66,6 +70,12 @@ def update_entry(state: dict, relative_path: str, document_id: str,
     }
     if overrides:
         state[relative_path]["overrides"] = overrides
+    if version_info is not None:
+        state[relative_path]["version_info"] = version_info
+    if version_detection is not None:
+        state[relative_path]["version_detection"] = version_detection
+    if confirmation and confirmation.get("hash") == file_hash_value and confirmation.get("revision") == version:
+        state[relative_path]["version_confirmation"] = confirmation
 
 
 def remove_entry(state: dict, relative_path: str) -> None:

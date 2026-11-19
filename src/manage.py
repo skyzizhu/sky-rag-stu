@@ -142,6 +142,55 @@ def restore(archived_relative_path: str, owner: str | None = None) -> dict:
             "summary": summary}
 
 
+def confirm_document_version(relative_path: str, value: str, revision: str,
+                             expected_hash: str) -> dict:
+    """显式确认当前入库文件的正式版本，不改源文件与历史修订。"""
+    from src import index_state as istate, index_epoch
+    from src.document_version import normalize_version, apply_confirmation
+    from src.keyword_search import invalidate_cache
+    from src.pipeline import clear_qa_cache
+    from qdrant_client import models
+
+    normalized = normalize_version(value)
+    if not normalized:
+        raise ManageError("请填写明确的文档版本，例如 1.2 或 V1.2")
+    path, _, cfg = _resolve(relative_path)
+    state = istate.load_state()
+    entry = state.get(relative_path)
+    if not entry or entry.get("version") != revision:
+        raise ManageError("当前入库版本已变化，请刷新文件列表后重新确认")
+    if not expected_hash or entry.get("hash") != expected_hash:
+        raise ManageError("文件内容代次已变化，请刷新档案后重新确认")
+    current_hash = istate.file_hash(path)
+    if entry.get("hash") != current_hash:
+        raise ManageError("文件内容已变化，请先重新入库再确认文档版本")
+    decision = {"value": normalized, "hash": current_hash, "revision": revision}
+    metadata = apply_confirmation(entry.get("version_info", {}), decision, current_hash, revision)
+    store = get_vector_store()
+    selector = models.Filter(must=[
+        models.FieldCondition(key="document_id", match=models.MatchValue(value=entry["document_id"])),
+        models.FieldCondition(key="version", match=models.MatchValue(value=revision)),
+        models.FieldCondition(key="version_content_hash", match=models.MatchValue(value=expected_hash)),
+        models.FieldCondition(key="status", match=models.MatchAny(any=["active", "archive"])),
+    ])
+    if not store.collection_exists() or store.client.count(
+            collection_name=cfg.qdrant_collection, count_filter=selector, exact=True).count == 0:
+        raise ManageError("没有匹配的当前入库卡片，请重新入库或刷新档案后确认")
+    store.client.set_payload(
+        collection_name=cfg.qdrant_collection,
+        payload={key: metadata[key] for key in
+                 ("document_version", "document_version_status", "document_version_source")},
+        points=models.FilterSelector(filter=selector), wait=True,
+    )
+    entry["version_confirmation"] = decision
+    entry["version_info"] = metadata
+    istate.save_state(state)
+    index_epoch.bump()
+    invalidate_cache()
+    clear_qa_cache()
+    return {"message": f"已确认文档版本：{normalized}"}
+
+
 def update_metadata(relative_path: str, updates: dict) -> dict:
     """编辑文档档案：把可编辑字段写入该文档的全部知识卡片，并记入台账覆盖设置。
 
@@ -170,19 +219,35 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
         clean[key] = value
 
     document_id = document_id_for(relative_path)
+    from src import index_state as istate
+
+    state = istate.load_state()
+    entry = state.setdefault(relative_path, {})
+    revision_changed = "version" in clean and clean["version"] != entry.get("version")
+    payload = dict(clean)
+    if revision_changed:
+        from src.document_version import FIELDS
+        detected = entry.get("version_detection", {})
+        payload.update({key: detected.get(key, [] if key == "document_version_evidence" else "")
+                        for key in FIELDS})
+        payload["document_version_status"] = detected.get("document_version_status", "unavailable")
     store = get_vector_store()
     if store.collection_exists():
         from qdrant_client import models
+        conditions = [models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id))]
+        if revision_changed:
+            conditions.extend([
+                models.FieldCondition(key="version", match=models.MatchValue(value=entry.get("version", ""))),
+                models.FieldCondition(key="status", match=models.MatchAny(any=["active", "archive"])),
+            ])
+        selector = models.Filter(must=conditions)
+        if revision_changed and store.client.count(
+                collection_name=cfg.qdrant_collection, count_filter=selector, exact=True).count == 0:
+            raise ManageError("没有匹配的当前入库版本，请刷新档案后重试")
         store.client.set_payload(
             collection_name=cfg.qdrant_collection,
-            payload=clean,
-            points=models.FilterSelector(
-                filter=models.Filter(
-                    must=[models.FieldCondition(
-                        key="document_id", match=models.MatchValue(value=document_id)
-                    )]
-                )
-            ),
+            payload=payload,
+            points=models.FilterSelector(filter=selector),
             wait=True,
         )
         # 只改元数据、卡片数不变：必须显式作废检索缓存。漏掉的后果——收窄可见部门后，
@@ -197,10 +262,10 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
         clear_qa_cache()
 
     # 覆盖设置记入台账：重新入库时由 pipeline 优先应用（优先级高于 Front Matter 与目录）
-    from src import index_state as istate
-
-    state = istate.load_state()
-    entry = state.setdefault(relative_path, {})
+    if revision_changed:
+        entry["version"] = clean["version"]
+        entry.pop("version_confirmation", None)
+        entry["version_info"] = {key: payload[key] for key in FIELDS}
     overrides = entry.get("overrides", {})
     for key, value in clean.items():
         if value:

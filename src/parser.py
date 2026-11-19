@@ -75,6 +75,17 @@ class ParsedDocument:
     text: str
     metadata: dict = field(default_factory=dict)
     front_matter: dict = field(default_factory=dict)  # Markdown 头部声明（非 md 文件为空）
+    version_regions: list[dict] = field(default_factory=list)
+
+
+def _version_region(text: str, location: str, source: str = "content", *,
+                    include_empty: bool = False) -> list[dict]:
+    """登记版本声明的候选区域，不推断版本；OCR 不作为权威声明。"""
+    text = text[:4000]
+    if not include_empty and not text.strip():
+        return []
+    return [{"source": source, "location": location, "text": text,
+             "authoritative": source == "content"}]
 
 
 def _file_dates(path: Path) -> tuple[str, str]:
@@ -115,7 +126,8 @@ def _read_text_smart(path: Path) -> str:
 
 def _read_txt(path: Path) -> tuple[str, str, dict]:
     """纯文本：直接读，标题用文件名。"""
-    return _read_text_smart(path), "", {}
+    text = _read_text_smart(path)
+    return text, "", {"_version_regions": _version_region(text, "开头文本", include_empty=True)}
 
 
 def _read_markdown(path: Path) -> tuple[str, str, dict]:
@@ -132,13 +144,15 @@ def _read_markdown(path: Path) -> tuple[str, str, dict]:
         if not in_code and re.match(r"#\s+\S", line):
             title = line.lstrip("#").strip()
             break
+    front_matter["_version_regions"] = _version_region(text, "开头文本", include_empty=True)
     return text, title, front_matter
 
 
 def _read_rtf(path: Path) -> tuple[str, str, dict]:
     """RTF：用专门的解析库读出纯文本。"""
     raw = _read_text_smart(path)
-    return rtf_to_text(raw), "", {}
+    text = rtf_to_text(raw)
+    return text, "", {"_version_regions": _version_region(text, "开头文本", include_empty=True)}
 
 
 def _read_html(path: Path) -> tuple[str, str, dict]:
@@ -236,7 +250,7 @@ def _read_html(path: Path) -> tuple[str, str, dict]:
     text = root.get_text("", strip=False)
     text = re.sub(r"[ \t]+\n", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
-    return text, title, {}
+    return text, title, {"_version_regions": _version_region(text, "开头文本", include_empty=True)}
 
 
 def _squeeze_cjk_spaces(text: str) -> str:
@@ -470,9 +484,46 @@ def _read_dps(path: Path) -> tuple[str, str, dict]:
     return _read_legacy_office(path, "pptx", "impress")
 
 
-def _docx_paragraph_line(para, title_state: dict) -> str:
+def _docx_opening_text(para, text: str) -> tuple[str, bool]:
+    """仅识别显式分页边界；文档开头不等同于 Word 渲染后的第一页。"""
+    from docx.oxml.ns import qn
+
+    if para.paragraph_format.page_break_before:
+        return "", True
+    if not para._p.xpath(".//w:br[@w:type='page']"):
+        return text, False
+    prefix: list[str] = []
+    for node in para._p.xpath("./w:r/* | ./w:hyperlink/w:r/*"):
+        if node.tag == qn("w:br") and node.get(qn("w:type")) == "page":
+            break
+        if node.tag == qn("w:t"):
+            prefix.append(node.text or "")
+        elif node.tag == qn("w:tab"):
+            prefix.append("\t")
+        elif node.tag in (qn("w:br"), qn("w:cr")):
+            prefix.append("\n")
+    return "".join(prefix).strip(), True
+
+
+def _append_docx_opening(text: str, opening: dict, separator: str = "\n") -> bool:
+    if opening["stopped"] or not text.strip():
+        return False
+    separator = separator if opening["parts"] else ""
+    text = (separator + text)[:opening["remaining"]]
+    opening["parts"].append(text)
+    opening["remaining"] -= len(text)
+    if len(opening["parts"]) >= 20 or opening["remaining"] <= 0:
+        opening["stopped"] = True
+    return True
+
+
+def _docx_paragraph_line(para, title_state: dict, opening: dict | None = None) -> str:
     """段落 → 输出行：标题样式转 Markdown # 标记（V3.9 从 docx reader 拆出供复用）。"""
     line = para.text.strip()
+    if opening is not None and not opening["stopped"]:
+        native, stopped = _docx_opening_text(para, line)
+        _append_docx_opening(native, opening)
+        opening["stopped"] |= stopped
     if not line:
         return ""
     style = para.style.name if para.style is not None else ""
@@ -490,15 +541,34 @@ def _docx_paragraph_line(para, title_state: dict) -> str:
     return line
 
 
-def _docx_table_text(table, title_state: dict) -> str:
+def _docx_table_text(table, title_state: dict, opening: dict | None = None) -> str:
     """表格 → 管道分隔文本；嵌套表递归读出（V3.9：此前嵌套表内容静默丢失）。"""
     rows: list[str] = []
     for row in table.rows:
         cells: list[str] = []
+        opening_row_started = False
         for cell in row.cells:
-            cell_parts = [para.text.strip() for para in cell.paragraphs if para.text.strip()]
+            cell_parts: list[str] = []
+            native_parts: list[str] = []
+            stopped = False
+            for para in cell.paragraphs:
+                text = para.text.strip()
+                if text:
+                    cell_parts.append(text)
+                if opening is not None and not opening["stopped"] and not stopped:
+                    native, stopped = _docx_opening_text(para, text)
+                    if native:
+                        native_parts.append(native)
+            if opening is not None and not opening["stopped"]:
+                # 单元格仍各计一个非空块，但同一行用管道保留「标签 | 值」关系。
+                appended = _append_docx_opening(
+                    " / ".join(native_parts), opening,
+                    " | " if opening_row_started else "\n",
+                )
+                opening_row_started |= appended
+                opening["stopped"] |= stopped
             for nested in getattr(cell, "tables", []):
-                nested_text = _docx_table_text(nested, title_state)
+                nested_text = _docx_table_text(nested, title_state, opening)
                 if nested_text:
                     cell_parts.append(nested_text.replace("\n", " / "))
             cells.append(_squeeze_cjk_spaces(" / ".join(p for p in cell_parts if p)))
@@ -517,14 +587,15 @@ def _read_docx(path: Path) -> tuple[str, str, dict]:
     doc = DocxDocument(str(path))
     parts: list[str] = []
     title_state: dict = {"title": ""}
+    opening: dict = {"parts": [], "remaining": 4000, "stopped": False}
     # 阅读顺序：iter_inner_content 按文档流产出段落与表格（python-docx ≥1.1）
     for item in doc.iter_inner_content():
         if hasattr(item, "rows"):  # Table
-            table_text = _docx_table_text(item, title_state)
+            table_text = _docx_table_text(item, title_state, opening)
             if table_text.strip():
                 parts.append(table_text)
             continue
-        line = _docx_paragraph_line(item, title_state)
+        line = _docx_paragraph_line(item, title_state, opening)
         parts.append(line)
     title = title_state.get("title", "")
 
@@ -555,7 +626,8 @@ def _read_docx(path: Path) -> tuple[str, str, dict]:
     if ocr_blocks:
         parts.append("\n\n".join(ocr_blocks))
 
-    return "\n".join(parts), title, {}
+    regions = _version_region("".join(opening["parts"]), "文档开头")
+    return "\n".join(parts), title, {"_version_regions": regions}
 
 
 def _read_pdf(path: Path) -> tuple[str, str, dict]:
@@ -566,8 +638,11 @@ def _read_pdf(path: Path) -> tuple[str, str, dict]:
         # 空密码解不开（真加密）才拒绝；仅权限加密（很多企业 PDF）任何阅读器都能直接读
         raise ParseError("PDF 已加密且需要密码，无法读取")
     pages: list[str] = []
+    regions: list[dict] = []
     for index, page in enumerate(reader.pages, start=1):
         page_text = (page.extract_text() or "").strip()
+        if index == 1:
+            regions.extend(_version_region(page_text, "第1页"))
         page_parts: list[str] = []
         if page_text:
             page_parts.append(page_text)
@@ -586,6 +661,8 @@ def _read_pdf(path: Path) -> tuple[str, str, dict]:
             if ocr_text:
                 ocr_blocks.append(ocr_text)
 
+        if index == 1:
+            regions.extend(_version_region("\n".join(ocr_blocks), "第1页", "ocr"))
         if ocr_blocks:
             if not page_text:
                 # 整页没有文字层 → 扫描件，OCR 结果就是这一页的全部内容
@@ -594,7 +671,7 @@ def _read_pdf(path: Path) -> tuple[str, str, dict]:
                 page_parts.append("[页面内图片 · OCR 识别]\n" + "\n".join(ocr_blocks))
 
         pages.append(f"{PAGE_MARKER_TEMPLATE.format(page=index)}\n" + "\n".join(page_parts))
-    return "\n".join(pages), "", {}
+    return "\n".join(pages), "", {"_version_regions": regions}
 
 
 def _read_xlsx(path: Path) -> tuple[str, str, dict]:
@@ -685,6 +762,7 @@ def _read_pptx(path: Path) -> tuple[str, str, dict]:
 
     prs = Presentation(str(path))
     parts: list[str] = []
+    regions: list[dict] = []
     title = ""
     for index, slide in enumerate(prs.slides, start=1):
         parts.append(PAGE_MARKER_TEMPLATE.format(page=index))
@@ -712,13 +790,20 @@ def _read_pptx(path: Path) -> tuple[str, str, dict]:
                     if any(cells):
                         page_parts.append(cells[0])
 
+        if index == 1:
+            regions.extend(_version_region("\n".join(page_parts), "第1张幻灯片"))
         slide_images: list[bytes] = []
         _collect_slide_images(slide.shapes, slide_images)
         ocr_blocks: list[str] = []
+        opening_ocr: list[str] = []
         for img_index, blob in enumerate(slide_images, start=1):
             ocr_text = _ocr_image(blob, hint=f"{path.name} 第{index}页图片{img_index}")
             if ocr_text:
                 ocr_blocks.append(f"[页面图片 {img_index} · OCR 识别]\n{ocr_text}")
+                if index == 1:
+                    opening_ocr.append(ocr_text)
+        if index == 1:
+            regions.extend(_version_region("\n".join(opening_ocr), "第1张幻灯片", "ocr"))
         if ocr_blocks:
             page_parts.append("\n".join(ocr_blocks))
 
@@ -728,7 +813,7 @@ def _read_pptx(path: Path) -> tuple[str, str, dict]:
                 page_parts.append(f"> 演讲者备注：{notes}")
 
         parts.append("\n".join(page_parts))
-    return "\n".join(parts), title, {}
+    return "\n".join(parts), title, {"_version_regions": regions}
 
 
 def _read_image(path: Path) -> tuple[str, str, dict]:
@@ -776,8 +861,10 @@ def parse_file(path: Path | str) -> ParsedDocument:
     except Exception as exc:  # 解析库的各类异常统一包装，避免用户看到天书
         raise ParseError(f"解析失败：{path.name}（{type(exc).__name__}: {exc}）") from exc
 
+    version_regions = front_matter.pop("_version_regions", [])
     metadata = _base_metadata(path, title or path.stem, ext.lstrip("."))
-    return ParsedDocument(text=text, metadata=metadata, front_matter=front_matter)
+    return ParsedDocument(text=text, metadata=metadata, front_matter=front_matter,
+                          version_regions=version_regions)
 
 
 def parse_directory(dir_path: Path | str) -> tuple[list[ParsedDocument], list[str]]:

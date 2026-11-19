@@ -280,7 +280,8 @@ class VectorStore:
                 with_payload=["document_id", "source", "path", "domain", "category",
                               "topic", "version", "status", "allowed_groups", "file_type",
                               "indexed_at", "owner", "title", "effective_date",
-                              "classification"],
+                              "classification", "document_version", "document_version_status",
+                              "document_version_source", "document_version_evidence", "version_content_hash"],
             )
             for point in points:
                 payload = point.payload or {}
@@ -302,6 +303,11 @@ class VectorStore:
                         "title": payload.get("title") or "",
                         "effective_date": payload.get("effective_date") or "",
                         "classification": payload.get("classification") or "公开",
+                        "document_version": payload.get("document_version") or "",
+                        "document_version_status": payload.get("document_version_status") or "unavailable",
+                        "document_version_source": payload.get("document_version_source") or "",
+                        "document_version_evidence": payload.get("document_version_evidence") or [],
+                        "version_content_hash": payload.get("version_content_hash") or "",
                         "version": key[1],
                         "status": key[2],
                         "chunks": 0,
