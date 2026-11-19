@@ -36,6 +36,7 @@ from src.directory_uploader import (  # noqa: E402
     decode_native_directory_uploads,
     directory_drop_uploader,
 )
+from src.document_type import normalize_doc_type, normalize_doc_type_filter  # noqa: E402
 from src.embedding import EmbeddingClient, EmbeddingError  # noqa: E402
 from src.llm import LLMError  # noqa: E402
 from src.manage import (  # noqa: E402
@@ -45,6 +46,7 @@ from src.manage import (  # noqa: E402
     reingest as reingest_file,
     remove_documents,
     restore as restore_file,
+    update_metadata,
 )
 from src.web_fetcher import read_snapshot_origin  # noqa: E402  # 识别网页快照（管理页）
 from src import domains as domain_reg  # noqa: E402  # V3.8 领域注册表（编号=数据身份，名称仅显示）
@@ -107,6 +109,7 @@ def _is_hidden_relpath(parts: tuple[str, ...]) -> bool:
 # 跨页面共享的设置项：在「设置与状态」里改，问答页即时生效
 st.session_state.setdefault("top_k", cfg.top_k)
 st.session_state.setdefault("domain_choice", "all")
+st.session_state.setdefault("doc_type_choice", "")
 st.session_state.setdefault("scope_choice", "active")
 st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
@@ -293,7 +296,29 @@ if "app_settings_loaded" not in st.session_state:
             st.session_state[key] = value
     st.session_state["app_settings_loaded"] = True
 
-# ---------------------------------------------------------------- 全局样式
+# 暗色模式组件级覆盖：Streamlit 编译主题（config.toml base=light，textColor=#1E293B）
+# 会把正文/展开器/说明文字钉成深色，仅覆盖应用 CSS 变量不够——需要直接规则压回浅色。
+# 跟随系统（@media）与强制深色（运行时注入）两处共用本规则集。
+DARK_COMPONENT_RULES = (
+    "[data-testid='stMarkdownContainer'] :is(p,li,td,th,strong,em,h1,h2,h3,h4,h5,h6,blockquote),"
+    "[data-testid='stExpander'] summary,[data-testid='stExpander'] summary p,"
+    "[data-testid='stCaptionContainer'],"
+    ".user-card .u-name,.user-card .u-sub,.user-card .u-note,"
+    ".st-key-sidebar_footer strong,.st-key-sidebar_footer .pill{color:#E2E8F0!important;}"
+    "[data-testid='stMarkdownContainer'] :is(a){color:#A5B4FC!important;}"
+    "[data-testid='stMarkdownContainer'] .user-bubble,"
+    "[data-testid='stMarkdownContainer'] .user-bubble :is(p,li,span,strong,em,b,i){color:#fff!important;}"
+    "[data-testid='stExpander'],[data-testid='stExpander'] details{background-color:rgba(17,24,39,.65)!important;}"
+    "[data-testid='stAlert'],[data-testid='stAlert'] *{background-color:rgba(17,24,39,.85)!important;}"
+    "[data-testid='stAlert'],[data-testid='stAlert'] p,[data-testid='stAlert'] div{color:#FDE68A!important;}"
+    "[data-testid='stCaptionContainer']{color:#94A3B8!important;}"
+    ".st-key-sidebar_footer{color:#CBD5E1!important;}"
+    ".stApp [data-baseweb='text-input'] > div,.stApp [data-baseweb='text-area'] > div,"
+    ".stApp [data-baseweb='select'] > div{background:#111827!important;}"
+    ".stApp [data-baseweb='select'] svg{fill:#E2E8F0!important;}"
+    "[data-testid='stSidebarContent']{overflow-y:auto!important;overflow-x:hidden!important;}"
+    "[data-testid='stSidebarContent'] > *{flex-shrink:0!important;}"
+)
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -328,6 +353,19 @@ CSS = """
     --accent-light: rgba(99,102,241,.08);
     --accent-text: #A5B4FC;
     --shadow-card: 0 16px 44px rgba(0,0,0,.24);
+  [data-testid='stMarkdownContainer'] :is(p,li,td,th,strong,em,h1,h2,h3,h4,h5,h6,blockquote),[data-testid='stExpander'] summary,[data-testid='stExpander'] summary p,[data-testid='stCaptionContainer'],.user-card .u-name,.user-card .u-sub,.user-card .u-note,.st-key-sidebar_footer strong,.st-key-sidebar_footer .pill{color:#E2E8F0!important;}
+  [data-testid='stMarkdownContainer'] :is(a){color:#A5B4FC!important;}
+  [data-testid='stMarkdownContainer'] .user-bubble,[data-testid='stMarkdownContainer'] .user-bubble :is(p,li,span,strong,em,b,i){color:#fff!important;}
+  [data-testid='stExpander'],[data-testid='stExpander'] details{background-color:rgba(17,24,39,.65)!important;}
+  [data-testid='stAlert'],[data-testid='stAlert'] *{background-color:rgba(17,24,39,.85)!important;}
+  [data-testid='stAlert'],[data-testid='stAlert'] p,[data-testid='stAlert'] div{color:#FDE68A!important;}
+  [data-testid='stCaptionContainer']{color:#94A3B8!important;}
+  .st-key-sidebar_footer{color:#CBD5E1!important;}
+  .stApp [data-baseweb='text-input'] > div,.stApp [data-baseweb='text-area'] > div,.stApp [data-baseweb='select'] > div{background:#111827!important;}
+  .stApp [data-baseweb='select'] svg{fill:#E2E8F0!important;}
+  [data-testid='stSidebarContent']{overflow-y:auto!important;overflow-x:hidden!important;}
+  [data-testid='stSidebarContent'] > *{flex-shrink:0!important;}
+
   }
 }
 :root.theme-dark {
@@ -373,7 +411,9 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebar"] {background: var(--bg-sidebar) !important;
   border-right: 1px solid var(--border-subtle) !important; min-width: 272px !important;}
 [data-testid="stSidebar"] .block-container {padding: 1.25rem 1rem 1rem !important;}
-[data-testid="stSidebarContent"] {display:flex !important;flex-direction:column !important;position:relative !important;}
+[data-testid="stSidebarContent"] {display:flex !important;flex-direction:column !important;position:relative !important;
+  overflow-y:auto !important;overflow-x:hidden !important;}
+[data-testid="stSidebarContent"] > * {flex-shrink:0 !important;}  /* 防止内容超高时 flex 子项被压扁互相重叠 */
 [data-testid="stSidebarHeader"] {position:absolute !important;top:18px !important;right:9px !important;
   z-index:20 !important;width:auto !important;height:auto !important;padding:0 !important;}
 [data-testid="stSidebarUserContent"] {display:contents !important;}
@@ -784,17 +824,19 @@ st.markdown(CSS, unsafe_allow_html=True)
 _theme = st.session_state.get("theme", "system")
 if _theme == "dark":
     st.markdown("<style>:root{--bg-primary:#0B0F1A!important;--bg-secondary:#111827!important;"
-                "--bg-sidebar:linear-gradient(180deg,#0F1523,#0B1018)!important;"
+                "--bg-card:rgba(17,24,39,.6)!important;--bg-sidebar:linear-gradient(180deg,#0F1523,#0B1018)!important;"
                 "--text-primary:#E2E8F0!important;--text-secondary:#94A3B8!important;"
                 "--text-muted:#475569!important;--border-subtle:rgba(148,163,184,.08)!important;"
-                "--accent:#818CF8!important;--accent-text:#A5B4FC!important;}"
+                "--border-hover:rgba(129,140,248,.15)!important;"
+                "--accent:#818CF8!important;--accent-light:rgba(99,102,241,.08)!important;--accent-text:#A5B4FC!important;"
+                "--shadow-card:0 16px 44px rgba(0,0,0,.24)!important;}"
                 ".stApp{background:#0B0F1A!important;color:#E2E8F0!important;}"
                 "[data-testid='stSidebar']{background:linear-gradient(180deg,#0F1523,#0B1018)!important;}"
                 "[data-testid='stChatInput']{background:#111827!important;}"
                 "[data-testid='stChatInput'] textarea{color:#E2E8F0!important;}"
                 ".stTextInput input,.stTextArea textarea{background:rgba(148,163,184,.03)!important;"
                 "color:#E2E8F0!important;border-color:rgba(148,163,184,.1)!important;}"
-                "</style>", unsafe_allow_html=True)
+                + DARK_COMPONENT_RULES + "</style>", unsafe_allow_html=True)
 elif _theme == "light":
     st.markdown("<style>:root{--bg-primary:#F7F8FC!important;--bg-secondary:#FFFFFF!important;"
                 "--bg-sidebar:linear-gradient(180deg,#F8FAFF,#F2F5FA)!important;"
@@ -834,6 +876,9 @@ def persist_app_settings() -> None:
     V3.7：登录用户额外把偏好按人存入 SQLite（不同用户语言/主题互不影响）。
     """
     data = {k: st.session_state[k] for k in SETTINGS_KEYS if k in st.session_state}
+    # 仅初始化空默认值不应扩写已有设置（热重载/其他控件保存可能调用此入口）。
+    if not data.get("doc_type_choice") and "doc_type_choice" not in load_app_settings():
+        data.pop("doc_type_choice", None)
     data["installed_plugins"] = get_installed_plugins()
     save_app_settings(data)
     user = st.session_state.get("auth_user")
@@ -948,6 +993,13 @@ def build_filters() -> dict:
         filters["status"] = "all"
     elif scope == "archive":
         filters["status"] = "archive"
+    # 类型只做用户指定的精确过滤，不参与问题理解或排序；坏偏好回落为不过滤。
+    try:
+        doc_type_choice = normalize_doc_type_filter(st.session_state.get("doc_type_choice", ""))
+    except ValueError:
+        doc_type_choice = None
+    if doc_type_choice is not None:
+        filters["doc_type"] = doc_type_choice
     return filters
 
 
@@ -1370,7 +1422,10 @@ def show_answer_sources(result) -> None:
                 head += "　·　" + "　".join(extras)
             st.markdown(head)
             tags = [tag(f"🗂 {html.escape(str(item.get('domain') or ''))}", "blue"),
-                    tag(f"📁 {html.escape(str(item.get('category') or ''))}", "blue")]
+                    tag(f"📁 {html.escape(str(item.get('category') or ''))}", "blue"),
+                    tag(html.escape(t("common.doc_type")) + ": "
+                        + html.escape(str(item.get("doc_type") or "").strip()
+                                      or t("doc_type.unclassified")), "blue")]
             if item.get("topic"):
                 tags.append(tag("🏷 " + html.escape(" / ".join(item["topic"]))))
             tags.append(tag(f"v{item.get('version')}", "green" if item.get("status") == "active" else "amber"))
@@ -1692,6 +1747,8 @@ def page_upload():
             with col2:
                 upload_category = st.text_input(t("upload.category"), value="",
                                                 help=t("upload.category.help"))
+            upload_doc_type = st.text_input(t("doc_type.default"), value="", max_chars=80,
+                                            key="upload_doc_type", help=t("doc_type.default.help"))
             # V3.7 权限：可见部门多选（默认全员）；写入侧只能选 全员 + 自己部门
             _dep_options = group_write_options()
             upload_groups = st.multiselect(t("upload.groups"), _dep_options,
@@ -1702,8 +1759,9 @@ def page_upload():
             st.caption(t("upload.selected", n=len(uploads), kb=f"{sum(u.size for u in uploads) / 1024:.0f}"))
         _upload_target = f"{upload_domain}/{upload_category.strip().lower() or 'general'}"
         if st.button(t("upload.start"), disabled=not uploads, width="stretch", type="primary"):
-            _start_upload(uploads, _upload_target, upload_groups)
-        _render_upload_confirmation(uploads, _upload_target, upload_groups)
+            _start_upload(uploads, _upload_target, upload_groups, default_doc_type=upload_doc_type)
+        _render_upload_confirmation(uploads, _upload_target, upload_groups,
+                                    default_doc_type=upload_doc_type)
 
         # 上传框内的「200MB per file • 平铺扩展名」小字由组件按 type 参数渲染，
         # 无法直接分组——用同源 iframe 脚本原地改写为归组文案。Streamlit 重渲染
@@ -1742,6 +1800,8 @@ def page_upload():
                 index=_domain_index(_dir_codes, "learning"),
                 key="directory_domain",
             )
+            dir_doc_type = st.text_input(t("doc_type.default"), value="", max_chars=80,
+                                         key="dir_doc_type", help=t("doc_type.default.help"))
             # V3.7 权限：本批目录导入的可见部门（默认全员）；写入侧限自己部门
             _dep_options_dir = group_write_options()
             dir_groups = st.multiselect(t("upload.groups"), _dep_options_dir,
@@ -1826,7 +1886,8 @@ def page_upload():
             type="primary",
             key="import_directory",
         ):
-            _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups, merge=dir_merge)
+            _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups, merge=dir_merge,
+                                 default_doc_type=dir_doc_type)
 
     # ---------- 🌐 添加网页 Tab ----------
     if _has_web:
@@ -1846,6 +1907,8 @@ def page_upload():
                                               index=_domain_index(_web_codes, "reference"))
                 with col_w2:
                     web_category = st.text_input(t("web.category"), value="webpages")
+                web_doc_type = st.text_input(t("doc_type.default"), value="", max_chars=80,
+                                             key="web_doc_type", help=t("doc_type.default.help"))
                 web_groups = st.multiselect(t("upload.groups"),
                                             group_write_options(),
                                             default=["all"], key="web_groups",
@@ -1863,6 +1926,7 @@ def page_upload():
                             category=web_category.strip().lower() or "webpages",
                             on_progress=lambda msg: st.write(tr(msg)),
                             default_groups=web_groups,
+                            default_doc_type=normalize_doc_type(web_doc_type) or None,
                             owner=str((st.session_state.get("auth_user") or {}).get("username") or ""),
                         )
                     status.update(label=t("web.status.done"), state="complete", expanded=False)
@@ -1875,9 +1939,12 @@ def _upload_files(uploads) -> list[tuple[str, bytes]]:
     return [(u.name, u.getvalue()) for u in uploads or []]
 
 
-def _upload_signature(files: list[tuple[str, bytes]], target_dir: str) -> str:
-    """待确认批次的指纹：所选文件或目标目录一变，旧的确认面板就作废。"""
-    return content_hash(repr([(n, content_hash(d)) for n, d in files] + [target_dir]).encode())
+def _upload_signature(files: list[tuple[str, bytes]], target_dir: str,
+                      default_doc_type: str | None = None) -> str:
+    """文件、目标目录或默认文档类型改变时，旧批次的确认/选择就作废。"""
+    doc_type = normalize_doc_type("" if default_doc_type is None else default_doc_type)
+    return content_hash(repr([(n, content_hash(d)) for n, d in files]
+                             + [target_dir, doc_type]).encode())
 
 
 def _conflict_reason(d) -> str:
@@ -1901,23 +1968,36 @@ def _action_label(action: str) -> str:
               NEW: "upload.action.new", COPY: "upload.action.copy"}[action])
 
 
-def _start_upload(uploads, target_dir: str, groups) -> None:
+def _start_upload(uploads, target_dir: str, groups, *, default_doc_type: str | None = None) -> None:
     """V3.8 上传入口：先做冲突预检。全是新文件 → 直接入库（与以前一样不多一步）；
     有重复 / 同名冲突 → 进确认面板，由用户逐个确认（默认值按已定规则预选好）。"""
     files = _upload_files(uploads)
+    try:
+        signature = _upload_signature(files, target_dir, default_doc_type)
+    except ValueError as exc:
+        st.session_state.pop("upload_pending", None)
+        st.error(str(exc))
+        return
     plan = plan_uploads(files, target_dir, istate.load_state(), cfg.knowledge_dir)
     if any(d.needs_confirmation for d in plan):
-        st.session_state["upload_pending"] = _upload_signature(files, target_dir)
+        st.session_state["upload_pending"] = signature
     else:
-        _run_upload(files, plan, {}, groups)
+        _run_upload(files, plan, {}, groups, default_doc_type=default_doc_type)
 
 
-def _render_upload_confirmation(uploads, target_dir: str, groups) -> None:
+def _render_upload_confirmation(uploads, target_dir: str, groups, *,
+                                default_doc_type: str | None = None) -> None:
     pending = st.session_state.get("upload_pending")
     if not pending:
         return
     files = _upload_files(uploads)
-    if not files or pending != _upload_signature(files, target_dir):
+    try:
+        signature = _upload_signature(files, target_dir, default_doc_type)
+    except ValueError as exc:
+        st.session_state.pop("upload_pending", None)
+        st.error(str(exc))
+        return
+    if not files or pending != signature:
         st.session_state.pop("upload_pending", None)  # 选择变了：作废旧的确认
         return
     # 预检是确定性的（同样的文件 + 同样的台账），每次重绘重新计算即可，无需缓存文件内容
@@ -1935,7 +2015,7 @@ def _render_upload_confirmation(uploads, target_dir: str, groups) -> None:
                 continue
             choices[index] = st.radio(d.name, d.options, index=d.options.index(d.action),
                                       format_func=_action_label,
-                                      key=f"upl_choice_{index}_{d.digest[:12]}",
+                                      key=f"upl_choice_{pending[:12]}_{index}_{d.digest[:12]}",
                                       label_visibility="collapsed")
         n_new = sum(1 for d in plan if not d.needs_confirmation)
         if n_new:
@@ -1950,10 +2030,15 @@ def _render_upload_confirmation(uploads, target_dir: str, groups) -> None:
         st.rerun()
     if confirmed:
         st.session_state.pop("upload_pending", None)
-        _run_upload(files, plan, choices, groups)
+        _run_upload(files, plan, choices, groups, default_doc_type=default_doc_type)
 
 
-def _run_upload(files, plan, choices, groups) -> None:
+def _run_upload(files, plan, choices, groups, *, default_doc_type: str | None = None) -> None:
+    try:
+        default_doc_type = normalize_doc_type("" if default_doc_type is None else default_doc_type) or None
+    except ValueError as exc:
+        st.error(str(exc))
+        return
     to_ingest, skipped = execute_uploads(plan, files, cfg.knowledge_dir, choices)
     if skipped:
         st.info(t("upload.skipped_dup", n=len(skipped), files="、".join(d.name for d in skipped)))
@@ -1964,6 +2049,7 @@ def _run_upload(files, plan, choices, groups) -> None:
         try:
             # skip_unchanged：内容没变的不重跑整条流水线（「重新入库」按钮仍是强制重跑入口）
             summary = ingest_files(paths=to_ingest, skip_unchanged=True, default_groups=groups,
+                                    default_doc_type=default_doc_type,
                                     owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
@@ -1974,25 +2060,38 @@ def _run_upload(files, plan, choices, groups) -> None:
     _show_ingest_result(summary)
 
 
-def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool = True):
+def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool = True, *,
+                         default_doc_type: str | None = None):
     """把浏览器选中的目录写入领域目录，然后增量入库。
 
     V3.8：同名目录已存在时默认合并（merge=True）——没变的跳过、改了的升版本、
     新增的入库，源目录里已删除的文件保留；merge=False 为另存副本目录（原行为）。
     """
+    try:
+        default_doc_type = normalize_doc_type("" if default_doc_type is None else default_doc_type) or None
+    except ValueError as exc:
+        st.error(str(exc))
+        return
     domain_dir = cfg.knowledge_dir / dir_domain
     domain_dir.mkdir(parents=True, exist_ok=True)
 
     grouped: dict[str, list[tuple[tuple[str, ...], bytes]]] = {}
+    original_paths: dict[str, list[str]] = {}
     try:
         for parts, content in entries:
             root = _clean_directory_name(parts[0])
             grouped.setdefault(root, []).append((parts[1:], content))
+            # 保留用户选择的原始根目录；不要使用领域、清理后的名称或副本目录名。
+            original_paths.setdefault(root, []).append("/".join(parts))
     except ValueError as exc:
         st.error(str(exc))
         return
 
     saved, copied_roots = write_directory_import(grouped, domain_dir, merge=merge)
+    # writer 按 grouped 的根目录/文件顺序返回实际路径（含另存副本的改名）。
+    # 浏览器批次可交错多个根目录，因此先按相同分组顺序展开原始路径再配对。
+    originals = [original for root in grouped for original in original_paths[root]]
+    doc_type_paths = {str(path.resolve()): original for path, original in zip(saved, originals)}
 
     if not saved:
         st.warning(t("dir.no_docs"))
@@ -2008,7 +2107,8 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool
     with st.spinner(t("ingest.spinner")):
         try:
             summary = ingest_files(paths=ingest_paths, skip_unchanged=True, default_groups=groups,
-                                owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
+                                   default_doc_type=default_doc_type, doc_type_paths=doc_type_paths,
+                                   owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
         except (LLMError, VectorStoreError, EmbeddingError) as exc:
             st.error(str(exc))
             return
@@ -2035,6 +2135,7 @@ def _show_ingest_result(summary):
         st.dataframe(
             [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): domain_label(r["domain"]),
               t("ingest.col.category"): r["category"],
+              t("common.doc_type"): str(r.get("doc_type") or "").strip() or t("doc_type.unclassified"),
               t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"],
               t("version.col.declared"): r.get("document_version") or t("version.empty"),
               t("version.col.status"): t("version.state." + r.get("document_version_status", "unavailable")),
@@ -2135,7 +2236,7 @@ def page_manage():
         m3.metric(t("manage.metric.domains"), f"{domains_covered} / {len(domain_reg.all_codes())}")
         m4.metric(t("manage.metric.archived"), archived)
 
-    f1, f2, f3, f4 = st.columns([3, 1.2, 1.2, 1.2])
+    f1, f2, f3, f4, f5 = st.columns([3, 1.2, 1.2, 1.2, 1.5])
     keyword = f1.text_input(t("manage.search"), placeholder=t("manage.search.ph"))
     dom_codes = ["all"] + domain_reg.all_codes()  # 含停用领域：其数据仍可检索与管理
     dom_filter = f2.selectbox(t("common.domain"), dom_codes,
@@ -2149,6 +2250,15 @@ def page_manage():
                                  format_func=lambda o: t("manage.origin.web") if o == "web"
                                  else t("manage.origin.file") if o == "file" else t("common.all"),
                                  key="manage_origin_select")
+    # 从现有文档生成自由文本选项，不创建类型注册表；None/旧空值属于未分类。
+    doc_types = sorted({str(d.get("doc_type") or "").strip() for d in documents} - {""})
+    type_options = [("all", ""), ("unclassified", "")] + [("exact", value) for value in doc_types]
+    type_filter = f5.selectbox(
+        t("common.doc_type"), type_options,
+        format_func=lambda choice: t("common.all") if choice[0] == "all"
+        else t("doc_type.unclassified") if choice[0] == "unclassified" else choice[1],
+        key="manage_doc_type_select",
+    )
 
     # V3.7.1：网页快照带上原文网址 / 标题，搜索和「来源」筛选都能用（只读快照文件头，不动卡片）
     origins = {d["path"]: read_snapshot_origin(cfg.knowledge_dir / d["path"]) for d in documents}
@@ -2161,7 +2271,10 @@ def page_manage():
         return ((not keyword or keyword.lower() in hay)
                 and (dom_filter == "all" or d["domain"] == dom_filter)
                 and (status_filter == "all" or d["status"] == status_filter)
-                and (origin_filter == "all" or is_web == (origin_filter == "web")))
+                and (origin_filter == "all" or is_web == (origin_filter == "web"))
+                and (type_filter[0] == "all"
+                     or (type_filter[0] == "unclassified" and not str(d.get("doc_type") or "").strip())
+                     or (type_filter[0] == "exact" and str(d.get("doc_type") or "").strip() == type_filter[1])))
 
     filtered = [d for d in documents if _match(d)]
 
@@ -2170,7 +2283,7 @@ def page_manage():
     visible_ids = {d["document_id"] for d in filtered}
     selected_ids = set(st.session_state.get(selection_key, [])) & visible_ids
     st.session_state[selection_key] = sorted(selected_ids)
-    filter_signature = (keyword, dom_filter, status_filter, origin_filter)
+    filter_signature = (keyword, dom_filter, status_filter, origin_filter, type_filter)
     if st.session_state.get("manage_filter_signature") != filter_signature:
         st.session_state["manage_page"] = 1
         st.session_state["manage_filter_signature"] = filter_signature
@@ -2255,6 +2368,7 @@ def page_manage():
         return {"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
                 t("manage.col.file"): file_cell, t("manage.col.type"): "web" if origin
                 else str(d.get("file_type") or "").upper(),
+                t("common.doc_type"): str(d.get("doc_type") or "").strip() or t("doc_type.unclassified"),
                 t("manage.col.indexed_at"): str(d.get("indexed_at") or "")[:16],
                 t("manage.col.path"): d["path"],
                 "Domain": domain_label(d["domain"]), "Category": d["category"],
@@ -2280,10 +2394,11 @@ def page_manage():
             t("manage.col.select"): st.column_config.CheckboxColumn(t("manage.col.select"),
                                                                     help=t("manage.col.select.help")),
             t("manage.col.type"): st.column_config.TextColumn(t("manage.col.type"), width="small"),
+            t("common.doc_type"): st.column_config.TextColumn(t("common.doc_type"), width="medium"),
             t("manage.col.url"): st.column_config.LinkColumn(t("manage.col.url"), width="medium",
                                                              help=t("manage.col.url.help")),
         },
-        disabled=[t("manage.col.file"), t("manage.col.path"), t("manage.col.type"), "Domain",
+        disabled=[t("manage.col.file"), t("manage.col.path"), t("manage.col.type"), t("common.doc_type"), "Domain",
                   "Category", "Topic", "Groups", "Version", t("version.col.declared"),
                   t("version.col.status"), "密级", "Status", t("manage.col.chunks"),
                   t("manage.col.url")],
@@ -2357,6 +2472,8 @@ def page_manage():
             f"### {('🌐' if origin else '📄')} {html.escape(str(d['source']))}　{status_tag}"
             + tag(f"🗂 {html.escape(domain_label(str(d['domain'])))}", "blue")
             + tag(f"📁 {html.escape(str(d['category']))}", "blue")
+            + tag(html.escape(t("common.doc_type")) + ": "
+                  + html.escape(str(d.get("doc_type") or "").strip() or t("doc_type.unclassified")), "blue")
             + (tag("🏷 " + html.escape(" / ".join(d["topic"]))) if d["topic"] else "")
             + tag(f"v{html.escape(str(d['version']))}", "green")
             + tag("🔒 " + html.escape(str(d.get("classification") or "公开")), "blue"),
@@ -2410,6 +2527,22 @@ def page_manage():
                     st.rerun()
                 except ManageError as exc:
                     st.error(str(exc))
+
+    # 独立原子表单：仅保存当前文档的类型，绝不连带提交其他档案/权限输入。
+    _type_suffix = f"{d['document_id']}_{d['version']}_{st.session_state.get('manage_table_revision', 0)}"
+    with st.form(key=f"doc_type_form_{_type_suffix}"):
+        new_doc_type = st.text_input(t("common.doc_type"), value=d.get("doc_type") or "",
+                                     max_chars=80, key=f"ed_doc_type_{_type_suffix}",
+                                     help=t("doc_type.help"))
+        save_doc_type = st.form_submit_button(t("doc_type.save"))
+    if save_doc_type:
+        try:
+            info = update_metadata(d["path"], {"doc_type": normalize_doc_type(new_doc_type)})
+            st.session_state["manage_action_notice"] = info["message"]
+            st.session_state["manage_table_revision"] = st.session_state.get("manage_table_revision", 0) + 1
+            st.rerun()
+        except (ManageError, VectorStoreError, ValueError) as exc:
+            st.error(str(exc))
 
     # 档案编辑（V3.4）：key 绑定当前文档——固定 key 会让切换文档后沿用
     # 上一个文档的输入值，保存时把 A 的档案写进 B
@@ -2527,6 +2660,13 @@ def page_retrieval_settings():
                  index=domain_codes.index(st.session_state["domain_choice"])
                  if st.session_state["domain_choice"] in domain_codes else 0,
                  key="set_domain", on_change=_sync_setting("domain_choice", "set_domain"))
+    try:
+        doc_type_choice = normalize_doc_type_filter(st.session_state.get("doc_type_choice", "")) or ""
+    except ValueError:
+        doc_type_choice = ""
+    st.text_input(t("common.doc_type"), value=doc_type_choice, max_chars=80,
+                  key="set_doc_type", on_change=_sync_setting("doc_type_choice", "set_doc_type"),
+                  help=t("doc_type.filter.help"), placeholder=t("doc_type.filter.optional"))
     st.radio(t("set.scope"), scope_codes,
              format_func=lambda s: t(f"scope.{s}"),
              index=scope_codes.index(st.session_state["scope_choice"])

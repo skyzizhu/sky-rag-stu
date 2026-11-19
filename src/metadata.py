@@ -24,6 +24,7 @@ from pathlib import Path
 import yaml
 
 from src.domains import all_codes as domain_codes
+from src.document_type import resolve_doc_type
 
 # ---------------- 规范常量 ----------------
 # V3.8：领域不再写死——编号由 src/domains.py 的注册表维护（前台「领域管理」页增删改），
@@ -129,6 +130,7 @@ FORCED_FIELDS = {"document_id", "chunk_id", "source", "path", "file_type", "inde
 DEFAULTS = {
     "domain": "reference",
     "category": "general",
+    "doc_type": "",
     "topic": [],
     "tags": [],
     "version": "1.0",
@@ -318,6 +320,7 @@ def build_document_metadata(
         # 分类字段
         "domain": domain,
         "category": category,
+        "doc_type": resolve_doc_type(source, fm, is_web=fm.get("source_type") == "web")["value"],
         "topic": topic,
         "tags": tags,
         # 密级（建档要求）

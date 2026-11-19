@@ -31,6 +31,7 @@ from src.chunker import clean_and_chunk
 from src.config import AppConfig, get_config
 from src.context import build_context, estimate_tokens
 from src.embedding import EmbeddingClient, get_embedding_client
+from src.document_type import normalize_doc_type, resolve_doc_type
 from src.enumeration import (enumeration_route, catalog_time, document_representatives,
                              document_key, group_documents, expand_documents, coverage_notice)
 from src.llm import LLMClient, get_llm_client, new_usage, strip_think_tags
@@ -104,6 +105,9 @@ def ingest_files(
     skip_unchanged: bool = False,
     default_groups: list[str] | None = None,
     owner: str | None = None,
+    *,
+    default_doc_type: str | None = None,
+    doc_type_paths: dict[str, str] | None = None,
 ) -> IngestSummary:
     """把文件送进知识库。paths 为空时扫描整个知识目录。
 
@@ -113,13 +117,18 @@ def ingest_files(
     default_groups（V3.7）：本批文件的默认可见部门（上传表单的"可见部门"选择）。
     优先级：Front Matter 显式声明 > 表单选择 > 默认全员；空列表一律落为 ["all"]。
     owner（V3.9）：本批文件的入库人（登录用户名），写入每张卡片的元数据。
+    default_doc_type：非空上传默认类型；人工档案 > 文件声明 > 默认 > 保守推断。
+    doc_type_paths：实际输出文件的绝对 str 路径 → 含选定根目录的原始上传相对路径。
+    未提供原始路径只检查非网页文件名，不从入库目标 domain/category 推断类型。
     """
     # 多标签页并发点入库会互相覆盖台账/向量数据，入库全程串行化（单用户无感知）
     with _ingest_lock:
         return _ingest_files_impl(paths=paths, rebuild=rebuild, config=config,
                                   embedding_client=embedding_client, store=store,
                                   skip_unchanged=skip_unchanged,
-                                  default_groups=default_groups, owner=owner)
+                                  default_groups=default_groups, owner=owner,
+                                  default_doc_type=default_doc_type,
+                                  doc_type_paths=doc_type_paths)
 
 
 def _ingest_files_impl(
@@ -131,6 +140,9 @@ def _ingest_files_impl(
     skip_unchanged: bool = False,
     default_groups: list[str] | None = None,
     owner: str | None = None,
+    *,
+    default_doc_type: str | None = None,
+    doc_type_paths: dict[str, str] | None = None,
 ) -> IngestSummary:
     """把文件送进知识库。paths 为空时扫描整个知识目录。
 
@@ -139,6 +151,8 @@ def _ingest_files_impl(
     显式路径同样做指纹跳过（网页入库等"内容没变就别重跑"的场景）。
     """
     cfg = config or get_config()
+    if default_doc_type is not None:
+        default_doc_type = normalize_doc_type(default_doc_type)
     embedding = embedding_client or get_embedding_client()
     vector_store = store or get_vector_store()
     summary = IngestSummary(rebuilt=rebuild)
@@ -173,7 +187,11 @@ def _ingest_files_impl(
         print(f"① 找到 {len(files)} 个待入库文件")
 
     # ①.5 增量判断（V3.1）：内容指纹没变的文件跳过；台账里有但文件已删除的，向量同步清理
-    state = {} if rebuild else istate.load_state()
+    previous_state = istate.load_state()
+    # 重建只继承类型输入，其他档案/版本保持原有重建语义。
+    type_inputs = {rel: istate.doc_type_info_for(previous_state, rel)
+                   for rel in previous_state}
+    state = {} if rebuild else previous_state
     paths_to_process: list[Path] = []
     processed: list[tuple[Path, str, str]] = []  # (路径, 相对路径, 哈希)
     explicit = bool(paths)
@@ -229,6 +247,7 @@ def _ingest_files_impl(
     print("② 解析文件 → 统一文本 + Metadata")
     docs: list[ParsedDocument] = []
     detection_by_rel: dict[str, dict] = {}
+    doc_types_by_rel: dict[str, dict] = {}
     llm = get_llm_client() if cfg.auto_tag else None
     for path in files:
         try:
@@ -250,6 +269,14 @@ def _ingest_files_impl(
             updated_at=parsed.metadata["updated_at"],
             front_matter=parsed.front_matter,
         )
+        doc_types_by_rel[rel] = resolve_doc_type(
+            path.name, parsed.front_matter,
+            istate.doc_type_info_for(state, rel) or type_inputs.get(rel),
+            default_doc_type=default_doc_type,
+            original_path=(doc_type_paths or {}).get(str(path.resolve())),
+            is_web=(parsed.front_matter or {}).get("source_type") == "web",
+        )
+        parsed.metadata["doc_type"] = doc_types_by_rel[rel]["value"]
         from src.document_version import detect_document_version, apply_confirmation
         declared = detect_document_version(path.name, parsed.version_regions, parsed.front_matter)
         detection_by_rel[rel] = declared
@@ -318,6 +345,7 @@ def _ingest_files_impl(
             "path": meta["path"],
             "domain": meta["domain"],
             "category": meta["category"],
+            "doc_type": meta.get("doc_type", ""),
             "status": meta["status"],
             "chunks": chunks_by_file.get(meta["path"], 0),
             "document_version": meta["document_version"],
@@ -355,7 +383,8 @@ def _ingest_files_impl(
                                  for d in cleaned_docs if d.metadata["path"] == rel), {})
             istate.update_entry(state, rel, doc_id, chunk_count, file_hash_value,
                                 version=versions_by_rel[rel], version_info=version_info,
-                                version_detection=detection_by_rel[rel])
+                                version_detection=detection_by_rel[rel],
+                                doc_type_info=doc_types_by_rel[rel] if chunk_count else None)
 
     if not chunks:
         # 全部文件都没有切出卡片（空文件等）：也记台账（0 卡片），
@@ -616,7 +645,8 @@ def _catalog_evidence(question, filters, cfg):
     answer += "\n\n" + "\n".join(f"- `{d.get('path')}` [{i}]" for i, d in enumerate(docs, 1))
     elapsed = time.time() - start
     result = QAResult(question=question, answer=answer, retrieved=items, context=context,
-                      sources=[{**it.metadata, "rank": it.rank, "score": 0.0,
+                      sources=[{**it.metadata, "doc_type": it.metadata.get("doc_type") or "",
+                                "rank": it.rank, "score": 0.0,
                                 "text": it.text, "channels": it.channels} for it in items],
                       filters=effective, enumeration=True, evidence_meta=meta,
                       elapsed={"query_understanding": 0.0, "retrieval_only": elapsed,
@@ -1032,6 +1062,7 @@ def query_evidence(
             "page": item.metadata.get("page"),
             "domain": item.metadata.get("domain"),
             "category": item.metadata.get("category"),
+            "doc_type": item.metadata.get("doc_type") or "",
             "topic": item.metadata.get("topic") or [],
             "version": item.metadata.get("version"),
             "status": item.metadata.get("status"),

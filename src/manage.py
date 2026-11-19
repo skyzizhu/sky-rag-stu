@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 
 from src.config import AppConfig, get_config
+from src.document_type import normalize_doc_type
 from src.metadata import document_id_for
 from src.pipeline import ingest_files
 from src.vector_store import get_vector_store
@@ -88,6 +89,8 @@ def archive(relative_path: str, owner: str | None = None) -> dict:
     if dest.exists():  # 同名冲突：加时间戳
         stamp = time.strftime("%Y%m%d_%H%M%S")
         dest = dest.with_name(f"{dest.stem}_{stamp}{dest.suffix}")
+    from src import index_state as istate
+    type_info = istate.snapshot_doc_type(istate.load_state(), relative_path)
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(path), str(dest))
 
@@ -96,7 +99,8 @@ def archive(relative_path: str, owner: str | None = None) -> dict:
 
     store = get_vector_store()
     store.delete_documents([document_id_for(relative_path)])
-    summary = ingest_files(paths=[dest], owner=owner)
+    with istate.carry_doc_types({dest.relative_to(knowledge_dir).as_posix(): type_info}):
+        summary = ingest_files(paths=[dest], owner=owner)
     if summary.ok_files == 0:
         raise ManageError(f"归档后重新入库失败：{summary.failed_files}")
     return {"message": f"已归档：{relative_path} → archive/{relative_path}", "summary": summary}
@@ -128,6 +132,8 @@ def restore(archived_relative_path: str, owner: str | None = None) -> dict:
     if target.exists():  # 同名冲突：加时间戳
         stamp = time.strftime("%Y%m%d_%H%M%S")
         target = target.with_name(f"{target.stem}_{stamp}{target.suffix}")
+    from src import index_state as istate
+    type_info = istate.snapshot_doc_type(istate.load_state(), archived_relative_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(path), str(target))
 
@@ -135,7 +141,8 @@ def restore(archived_relative_path: str, owner: str | None = None) -> dict:
 
     store = get_vector_store()
     store.delete_documents([document_id_for(archived_relative_path)])
-    summary = ingest_files(paths=[target], owner=owner)
+    with istate.carry_doc_types({target.relative_to(knowledge_dir).as_posix(): type_info}):
+        summary = ingest_files(paths=[target], owner=owner)
     if summary.ok_files == 0:
         raise ManageError(f"恢复后重新入库失败：{summary.failed_files}")
     return {"message": f"已恢复：{archived_relative_path} → {target.relative_to(knowledge_dir).as_posix()}",
@@ -194,15 +201,18 @@ def confirm_document_version(relative_path: str, value: str, revision: str,
 def update_metadata(relative_path: str, updates: dict) -> dict:
     """编辑文档档案：把可编辑字段写入该文档的全部知识卡片，并记入台账覆盖设置。
 
-    可编辑字段：title / category / topic / tags / version / status。
+    可编辑字段：title / category / topic / tags / version / status / allowed_groups / doc_type。
     覆盖设置存入入库台账，重新入库时依然生效；磁盘文件不做改动。
-    可编辑字段：title / category / topic / tags / version / status / allowed_groups。
+    doc_type 的空值是显式清除，与未编辑该字段不同。
     """
     path, _, cfg = _resolve(relative_path)
     # V3.7：allowed_groups（可见部门列表）可编辑；空列表规范化为 ["all"]（全员可见）
     allowed = {"title", "category", "topic", "tags", "version", "status", "allowed_groups"}
     clean: dict = {}
     for key, value in (updates or {}).items():
+        if key == "doc_type":
+            clean[key] = normalize_doc_type(value)
+            continue
         if key not in allowed or value in (None, "", "all"):
             continue
         if key in ("topic", "tags"):
@@ -268,7 +278,11 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
         entry["version_info"] = {key: payload[key] for key in FIELDS}
     overrides = entry.get("overrides", {})
     for key, value in clean.items():
-        if value:
+        if key == "doc_type":
+            info = dict(entry.get("doc_type_info", {}))
+            info.update(manual=value, value=value, source="manual")
+            entry["doc_type_info"] = info
+        elif value:
             overrides[key] = value
         else:
             overrides.pop(key, None)
@@ -367,7 +381,8 @@ def ingest_web_page(url: str, domain: str = "reference",
                     category: str = "webpages", on_progress=None,
                     default_groups: list[str] | None = None,
                     snapshot_path: Path | None = None,
-                    owner: str | None = None) -> dict:
+                    owner: str | None = None, *,
+                    default_doc_type: str | None = None) -> dict:
     """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
 
     流程：fetch URL → 提取正文 → 保存为 .md 快照（领域 / 分类写进文件头）→ 标准入库
@@ -376,6 +391,14 @@ def ingest_web_page(url: str, domain: str = "reference",
     """
     from src.domains import enabled_codes
     from src.web_fetcher import fetch_and_parse, save_web_snapshot
+    from src import index_state as istate
+    if default_doc_type is not None:
+        default_doc_type = normalize_doc_type(default_doc_type)
+    # 在快照覆写前保存类型声明；其余源文件字段仍按抓取结果重新生成。
+    type_carry = {}
+    if snapshot_path is not None:
+        rel = Path(snapshot_path).resolve().relative_to(get_config().knowledge_dir.resolve()).as_posix()
+        type_carry[rel] = istate.snapshot_doc_type(istate.load_state(), rel)
 
     # archive 的卡片必须是 archive 状态，而状态由所在目录决定：快照不在 archive/ 下就会
     # 变成「归档领域里的生效卡片」，所以网页不能直接进归档领域（要归档走知识库管理页）
@@ -396,8 +419,10 @@ def ingest_web_page(url: str, domain: str = "reference",
     _report("ingest")
     # 入库（走标准流水线）：skip_unchanged 让同 URL 重复抓取时走增量判断，
     # 网页内容没变就跳过（省 LLM 标签、切片和向量化）
-    summary = ingest_files(paths=[file_path], skip_unchanged=True,
-                           default_groups=default_groups, owner=owner)
+    with istate.carry_doc_types(type_carry):
+        summary = ingest_files(paths=[file_path], skip_unchanged=True,
+                               default_groups=default_groups, owner=owner,
+                               default_doc_type=default_doc_type)
     if summary.skipped_files and not summary.ok_files:
         return {
             "message": f"网页内容未变化，已跳过入库：{url}（增量判断命中，省时省钱）",
@@ -426,7 +451,8 @@ def refetch_web_page(relative_path: str, owner: str | None = None) -> dict:
     领域 / 分类沿用文件头里的声明，可见部门沿用当前卡片——入库时表单选的部门只在卡片里、
     不在文件头里，不传回去重抓后会变成全员可见。
     """
-    path, _, _ = _resolve(relative_path)
+    path, knowledge_dir, _ = _resolve(relative_path)
+    relative_path = path.relative_to(knowledge_dir).as_posix()
     if relative_path.split("/")[0] == "archive":
         raise ManageError("已归档的网页请先恢复，再重新抓取。")
     from src.web_fetcher import read_snapshot_origin

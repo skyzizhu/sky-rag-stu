@@ -11,9 +11,37 @@ from __future__ import annotations
 
 import hashlib
 import json
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
 from src.config import PROJECT_ROOT
+
+# 临时携带的仅是类型状态；路径移动/网页覆写成功提交后才写入台账。
+_doc_type_carry: ContextVar[dict] = ContextVar("doc_type_carry", default={})
+
+
+@contextmanager
+def carry_doc_types(values: dict):
+    token = _doc_type_carry.set({**_doc_type_carry.get(), **values})
+    try:
+        yield
+    finally:
+        _doc_type_carry.reset(token)
+
+
+def doc_type_info_for(state: dict, relative_path: str) -> dict:
+    return dict(_doc_type_carry.get().get(
+        relative_path, state.get(relative_path, {}).get("doc_type_info", {})))
+
+
+def snapshot_doc_type(state: dict, relative_path: str) -> dict:
+    """生命周期操作只保存类型，不恢复原路径的权限、版本等其他档案。"""
+    info = doc_type_info_for(state, relative_path)
+    if info:
+        info["carry"] = {"value": info.get("value", ""), "source": info.get("source", "")}
+    return info
+
 
 STATE_PATH = PROJECT_ROOT / "storage" / "index_state.json"
 
@@ -54,7 +82,8 @@ def save_state(state: dict) -> None:
 def update_entry(state: dict, relative_path: str, document_id: str,
                  chunks: int, file_hash_value: str, version: str = "1.0",
                  version_info: dict | None = None,
-                 version_detection: dict | None = None) -> None:
+                 version_detection: dict | None = None,
+                 doc_type_info: dict | None = None) -> None:
     from datetime import datetime
 
     # 重新入库更新指纹时保留人工档案（尤其是可见部门），避免下次入库丢失权限。
@@ -74,6 +103,9 @@ def update_entry(state: dict, relative_path: str, document_id: str,
         state[relative_path]["version_info"] = version_info
     if version_detection is not None:
         state[relative_path]["version_detection"] = version_detection
+    type_info = doc_type_info if doc_type_info is not None else previous.get("doc_type_info")
+    if type_info is not None:
+        state[relative_path]["doc_type_info"] = dict(type_info)
     if confirmation and confirmation.get("hash") == file_hash_value and confirmation.get("revision") == version:
         state[relative_path]["version_confirmation"] = confirmation
 

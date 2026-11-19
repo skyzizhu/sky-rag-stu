@@ -816,8 +816,7 @@ async function renderTokens() {
       </form>
       <div class="muted">令牌明文只在签发时显示一次。员工把它配置进自己 Agent 的 MCP
         Authorization 头（Bearer mcp_pat_…），调用时即按其部门过滤知识。吊销后立即失效。</div>
-      ${lastToken ? `<div class="log-detail" style="margin-top:12px"><b>刚签发的令牌（仅此一次）：</b><br>
-        <span class="mono">${esc(lastToken)}</span></div>` : ''}
+      ${lastToken ? `<div class="log-detail" style="margin-top:12px"><b>刚签发的令牌（仅此一次，离开本页后无法再次查看）：</b><div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap"><span class="mono" style="overflow-wrap:anywhere">${esc(lastToken)}</span><button class="mini ghost" style="flex-shrink:0" data-token="${esc(lastToken)}" onclick="copyText(this.dataset.token, '完整令牌已复制到剪贴板')">📋 复制令牌</button></div><div class="muted" style="margin-top:8px">请立即复制并配置到 Agent 的 Authorization 头；吊销后立即失效。</div></div>` : ''}
     </div>
     <div class="card">
       <h3>令牌列表（${d.tokens.length}）</h3>
@@ -843,6 +842,28 @@ async function tokenRevoke(prefix) {
   confirmDo('吊销令牌', `确认吊销令牌 ${prefix}…？该 Agent 接入将立即失效。`,
     async () => { await api('POST', '/api/tokens/revoke?token_prefix=' + encodeURIComponent(prefix));
                   toast('令牌已吊销'); renderTokens(); }, '吊销', true);
+}
+/* 剪贴板复制：优先 Clipboard API，非安全上下文（如 http://局域网IP 访问）降级 execCommand */
+function copyText(text, note) {
+  const done = () => toast(note || '已复制到剪贴板');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+    return;
+  }
+  fallbackCopy(text, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    done();
+  } catch (e) { toast('复制失败，请手动选择文本复制', false); }
+  document.body.removeChild(ta);
 }
 
 /* ---------- 登录日志（员工专属；管理员的在「管理员」标签下查看） ---------- */

@@ -210,6 +210,16 @@ knowledge/
 `domain=learning`（领域）、`category=ai`（分类）、`topic=RAG`（主题）。
 二级目录随意取名（自动转小写），三级目录名会提示主题（`rag` 会规范成 `RAG`）。
 
+### 文档类型（独立可选字段 `doc_type`）
+
+`doc_type` 表示资料的文档类型，如「一期方案」「需求文档」「会议纪要」。它是独立于 `domain`（领域）、`category`（分类）、`topic`（主题）和 `file_type`（文件格式）的可选自由文本，不需要登记类型表，也不是固定分类体系。
+
+- **取值优先级**：管理页人工指定（含显式清空） > Markdown Front Matter 的 `doc_type` > 上传时填写的默认文档类型 > 确定性自动推断 > 未分类。
+- **自动推断**：从上传文件的原始目录由近到远查找明确的文档类型目录，保留命中的完整目录名称；无明确目录时，再从文件名识别一个明确的类型短语。不会调用 LLM 或根据正文猜类型；模糊、冲突或没有线索时留空。例如原目录 `总体方案/一期方案/材料.docx`、`总体方案/二期方案/材料.docx` 分别得到「一期方案」「二期方案」，不会都归成「总体方案」。
+- **原始标签保留**：只去首尾空白，最多 80 个字符，不接受控制字符或非字符串；不转小写、不做同义词/别名合并。「总体方案」「一期方案」「二期方案」是不同标签，目录重命名或补类型不会合并不同文件的文档身份。
+- **未分类兼容**：旧文档没有该字段、值为 `null` 或空字符串时，列表与来源返回 `doc_type: ""`；不迁移旧数据。新增 keyword 索引由现有入库建索引流程幂等安装，不在模块导入时连接服务。
+- **筛选**：问答、管理列表与 MCP 可按类型精确过滤；省略/留空或 `all` 表示不限类型，`__unclassified__` 是仅供筛选使用的保留值，匹配缺失/`null`/空字符串，不能作为文档类型存储。类型筛选始终叠加既有领域、状态、版本和部门权限约束，不改变检索评分、精排或安全规则。
+
 ### 每张知识卡片都有一张完整「档案」
 
 统一元数据包括：document_id（文档身份证，按路径生成，永不改变）、chunk_id（卡片编号，如 `doc_a913bc12_0001`）、来源、路径、领域、分类、主题、标签、章节路径、页码、版本、状态、各时间戳——共 18 个字段，一个不少。
@@ -255,6 +265,7 @@ knowledge/
 ```markdown
 ---
 title: 我的标题
+doc_type: 需求文档
 topic:
   - RAG
   - 向量数据库
@@ -482,14 +493,18 @@ python scripts/test_km_scenarios.py            # 知识库管理机制自动测�
 除了给人用的 Web 界面，本 RAG 还能作为**工具**接入任何支持 MCP（Model Context Protocol）
 的 Agent（Claude Desktop、Cursor、ZCode 等）——Agent 会自动调用你的个人知识库回答问题。
 
-**四个工具**：
+**工具集**（按 `MCP_MODE` 注册：`query` 提供 search/status，`answer` 提供 qa/digest/status；两种模式均提供 get_document/list_documents）：
 
 | 工具 | 作用 | 是否需要 LLM |
 |---|---|---|
-| `knowledge_qa` | 基于知识库问答，返回带来源引用的答案（支持多轮 `history` 与领域/状态过滤） | 需要 |
+| `knowledge_qa` | 基于知识库问答，返回带来源引用的答案（支持多轮 `history` 与领域/状态/文档类型过滤） | 需要 |
 | `knowledge_search` | 只检索不生成，返回片段与相关度（零生成成本） | **不需要** |
 | `knowledge_digest` | 跨文档主题总结 | 需要 |
+| `get_document` | 按编号读取全文/分页片段，始终仅返回 active 且有权限的文档 | **不需要** |
+| `list_documents` | 按领域/状态/文档类型及权限枚举目录（默认 active） | **不需要** |
 | `knowledge_status` | 服务就绪检查（向量库 / 向量化模型 / LLM Key / 卡片数） | **不需要** |
+
+五个内容工具均新增可选关键字参数 `doc_type`，原有位置参数（包括 `ctx`）顺序保持不变。示例参数：`knowledge_search(question="建设目标", domain="work", doc_type="一期方案")`，或 `list_documents(doc_type="__unclassified__")`。类型标签去首尾空白后精确匹配，无隐式别名合并；省略/留空/`all` 不限类型，`__unclassified__` 仅查旧缺失/`null`/空值。`get_document` 的类型过滤不会放宽 active-only 或部门权限规则。返回的来源、matches、全文/片段文档档案和目录行均包含 `doc_type`（旧文档为空字符串）。
 
 **接入方式**（以 ZCode / Claude Desktop 为例，写入其 MCP 配置）：
 

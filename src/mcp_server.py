@@ -130,12 +130,15 @@ def _log_qa(question: str, result, top_k: int, elapsed: float,
     )
 
 
-def _filters(domain: str | None, status: str | None) -> dict | None:
+def _filters(domain: str | None, status: str | None, *,
+             doc_type: str | None = None) -> dict | None:
     """组装 Metadata 过滤条件；未提供任何过滤时返回 None（检索默认范围）。
 
     domain 可传编号或显示名称，这里解析成编号（此后全链路只认编号）。识别不了就抛
     ValueError，由工具层转成明确报错——拿未知值去过滤只会得到空结果，Agent 会误报
     「知识库里没有」。"all" 表示不限领域。
+    doc_type 是独立的原始文档类型标签，去首尾空白后精确匹配，不做别名合并；
+    留空 / all 表示不限，__unclassified__ 表示缺失 / null / 空字符串。
     """
     filters: dict = {}
     if domain and str(domain).strip().lower() != "all":
@@ -152,6 +155,11 @@ def _filters(domain: str | None, status: str | None) -> dict | None:
             if status not in STATUSES:
                 raise ValueError(f"无法识别状态「{status}」。可用值：{'、'.join(STATUSES)} 或 all")
             filters["status"] = status
+    from src.document_type import normalize_doc_type_filter
+
+    normalized_type = normalize_doc_type_filter(doc_type)
+    if normalized_type is not None:
+        filters["doc_type"] = normalized_type
     return filters or None
 
 
@@ -178,6 +186,7 @@ def _sources_payload(sources: list[dict]) -> list[dict]:
             "page": s.get("page"),
             "domain": s.get("domain"),
             "category": s.get("category"),
+            "doc_type": s.get("doc_type") or "",
             "version": s.get("version"),
             "status": s.get("status"),
             "excerpt": (s.get("text") or "")[:200],
@@ -230,6 +239,7 @@ def _tool_knowledge_qa_impl(
     status: str | None = None,
     history: list[dict] | None = None,
     ctx=None,
+    *, doc_type: str | None = None,
 ) -> str:
     """基于用户的个人知识库（含其简历、面试登记表、学习笔记、技术文档、网页收藏等私有资料）回答问题，返回带来源引用的答案。
 
@@ -251,6 +261,7 @@ def _tool_knowledge_qa_impl(
         domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active=生效 / archive=已归档 / expired=历史版本）
         history: 可选，最近对话 [{"role":"user/assistant","content":"..."}]，最多取 6 条
+        doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
     """
     if not question or not question.strip():
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
@@ -259,7 +270,7 @@ def _tool_knowledge_qa_impl(
     groups, username, user = _identity_from_ctx(ctx)
 
     try:
-        filters = _filters(domain, status)
+        filters = _filters(domain, status, doc_type=doc_type)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
@@ -296,6 +307,7 @@ def _tool_knowledge_search_impl(
     domain: str | None = None,
     status: str | None = None,
     ctx=None,
+    *, doc_type: str | None = None,
 ) -> str:
     """在用户的个人知识库中检索相关片段（其简历、登记表、笔记、技术文档、网页收藏等），不调用 LLM 生成答案（零生成成本、更快）。
 
@@ -317,13 +329,14 @@ def _tool_knowledge_search_impl(
         top_k: 返回片段数量，默认 5，范围 1~10
         domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active/archive/expired）
+        doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
     """
     if not question or not question.strip():
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
     from src.pipeline import answer_question
 
     try:
-        filters = _filters(domain, status)
+        filters = _filters(domain, status, doc_type=doc_type)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
@@ -351,6 +364,7 @@ def _tool_knowledge_search_impl(
                     "version": item.metadata.get("version"),
                     "source": item.metadata.get("source"),
                     "path": item.metadata.get("path"),
+                    "doc_type": item.metadata.get("doc_type") or "",
                     "score": round(float(item.score), 4),
                     "channels": item.channels,
                     "section": item.metadata.get("section"),
@@ -367,7 +381,7 @@ def _tool_knowledge_search_impl(
 
 def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
                                 status: str | None = None, top_k: int = 10,
-                                ctx=None) -> str:
+                                ctx=None, *, doc_type: str | None = None) -> str:
     """跨文档知识总结：围绕一个主题，综合用户知识库中的多个文档生成结构化摘要（要点+出处）。
 
     使用时机：用户要求"总结/归纳/梳理某主题在资料中的内容"时使用；不新建或修改知识文件。
@@ -382,6 +396,7 @@ def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
         domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active/archive/expired）
         top_k: 综合的资料卡片数量，默认 10，范围 1~20
+        doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
     """
     if not topic or not topic.strip():
         return json.dumps({"error": "主题不能为空"}, ensure_ascii=False)
@@ -391,7 +406,7 @@ def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
     # 且部门权限过滤从未注入（跨文档总结同样必须遵循令牌可见范围）
     groups, username, user = _identity_from_ctx(ctx)
     try:
-        filters = _filters(domain, status)
+        filters = _filters(domain, status, doc_type=doc_type)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
@@ -423,7 +438,7 @@ def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
 
 def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: int = 5,
                             mode: str = "fragments", section: str | None = None,
-                            ctx=None) -> str:
+                            ctx=None, *, doc_type: str | None = None) -> str:
     """按 document_id 获取一篇或多篇文档：mode="full" 返回每篇拼接全文（去重叠）；
     mode="fragments"（默认）返回卡片片段，单文档时按页分页、多文档时按文档分组全量返回。
     可选 section 过滤：只返回章节名包含该关键词的内容（大小写不敏感）。
@@ -438,6 +453,7 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
         page_size: fragments 模式每页卡片数（1~20，默认 5）
         mode: "fragments"（分页片段）或 "full"（拼接全文）
         section: 可选，章节名关键词——只返回章节名包含它的内容（大小写不敏感）
+        doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类；始终仅取 active 且有权限的文档
     """
     import math
 
@@ -457,7 +473,11 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
         return json.dumps({"error": "mode 仅支持 fragments / full"}, ensure_ascii=False)
     section_kw = (section or "").strip().lower()
 
-    doc_filters = {"document_id": wanted, "status": "active"}
+    try:
+        doc_filters = {**(_filters(None, "active", doc_type=doc_type) or {}),
+                       "document_id": wanted}
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)}, ensure_ascii=False)
     groups, username, user = _identity_from_ctx(ctx)
     filters = scope_filters(doc_filters, groups)
     truncated = False
@@ -510,6 +530,7 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
                 "title": meta.get("title"), "owner": meta.get("owner"),
                 "effective_date": meta.get("effective_date"),
                 "domain": meta.get("domain"), "category": meta.get("category"),
+                "doc_type": meta.get("doc_type") or "",
                 "version": meta.get("version"), "total_cards": len(cards),
                 "sections": sorted({str(c["payload"].get("section") or "")
                                     for c in cards if c["payload"].get("section")})}
@@ -561,19 +582,20 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
 
 
 def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
-                              ctx=None) -> str:
-    """枚举知识库目录：按权限列出文档（编号/文件名/领域/分类/版本/状态/卡片数）。
+                              ctx=None, *, doc_type: str | None = None) -> str:
+    """枚举知识库目录：按权限列出文档（编号/文件名/领域/分类/文档类型/版本/状态/卡片数）。
     不调用 LLM。用途：生成方案前先了解知识库里有哪些资料可供检索。
 
     Args:
         domain: 可选，限定知识领域编号（{DOMAIN_CODES}）；"all" 表示不限
         status: 知识状态过滤（active/archive/expired/all，默认 active）
+        doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查缺失/null/空字符串
     """
     from src.permissions import scope_filters
     from src.vector_store import get_vector_store
 
     try:
-        filters = _filters(domain, status)
+        filters = _filters(domain, status, doc_type=doc_type)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
     groups, username, user = _identity_from_ctx(ctx)
@@ -581,6 +603,7 @@ def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
     allowed = set(filters.get("allowed_groups") or [])
     want_domain = filters.get("domain")
     want_status = filters.get("status")  # "all" 已在 _filters 中剔除，不再过滤
+    want_type = filters.get("doc_type")
 
     docs = []
     for d in get_vector_store().list_documents():
@@ -590,10 +613,17 @@ def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
             continue
         if want_status and d.get("status") != want_status:
             continue
+        stored_type = d.get("doc_type") or ""
+        if want_type == "__unclassified__":
+            if stored_type != "":
+                continue
+        elif want_type is not None and stored_type != want_type:
+            continue
         docs.append({"document_id": d.get("document_id"), "source": d.get("source"),
                      "title": d.get("title"), "owner": d.get("owner"),
                      "effective_date": d.get("effective_date"),
                      "domain": d.get("domain"), "category": d.get("category"),
+                     "doc_type": stored_type,
                      "version": d.get("version"), "status": d.get("status"),
                      "chunks": d.get("chunks"), "indexed_at": d.get("indexed_at")})
     from src import auth_db
@@ -602,7 +632,7 @@ def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
                                department=str(user.get("department") or ""),
                                entry=_ENTRY, action="list_documents",
                                detail={"domain": want_domain, "status": want_status,
-                                       "total": len(docs)})
+                                       "doc_type": want_type, "total": len(docs)})
     except Exception:
         pass  # 审计失败不影响枚举
     return json.dumps({"total": len(docs), "documents": docs},
@@ -668,45 +698,46 @@ def _tool_knowledge_status_impl() -> str:
 async def knowledge_qa(question: str, top_k: int = 5, domain: str | None = None,
                        status: str | None = None,
                        history: list[dict] | None = None,
-                       ctx: Context | None = None) -> str:
+                       ctx: Context | None = None, *, doc_type: str | None = None) -> str:
     """基于用户的个人知识库回答问题（带来源引用；详见实现说明）。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_knowledge_qa_impl, question, top_k, domain, status,
-                          history, ctx))
+                          history, ctx, doc_type=doc_type))
 
 
 async def knowledge_search(question: str, top_k: int = 5, domain: str | None = None,
                            status: str | None = None,
-                           ctx: Context | None = None) -> str:
+                           ctx: Context | None = None, *, doc_type: str | None = None) -> str:
     """在用户的个人知识库中检索相关片段（不调用 LLM，详见实现说明）。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_knowledge_search_impl, question, top_k, domain,
-                          status, ctx))
+                          status, ctx, doc_type=doc_type))
 
 
 async def knowledge_digest(topic: str, domain: str | None = None,
                            status: str | None = None, top_k: int = 10,
-                           ctx: Context | None = None) -> str:
+                           ctx: Context | None = None, *, doc_type: str | None = None) -> str:
     """跨文档知识总结：围绕一个主题综合多文档生成结构化摘要（详见实现说明）。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_knowledge_digest_impl, topic, domain, status,
-                          top_k, ctx))
+                          top_k, ctx, doc_type=doc_type))
 
 
 async def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
                        mode: str = "fragments", section: str | None = None,
-                       ctx: Context | None = None) -> str:
+                       ctx: Context | None = None, *, doc_type: str | None = None) -> str:
     """按 document_id 获取一篇或多篇文档的全文/分页片段（详见实现说明）。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_get_document_impl, document_ids, page, page_size,
-                          mode, section, ctx))
+                          mode, section, ctx, doc_type=doc_type))
 
 
 async def list_documents(domain: str | None = None, status: str = "active",
-                         ctx: Context | None = None) -> str:
+                         ctx: Context | None = None, *, doc_type: str | None = None) -> str:
     """按权限枚举知识库目录（详见实现说明）。"""
     return await anyio.to_thread.run_sync(
-        functools.partial(_tool_list_documents_impl, domain, status, ctx))
+        functools.partial(_tool_list_documents_impl, domain, status, ctx,
+                          doc_type=doc_type))
 
 
 async def knowledge_status(ctx: Context | None = None) -> str:

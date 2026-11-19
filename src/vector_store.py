@@ -23,7 +23,7 @@ from src.chunker import Chunk
 # 建立 Payload Index 的字段：给 Metadata Filter 查询提速
 # （topic / tags / allowed_groups 是列表字段，Qdrant 的 keyword 索引对「任一元素匹配」生效）
 INDEXED_FIELDS = [
-    "document_id", "source", "domain", "category",
+    "document_id", "source", "domain", "category", "doc_type",
     "topic", "tags", "status", "version", "file_type",
     "allowed_groups",  # V3.7 权限：可见部门列表
 ]
@@ -162,12 +162,19 @@ class VectorStore:
         """把 {字段: 值} 转成 Qdrant 过滤器。
 
         - 字符串值 → 精确/任一匹配；列表值 → 任一匹配；
+        - doc_type="__unclassified__" → 缺失、null 或空字符串；与其他条件保持 AND。
         - time_range 形如 {"from": "2026-06-01", "to": "2026-08-29"} → 时间范围过滤；
           key 必须是 datetime 字段（created_at / updated_at）。
         """
         conditions = []
         for key, value in (filters or {}).items():
             if value is None:
+                continue
+            if key == "doc_type" and value == "__unclassified__":
+                conditions.append(models.Filter(should=[
+                    models.IsEmptyCondition(is_empty=models.PayloadField(key="doc_type")),
+                    models.FieldCondition(key="doc_type", match=models.MatchValue(value="")),
+                ]))
                 continue
             if key in INDEXED_DATETIME_FIELDS and isinstance(value, dict):
                 date_from, date_to = value.get("from"), value.get("to")
@@ -277,7 +284,7 @@ class VectorStore:
                 collection_name=self.cfg.qdrant_collection,
                 limit=256,
                 offset=offset,
-                with_payload=["document_id", "source", "path", "domain", "category",
+                with_payload=["document_id", "source", "path", "domain", "category", "doc_type",
                               "topic", "version", "status", "allowed_groups", "file_type",
                               "indexed_at", "owner", "title", "effective_date",
                               "classification", "document_version", "document_version_status",
@@ -295,6 +302,7 @@ class VectorStore:
                         "path": payload.get("path") or "?",
                         "domain": payload.get("domain") or "?",
                         "category": payload.get("category") or "?",
+                        "doc_type": payload.get("doc_type") or "",
                         "topic": payload.get("topic") or [],
                         "allowed_groups": payload.get("allowed_groups") or ["all"],
                         "file_type": payload.get("file_type") or "",
@@ -339,12 +347,13 @@ class VectorStore:
                     collection_name=self.cfg.qdrant_collection,
                     scroll_filter=self.build_filter(filters), offset=offset,
                     limit=min(256, max_points - scanned), with_vectors=False,
-                    with_payload=["document_id", "source", "path", "title", "domain", "category",
+                    with_payload=["document_id", "source", "path", "title", "domain", "category", "doc_type",
                                   "version", "status", "indexed_at", "updated_at"],
                 )
                 scanned += len(points)
                 for point in points:
                     meta = point.payload or {}
+                    meta["doc_type"] = meta.get("doc_type") or ""
                     if dates:
                         date = str(meta.get(date_field) or "")[:10]
                         if not date:
