@@ -25,7 +25,7 @@ set NO_PROXY=localhost,127.0.0.1
 set no_proxy=localhost,127.0.0.1
 
 echo [0/4] 清理残留服务（占用 6333/8700/8501 端口的旧进程）...
-for %%p in (6333 8700 8501) do (
+for %%p in (8760 6333 8700 8501) do (
     for /f "tokens=5" %%a in ('netstat -aon ^| findstr /R /C:":%%p .*LISTENING" 2^>nul') do taskkill /F /T /PID %%a >nul 2>&1
 )
 taskkill /F /IM qdrant.exe >nul 2>&1
@@ -45,8 +45,11 @@ echo [3/4] 启动管理后台（认证服务）...
 cd /d "%ROOT%"
 start "管理后台 (8700)" ".venv\Scripts\python.exe" -m uvicorn src.admin_app:app --host 0.0.0.0 --port 8700 --proxy-headers --forwarded-allow-ips=127.0.0.1
 
-echo [4/4] 启动知识库前台...
+echo [4/5] 启动知识库前台...
 start "知识库前台 (8501)" ".venv\Scripts\streamlit.exe" run app.py
+
+echo [5/5] 启动 MCP 知识服务（PAT 鉴权）...
+start "MCP (8760)" cmd /c "set MCP_TRANSPORT=streamable-http && .venv\Scripts\python.exe src\mcp_server.py"
 
 echo 等待服务就绪...
 set /a waited=0
@@ -62,7 +65,7 @@ echo.
 echo ============================================================
 echo   知识库前台：  http://localhost:8501
 echo   管理后台：    http://localhost:8700/admin/login
-echo   停止服务：    关闭弹出的三个服务窗口（Qdrant/8700/8501）
+echo   停止服务：    关闭弹出的服务窗口（Qdrant/8700/8501/8760）
 echo ============================================================
 echo.
 start "" http://localhost:8501

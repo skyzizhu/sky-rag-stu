@@ -102,13 +102,15 @@ class LLMClient:
         return cleaned or text
 
     def _create(self, messages: list[dict], stream: bool = False, include_usage: bool = False,
-                timeout: float | None = None, max_tokens: int | None = None):
+                timeout: float | None = None, max_tokens: int | None = None,
+                temperature: float | None = None):
         """调用 OpenAI 兼容接口。include_usage：流式末尾附带 usage 统计 chunk——
-        个别兼容服务不支持该参数（报 400 / TypeError），此时去掉重试一次。"""
+        个别兼容服务不支持该参数（报 400 / TypeError），此时去掉重试一次。
+        temperature：按次覆盖全局生成温度（分类类调用如 Query 理解用 0 保证可复现）。"""
         kwargs = dict(
             model=self.cfg.llm_model,
             messages=messages,
-            temperature=self.cfg.llm_temperature,
+            temperature=self.cfg.llm_temperature if temperature is None else temperature,
             max_tokens=max_tokens if max_tokens is not None else self.cfg.llm_max_tokens,
             stream=stream,
         )
@@ -126,15 +128,18 @@ class LLMClient:
             return client.chat.completions.create(**kwargs)
 
     def chat(self, messages: list[dict], usage_out: dict | None = None, *,
-             timeout: float | None = None, max_tokens: int | None = None) -> tuple[str, float]:
+             timeout: float | None = None, max_tokens: int | None = None,
+             temperature: float | None = None) -> tuple[str, float]:
         """发送对话，返回 (完整答案文本, 耗时秒)。
 
         usage_out：可选的用量字典——调用后写入本次 token 统计（服务商返回 usage 用真实值，
         否则按本地启发式估算并标记 estimated），返回值保持不变、不影响既有调用方。
+        temperature：按次覆盖全局生成温度（不传用配置值）。
         """
         start = time.time()
         try:
-            response = self._create(messages, timeout=timeout, max_tokens=max_tokens)
+            response = self._create(messages, timeout=timeout, max_tokens=max_tokens,
+                                    temperature=temperature)
         except Exception as exc:
             raise self._translate_error(exc) from exc
 

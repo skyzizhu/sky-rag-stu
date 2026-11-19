@@ -246,6 +246,11 @@ class EnumerationProcessingTests(IngestHarness):
         client.chat([{'role': 'user', 'content': 'test'}], timeout=2.0, max_tokens=128)
         fake.with_options.assert_called_once_with(timeout=2.0, max_retries=0)
         self.assertEqual(fake.chat.completions.create.call_args.kwargs['max_tokens'], 128)
+        # 温度：默认取配置值；按次覆盖时透传指定值（Query 理解用 0 保证路由可复现）
+        self.assertEqual(fake.chat.completions.create.call_args.kwargs['temperature'],
+                         self.cfg.llm_temperature)
+        client.chat([{'role': 'user', 'content': 'test'}], temperature=0.0)
+        self.assertEqual(fake.chat.completions.create.call_args.kwargs['temperature'], 0.0)
 
     def test_followup_doc_selection_cap_is_disclosed(self):
         first = self.note('项目甲 PRJ-101 使用RAG。')

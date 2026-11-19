@@ -252,6 +252,9 @@ _SERVICE_PROBES = [
     ("admin", "管理后台（8700）", "http://localhost:8700/admin/login"),
     ("qdrant", "Qdrant 向量库（6333）", "http://localhost:6333"),
     ("ollama", "Ollama 向量化模型（11434）", "http://localhost:11434"),
+    # MCP 知识服务（streamable-http）：健康时对未带令牌的探测返回 401，
+    # 401 < 500 计为正常——与鉴权拒绝共用一个状态码，语义一致
+    ("mcp", "MCP 知识服务（8760）", "http://localhost:8760/mcp"),
 ]
 
 
@@ -334,7 +337,7 @@ def api_services_stop(_: dict = Depends(require_admin_api)):
     return JSONResponse(result, status_code=200 if result["ok"] else 400)
 
 
-_SERVICE_KEYS = {"front", "admin", "qdrant", "ollama"}
+_SERVICE_KEYS = {"front", "admin", "qdrant", "ollama", "mcp"}
 
 
 @app.post("/api/services/{key}/{action}")
@@ -515,6 +518,7 @@ class AdminBody(BaseModel):
     username: str
     password: str
     password_confirm: str
+    note: str = ""  # 备注：说明该管理员的用途/背景（可选）
 
 
 @app.post("/api/admins")
@@ -523,11 +527,12 @@ def api_admin_create(body: AdminBody, request: Request,
     if body.password != body.password_confirm:
         return JSONResponse({"ok": False, "detail": "两次输入的密码不一致"}, status_code=400)
     try:
-        created = auth_db.create_admin(body.username, body.password)
+        created = auth_db.create_admin(body.username, body.password, note=body.note)
     except ValueError as exc:
         return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    note_part = f"（备注：{body.note.strip()}）" if body.note.strip() else ""
     _log_from_admin(request, "admin_create", admin["username"],
-                    detail=f"新增管理员 {created['username']}")
+                    detail=f"新增管理员 {created['username']}{note_part}")
     return {"ok": True, "admin": created}
 
 

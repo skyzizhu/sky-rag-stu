@@ -252,6 +252,10 @@ def _rrf_fuse(vector_items: list[RetrievedItem], keyword_items: list[RetrievedIt
         channels = [c for c in ("向量", "关键词") if entry[c]]
         item.channels = " + ".join(channels)
         item.rank = final_rank
+        # 融合分归一化后写回 item.score：此前 item.score 是各通道的原始分
+        # （向量相似度 0~1、BM25 无上界），同一答案的"相关度"会出现 0.69 与 5.20
+        # 并列、互相不可比的情况。归一化到 0~1（双通道同名次=1.0），单调变换不改排序。
+        item.score = entry["score"] * (k + 1) / 2.0
         out.append(item)
         detail_lines.append(
             f"[{final_rank}] {item.metadata.get('source')}  "

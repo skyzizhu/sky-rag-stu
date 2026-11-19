@@ -24,6 +24,7 @@ case "$SVC" in
     admin)  PORT=8700 ;;
     qdrant) PORT=6333 ;;
     ollama) PORT=11434 ;;
+    mcp)    PORT=8760  ;;
     *) exit 1 ;;
 esac
 
@@ -70,6 +71,10 @@ case "$SVC" in
         ;;
     ollama)
         nohup ollama serve >> "$LOGDIR/svc_ollama.log" 2>&1 &
+        ;;
+    mcp)
+        cd "$ROOT"
+        MCP_TRANSPORT=streamable-http nohup "$VENV_PY" "$ROOT/src/mcp_server.py" \n            >> "$LOGDIR/svc_mcp.log" 2>&1 &
         ;;
 esac
 exit 0

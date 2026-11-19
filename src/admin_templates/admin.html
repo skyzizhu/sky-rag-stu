@@ -70,6 +70,7 @@
   dialog h3 { margin: 0 0 14px; font-size: 16px; }
   dialog label { display: block; font-size: 12.5px; color: #5a6478; margin: 10px 0 4px; }
   dialog input, dialog select { width: 100%; box-sizing: border-box; }
+  dialog textarea { width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid #ccd3e0; border-radius: 7px; font-size: 13.5px; font-family: inherit; resize: vertical; }
   dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
   dialog .row { display: flex; gap: 8px; align-items: center; }
   dialog .row input { flex: 1; }
@@ -699,6 +700,7 @@ async function renderAdmins() {
         ${u.is_super ? '<span class="tag admin">🦸 超级管理员</span>' : ''}</td>
       <td>${u.status === 'active' ? '<span class="tag on">启用</span>'
                                   : '<span class="tag off">已停用</span>'}</td>
+      <td class="muted" title="${esc(u.note || '')}">${esc((u.note || '').slice(0, 60))}</td>
       <td class="muted">${esc((u.created_at || '').slice(0, 16))}</td>
       <td>
         <button class="mini ghost" onclick="admResetDlg(${u.id}, '${esc(u.username)}')">重置密码</button>
@@ -729,8 +731,8 @@ async function renderAdmins() {
         <b>admin 是超级管理员</b>：不能停用、不能删除。其他管理员可停用/删除。
         账户名全局唯一：管理员的账户名不会与员工重复。
       </div>
-      <table><tr><th>ID</th><th>账户名</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
-      ${rows || '<tr><td colspan="5" class="empty">没有管理员</td></tr>'}</table>
+      <table><tr><th>ID</th><th>账户名</th><th>状态</th><th>备注</th><th>创建时间</th><th>操作</th></tr>
+      ${rows || '<tr><td colspan="6" class="empty">没有管理员</td></tr>'}</table>
     </div>
     <div class="card">
       <h3>管理员登录日志（最近 ${logs.length} 条）</h3>
@@ -747,16 +749,19 @@ function admCreateDlg() {
     <input id="adm-p1" type="password" value="${genPwd()}">
     <label>确认密码（再次输入，与上面一致）</label>
     <input id="adm-p2" type="password">
+    <label>备注（可选：说明该管理员的用途 / 背景，便于后续交接）</label>
+    <textarea id="adm-note" rows="2" maxlength="200" placeholder="例如：运维负责人，负责知识库日常维护"></textarea>
     <div class="muted" style="margin-top:6px">管理员只登录本管理后台，不能登录知识库前台；账户名不能与员工重复。</div>`,
     async () => {
       const u = document.querySelector('#adm-u').value.trim();
       const p1 = document.querySelector('#adm-p1').value;
       const p2 = document.querySelector('#adm-p2').value;
+      const note = document.querySelector('#adm-note').value.trim();
       if (!u) throw new Error('请填写账户名');
       if (p1 !== p2) throw new Error('两次输入的密码不一致');
       if (p1.length < 6) throw new Error('密码至少 6 位');
       await api('POST', '/api/admins', { username: u, password: p1,
-        password_confirm: p2 });
+        password_confirm: p2, note });
       toast(`管理员「${u}」已创建`);
       renderAdmins();
     }, '创建');

@@ -33,6 +33,8 @@ ping -n 5 127.0.0.1 >nul
 
 cd /d "%ROOT%"
 start "" /B "%ROOT%.venv\Scripts\python.exe" -m uvicorn src.admin_app:app --host 0.0.0.0 --port 8700 --proxy-headers --forwarded-allow-ips=127.0.0.1 >> "%LOGDIR%\restart_admin.log" 2>&1
-start "" /B "%ROOT%.venv\Scripts\streamlit.exe" run app.py --server.headless true >> "%LOGDIR%\restart_front.log" 2>&1
+start "" /B "%ROOT%.venv\Scripts\streamlit.exe" run app.py --server.headless true >> "%LOGDIR%\restart_front.log" 2>&1
+set "MCP_TRANSPORT=streamable-http"
+start "" /B "%ROOT%.venv\Scripts\python.exe" "%ROOT%src\mcp_server.py" >> "%LOGDIR%\restart_mcp.log" 2>&1
 
 echo === restart done %date% %time% === >> "%LOGDIR%\restart.log"

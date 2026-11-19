@@ -46,8 +46,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import anyio
 from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
-mcp = FastMCP("sky-personal-rag")
+# 关闭 SDK 默认的 DNS 重绑定防护（它只放行 localhost/127.0.0.1 的 Host 头，
+# 局域网 IP 访问会 421 Misdirected Request）。真实鉴权由 _TokenAuthMiddleware
+# 对每个请求强制校验 PAT——重绑定防护针对的是"无鉴权本机服务"，此处多余。
+mcp = FastMCP("sky-personal-rag", transport_security=TransportSecuritySettings(
+    enable_dns_rebinding_protection=False,
+))
 
 # V3.7 身份透传：HTTP 模式下中间件验 PAT 后把调用者信息写入 contextvar；
 # stdio 个人模式从不写入 → None = 不限制（行为与 V3.6 完全一致）
@@ -159,12 +165,14 @@ def _history(history: list[dict] | None) -> list[dict]:
 
 
 def _sources_payload(sources: list[dict]) -> list[dict]:
-    """来源瘦身：只保留 Agent 需要的字段，去掉渲染专用信息。"""
+    """来源瘦身：只保留 Agent 需要的字段，去掉渲染专用信息。channels 标明
+    来源来自哪个检索通道（向量/关键词/文档展开/分批提取），与相关度同尺可解读。"""
     return [
         {
             "rank": s.get("rank"),
             "source": s.get("source"),
             "score": round(float(s.get("score", 0)), 4),
+            "channels": s.get("channels"),
             "path": s.get("path"),
             "section": s.get("section"),
             "page": s.get("page"),
@@ -293,9 +301,13 @@ def _tool_knowledge_search_impl(
 
     使用时机：需要用户私有资料的原文证据、或想在回答前先核实知识库内容时使用；
     返回片段与相关度分数，供 Agent 自行推理。
+    分数语义：score 为混合检索（向量+BM25 关键词）经 RRF 融合归一化的相关度，
+    0~1 之间可比（双通道同命中更高）；channels 字段标明证据来自哪个检索通道。
     证据边界：知识库检索结果是可引用的私有资料证据；coverage=partial/unknown 时不能声称已列全或给出全库确定总数。
     除非用户明确要求，不要额外搜索用户磁盘/文件系统。
     枚举类问题（"我有哪些…"）以检索结果为准作答，不要转而搜索磁盘文件。
+    解释型提问（针对具体主题问"四类痛点/三大特性是什么"）同样适用本工具——
+    结果以描述该主题的资料为准。
     未命中边界：检索结果为空或资料不足时，如实告知用户"知识库中没有找到相关内容"，
     不要用模型通用知识替答、也不要转而搜索磁盘；由用户决定是否换用其他途径
     （补充资料入库、或明确要求你另找途径）。
@@ -340,6 +352,7 @@ def _tool_knowledge_search_impl(
                     "source": item.metadata.get("source"),
                     "path": item.metadata.get("path"),
                     "score": round(float(item.score), 4),
+                    "channels": item.channels,
                     "section": item.metadata.get("section"),
                     "text": item.text[:400],
                 }
@@ -352,7 +365,9 @@ def _tool_knowledge_search_impl(
     )
 
 
-def _tool_knowledge_digest_impl(topic: str, ctx=None) -> str:
+def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
+                                status: str | None = None, top_k: int = 10,
+                                ctx=None) -> str:
     """跨文档知识总结：围绕一个主题，综合用户知识库中的多个文档生成结构化摘要（要点+出处）。
 
     使用时机：用户要求"总结/归纳/梳理某主题在资料中的内容"时使用；不新建或修改知识文件。
@@ -364,20 +379,32 @@ def _tool_knowledge_digest_impl(topic: str, ctx=None) -> str:
 
     Args:
         topic: 要总结的主题（如「RAG」「智能客服」）
+        domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
+        status: 可选，知识状态过滤（active/archive/expired）
+        top_k: 综合的资料卡片数量，默认 10，范围 1~20
     """
     if not topic or not topic.strip():
         return json.dumps({"error": "主题不能为空"}, ensure_ascii=False)
     from src.pipeline import answer_question
 
+    # V3.9 修复：此前漏调身份提取——groups/username/user 未定义（调用即 NameError），
+    # 且部门权限过滤从未注入（跨文档总结同样必须遵循令牌可见范围）
+    groups, username, user = _identity_from_ctx(ctx)
+    try:
+        filters = _filters(domain, status)
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)}, ensure_ascii=False)
+
     _t0 = time.time()
     result = answer_question(
         f"请综合知识库中与「{topic.strip()}」相关的全部内容，"
         "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
-        top_k=10,
+        top_k=max(1, min(int(top_k), 20)),
+        filters=filters,
         user_groups=groups,
         username=username,
     )
-    _log_qa(topic.strip(), result, 10, time.time() - _t0,
+    _log_qa(topic.strip(), result, max(1, min(int(top_k), 20)), time.time() - _t0,
             username=username, department=str(user.get("department") or ""))
     return json.dumps(
         {
@@ -583,9 +610,11 @@ def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
 
 
 def _tool_knowledge_status_impl() -> str:
-    """检查知识库服务就绪状态：向量化模型、向量数据库、卡片总数。
+    """检查知识库服务就绪状态：向量化模型、向量数据库、卡片总数、精排模型、MCP 模式与工具集。
 
     适用：调用其他知识工具前确认依赖可用；或排查「查不到结果」时先看这里。
+    rerank 字段说明精排通道：backend=local_onnx 时 ready=false 表示本地模型文件缺失
+    （检索会退化为无精排排序）；backend=llm 时 ready 跟随大模型 Key 是否已配置。
     """
     from src.pipeline import answer_question  # noqa: F401  确认核心可导入
     from src.vector_store import get_vector_store
@@ -607,7 +636,25 @@ def _tool_knowledge_status_impl() -> str:
         payload["embedding"] = f"offline: {exc}"
     from src.config import get_config
 
-    payload["llm_key"] = bool(get_config().llm_api_key)
+    cfg = get_config()
+    payload["llm_key"] = bool(cfg.llm_api_key)
+    payload["embedding_model"] = cfg.embedding_model
+    payload["llm_model"] = cfg.llm_model
+    # 精排通道就绪状态（对齐前端系统状态灯）：local_onnx 检查模型文件；llm 后端恒可用
+    rerank_backend = (cfg.rerank_backend or "llm").strip().lower()
+    if rerank_backend == "local_onnx":
+        rerank_ready = ((cfg.rerank_model_dir / "model_quantized.onnx").exists()
+                        and (cfg.rerank_model_dir / "tokenizer.json").exists())
+        payload["rerank"] = {"backend": "local_onnx", "ready": rerank_ready,
+                             "model": cfg.rerank_model_dir.name,
+                             "hint": "" if rerank_ready else
+                             "模型文件缺失——运行 python scripts/download_rerank_model.py"}
+    else:
+        payload["rerank"] = {"backend": "llm", "ready": bool(cfg.llm_api_key),
+                             "model": cfg.llm_model}
+    # MCP 自身信息：模式与本次暴露的工具集（Agent 据此决定调用策略）
+    payload["mcp_mode"] = MCP_MODE
+    payload["tools"] = list(REGISTERED_TOOLS)
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
@@ -637,10 +684,13 @@ async def knowledge_search(question: str, top_k: int = 5, domain: str | None = N
                           status, ctx))
 
 
-async def knowledge_digest(topic: str, ctx: Context | None = None) -> str:
+async def knowledge_digest(topic: str, domain: str | None = None,
+                           status: str | None = None, top_k: int = 10,
+                           ctx: Context | None = None) -> str:
     """跨文档知识总结：围绕一个主题综合多文档生成结构化摘要（详见实现说明）。"""
     return await anyio.to_thread.run_sync(
-        functools.partial(_tool_knowledge_digest_impl, topic, ctx))
+        functools.partial(_tool_knowledge_digest_impl, topic, domain, status,
+                          top_k, ctx))
 
 
 async def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,

@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import html
+import os
 import re
 import sys
 import dataclasses
@@ -907,6 +908,20 @@ def system_status(lang: str = "zh-CN") -> dict[str, tuple[bool, str]]:
         )
     else:
         status[t("status.rerank")] = (True, t("status.rerank.llm"))
+    # MCP 知识服务灯：streamable-http（8760）健康时对未带令牌的探测返回 401，
+    # 401 < 500 即为在线（与鉴权拒绝共用状态码）；连接失败/超时 = 未启动。
+    # 探测结果随上方 30 秒缓存一起生效，不拖慢页面交互。
+    try:
+        import requests as _requests
+        resp = _requests.get("http://127.0.0.1:8760/mcp", timeout=2)
+        mcp_ok = resp.status_code < 500
+    except Exception:
+        mcp_ok = False
+    status[t("status.mcp")] = (
+        mcp_ok,
+        t("status.mcp.mode", mode=os.environ.get("MCP_MODE", "query")) if mcp_ok
+        else t("status.mcp.down"),
+    )
     return status
 
 
@@ -1342,6 +1357,11 @@ def show_answer_sources(result) -> None:
         for item in result.sources:
             head = f"**[{item['rank']}] {html.escape(str(item['source']))}**　{t('sources.relevance')} `{item['score']:.3f}`"
             extras = []
+            # 检索通道（向量/关键词/文档展开/分批提取…）：说明这条来源是怎么找回来的
+            channels_raw = str(item.get("channels") or "").strip()
+            if channels_raw:
+                parts = [p.strip() for p in channels_raw.split("+") if p.strip()]
+                extras.append("🧭 " + "+".join(t("sources.channel." + p) for p in parts))
             if item.get("section"):
                 extras.append(t("sources.section", v=item["section"]))
             if item.get("page"):
@@ -1513,14 +1533,29 @@ def page_chat():
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.no_api_key.msg")})
                 _save_current_chat()
                 return
+            progress_ph = st.empty()  # 实时进度占位符
+            # 提前初始化：流式中途出错时还能拿到占位符与半截内容，
+            # 把悬挂的光标换成"回答中断"标注，而不是让 ▌ 一直闪
+            answer_ph = None
+            full_text = ""
+
+            def _show_progress(msg):
+                progress_ph.markdown(f"⏳ {tr(msg)}")
+
+            def _mark_interrupted():
+                """流式中断的页面收尾：去掉光标、给半截答案加中断标注。"""
+                if answer_ph is not None and full_text:
+                    answer_ph.markdown(
+                        format_answer_markdown(full_text)
+                        + f"\n\n> ⚠️ {t('chat.interrupted')}")
+
             try:
-                progress_ph = st.empty()  # 实时进度占位符
-                def _show_progress(msg):
-                    progress_ph.markdown(f"⏳ {tr(msg)}")
                 # 流式回答期间持续贴底跟随：答案再长也始终看得到最新输出；
-                # 用户主动上滑阅读时跟随自动让位
+                # 用户主动上滑阅读时跟随自动让位。max_seconds 覆盖列举通道的
+                # 90 秒预算 + 语义复审——跟随中途断掉会让人以为页面卡死。
                 scroll_follow_stream(
                     key=f"follow_{st.session_state['session_id']}_{len(st.session_state.messages)}",
+                    max_seconds=240,
                 )
                 if True:  # 保持缩进层级
                     # 传入历史消息实现多轮对话（Query 理解解析代词 + LLM 上下文连贯）。
@@ -1548,13 +1583,12 @@ def page_chat():
                     )
                 progress_ph.empty()
                 answer_ph = st.empty()
-                full_text = ""
                 for delta in deltas:
                     full_text += delta
                     answer_ph.markdown(format_answer_markdown(full_text) + " ▌")
                 formatted_answer = format_answer_markdown(result.answer or full_text or "")
                 answer_ph.markdown(formatted_answer)
-                progress_ph.markdown(t("chat.done"))
+                progress_ph.empty()
                 result.answer = formatted_answer or None
                 # V3.7.1 使用记录：本次问答落 SQLite（回答完成才写，失败不影响主流程）
                 _qa_user = st.session_state.get("auth_user") or {}
@@ -1598,11 +1632,19 @@ def page_chat():
                 st.session_state["scroll_answer_once"] = True
                 st.rerun()
             except (LLMError, VectorStoreError, EmbeddingError) as exc:
+                _mark_interrupted()
                 st.error(str(exc))
-                st.session_state.messages.append({"role": "assistant", "content": t("chat.error_occurred", err=exc)})
+                partial = (format_answer_markdown(full_text) + "\n\n") if full_text else ""
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": partial + t("chat.error_occurred", err=exc)})
                 _save_current_chat()
             except Exception as exc:
+                _mark_interrupted()
                 st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+                partial = (format_answer_markdown(full_text) + "\n\n") if full_text else ""
+                st.session_state.messages.append(
+                    {"role": "assistant",
+                     "content": partial + t("chat.unexpected", err=f"{type(exc).__name__}: {exc}")})
                 _save_current_chat()
 
     # 嵌套在普通容器中，避免 Streamlit 的底部聊天容器在 Expander 展开时强制滚到底部。

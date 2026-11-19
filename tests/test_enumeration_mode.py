@@ -170,7 +170,14 @@ class EnumerationRoutingRigorTests(IngestHarness):
                                      use_query_understanding=False, config=self.cfg)
         self.assertTrue(result.enumeration)
 
-
+    def test_query_understanding_runs_at_zero_temperature(self):
+        """路由判定必须可复现：QU 的分类调用温度固定 0（同一问题两次路由一致）。"""
+        llm = mock.Mock()
+        llm.chat.return_value = (json.dumps({'intent': '测试', 'vector_query': 'q',
+                                             'keyword_query': ['a'], 'enumeration': False}), 0.0)
+        from src.query_understanding import understand_query
+        understand_query('这个方法有哪些缺点？', llm=llm, config=self.cfg)
+        self.assertEqual(llm.chat.call_args.kwargs.get('temperature'), 0.0)
 
 
 if __name__ == "__main__":

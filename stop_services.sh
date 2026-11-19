@@ -20,7 +20,7 @@ pkill -f "ollama app" 2>/dev/null
 pkill -x qdrant 2>/dev/null
 
 # 前台 + 管理后台：按监听端口精确清理（只杀 LISTEN 进程）
-for port in 8700 8501; do
+for port in 8760 8700 8501; do
     pids=$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null)
     if [ -n "$pids" ]; then
         echo "  port $port: killed pids $pids" >> "$LOG"

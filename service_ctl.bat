@@ -19,6 +19,7 @@ if "%SVC%"=="front" set "PORT=8501"
 if "%SVC%"=="admin" set "PORT=8700"
 if "%SVC%"=="qdrant" set "PORT=6333"
 if "%SVC%"=="ollama" set "PORT=11434"
+if "%SVC%"=="mcp" set "PORT=8760"
 if not defined PORT exit /b 1
 
 set "LOGDIR=%ROOT%storage"
@@ -35,6 +36,7 @@ if "%SVC%"=="front" goto front
 if "%SVC%"=="admin" goto admin
 if "%SVC%"=="qdrant" goto qdrant
 if "%SVC%"=="ollama" goto ollama
+if "%SVC%"=="mcp" goto mcp
 exit /b 1
 
 :front
@@ -55,6 +57,13 @@ exit /b 0
 
 :ollama
 start "" /B "%OLLAMA_APP%" >> "%LOGDIR%\svc_ollama.log" 2>&1
+exit /b 0
+
+:mcp
+rem MCP 知识服务（streamable-http + PAT 鉴权）；MCP_MODE 由 src\mcp_server.py 从 .env 读取
+cd /d "%ROOT%"
+set "MCP_TRANSPORT=streamable-http"
+start "" /B "%ROOT%.venv\Scripts\python.exe" "%ROOT%src\mcp_server.py" >> "%LOGDIR%\svc_mcp.log" 2>&1
 exit /b 0
 
 :stop

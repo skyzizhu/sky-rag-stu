@@ -39,4 +39,9 @@ nohup "$VENV_PY" -m uvicorn src.admin_app:app --host 0.0.0.0 --port 8700 \
 nohup "$VENV_PY" -m streamlit run app.py --server.headless true --server.port 8501 \
     >> "$LOGDIR/restart_front.log" 2>&1 &
 
+# ⑤ MCP 知识服务（streamable-http + PAT 鉴权，端口 8760）
+cd "$ROOT"
+MCP_TRANSPORT=streamable-http nohup "$VENV_PY" "$ROOT/src/mcp_server.py" \
+    >> "$LOGDIR/restart_mcp.log" 2>&1 &
+
 echo "=== restart done $(date '+%F %T') ===" >> "$LOGDIR/restart.log"
