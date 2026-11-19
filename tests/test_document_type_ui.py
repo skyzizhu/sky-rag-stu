@@ -404,7 +404,8 @@ class DocumentTypeAppTests(IngestHarness):
         self.assertEqual(list(at.dataframe[0].value["_id"]), ["doc-b"])
         at.session_state["manage_selected_documents"] = ["doc-b"]
         self.render(at)
-        next(widget for widget in at.text_input if widget.key.startswith("ed_doc_type_")).input(" ")
+        next(widget for widget in at.text_input
+             if widget.key and widget.key.startswith("ed_doc_type_")).input(" ")
         next(widget for widget in at.button if widget.label == "保存文档类型").click()
         self.render(at)
         self.update.assert_called_once_with(self.documents[1]["path"], {"doc_type": ""})

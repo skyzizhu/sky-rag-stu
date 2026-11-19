@@ -30,8 +30,9 @@ class ServiceControlTests(ApiTestCase):
             response = self.client.get("/api/services")
         self.assertEqual(response.status_code, 200)
         services = response.json()["services"]
-        self.assertEqual([s["key"] for s in services], ["front", "admin", "qdrant", "ollama"])
-        self.assertEqual(services[-1]["name"], "Ollama-向量模型 configured-model（11434）")
+        self.assertEqual([s["key"] for s in services],
+                         ["front", "admin", "qdrant", "ollama", "mcp"])  # V3.9 新增 MCP 探测
+        self.assertEqual(services[-2]["name"], "Ollama-向量模型 configured-model（11434）")
         self.assertTrue(all(s["ok"] for s in services))
 
     def test_down_service_is_reported(self):

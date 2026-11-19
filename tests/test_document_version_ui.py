@@ -95,7 +95,7 @@ class DocumentVersionUiTests(IngestHarness):
         self.assertEqual(at.dataframe[0].value["版本核对"].iloc[0], "待人工确认")
         self.select(at)
         self.assertTrue(any("冲突" in e.value for e in at.warning))
-        next(x for x in at.text_input if x.key.startswith("ed_cat_")).input("documents")
+        next(x for x in at.text_input if x.key and x.key.startswith("ed_cat_")).input("documents")
         next(x for x in at.button if x.label == "💾 保存档案修改").click()
         self.render(at)
         self.assertEqual(self.store.list_documents()[0]["document_version_status"], "needs_review")
@@ -103,7 +103,7 @@ class DocumentVersionUiTests(IngestHarness):
     def test_explicit_confirmation_same_value_uses_existing_edit(self):
         at = self.open()
         self.select(at)
-        next(x for x in at.text_input if x.key.startswith("ed_declared_")).input("1.3")
+        next(x for x in at.text_input if x.key and x.key.startswith("ed_declared_")).input("1.3")
         next(x for x in at.checkbox if x.key.startswith("ed_confirm_")).check()
         next(x for x in at.button if x.label == "💾 保存档案修改").click()
         self.render(at)
