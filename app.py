@@ -2335,7 +2335,7 @@ def page_manage():
         size_col, prev_col, page_col, next_col = st.columns(
             [2, 1, 1.5, 1], vertical_alignment="bottom"
         )
-    page_size = size_col.selectbox(t("manage.page_size"), [10, 20, 50],
+    page_size = size_col.selectbox(t("manage.page_size"), [20, 50, 100],
                                     key="manage_page_size", on_change=_reset_manage_page)
     total_pages = max(1, (len(filtered) + page_size - 1) // page_size)
     # 删除末页文件后自动回到最后一个有效页码。
