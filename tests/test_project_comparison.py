@@ -4,7 +4,7 @@ import json
 from dataclasses import replace
 from unittest.mock import patch
 
-from src import mcp_server, pipeline, projects
+from src import auth_db, mcp_server, pipeline, projects
 from src.project_comparison import parse_project_comparison
 from src.query_understanding import QueryUnderstanding
 from tests._helpers import IngestHarness
@@ -60,6 +60,21 @@ class ProjectComparisonTests(IngestHarness):
         self.assertNotIn("预算最高", masked.answer)
         self.assertNotIn("80 万元", masked.answer)
 
+    def test_declared_project_count_is_a_boundary_not_part_of_the_name(self):
+        for wording in ("星云和天枢两个项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+                        "星云和天枢 2 个 项目的负责人分别是谁？"):
+            with self.subTest(wording=wording):
+                parsed = parse_project_comparison(wording)
+                self.assertEqual(parsed.names, ("星云", "天枢"))
+                self.assertTrue(parsed.valid_count)
+                result, meta = self.query(wording, use_llm=False)
+                self.assertEqual(meta["route"], "project_comparison")
+                self.assertEqual({s["source"] for s in result.sources}, {"a.md", "b.md"})
+                self.assertIn("陈明", result.answer)
+                self.assertIn("周红", result.answer)
+        parsed = parse_project_comparison("对比「星云」和「天枢两个项目」的预算")
+        self.assertEqual(parsed.names, ("星云", "天枢两个项目"))
+
     def test_mcp_qa_and_search_reuse_comparison_and_identity(self):
         with patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})), \
              patch("src.config.get_config", return_value=replace(self.cfg, query_understanding=False)):
@@ -70,11 +85,50 @@ class ProjectComparisonTests(IngestHarness):
         self.assertEqual({row["source"] for row in search["matches"]}, {"a.md", "b.md"})
         self.assertEqual(search["coverage_details"]["comparison"]["missing"], ["北斗的预算"])
 
+    def test_department_budget_uses_ordinary_retrieval_even_with_introductory_comma(self):
+        self.ingest([self.write_note("2024 年度研发部预算为 520 万元。", "department-budget.md")],
+                    default_department="财务部", default_groups=["finance"])
+        for question in ("我们财务部想核对一下，研发部今年的预算是多少？",
+                         "财务部和研发部的预算分别是多少？"):
+            with self.subTest(question=question):
+                result, meta = self.query(question, use_llm=False)
+                self.assertEqual(meta["route"], "ordinary")
+                self.assertNotIn("project_id", result.filters)
+                self.assertIn("department-budget.md", {s["source"] for s in result.sources})
+        self.assertIsNone(parse_project_comparison("我们财务部想核对一下，研发部今年的预算是多少？"))
+        result, meta = self.query("星云和天枢的预算分别是多少？", use_llm=False)
+        self.assertEqual(meta["route"], "project_comparison")
+        self.assertEqual({s["source"] for s in result.sources}, {"a.md", "b.md"})
+
+        from datetime import date
+        from src.prompt import build_messages
+        messages = build_messages("2024 年度研发部预算为 520 万元。", "研发部今年的预算是多少？")
+        self.assertIn(date.today().isoformat(), messages[0]["content"])
+        self.assertIn("标明其实际年份", messages[0]["content"])
+
+    def test_participant_roster_uses_registered_membership_and_visible_budget_evidence(self):
+        finance = auth_db.create_department("市场部")["id"]
+        for name, project_id in self.project_ids.items():
+            lead = finance if name == "星云项目" else None
+            projects.save_project(projects.ProjectFields(name, None, lead, [finance], ""), project_id=project_id,
+                                  revision=projects.get_project(project_id)["revision"])
+        self.ingest([self.write_note("天枢产品发布，项目预算 800 万元。", "launch-news.md")],
+                    default_groups=["all"])
+        question = "市场部参与了哪些项目？参与的项目里哪个预算更高，是多少万元？"
+        result, meta = self.query(question, groups=("engineering",), use_llm=False)
+        self.assertEqual(meta["route"], "project_comparison")
+        self.assertEqual({s["source"] for s in result.sources}, {"a.md", "b.md"})
+        self.assertIn("预算最高：天枢项目，200 万元", result.answer)
+        self.assertNotIn("北斗项目", result.answer)
+        self.assertNotIn("800", result.answer)
+
     def test_explicit_filters_and_multiple_scope_errors(self):
         cases = (
             (HIGHEST, {"project_id": [self.project_ids["星云项目"]]}, "conflict"),
             ("星云、天枢、陌生三个项目里预算最高的是哪个项目？", {}, "unresolved"),
             ("星云、天枢三个项目里预算最高的是哪个项目？", {}, "comparison_count"),
+            ("星云、天枢三个项目的预算合计是多少？", {}, "comparison_count"),
+            ("星云、天枢、陌生三个项目的预算合计是多少？", {}, "unresolved"),
             ("星云、星云项目的预算合计多少？", {}, "comparison_count"),
             ("查星云项目或天枢项目的预算", {}, "multiple"),
         )

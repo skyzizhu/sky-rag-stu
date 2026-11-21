@@ -43,6 +43,15 @@ def normalized(value: str) -> str:
     return ''.join(unicodedata.normalize('NFKC', value).casefold().split())
 
 
+_DASHES = str.maketrans('‐‑‒–—−', '------')
+_MODEL_CODE = re.compile(r'(?<![a-z0-9_-])[a-z][a-z0-9]{0,15}(?:-[a-z0-9]{1,15})*'
+                         r'-[a-z]*[0-9][a-z0-9]{0,15}(?![a-z0-9_-])')
+
+
+def _code_text(value: str) -> str:
+    return unicodedata.normalize('NFKC', value).translate(_DASHES).casefold()
+
+
 def parse_object(raw: str) -> dict:
     if not isinstance(raw, str):
         raise ValueError('模型未返回 JSON 文本')
@@ -56,6 +65,10 @@ def parse_object(raw: str) -> dict:
 
 
 class BudgetExceeded(RuntimeError):
+    pass
+
+
+class OutputLimitExceeded(ValueError):
     pass
 
 
@@ -107,7 +120,7 @@ class BudgetClient:
         if usage_out is not None:
             usage_out.update(usage)
         if usage.get('finish_reason') == 'length':
-            raise ValueError('模型输出达到上限，当前批次未确认完整')
+            raise OutputLimitExceeded('模型输出达到上限，当前批次未确认完整')
         return raw, elapsed
 
 
@@ -127,11 +140,17 @@ def evidence_fragments(row, batch_tokens):
         start = end if end == len(text) else max(start + 1, end - min(64, (end - start) // 4))
 
 
-def batches(fragments, limit):
+def _material(fragment):
+    return {'source_id': fragment['source_id'],
+            'section': str(fragment['metadata'].get('section') or '')[:120],
+            'text': fragment['text']}
+
+
+def batches(fragments, limit, max_materials):
     batch, tokens = [], 0
     for fragment in fragments:
-        size = estimate_tokens(json.dumps(fragment, ensure_ascii=False))
-        if batch and tokens + size > limit:
+        size = estimate_tokens(json.dumps(_material(fragment), ensure_ascii=False))
+        if batch and (tokens + size > limit or len(batch) >= max_materials):
             yield batch
             batch, tokens = [], 0
         batch.append(fragment)
@@ -140,7 +159,7 @@ def batches(fragments, limit):
         yield batch
 
 
-def validated_records(data, fragments):
+def validated_records(data, fragments, *, model_codes=False):
     items = data.get('items')
     if not isinstance(items, list):
         raise ValueError('缺少 items 数组')
@@ -178,6 +197,12 @@ def validated_records(data, fragments):
                 or not re.fullmatch(r'(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9][A-Za-z0-9_:/.-]{3,80}', identity)
                 or not any(normalized(identity) in normalized(e['quote']) for e in valid)):
             identity = ''
+        if model_codes:
+            codes = set(_MODEL_CODE.findall(_code_text(name)))
+            if len(codes) == 1:
+                code = next(iter(codes))
+                if any(code in _MODEL_CODE.findall(_code_text(e['quote'])) for e in valid):
+                    identity = code
         records.append({'name': name, 'identity': identity, 'evidence': valid})
     return records, rejected
 
@@ -185,11 +210,15 @@ def validated_records(data, fragments):
 def merge_record(records, record):
     """仅合并同一明确编号，或同名同原文的重复；同名不同证据保留并标记待核实。"""
     for existing in records:
-        same_id = record['identity'] and record['identity'] == existing['identity']
+        same_id = record['identity'] and _code_text(record['identity']) == _code_text(existing['identity'])
+        if record['identity'] and existing['identity'] and not same_id:
+            continue
         same_quote = (normalized(record['name']) == normalized(existing['name'])
                       and any(normalized(a['quote']) == normalized(b['quote'])
                               for a in record['evidence'] for b in existing['evidence']))
         if same_id or same_quote:
+            if record['identity'] and not existing['identity']:
+                existing['identity'] = record['identity']
             if normalized(record['name']) != normalized(existing['name']):
                 aliases = existing.setdefault('aliases', [])
                 if record['name'] not in aliases:
@@ -213,7 +242,8 @@ def review_records_relevance(question, records, llm, cfg, outcome, conversation_
     返回 (被剔除条数, 是否出错)；直接原地过滤 records 列表。
     """
     payload = [{'index': i + 1, 'name': str(r['name'])[:100],
-                'quote': r['evidence'][0]['quote'][:300]} for i, r in enumerate(records)]
+                'quote': '\n'.join(dict.fromkeys(e['quote'][:300] for e in r['evidence'][:3]))}
+               for i, r in enumerate(records)]
     usage = {}
     try:
         raw, _ = llm.chat(
@@ -224,7 +254,6 @@ def review_records_relevance(question, records, llm, cfg, outcome, conversation_
                   'candidates': payload}, ensure_ascii=False)}],
             usage_out=usage, timeout=cfg.enum_max_seconds,
             max_tokens=min(cfg.enum_output_tokens, 4096))
-        outcome.calls.append(dict(usage))
         verdicts = parse_object(raw).get('verdicts')
         if not isinstance(verdicts, list):
             raise ValueError('缺少 verdicts 数组')
@@ -239,8 +268,9 @@ def review_records_relevance(question, records, llm, cfg, outcome, conversation_
         return removed, False
     except Exception:
         outcome.stats['verify_error'] = True
-        outcome.calls.append(dict(usage))
         return 0, True
+    finally:
+        outcome.calls.append(dict(usage))
 
 
 def process_enumeration(question, initial_documents, candidate_keys, filters, store, retrieve,
@@ -249,21 +279,21 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
     outcome = ProcessingOutcome()
     budget = BudgetClient(llm, cfg, outcome)
     begun = time.monotonic()
-    seen_docs, read_docs, seen_cards, seen_queries = set(), set(), set(), {normalized(question)}
+    seen_docs, processed_docs, seen_cards, seen_queries = set(), set(), set(), {normalized(question)}
     candidates = set(candidate_keys)
     records = outcome.records
     state = outcome.stats
-    state.update(rounds=0, queries=0, batches=0, valid_batches=0, cards_read=0,
-                 rejected_items=0, errors=0, document_budget_hit=False, selection_truncated=False,
+    state.update(rounds=0, queries=0, batches=0, valid_batches=0, split_batches=0, cards_read=0,
+                 rejected_items=0, errors=0, document_budget_hit=False, card_budget_hit=False, selection_truncated=False,
                  verify_removed=0, verify_error=False)
     stop_reason = 'document_read'
-    sources = {}
+    model_codes = bool(re.search(r'型号|型號|\bsku\b', question, re.I))
 
     def progress(text):
         if on_progress:
             on_progress(text)
 
-    def read_documents(documents):
+    def document_fragments(documents):
         queue = deque()
         for doc in documents:
             key = (doc.get('document_id'), doc.get('version'))
@@ -277,7 +307,8 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
         while queue:
             budget.check()
             if state['cards_read'] >= cfg.enum_max_cards:
-                raise BudgetExceeded('card_budget')
+                state['card_budget_hit'] = True
+                return
             doc, offset = queue.popleft()
             scoped = {**filters, 'document_id': doc['document_id']}
             if doc.get('version'):
@@ -285,8 +316,6 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
             page, next_offset = store.card_page(scoped, offset=offset,
                                                limit=min(cfg.enum_page_cards, cfg.enum_max_cards - state['cards_read']),
                                                timeout=max(.01, budget.deadline - time.monotonic()))
-            if page:
-                read_docs.add((doc.get("document_id"), doc.get("version")))
             if next_offset is not None and str(next_offset) == str(offset):
                 raise ValueError('文档读取游标未前进')
             fresh = [row for row in page if row['id'] not in seen_cards]
@@ -294,35 +323,50 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
             state['cards_read'] += len(fresh)
             if next_offset is not None:
                 queue.append((doc, next_offset))
-            fragments = [f for row in fresh for f in evidence_fragments(row, cfg.enum_batch_tokens)]
-            for batch in batches(fragments, cfg.enum_batch_tokens):
-                budget.check()
-                state['batches'] += 1
-                progress(f"📋 分批提取中…第 {state['batches']} 批")
-                payload = {'original_question': question, 'target_intent': intent,
-                           'conversation_context': conversation_context,
-                           'materials': [{'source_id': f['source_id'], 'section': f['metadata'].get('section'),
-                                          'text': f['text']} for f in batch]}
-                raw, _ = budget.chat([{'role': 'system', 'content': EXTRACTION_PROMPT},
-                                      {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}])
-                parsed, rejected = validated_records(parse_object(raw), batch)
-                state['valid_batches'] += 1
-                state['rejected_items'] += rejected
-                for record in parsed:
-                    if len(records) >= cfg.enum_max_items:
-                        # 已达到条目上限仍可合并重复证据，不能静默忽略新条目。
-                        probe = []
-                        for current in records:
-                            probe.append({**current, 'evidence': list(current['evidence'])})
-                        if merge_record(probe, record):
-                            raise BudgetExceeded('item_budget')
-                    merge_record(records, record)
-                    for evidence in record['evidence']:
-                        previous = sources.get(evidence['source_id'])
-                        if previous and evidence['quote'] not in previous['quote']:
-                            sources[evidence['source_id']] = {**previous, 'quote': previous['quote'] + '\n' + evidence['quote']}
-                        else:
-                            sources.setdefault(evidence['source_id'], evidence)
+            for row in fresh:
+                yield from evidence_fragments(row, cfg.enum_batch_tokens)
+
+    def extract_batch(batch):
+        budget.check()
+        state['batches'] += 1
+        progress(f"📋 分批提取中…第 {state['batches']} 批")
+        payload = {'original_question': question, 'target_intent': intent,
+                   'conversation_context': conversation_context,
+                   'materials': [_material(fragment) for fragment in batch]}
+        try:
+            raw, _ = budget.chat([{'role': 'system', 'content': EXTRACTION_PROMPT},
+                                  {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}])
+            parsed, rejected = validated_records(parse_object(raw), batch, model_codes=model_codes)
+        except (OutputLimitExceeded, json.JSONDecodeError) as exc:
+            if len(batch) == 1:
+                state['errors'] += 1
+                state['error_type'] = type(exc).__name__
+                return
+            state['split_batches'] += 1
+            middle = len(batch) // 2
+            extract_batch(batch[:middle])
+            extract_batch(batch[middle:])
+            return
+        state['valid_batches'] += 1
+        state['rejected_items'] += rejected
+        processed_docs.update((f['metadata'].get('document_id'), f['metadata'].get('version'))
+                              for f in batch if f['metadata'].get('document_id'))
+        for record in parsed:
+            if len(records) >= cfg.enum_max_items:
+                # Keep merging evidence for existing items even after the item cap.
+                probe = [{**r, 'evidence': list(r['evidence']), 'aliases': list(r.get('aliases', []))}
+                         for r in records]
+                if merge_record(probe, record):
+                    raise BudgetExceeded('item_budget')
+            merge_record(records, record)
+
+    def read_documents(documents):
+        # Allow enough response space per fragment and split when the model still truncates.
+        max_materials = max(1, min(8, cfg.enum_output_tokens // 384))
+        for batch in batches(document_fragments(documents), cfg.enum_batch_tokens, max_materials):
+            extract_batch(batch)
+        if state['card_budget_hit']:
+            raise BudgetExceeded('card_budget')
 
     try:
         read_documents(initial_documents)
@@ -380,19 +424,27 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
         removed, _verify_error = review_records_relevance(
             question, records, llm, cfg, outcome, conversation_context, intent)
         state['verify_removed'] = removed
-        if removed:
-            keep_ids = {e['source_id'] for r in records for e in r['evidence']}
-            sources = {k: v for k, v in sources.items() if k in keep_ids}
     if state['document_budget_hit']:
         stop_reason = 'document_budget'
+    if state['errors'] and not stop_reason.endswith('budget'):
+        stop_reason = 'processing_error'
     state.update(stop_reason=stop_reason, elapsed=time.monotonic() - begun,
                  calls=budget.calls, estimated_tokens=budget.tokens,
-                 candidate_documents=len(candidates), processed_documents=len(read_docs),
+                 candidate_documents=len(candidates), processed_documents=len(processed_docs),
                  items=len(records), possible_duplicates=sum(
                      1 for r in records if sum(normalized(x['name']) == normalized(r['name']) for x in records) > 1))
     if time.monotonic() >= budget.deadline:
         state['stop_reason'] = 'time_budget'
     # 只有实际被接受的证据进入来源列表，编号完全由代码生成，模型不能伪造引用。
+    sources = {}
+    for record in records:
+        for evidence in record['evidence']:
+            source_id = evidence['source_id']
+            previous = sources.get(source_id)
+            if previous is None:
+                sources[source_id] = evidence
+            elif evidence['quote'] not in previous['quote']:
+                sources[source_id] = {**previous, 'quote': previous['quote'] + '\n' + evidence['quote']}
     for source_id, evidence in sources.items():
         meta = evidence['metadata']
         outcome.sources.append({**meta, 'rank': len(outcome.sources) + 1, 'score': 0.0,
@@ -426,7 +478,7 @@ def stop_reason_text(reason, language="zh-CN"):
     return text
 
 
-def render_records(outcome, language="zh-CN"):
+def render_records(outcome, language="zh-CN", *, coverage="unknown"):
     """逐条输出已校验记录，避免最后一次自由总结再次漏项或改变计数。"""
     records, stats = outcome.records, outcome.stats
     templates = {
@@ -449,6 +501,13 @@ def render_records(outcome, language="zh-CN"):
     }
     header, duplicate, scope, stopped, caveat, verify_warning = templates.get(language, templates['en'])
     lines = [header.format(n=len(records))]
+    if coverage == "partial":
+        lines.insert(0, {
+            'zh-CN': '**结果不完整，可能有遗漏。**',
+            'zh-TW': '**結果不完整，可能有遺漏。**',
+            'en': '**Results are partial and may omit relevant items.**',
+            'ja': '**結果は一部であり、漏れがあり得ます。**',
+        }.get(language, '**Results are partial and may omit relevant items.**'))
     if stats.get('verify_error'):
         lines.append(verify_warning)
     if stats['possible_duplicates']:

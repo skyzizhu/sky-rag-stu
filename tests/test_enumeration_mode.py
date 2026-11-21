@@ -159,6 +159,14 @@ class EnumerationRoutingRigorTests(IngestHarness):
         self.assertTrue(result.enumeration)
         self.assertEqual(result.evidence_meta.get('stage2', {}).get('status'), 'executed')
 
+    def test_published_staff_total_goes_to_ordinary_answer_even_if_model_suggests_enum(self):
+        self._ingest_doc()
+        result = self._ask_with_qu('星海科技现在一共有多少名员工？', qu_enumeration=True)
+        self.assertFalse(result.enumeration)
+        self.assertEqual(result.answer, '普通回答')
+        result = self._ask_with_qu('有多少名员工参加了本次培训？', qu_enumeration=True)
+        self.assertTrue(result.enumeration)
+
     def test_keyword_fallback_when_query_understanding_disabled(self):
         """QU 关闭时词表全量兜底（旧行为保持）：弱词也能触发。"""
         self._ingest_doc(2)

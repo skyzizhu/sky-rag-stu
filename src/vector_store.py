@@ -30,7 +30,7 @@ INDEXED_FIELDS = [
     "allowed_users",  # V3.9 三级密级：受限名单（员工用户名）
 ]
 # 时间字段：建立 datetime 索引，支持范围过滤（如"最近三个月的笔记"）
-INDEXED_DATETIME_FIELDS = ["created_at", "updated_at"]
+INDEXED_DATETIME_FIELDS = ["created_at", "updated_at", "indexed_at"]
 
 
 class VectorStoreError(Exception):
@@ -403,7 +403,7 @@ class VectorStore:
 
     def document_catalog(self, filters: dict | None = None, max_documents: int = 200,
                          max_points: int = 50000, date_field: str = "updated_at",
-                         dates: dict | None = None) -> dict:
+                         dates: dict | None = None, *, select_document=None) -> dict:
         """只滚动读取元数据，按 document_id 去重；达到预算时明确返回不完整标记。"""
         documents = {}
         offset = None
@@ -424,6 +424,8 @@ class VectorStore:
                 scanned += len(points)
                 for point in points:
                     meta = point.payload or {}
+                    if select_document is not None and not select_document(meta):
+                        continue
                     meta["doc_type"] = meta.get("doc_type") or ""
                     meta["department"] = meta.get("department") or ""
                     meta["classification"] = classify_visibility(

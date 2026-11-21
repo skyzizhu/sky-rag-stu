@@ -12,24 +12,26 @@ from src.projects import PROJECT_SUFFIXES
 _PROJECT = "(?:" + "|".join(PROJECT_SUFFIXES) + ")"
 _QUOTE = re.compile(r'「([^」]+)」|『([^』]+)』|“([^”]+)”|"([^"]+)"')
 _INTRO = re.compile(r"^\s*(?:请|請)?\s*(?:帮我|幫我)?\s*(?:对比|對比|比较|比較|查询|查詢|查一下|查|计算|計算)?\s*")
-_COUNT = r"(?:[0-9]+|[一二两兩三四五六七八九十]+)[个個]"
+_COUNT = r"(?:[0-9]+|[一二两兩三四五六七八九十]+)\s*[个個]"
+_FACT_START = r"(?:各自的|分别的|分別的)?(?:项目|項目)?(?:负责人|負責人|预算|預算)"
+_PROJECT_LOCATIVE = r"里面|裡面|之间|之間|里|裡|中|内|內"
 _LIST_END = re.compile(
-    rf"(?P<count>{_COUNT}){_PROJECT}\s*(?:里面|裡面|之间|之間|里|裡|中|内|內)"
-    rf"|(?<={_PROJECT})(?:里面|裡面|之间|之間|里|裡|中|内|內)"
-    r"|的\s*(?=(?:各自的|分别的|分別的)?(?:项目|項目)?(?:负责人|負責人|预算|預算))"
+    rf"(?P<count>{_COUNT})\s*{_PROJECT}\s*(?:{_PROJECT_LOCATIVE}|的\s*(?={_FACT_START}))"
+    rf"|(?<={_PROJECT})(?:{_PROJECT_LOCATIVE})"
+    rf"|的\s*(?={_FACT_START})"
 )
 _JOIN = re.compile(r"、|和|与|與|及|以及|(?<=\S),\s*(?=\S)")
 _NAME = re.compile(r"[\w .·-]{1,80}")
 _SUM = re.compile(r"加起来|加起來|合计|合計|合共|总和|總和|总共|總共")
-_MAX = re.compile(r"最高|最大|最多")
-_MIN = re.compile(r"最低|最小|最少")
+_MAX = re.compile(r"最高|最大|最多|更高")
+_MIN = re.compile(r"最低|最小|最少|更低")
 _OWNER_ASK = re.compile(r"[负負][责責]人")
 _BUDGET_ASK = re.compile(r"[预預]算")
 _REQUEST_WORDS = re.compile(
-    rf"\s|[，,。？！?!；;：:]|(?:这|這|该|該|上述)(?:{_COUNT})?{_PROJECT}"
+    rf"\s|[，,。？！?!；;：:]|(?:这|這|该|該|上述)\s*(?:{_COUNT}\s*)?{_PROJECT}"
     rf"|(?:哪[个個一])?{_PROJECT}|[负負][责責]人|[预預]算(?:[总總][额額]|金[额額])?"
     r"|分别|分別|各自|对比|對比|比较|比較|加起来|加起來|合计|合計|合共|总和|總和|总共|總共"
-    r"|最高|最大|最多|最低|最小|最少|多少|是|的|为|為|谁|誰|哪[个個一]|[万萬]元|元|呢"
+    r"|最高|最大|最多|最低|最小|最少|更高|更低|多少|是|的|为|為|谁|誰|哪[个個一]|[万萬]元|元|呢"
 )
 _AMOUNT = r"(?:[0-9]{1,3}(?:,[0-9]{3}){1,3}|[0-9]{1,12})(?:\.[0-9]{1,6})?"
 _FIELD_START = r"(?:^|[，,。；;：:、|#])\s*(?:[-*+]\s+)?"
@@ -46,7 +48,12 @@ _OWNER_LABEL = re.compile(
 _OWNER_ROLE = re.compile(rf"{_FIELD_START}(?P<name>{_PERSON})\s*\((?:项目|項目)[负負][责責]人\)")
 _MARKDOWN = re.compile(r"([\\`*_{}\[\]<>])")
 _CHUNK_END = re.compile(r"[\r\n。；;！？!?]")
-_MAX_PROJECTS = 4
+MAX_COMPARISON_PROJECTS = 4
+_DEPARTMENT_COMPARISON = re.compile(
+    rf"(?P<department>[^，,。？！?!；;的]{{1,60}}?)(?:参与|參與)了?(?:哪些|哪[几幾]个){_PROJECT}"
+    rf"[？！?。；;,，]\s*(?:(?:参与|參與)的|[这這]些){_PROJECT}(?:{_PROJECT_LOCATIVE})"
+    r"(?P<request>[^。？！?!]+)[。？！?!]?"
+)
 
 
 @dataclass(frozen=True)
@@ -56,6 +63,8 @@ class ProjectComparison:
     owner: bool
     operations: tuple[str, ...]
     valid_count: bool
+    explicit_scope: bool
+    department: str = ""
 
     @property
     def search_query(self) -> str:
@@ -66,6 +75,12 @@ class ProjectComparison:
 def parse_project_comparison(question: str) -> ProjectComparison | None:
     """Accept named conjunctions with supported facts; leave other scopes to the regular validator."""
     text = _INTRO.sub("", unicodedata.normalize("NFKC", question), count=1)
+    if roster := _DEPARTMENT_COMPARISON.fullmatch(text.strip()):
+        request = roster["request"]
+        operations = tuple(key for pattern, key in ((_SUM, "sum"), (_MAX, "max"), (_MIN, "min"))
+                           if pattern.search(request))
+        if operations and _BUDGET_ASK.search(request) and not _REQUEST_WORDS.sub("", request):
+            return ProjectComparison((), True, False, operations, True, True, roster["department"])
     masked = _QUOTE.sub(lambda m: "@" * len(m[0]), text)
     boundary = _LIST_END.search(masked)
     if boundary is None:
@@ -75,6 +90,7 @@ def parse_project_comparison(question: str) -> ProjectComparison | None:
     if not separators or _REQUEST_WORDS.sub("", request):
         return None
     names = []
+    explicit_scope = bool(boundary["count"]) or bool(re.search(_PROJECT, masked[:boundary.start()]))
     start = 0
     for end, following in [(m.start(), m.end()) for m in separators] + [(len(head), len(head))]:
         value = head[start:end].strip()
@@ -92,14 +108,19 @@ def parse_project_comparison(question: str) -> ProjectComparison | None:
                        if pattern.search(request))
     if not (budget or owner) or operations and not budget:
         return None
+    # A comma may just separate introductory context from an ordinary question.
+    if not explicit_scope and not (
+            operations or re.search(r"对比|對比|比较|比較|分别|分別|各自", question)
+            or any(not match[0].startswith(",") for match in separators)):
+        return None
     count = boundary["count"]
     declared = None
     if count:
         counts = dict(zip("一二两兩三四", (1, 2, 2, 2, 3, 4)))
-        number = count[:-1]
+        number = count[:-1].strip()
         declared = int(number) if number.isdecimal() and len(number) <= 2 else counts.get(number, -1)
-    valid_count = 2 <= len(names) <= _MAX_PROJECTS and declared in (None, len(names))
-    return ProjectComparison(tuple(names), budget, owner, operations, valid_count)
+    valid_count = 2 <= len(names) <= MAX_COMPARISON_PROJECTS and declared in (None, len(names))
+    return ProjectComparison(tuple(names), budget, owner, operations, valid_count, explicit_scope)
 
 
 def project_facts(sources: list[dict]) -> tuple[dict[Decimal, set[int]], dict[str, set[int]]]:

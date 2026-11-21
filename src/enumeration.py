@@ -10,6 +10,18 @@ from src.retriever import RetrievedItem
 ROUTES = {"catalog", "document", "cross_document"}
 
 
+_STAFF_TOTAL = re.compile(
+    r"\s*(?:请问|請問)?\s*(?:[\w· -]{0,30})?(?:公司|集团|集團|企业|企業|单位|單位|科技)"
+    r"(?:现在|現在|当前|當前|目前)?(?:一共|总共|總共)?(?:有|共有|现有|現有)?"
+    r"多少(?:名|位|个|個)?(?:员工|員工)\s*[。？?]?\s*"
+)
+
+
+def is_staff_total_question(question: str) -> bool:
+    """A named organization's staff headcount is a single fact stated in a source."""
+    return bool(_STAFF_TOTAL.fullmatch(question) and not re.search(r"参与|參與|参加|參加|符合|满足|滿足|其中", question))
+
+
 def enumeration_route(question: str, enumeration: bool, source=None, hint: str = "") -> str:
     if not enumeration:
         return "ordinary"

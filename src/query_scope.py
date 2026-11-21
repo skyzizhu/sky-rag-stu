@@ -30,11 +30,15 @@ _PROJECT_END = rf"(?=目前|当前|當前|现在|現在|章程|{_SCOPE_FOLLOW})"
 _PATTERNS = {
     "project": re.compile(_LEAD + rf"(?:{_VALUE})\s*({_PROJECT_WORD})" + _PROJECT_END),
     "business_direction": re.compile(_LEAD + rf"(?:{_VALUE})\s*(?:主?(?:业务|業務))?方向" + _SCOPE_END),
-    "department": re.compile(rf"(?:归属(?:于)?|歸屬(?:於)?|所属|所屬)\s*(?:{_VALUE})(?=的|[，、。！？?!]|$)"),
+    "department": re.compile(rf"(?:归属(?:于)?|歸屬(?:於)?|所属|所屬|属于|屬於)\s*(?:部门|部門)?"
+                             rf"\s*(?:为|為|是|[:：=])?\s*(?:{_VALUE})(?=的|[，、。！？?!]|$)"),
     "doc_type": re.compile(rf"(?:文档类型|文件类型|文件類型|文書タイプ|document type)\s*(?:为|是|為|[:：=])\s*(?:{_VALUE})(?=的|[，、。！？?!]|$)", re.I),
 }
-_ACCEPTANCE_REQUEST = re.compile(r"(?:^|[的内內中\s]|查|找|列出)([验驗]收(?:资料|資料|材料|文档|文件|报告|報告|方案|记录|紀錄|清单|清單))(?=$|[，。？！?！]|有|包括|包含|清单|清單|里|裡|中)")
-_TYPE_REQUEST = re.compile(r"(?:的\s*|查找|查询|查詢|查|找|列出)\s*([^的\s，。！？?!]{2,24})[。！？?!]?$")
+_ACCEPTANCE_REQUEST = re.compile(r"(?:^|[的内內中\s]|查|找|列出)([验驗]收(?:资料|資料|材料|文档|文件|报告|報告|方案|记录|紀錄|清单|清單))(?=$|[,，。？！?！]|有|包括|包含|清单|清單|里|裡|中)")
+_TYPE_REQUEST = re.compile(r"(?:的\s*|查找|查询|查詢|查看|查|找|列出)\s*([^的\s，。！？?!]{2,24}?)"
+                           r"(?:\s*(?:有哪些|有多少|有[几幾]份))?[。！？?!]?$")
+_DIRECT_TYPE_REQUEST = re.compile(r"^\s*(?:请|請)?(?:帮我|幫我)?\s*(?:查找|查询|查詢|查看|查|找|列出)\s*")
+_BROAD_TYPES = {"制度", "规定", "規定", "规范", "規範", "流程", "政策", "资料", "資料", "文件", "文档", "文檔", "报告", "報告", "纪要", "紀要"}
 _CONTENT_MENTION = re.compile(r"提到|提及|谈到|談到|涉及|引用|包含|含有|mention(?:s|ed)?\b|contains?\b", re.I)
 _CLAUSE = re.compile(r"[，,。；;！？?!\n]")
 _JOIN = re.compile(r"\s*(?:以及|或者|或是|和|与|與|或|及|、)\s*")
@@ -54,6 +58,17 @@ _PROJECT_REF = re.compile(
     r"(?:这个|這個|这|這|该|該|此|本|当前|當前|所选|所選|选中的|選中的|已选|已選)"
 )
 _PROJECT_SUFFIX = re.compile(rf"(?:{_PROJECT_WORD})$")
+_BARE_PROJECT_REF = re.compile(
+    r"^\s*(?:那(?:么|麼)?[，,]?\s*)?(?:请问|請問)?\s*(?P<pronoun>[它牠])的\s*"
+    r"(?:立[项項](?:[预預]算|时间|時間|日期|背景|报告|報告)|里程碑"
+    r"|(?:牵头|牽頭|参与|參與)部[门門]|(?:项目|項目|专案|專案)(?:[预預]算|[负負][责責]人|周期)"
+    r"|[验驗]收(?:资料|資料|材料|报告|報告|方案|日期|时间|時間|标准|標準))"
+)
+_PRESENTATION_FOLLOWUP = re.compile(
+    r"\s*(?:(?:请|請|可以)\s*)?(?:简短一点|簡短一點|简单一点|簡單一點|再详细一点|再詳細一點|保持[简簡][洁潔]"
+    r"|(?:用|按)表格(?:展示|呈现|呈現)?|用中文(?:回答)?|用英文(?:回答)?)\s*"
+)
+_OTHER_REFERENT = re.compile(r"(?:这份|這份|该份|該份)(?:文件|报告|報告|合同)|(?:这个|這個|该|該)(?:产品|產品|供应商|供應商|型号|型號)")
 
 
 def _in_content(text: str, start: int) -> bool:
@@ -64,9 +79,18 @@ def _in_content(text: str, start: int) -> bool:
 
 def project_reference(question: str) -> str:
     """Return an unquoted reference to the already selected project."""
-    return next((match[2].strip() for match in _PATTERNS["project"].finditer(question)
-                 if match[2] and _PROJECT_REF.fullmatch(match[2].strip())
-                 and not _in_content(question, match.start(2))), "")
+    for match in _PATTERNS["project"].finditer(question):
+        if match[2] and _PROJECT_REF.fullmatch(match[2].strip()) and not _in_content(question, match.start(2)):
+            return match[2].strip()
+    return "它" if _BARE_PROJECT_REF.match(question) else ""
+
+
+def name_project_in_followup(question: str, name: str) -> str:
+    match = _BARE_PROJECT_REF.match(question)
+    if not match:
+        return question
+    start, end = match.span("pronoun")
+    return question[:start] + name + question[end:]
 
 
 def _spoken_project_name(question: str, project: str) -> str:
@@ -115,7 +139,7 @@ def unsupported_scope(question: str) -> str:
 
 
 def extract_scope(question: str, proposed: dict | None = None) -> dict[str, str]:
-    """Accept literal values from query understanding and recognize common explicit forms offline."""
+    """Resolve explicit file scopes and keep incidental mentions available for semantic search."""
     original = unicodedata.normalize("NFKC", question)
     scope = {}
     for field in SCOPE_FIELDS:
@@ -134,10 +158,14 @@ def extract_scope(question: str, proposed: dict | None = None) -> dict[str, str]
             scope["doc_type"] = match[1]
         elif (match := _TYPE_REQUEST.search(question.rstrip())) and not _in_content(question, match.start(1)):
             candidate = match[1]
-            if infer_doc_type_from_filename(candidate) == candidate:
+            proposed_type = proposed.get("doc_type") if isinstance(proposed, dict) else None
+            direct = _DIRECT_TYPE_REQUEST.fullmatch(question[:match.start(1)])
+            if candidate not in _BROAD_TYPES and (infer_doc_type_from_filename(candidate) == candidate
+                                                 or direct and proposed_type == candidate):
                 scope["doc_type"] = candidate
     if isinstance(proposed, dict):
-        for field in SCOPE_FIELDS:
+        # A department or a type mentioned in the question does not alone set a file filter.
+        for field in ("project", "business_direction"):
             value = proposed.get(field)
             if isinstance(value, str):
                 literal = unicodedata.normalize("NFKC", value.strip())
@@ -188,6 +216,7 @@ def conversation_project(question: str, history: list[dict], saved: dict | None 
     """Resolve from raw user turns, preserving a verified project ID across compaction/rename."""
     catalog = sorted(list_projects(), key=lambda row: -len(unicodedata.normalize("NFKC", row["name"])))
     names = {row["id"]: row["name"] for row in catalog}
+    nearest = project_reference(question) == "它"
     for turn in range(len(history), -1, -1):
         if turn == len(history):
             text = question
@@ -198,6 +227,8 @@ def conversation_project(question: str, history: list[dict], saved: dict | None 
             text = message.get("content")
         if not isinstance(text, str) or not text:
             continue
+        if turn < len(history) and nearest and _OTHER_REFERENT.search(text):
+            return {"issue": "project_reference"}
         signature = hashlib.sha256(text.encode()).hexdigest()
         if saved and turn < len(history) and saved.get("turn") == turn and saved.get("digest") == signature:
             record = saved
@@ -211,6 +242,10 @@ def conversation_project(question: str, history: list[dict], saved: dict | None 
                 issue = record.get("issue")
                 scope = {"issue": issue if issue == "project_reference_ambiguous" else "project_reference"}
             return {**scope, "turn": turn, "digest": signature}
+        if turn < len(history) and nearest and not (
+                project_reference(text) or all(_PRESENTATION_FOLLOWUP.fullmatch(clause)
+                                               for clause in _CLAUSE.split(text) if clause.strip())):
+            return {"issue": "project_reference"}
     return {}
 
 

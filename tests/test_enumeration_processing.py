@@ -125,6 +125,65 @@ class EnumerationProcessingTests(IngestHarness):
         self.assertEqual(outcome.stats['calls'], 1)
         self.assertEqual(outcome.stats['stop_reason'], 'call_budget')
         self.assertEqual(len(outcome.records), 1)
+        self.assertIn('结果不完整', render_records(outcome, coverage='partial').splitlines()[0])
+
+    def test_short_documents_share_one_extraction_batch_and_leave_room_for_followup(self):
+        for index, name in enumerate("甲乙丙丁", 1):
+            self.note(f'项目{name} PRJ-10{index} 使用RAG。', f'{index}.md')
+        llm = FakeExtractor()
+        outcome = self.run_processing(llm=llm, route='cross_document',
+                                      cfg=replace(self.cfg, enum_max_calls=2))
+        self.assertEqual(outcome.stats['valid_batches'], 1)
+        self.assertEqual(outcome.stats['processed_documents'], 4)
+        self.assertEqual(outcome.stats['stop_reason'], 'no_more_queries')
+        self.assertEqual(len(outcome.records), 4)
+        self.assertEqual(len(json.loads(llm.inputs[0][0][-1]['content'])['materials']), 4)
+
+    def test_truncated_batch_is_split_within_same_budget(self):
+        self.note('项目甲 PRJ-101 使用RAG。', 'a.md')
+        self.note('项目乙 PRJ-102 使用RAG。', 'b.md')
+        llm = FakeExtractor()
+        chat = llm.chat
+
+        def truncate_joint_batch(messages, usage_out=None, **kwargs):
+            materials = json.loads(messages[-1]['content'])['materials']
+            if len(materials) > 1:
+                usage_out.update(input=10, output=10, finish_reason='length')
+                return '{"items":[', 0.0
+            return chat(messages, usage_out=usage_out, **kwargs)
+
+        llm.chat = truncate_joint_batch
+        cfg = replace(self.cfg, enum_verify_enabled=False, enum_max_calls=3)
+        outcome = self.run_processing(llm=llm, cfg=cfg)
+        self.assertEqual(outcome.stats['split_batches'], 1)
+        self.assertEqual(outcome.stats['calls'], 3)
+        self.assertEqual(outcome.stats['valid_batches'], 2)
+        self.assertEqual(outcome.stats['errors'], 0)
+        self.assertEqual({r['name'] for r in outcome.records}, {'项目甲', '项目乙'})
+        limited = self.run_processing(llm=llm, cfg=replace(cfg, enum_max_calls=2))
+        self.assertEqual(limited.stats['calls'], 2)
+        self.assertEqual(limited.stats['stop_reason'], 'call_budget')
+        self.assertEqual(len(limited.records), 1)
+
+    def test_verified_product_code_merges_different_quotes_without_merging_other_codes(self):
+        fragments = [
+            {'source_id': 'a', 'text': 'X-1000 于 2022 年发布。', 'metadata': {}},
+            {'source_id': 'b', 'text': 'x‑1000 是一款工业检测仪。', 'metadata': {}},
+            {'source_id': 'c', 'text': 'X-2000 新品发布会举行。', 'metadata': {}},
+        ]
+        raw = {'items': [
+            {'name': name, 'evidence': [{'source_id': fragment['source_id'], 'quote': fragment['text']}]}
+            for name, fragment in zip(('X-1000', 'x‑1000', 'X-2000'), fragments)
+        ]}
+        parsed, rejected = validated_records(raw, fragments, model_codes=True)
+        self.assertEqual(rejected, 0)
+        merged = []
+        for record in parsed:
+            merge_record(merged, record)
+        self.assertEqual([r['identity'] for r in merged], ['x-1000', 'x-2000'])
+        self.assertEqual([e['source_id'] for e in merged[0]['evidence']], ['a', 'b'])
+        plain, _ = validated_records(raw, fragments)
+        self.assertFalse(plain[0]['identity'])
 
     def test_card_and_document_budgets(self):
         self.note('项目甲 PRJ-101 使用RAG。' + '正文。' * 600)

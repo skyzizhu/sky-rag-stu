@@ -34,12 +34,19 @@ def estimate_tokens(text: str) -> int:
     return int(cjk * 0.8 + rest / 3.5)
 
 
-def citation_label(item: RetrievedItem, number: int) -> str:
+def citation_label(item: RetrievedItem, number: int, *, show_version: bool = False) -> str:
     """一条资料的单行出处，如：[1] 来源: xx.md | 领域: learning | 章节: 基础 | 页码: 3"""
     meta = item.metadata
     label = f"[{number}] 来源: {meta.get('source', '?')}"
     if meta.get("domain"):
         label += f" | 领域: {meta['domain']}"
+    if show_version:
+        if meta.get("document_version"):
+            label += f" | 文档版本: {meta['document_version']}"
+        elif meta.get("version"):
+            label += f" | 索引版本: {meta['version']}"
+        if meta.get("status"):
+            label += f" | 状态: {meta['status']}"
     if meta.get("section"):
         label += f" | 章节: {meta['section']}"
     if meta.get("page"):
@@ -96,7 +103,8 @@ def _merge_run(run: list[RetrievedItem]) -> str:
 
 def build_context(
     items: list[RetrievedItem], config: AppConfig | None = None,
-    max_items: int | None = None, max_per_doc: int | None = None
+    max_items: int | None = None, max_per_doc: int | None = None, *,
+    rank_offset: int = 0, show_version: bool = False,
 ) -> tuple[str, list[RetrievedItem], list[dict], list[str]]:
     """组装最终发给大模型的资料文本（V2.6：多样性 + 相邻补全）。
 
@@ -138,8 +146,8 @@ def build_context(
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
                             "reason": f"同一文档最多采用 {max_per_doc} 条（保持来源多样性）"})
             continue
-        number = len(used) + 1
-        block = f"{citation_label(item, number)}\n{item.text}"
+        number = rank_offset + len(used) + 1
+        block = f"{citation_label(item, number, show_version=show_version)}\n{item.text}"
         # Token 估算替代纯字符数：中英文混合时更接近模型实际容量
         if estimate_tokens(context_so_far + block) > cfg.context_max_tokens and context_so_far:
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
@@ -184,8 +192,8 @@ def build_context(
                 runs.append([it])
         for run in runs:
             first = run[0]
-            number = len(final_items) + 1
-            label = citation_label(first, number)
+            number = rank_offset + len(final_items) + 1
+            label = citation_label(first, number, show_version=show_version)
             text = first.text
             if len(run) > 1:
                 merged_text = _merge_run(run)

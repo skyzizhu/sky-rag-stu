@@ -181,6 +181,47 @@ class QueryScopeTests(IngestHarness):
         result, _ = self.evidence("查验收资料", history=history, use_llm=False)
         self.assertNotIn("project_id", result.filters)
 
+    def test_bare_project_followup_shares_acl_and_stops_after_topic_change(self):
+        question = "它的验收资料有哪些？"
+        history = [{"role": "user", "content": "低空监管平台的里程碑有哪些？"},
+                   {"role": "user", "content": "用中文回答。"}]
+        with mock.patch("src.pipeline.get_llm_client", side_effect=AssertionError("额外调用模型")):
+            result, _ = self.evidence(question, history=history, use_llm=False)
+            self.assertEqual(result.filters["project_id"], [self.regulatory])
+            with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})), \
+                 mock.patch("src.config.get_config", return_value=replace(self.cfg, query_understanding=False)):
+                search = json.loads(mcp_server._tool_knowledge_search_impl(question, history=history))
+        self.assertEqual(search["filters_applied"]["project_id"], [self.regulatory])
+        self.assertEqual({item["source"] for item in search["matches"]}, {"report.md", "purchase.md", "plan.md"})
+
+        for changed, issue in (
+            ("换个话题，X2000 设备说明书讲了什么？", "project_reference"),
+            ("低空监管平台里，这份文件是哪个版本？", "project_reference"),
+            ("比较低空监管平台和低空预警平台", "project_reference_ambiguous"),
+        ):
+            with self.subTest(changed=changed), mock.patch("src.pipeline.get_retriever") as retrieve:
+                result, meta = self.evidence(question, history=[*history, {"role": "user", "content": changed}],
+                                             use_llm=False)
+                self.assertFalse(result.sources)
+                self.assertEqual(meta["scope_issue"], issue)
+                retrieve.assert_not_called()
+        result, _ = self.evidence("它的价格是多少？", history=history, use_llm=False)
+        self.assertNotIn("project_id", result.filters)
+
+    def test_bare_project_followup_resolves_before_single_query_understanding(self):
+        question = "它的立项预算是多少万元？"
+        history = [{"role": "user", "content": "低空监管平台的里程碑有哪些？"}]
+        qu = QueryUnderstanding(question, ok=True, vector_query="立项预算",
+                                filters={"source": "wrong.md", "domain": "archive"})
+        with mock.patch("src.pipeline.get_llm_client"), \
+             mock.patch("src.pipeline.understand_query", return_value=qu) as understand:
+            result, _ = self.evidence(question, history=history)
+        understand.assert_called_once()
+        self.assertEqual(understand.call_args.args[0], "低空监管平台的立项预算是多少万元？")
+        self.assertEqual(result.filters["project_id"], [self.regulatory])
+        self.assertNotIn("source", result.filters)
+        self.assertNotIn("domain", result.filters)
+
     def test_conversation_project_survives_compaction_and_rename_with_current_acl(self):
         from src.manage import update_metadata
 
@@ -207,6 +248,9 @@ class QueryScopeTests(IngestHarness):
         self.assertGreater(state["covered"], 0)
         self.assertEqual(state["project_reference"]["name"], "低空治理平台")
         self.assertEqual({source["source"] for source in result.sources}, {"plan.md"})
+        bare = answer("它的验收方案有哪些？", history)
+        self.assertEqual(bare.filters["project_id"], [self.regulatory])
+        self.assertEqual({source["source"] for source in bare.sources}, {"plan.md"})
 
         update_metadata("learning/general/plan.md", {"allowed_groups": [], "allowed_users": []})
         revoked = answer(followup, history)

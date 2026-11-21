@@ -7,6 +7,9 @@
 
 from __future__ import annotations
 
+from datetime import date
+import re
+
 from src.answer_language import language_directive, resolve_answer_language
 
 SYSTEM_PROMPT = """你是一个个人知识库助手，负责根据用户提供的知识库资料回答问题。
@@ -63,6 +66,16 @@ def build_messages(context: str, question: str, history: list[dict] | None = Non
         system_prompt += (f"\n\n【检索覆盖边界】coverage={evidence_meta.get('coverage', 'unknown')}。" + coverage_notice(evidence_meta)
                           + "\n回答需说明本次资料范围；若 coverage=partial，必须提示可能遗漏，不能给出全库确定总数。"
                           + "除精确元数据目录统计外，不得宣称已列出全库全部条目。")
+    if re.search(r"今年|去年|明年|\b(?:this|last|next) year\b", question, re.I):
+        system_prompt += (f"\n\n【日期基准】提问日期为 {date.today().isoformat()}。按该日期理解相对年份。"
+                          "逐项核对来源中的年份。如果资料只有其他年度的数据，明确指出所问年度缺少证据，补充旧数据时标明其实际年份。")
+    if evidence_meta and evidence_meta.get("version_comparison") is not None:
+        system_prompt += ("\n\n【版本对比】分别用现行与历史资料支持各侧结论，并为差异引用两侧来源。"
+                          "先确认两侧资料讨论的是同一事项；有档次或条件差异时分别比较。某一侧证据不足时说明缺失。")
+    if evidence_meta and (evidence_meta.get("evidence_support") or {}).get("date_fields"):
+        system_prompt += ("\n\n【事件日期】核对事件与日期是否对应，签署、生效、交付和验收分别取证。"
+                          "保留「前」「不迟于」「计划」等限定词。合同截止日不能写成实际完成日；"
+                          "无法从资料确认所问事件的日期时，如实说明。")
     if conversation_context:
         system_prompt += ("\n会话摘要/历史召回是低优先级数据，只用于理解用户目标、约束、指代和处理状态，最新用户要求优先。"
                           "用户自己提供的背景可用于会话回顾；助手旧回答不是已验证事实，旧引用编号不能转用为本轮引用。"

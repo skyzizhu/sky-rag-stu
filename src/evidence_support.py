@@ -17,19 +17,75 @@ _NUMBER = r"(?:[0-9]+(?:[,，][0-9]{3})*(?:\.[0-9]+)?|[零〇一二两兩三四�
 _MONEY = re.compile(rf"(?:(?:￥|¥|\$)\s*{_NUMBER}|{_NUMBER}\s*(?:元|万元|萬元|亿元|億元|人民币|人民幣|美元|欧元|歐元|港元)|(?:为|為|[:=|])\s*[0-9][0-9,.]*(?![0-9,.年月日]))")
 _THRESHOLD_VALUE = re.compile(rf"(?:{_NUMBER}\s*(?:毫秒|秒|分钟|分鐘|小时|小時|摄氏度|攝氏度|℃|°c|ntu|%|ppm|mg/l|分贝|分貝)|(?:为|為|[:=|])\s*[0-9][0-9,.]*)", re.I)
 _RUN_COUNT = re.compile(rf"{_NUMBER}\s*(?:次|轮|輪|场|場|批)")
-_DATE = re.compile(r"(?:\d{4}\s*[年/-]\s*\d{1,2}\s*[月/-]\s*\d{1,2}(?:日|号|號)?|\d{1,2}月\d{1,2}[日号號])")
-_DATE_ASK = re.compile(r"何时|何時|哪天|几号|幾號|什么时候|什麼時候|日期")
-_DATES = (
-    ("验收日期", r"[验驗]收"),
-    ("交付日期", r"交付|交接"),
-    ("签署日期", r"签署|簽署|签订|簽訂"),
-    ("生效日期", r"生效"),
-    ("结算日期", r"[结結]算"),
+_MONTH = (r"jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|"
+          r"aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?")
+_DAY = r"\d{1,2}(?:st|nd|rd|th)?"
+_DATE = re.compile(
+    rf"(?<!\d)(?:\d{{4}}\s*[年/.-]\s*\d{{1,2}}\s*[月/.-]\s*\d{{1,2}}[日号號]?"
+    rf"|\d{{1,2}}月\d{{1,2}}[日号號]|\b(?:{_MONTH})\.?\s+{_DAY}(?:,\s*|\s+)\d{{4}}"
+    rf"|{_DAY}\s+(?:{_MONTH})\.?\s+\d{{4}})(?!\d)",
 )
+_DATE_ASK = re.compile(r"何时|何時|哪天|几号|幾號|什么时候|什麼時候|日期|时间|時間|\bwhen\b|\bdate\b|\bdeadline\b")
+_DATES = (
+    ("验收日期", re.compile(r"[验驗]收|\baccept(?:ance|ed)\b")),
+    ("交付日期", re.compile(r"交付|交接|\bdeliver(?:y|ies|ed|s|ing)?\b|\bhandover\b|\bhanded over\b")),
+    ("签署日期", re.compile(r"[签簽](?:署|订|訂|约|約)|\bsign(?:ed|ing|ature)?\b")),
+    ("生效日期", re.compile(r"生效|\beffective\b|\b(?:takes? effect|came into effect|in force)\b")),
+    ("结算日期", re.compile(r"[结結]算|\bsettl(?:ement|ed|e)\b")),
+)
+_OTHER_DATE_EVENTS = re.compile(r"[发發]布|更新|修改|[终終]止|到期|\b(?:publish(?:ed)?|updated|expires?|expired)\b")
+_DATE_CLAUSE_END = re.compile(r"[。；;，,!?！？]|\.(?=\s|$)")
+_SOURCE_LINE = re.compile(r"(?m)^\s*(?:来源文档:|#{1,6}[ \t]).*$")
+_BEFORE_DATE = re.compile(
+    r"(?:日期|时间|時間|截止|不[迟遲]于|[:=为為于]|\b(?:on|by|before|until|after|prior to|no later than)\b)\s*$")
+_AFTER_DATE = re.compile(r"\s*(?:(?:已)?通过(?:了)?(?:客户)?|(?:已)?通過(?:了)?(?:客戶)?|(?:已)?完成|前须|前須)\s*")
 
 
 def _normalize(text: str) -> str:
     return unicodedata.normalize("NFKC", text).translate(_DASHES).casefold()
+
+
+def _date_clauses(text: str):
+    """Keep dates whole, including English comma dates, inside their evidence clause."""
+    for block in re.split(r"\n\s*\n", _SOURCE_LINE.sub("\n", text)):
+        start = 0
+        dates = [match.span() for match in _DATE.finditer(block)]
+        for boundary in _DATE_CLAUSE_END.finditer(block):
+            if any(left <= boundary.start() < right for left, right in dates):
+                continue
+            yield block[start:boundary.start()]
+            start = boundary.end()
+        yield block[start:]
+
+
+def _dated_events(evidence: list[str]) -> set[str]:
+    """Associate each date with its closest unambiguous event within the clause."""
+    found = set()
+    for passage in evidence:
+        for clause in _date_clauses(passage):
+            dates = list(_DATE.finditer(clause))
+            if not dates:
+                continue
+            events = [(label, match) for label, pattern in (*_DATES, ("", _OTHER_DATE_EVENTS))
+                      for match in pattern.finditer(clause)]
+            for day in dates:
+                best_key = None
+                nearest = set()
+                for label, event in events:
+                    if event.end() <= day.start():
+                        gap = clause[event.end():day.start()]
+                        linked = _BEFORE_DATE.search(gap)
+                    else:
+                        gap = clause[day.end():event.start()]
+                        linked = _AFTER_DATE.fullmatch(gap)
+                    key = (not linked, len(gap))
+                    if best_key is None or key < best_key:
+                        best_key, nearest = key, {label}
+                    elif key == best_key:
+                        nearest.add(label)
+                if len(nearest) == 1:
+                    found.update(nearest)
+    return found
 
 
 def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, ...] = ()) -> dict:
@@ -66,9 +122,12 @@ def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, 
                     r"[验驗][证證]|[测測][试試]|演[练練]", _RUN_COUNT)
 
     if _DATE_ASK.search(question):
-        for name, event in _DATES:
-            field_value(name, rf"(?:{event})(?:完成|通过|通過|确认|確認)?(?:的)?(?:日期|时间|時間|是哪天|是什么时候)?",
-                        event, _DATE, before=14)
+        date_fields = [name for name, event in _DATES if event.search(question)]
+        if date_fields:
+            dated = _dated_events(evidence)
+            checks.update((name, name in dated) for name in date_fields)
+    else:
+        date_fields = []
 
     if _POLICY_QUESTION.search(question):
         for name, terms in (("赔付", r"[赔賠](?:付|[偿償])|[违違]约金"),
@@ -80,6 +139,10 @@ def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, 
         return {}
     missing = [label for label, supported in checks.items() if not supported]
     has_required_id = not identifiers or any(checks[code] for code in identifiers)
-    return {"status": "unsupported" if not has_required_id or len(missing) == len(checks)
-            else ("partial" if missing else "supported"),
-            "checked": list(checks), "missing": missing}
+    blocking = not has_required_id or (len(missing) == len(checks)
+                                       and any(label not in date_fields for label in checks))
+    result = {"status": "unsupported" if blocking else ("partial" if missing else "supported"),
+              "checked": list(checks), "missing": missing}
+    if date_fields:
+        result["date_fields"] = date_fields
+    return result

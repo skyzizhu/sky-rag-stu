@@ -76,6 +76,59 @@ class QueryEvidenceTests(IngestHarness):
         self.assertEqual(assess_evidence("预算金额是多少？", ["预算金额 | 120,000 元"])["status"], "supported")
         self.assertEqual(assess_evidence("如何设置降噪？", ["可开启噪声抑制。"]), {})
 
+    def test_date_evidence_recognizes_chinese_acceptance_and_english_delivery(self):
+        from src.evidence_support import assess_evidence
+
+        cases = (
+            ("沧海项目是什么时候通过验收的？",
+             "项目于 2025-07-15 通过客户验收，交付物共 8 项。", "验收日期"),
+            ("合同约定的设备交付时间是什么时候？",
+             "The Vendor shall deliver all equipment before 2024-09-30.", "交付日期"),
+            ("When is delivery due?",
+             "The Vendor shall deliver all equipment by\nSeptember 30, 2024.", "交付日期"),
+        )
+        for query, passage, field in cases:
+            with self.subTest(query=query):
+                support = assess_evidence(query, [passage])
+                self.assertEqual(support["status"], "supported")
+                self.assertEqual(support["date_fields"], [field])
+
+    def test_date_evidence_does_not_reuse_signing_date_or_relax_missing_ids(self):
+        from src.evidence_support import assess_evidence
+
+        for passage in ("签署日为 2024-01-10，设备尚未交付。",
+                        "合同签署日期为 2024-01-10 交付时间另行通知。",
+                        "The contract was signed on 2024-01-10 and delivery will be arranged.",
+                        "# 交付说明\n\n签署日期为 2024-01-10。"):
+            with self.subTest(passage=passage):
+                support = assess_evidence("设备什么时候交付？", [passage])
+                self.assertEqual(support["status"], "partial")
+                self.assertEqual(support["missing"], ["交付日期"])
+        self.assertEqual(assess_evidence("EVT-501 的交付日期是什么时候？",
+                                        ["工单 EVT-500 于 2024-01-10 交付。"])["status"], "unsupported")
+
+    def test_unconfirmed_date_keeps_only_visible_candidate_sources(self):
+        from src import mcp_server
+        from src.prompt import build_messages
+
+        public = self.write_note("合同于 2024-01-10 签署，设备交付日期待定。", "signed.md")
+        private = self.write_note("设备将于 2025-01-01 交付。", "delivery.md")
+        self.ingest([public])
+        self.ingest([private], default_groups=["finance"])
+        question = "设备什么时候交付？"
+        result, meta = query_evidence(question, use_llm=False, use_rerank=False, user_groups=["hr"])
+        self.assertEqual(meta["coverage"], "partial")
+        self.assertIn("日期规则未确认", result.context)
+        self.assertIn("signed.md", {s["source"] for s in result.sources})
+        self.assertNotIn("delivery.md", {s["source"] for s in result.sources})
+        messages = build_messages(result.context, question, evidence_meta=meta)
+        self.assertIn("合同截止日不能写成实际完成日", messages[0]["content"])
+        with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["hr"], "eve", {})):
+            search = json.loads(mcp_server._tool_knowledge_search_impl(question))
+        self.assertIn("signed.md", {s["source"] for s in search["matches"]})
+        self.assertNotIn("delivery.md", {s["source"] for s in search["matches"]})
+        self.assertIn("日期规则未确认", search["reason"])
+
     def test_evidence_only_uses_local_rerank_without_llm(self):
         from src.reranker import RerankOutcome
 

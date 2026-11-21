@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import hashlib
 import json
+import re
 import threading
 import time
 from collections import Counter
@@ -36,7 +37,7 @@ from src.embedding import EmbeddingClient, get_embedding_client
 from src.evidence_support import assess_evidence
 from src.document_department import normalize_department, resolve_department
 from src.document_type import normalize_doc_type, resolve_doc_type
-from src.enumeration import (enumeration_route, catalog_time, document_representatives,
+from src.enumeration import (enumeration_route, is_staff_total_question, catalog_time, document_representatives,
                              document_key, group_documents, expand_documents, coverage_notice)
 from src.llm import LLMClient, get_llm_client, new_usage, strip_think_tags
 from src.metadata import build_document_metadata, document_id_for, version_from_filename
@@ -44,16 +45,21 @@ from src.permissions import classify_visibility, normalize_visibility
 from src.document_visibility import prune_user_grants, resolve_visibility
 from src.parser import ParsedDocument, SUPPORTED_EXTENSIONS, parse_file
 from src.project_directories import is_generated_info, managed_directory_names, without_storage_directory
-from src.project_comparison import ProjectComparison, parse_project_comparison, render_project_comparison
-from src.projects import resolve_project_filter
+from src.project_comparison import (
+    MAX_COMPARISON_PROJECTS, ProjectComparison, parse_project_comparison, render_project_comparison,
+)
+from src.project_document_evidence import parse_project_mentions, scan_project_mentions
+from src.projects import list_projects, resolve_project_filter
 from src.answer_language import resolve_answer_language
 from src.prompt import build_messages
 from src.query_understanding import understand_query
 from src.query_scope import (
-    conversation_project, extract_scope, is_scope_listing, project_reference, resolve_scope, unsupported_scope,
+    conversation_project, extract_scope, is_scope_listing, name_project_in_followup,
+    project_reference, resolve_scope, unsupported_scope,
 )
 from src.reranker import rerank as rerank_items, rerank_local as rerank_documents_local
 from src.retriever import RetrievedItem, effective_filters, get_retriever
+from src.retrieval_intent import VERSION_SIDES, compares_versions, comparison_statuses, explicit_file_dates
 from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
 
@@ -768,17 +774,91 @@ def _catalog_evidence(question, filters, cfg):
     return result, meta
 
 
+def _project_mentions_evidence(result, filters, types, terms, cfg):
+    from src.auth_db import retrieval_acl_revision
+
+    revision = (index_epoch.current(), retrieval_acl_revision())
+    start = time.monotonic()
+    result.filters = effective_filters(filters)
+    matches, meta = scan_project_mentions(get_vector_store(), result.filters, types, terms, cfg)
+    meta.update(route="project_document_mentions", enumeration=True)
+    result.enumeration = True
+    if (index_epoch.current(), retrieval_acl_revision()) != revision:
+        result.answer = "检索期间资料或权限发生变化，请重新查询。"
+        meta = {"route": meta["route"], "coverage": "not_found", "enumeration": True,
+                "scope_issue": "index_changed", "scope_notice": result.answer}
+    else:
+        lines = []
+        for rank, (name, quote, row) in enumerate(matches, 1):
+            metadata = {key: value for key, value in row["payload"].items()
+                        if key not in {"text", "allowed_groups", "allowed_users"}}
+            metadata["point_id"] = row["id"]
+            metadata["classification"] = classify_visibility(
+                row["payload"].get("allowed_groups"), row["payload"].get("allowed_users"))
+            channels = "正文精确匹配"
+            result.retrieved.append(RetrievedItem(rank, 1.0, quote, metadata, channels))
+            result.sources.append({**metadata, "rank": rank, "score": 1.0, "text": quote, "channels": channels})
+            excerpt = re.sub(r"([\\`*_{}\[\]<>])", r"\\\1", f"{name}：{quote}")
+            lines.append(f"- {excerpt} [{rank}]")
+        terms_display = "」或「".join(terms)
+        if lines:
+            result.answer = f"以下已关联项目的{'或'.join(types)}文档正文提到「{terms_display}」。\n\n"
+            result.answer += "\n".join(lines)
+        else:
+            result.answer = f"在已扫描的{'或'.join(types)}文档正文中，未找到「{terms_display}」。"
+            meta["scope_notice"] = result.answer
+        if meta["coverage"] == "partial":
+            result.answer = "本次达到扫描或展示上限，清单可能不完整。\n\n" + result.answer
+            if not lines:
+                meta["scope_notice"] = result.answer
+        result.context = "\n".join(f"[{item.rank}] {item.text}" for item in result.retrieved)
+        meta["matched_projects"] = len(matches)
+    elapsed = time.monotonic() - start
+    result.elapsed.update(retrieval_only=elapsed, rerank=0.0, assembly=0.0, retrieval=elapsed, total=elapsed)
+    result.trace.append(make_node("📋", "项目文档正文核验", time_str=now_str(), elapsed=elapsed,
+                                  summary=f"定位到 {len(result.sources)} 个有正文证据的项目。"))
+    result.evidence_meta = meta
+    return result, meta
+
+
+def _department_project_roster(department, filters, cfg):
+    from src.auth_db import list_departments
+
+    dept_id = next((row["id"] for row in list_departments() if row["name"] == department), None)
+    if dept_id is None:
+        return [], "unresolved_department"
+    selected = effective_filters(filters).get("project_id")
+    selected = selected if isinstance(selected, (list, tuple)) else [selected]
+    names = {p["id"]: p["name"] for p in list_projects()
+             if (selected == [None] or p["id"] in selected)
+             and (p["lead_department_id"] == dept_id or any(d["id"] == dept_id for d in p["participants"]))}
+    if not names:
+        return [], "no_visible_projects"
+    catalog = get_vector_store().document_catalog(
+        effective_filters({**filters, "project_id": list(names)}), cfg.enum_catalog_docs, cfg.enum_catalog_points)
+    if catalog["scan_truncated"] or catalog["list_truncated"]:
+        return [], "roster_incomplete"
+    visible = {doc["project_id"] for doc in catalog["documents"]}
+    return [(name, project_id) for project_id, name in names.items() if project_id in visible], ""
+
+
 def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison, filters: dict | None,
                                  top_k: int, cfg: AppConfig, use_hybrid: bool, use_rerank: bool,
                                  user_groups: list[str] | None, username: str | None, on_progress=None):
     from src.auth_db import retrieval_acl_revision
 
     base = filters or {}
-    result.filters = effective_filters(base)
     issue = ""
     projects = []
     revision = (index_epoch.current(), retrieval_acl_revision())
-    if not comparison.valid_count:
+    if comparison.department:
+        projects, issue = _department_project_roster(comparison.department, base, cfg)
+        if not issue and not projects:
+            issue = "no_visible_projects"
+        if not issue and len(projects) > MAX_COMPARISON_PROJECTS:
+            issue = "roster_too_large"
+        ids = [project_id for _, project_id in projects]
+    elif not comparison.valid_count:
         issue = "comparison_count"
     else:
         try:
@@ -786,6 +866,8 @@ def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison
                 [project_id] = resolve_project_filter(name, None, allow_name_variants=True)
                 projects.append((name, project_id))
         except ValueError:
+            if not comparison.explicit_scope:
+                return None
             issue = "unresolved"
         if not issue:
             ids = [project_id for _, project_id in projects]
@@ -796,13 +878,23 @@ def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison
                 selected = selected if isinstance(selected, (list, tuple)) else [selected]
                 if not set(ids).issubset(selected):
                     issue = "conflict"
+    if issue == "comparison_count" and not comparison.explicit_scope:
+        return None
+    result.filters = effective_filters(base)
     elapsed = {"retrieval_only": 0.0, "rerank": 0.0, "assembly": 0.0}
     meta = {"route": "project_comparison", "coverage": "not_found", "enumeration": False}
+    if (index_epoch.current(), retrieval_acl_revision()) != revision:
+        issue = "index_changed"
     if issue:
         result.answer = {
-            "comparison_count": "请明确列出 2 至 4 个不同的项目，并确认项目数量一致。",
+            "comparison_count": f"请明确列出 2 至 {MAX_COMPARISON_PROJECTS} 个不同的项目，并确认项目数量一致。",
             "unresolved": "无法确认所有要比较的项目，请核对项目名称。",
             "conflict": "至少一个要比较的项目不在已选筛选范围内，请调整项目筛选后重试。",
+            "unresolved_department": "无法识别该参与部门，请核对部门名称。",
+            "no_visible_projects": "当前筛选范围内没有找到该部门参与且你有权查看资料的项目。",
+            "roster_incomplete": "本次扫描未能确认完整的可见项目名单，请缩小筛选范围后重试。",
+            "roster_too_large": f"符合条件的项目超过 {MAX_COMPARISON_PROJECTS} 个，请缩小筛选范围后再比较预算。",
+            "index_changed": "检索期间资料或权限发生变化，请重新查询。",
         }[issue]
         meta.update(scope_issue=issue, scope_notice=result.answer)
     else:
@@ -839,6 +931,8 @@ def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison
             meta.update(scope_issue="index_changed", scope_notice=result.answer)
         else:
             result.answer, missing = render_project_comparison(comparison, grouped)
+            if comparison.department:
+                result.answer = "以下比较仅覆盖该部门参与且你有权查看资料的项目。\n\n" + result.answer
             result.context = "\n\n".join(f"[{s['rank']}] {s['source']}\n{s['text']}" for s in result.sources)
             meta.update(coverage=("partial" if missing else "unknown") if result.sources else "not_found",
                         comparison={"operations": list(comparison.operations), "missing": missing,
@@ -849,6 +943,28 @@ def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison
     result.elapsed["total"] = result.elapsed["retrieval"] + result.elapsed.get("query_understanding", 0.0)
     result.evidence_meta = meta
     return result, meta
+
+
+def _version_context(items, cfg, max_items, max_per_doc, scopes):
+    """Give each allowed version side its own context budget and keep citations unique."""
+    side_count = max(1, sum(bool(statuses) for statuses in scopes.values()))
+    side_cfg = replace(cfg, context_max_tokens=cfg.context_max_tokens // side_count)
+    contexts, used, dropped, notes = [], [], [], []
+    missing = []
+    for key, label, _ in VERSION_SIDES:
+        candidates = [item for item in items if item.metadata.get("status") in scopes[key]]
+        context, sources, discarded, merged = build_context(
+            candidates, side_cfg, max_items=max(1, max_items // side_count), max_per_doc=max_per_doc,
+            rank_offset=len(used), show_version=True,
+        )
+        if not sources:
+            missing.append(key)
+            context = "当前检索范围内没有找到可用证据。"
+        contexts.append(f"【{label}】\n{context}")
+        used.extend(sources)
+        dropped.extend(discarded)
+        notes.extend(merged)
+    return "\n\n".join(contexts), used, dropped, notes, missing
 
 
 def query_evidence(
@@ -890,9 +1006,15 @@ def query_evidence(
     if enumeration_route(question, True) == "catalog":
         return _catalog_evidence(question, filters, cfg)
 
+    date_filters = explicit_file_dates(question)
+    for field in ("updated_at", "indexed_at"):
+        if filters and field in filters:
+            date_filters[field] = filters[field]
     trace: list = []
     result = QAResult(question=question, answer=None, retrieved=[], context="",
                       sources=[], filters=effective_filters(filters), trace=trace)
+    if project_mentions := parse_project_mentions(question):
+        return _project_mentions_evidence(result, {**date_filters, **(filters or {})}, *project_mentions, cfg)
 
     # 列举/盘点类提问：进入独立预算的文档定位/跨文档精排通道。
     # 判定严谨性（语义为主，词表分级兜底）：
@@ -921,17 +1043,27 @@ def query_evidence(
 
     # 节点 ②：Query 理解 / 改写（V2：一次 LLM 调用完成改写 + 关键词 + 过滤条件推断）
     search_query = question
+    bare_reference = project_reference(question) == "它"
+    selected_project = (filters or {}).get("project_id")
+    unique_selection = type(selected_project) is int or (
+        isinstance(selected_project, (list, tuple)) and len(selected_project) == 1)
+    if bare_reference and not unique_selection:
+        if project_context is None:
+            project_context = conversation_project(question, history or []) if history else {}
+        if project_context.get("project_id"):
+            search_query = name_project_in_followup(question, project_context["name"])
     qu_filters: dict = {}
     qu = None
-    if use_query_understanding and use_llm:
+    unresolved_reference = bare_reference and not unique_selection and search_query == question
+    if use_query_understanding and use_llm and not unresolved_reference:
         _p("🧠 Query 理解中…")
         qu_start = now_str()
         llm = get_llm_client()
-        qu = understand_query(question, llm=llm, config=cfg, history=history,
+        qu = understand_query(search_query, llm=llm, config=cfg, history=history,
                               conversation_context=conversation_context)
         record_stage_usage(result, "query_understanding", qu.usage)
         result.elapsed["query_understanding"] = qu.elapsed  # 生成半程的 total 依赖此项
-        search_query = qu.vector_query or question
+        search_query = qu.vector_query or search_query
         qu_filters = dict(qu.filters)
         # 语义判定合并：LLM 识别出计数/列举意图而词表没命中时，同样进入枚举通道——
         # 覆盖「经历过几家公司」这类词表外的任意计数问法。
@@ -948,7 +1080,8 @@ def query_evidence(
             f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '（未输出）'}\n"
             f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}\n"
             f"sub_queries（复合问题拆分，逐子查询检索）: {('；'.join(qu.sub_queries)) if qu.sub_queries else '（未输出，单信息需求）'}\n"
-            f"time_range（解析的时间范围）: {qu.time_range or '（未输出）'}\n"
+            f"time_range（模型识别的时间范围）: {qu.time_range or '（未输出）'}\n"
+            f"文件日期过滤（按问句和手动选择确定）: {date_filters or '（无）'}\n"
             f"filters（推断的过滤条件）: {qu.filters or '（未输出）'}\n"
             f"metadata_scope（明确指定的范围）: {getattr(qu, 'metadata_scope', {}) or '（未输出）'}")
         if qu.ok and qu.error:
@@ -970,6 +1103,8 @@ def query_evidence(
         ))
     else:
         reason = "仅检索模式" if not use_llm else "未启用（可在 检索设置 或 .env QUERY_UNDERSTANDING 开启）"
+        if unresolved_reference:
+            reason = "待确认代词指向的项目"
         trace.append(make_node(
             "🧠", "Query 理解 / 改写", time_str=now_str(), status=f"直通（{reason}）",
             summary="原始问题直接进入向量化，未做改写与条件推断",
@@ -979,8 +1114,19 @@ def query_evidence(
     scope_issue = unsupported_scope(question)
     comparison = parse_project_comparison(question) if scope_issue != "negated" else None
     if comparison:
-        return _project_comparison_evidence(result, comparison, filters, top_k, cfg, use_hybrid, use_rerank,
-                                            user_groups, username, on_progress)
+        compared = _project_comparison_evidence(result, comparison, {**date_filters, **(filters or {})},
+                                                top_k, cfg, use_hybrid, use_rerank,
+                                                user_groups, username, on_progress)
+        if compared is not None:
+            return compared
+    if is_staff_total_question(question):
+        enumeration_mode = False
+    version_scopes = comparison_statuses(filters) if compares_versions(question) else None
+    if version_scopes is not None:
+        # One inferred status or source cannot represent both sides of a comparison.
+        qu_filters.pop("status", None)
+        qu_filters.pop("source", None)
+        enumeration_mode = False
     spoken_scope = {} if scope_issue else extract_scope(
         question, getattr(qu, "metadata_scope", None) if qu and qu.ok else None)
     if spoken_scope:
@@ -989,16 +1135,17 @@ def query_evidence(
         filters, scope_issue = resolve_scope(question, spoken_scope, filters)
     reference = project_reference(question) if "project" not in spoken_scope else ""
     if reference and not scope_issue:
-        selected = (filters or {}).get("project_id")
-        unique = type(selected) is int or isinstance(selected, (list, tuple)) and len(selected) == 1
-        if not unique:
+        if bare_reference:
+            for field in ("source", "domain", "status"):
+                qu_filters.pop(field, None)
+        if not unique_selection:
             context_project = project_context if project_context is not None else (
                 conversation_project(question, history or []) if history else {})
             if project_id := context_project.get("project_id"):
                 filters, scope_issue = resolve_scope(question, {"project": project_id}, filters)
                 if not scope_issue:
                     spoken_scope["project"] = context_project["name"]
-                    if not (qu and qu.ok):
+                    if not bare_reference and not (qu and qu.ok):
                         search_query = f"{context_project['name']} {search_query}"
                     if qu_filters.get("source") == context_project["name"]:
                         qu_filters.pop("source")
@@ -1033,10 +1180,12 @@ def query_evidence(
         catalog_result.elapsed["total"] += elapsed
         return catalog_result, meta
 
+    if date_filters:
+        filters = {**date_filters, **(filters or {})}
     route = enumeration_route(question, enumeration_mode,
                               source=(filters or {}).get("source") or qu_filters.get("source"),
                               hint=getattr(qu, "enumeration_scope", "") if qu and qu.ok else "")
-    enum_stats = {"route": route}
+    enum_stats = {"route": "version_comparison" if version_scopes is not None else route}
     enum_truncated = False
 
     # 节点 ③④⑤⑥：Query Embedding → Metadata Filter → 数据库检索 → 召回 Chunk
@@ -1055,9 +1204,6 @@ def query_evidence(
         recall_k = max(recall_k, cfg.rerank_recall_k) if use_rerank_now else recall_k
         ctx_max_per_doc = None  # 非枚举：组装时回落到 .env 的 CONTEXT_MAX_PER_DOC
         enum_ctx_cfg = cfg
-    if qu and qu.ok and qu.time_range:
-        filters = dict(filters or {})
-        filters.setdefault("updated_at", qu.time_range)
     merged_filters = {**qu_filters, **(filters or {})}
     result.filters = effective_filters(merged_filters)
     _p("🔍 数据检索中…")
@@ -1070,7 +1216,22 @@ def query_evidence(
     # 不拆分时走原始单查询检索；两种路径产出统一为 result.retrieved 供精排。
     sub_q_lists = [s for s in ((qu.sub_queries if (qu and qu.ok) else []) or []) if s and s.strip()][:4]
 
-    if len(sub_q_lists) >= 2:
+    if version_scopes is not None:
+        for key, label, _ in VERSION_SIDES:
+            statuses = version_scopes[key]
+            if statuses:
+                result.retrieved.extend(retriever.retrieve(
+                    question, top_k=recall_k, filters={**merged_filters, "status": list(statuses)},
+                    trace=None, use_hybrid=use_hybrid, diagnostics=retrieval_diagnostics,
+                ))
+        searched_statuses = [status for statuses in version_scopes.values() for status in statuses]
+        if searched_statuses:
+            result.filters["status"] = searched_statuses
+        trace.append(make_node("📚", "新旧版本分侧检索", time_str=now_str(),
+                               summary="分别召回现行资料与历史资料，两侧沿用当前用户权限和手动筛选。",
+                               items=[(label, "、".join(version_scopes[key]) or "当前筛选未包含该侧")
+                                      for key, label, _ in VERSION_SIDES]))
+    elif len(sub_q_lists) >= 2:
         sq_start = now_str()
         sq_lines = []
         # 每个子查询独立检索，各自保留原始结果列表
@@ -1294,9 +1455,20 @@ def query_evidence(
     # 精排后不再截断候选池，由组装规则在全部候选中选出最终进入回答的 Top K
     merge_start = now_str()
     t1 = time.time()
-    context, used, dropped, merge_notes = build_context(
-        result.retrieved, enum_ctx_cfg, max_items=ctx_max_items, max_per_doc=ctx_max_per_doc
-    )
+    missing_sides = []
+    if version_scopes is None:
+        context, used, dropped, merge_notes = build_context(
+            result.retrieved, enum_ctx_cfg, max_items=ctx_max_items, max_per_doc=ctx_max_per_doc,
+        )
+    else:
+        context, used, dropped, merge_notes, missing_sides = _version_context(
+            result.retrieved, cfg, ctx_max_items, ctx_max_per_doc, version_scopes,
+        )
+        scope_meta["version_comparison"] = {"missing_sides": missing_sides}
+        if missing_sides:
+            labels = "、".join(label for key, label, _ in VERSION_SIDES if key in missing_sides)
+            result.answer = f"当前检索范围内缺少可用于比较的{labels}证据，无法确认新旧版本的差异。"
+            scope_meta["support_notice"] = result.answer
     support = assess_evidence(
         question, [item.text for item in used],
         tuple(spoken_scope[key] for key in ("project", "business_direction") if key in spoken_scope),
@@ -1314,13 +1486,25 @@ def query_evidence(
             used = []
             context = "（没有可支持该问题的证据）"
         elif support["status"] == "partial":
-            missing = "、".join(support["missing"])
-            context = f"【证据范围】没有找到支持以下信息的依据：{missing}。回答时请标明缺失。\n\n{context}"
+            date_missing = [name for name in support["missing"] if name in support.get("date_fields", ())]
+            other_missing = [name for name in support["missing"] if name not in date_missing]
+            notes = []
+            if date_missing:
+                notice = f"日期规则未确认：{'、'.join(date_missing)}。请从原文核对对应事件和日期，无法确认时请说明。"
+                scope_meta.setdefault("support_notice", notice)
+                notes.append(notice)
+            if other_missing:
+                notes.append(f"没有找到支持以下信息的依据：{'、'.join(other_missing)}。回答时请标明缺失。")
+            context = f"【证据范围】{' '.join(notes)}\n\n{context}"
     result.retrieved = used
     result.context = context
-    if "updated_at" in result.filters:  # 时间过滤已生效，告知大模型无需再纠结时间
-        tr = result.filters["updated_at"]
-        context = f"【时间说明】以下资料均已按时间范围筛选：{tr['from']} ~ {tr['to']}。\n\n" + context
+    date_notes = []
+    for field, label in (("updated_at", "文件修改时间"), ("indexed_at", "入库时间")):
+        tr = result.filters.get(field)
+        if isinstance(tr, dict) and (tr.get("from") or tr.get("to")):
+            date_notes.append(f"{label}：{tr.get('from') or '不限'} ~ {tr.get('to') or '不限'}")
+    if date_notes:
+        context = "【时间说明】以下资料已按" + "；".join(date_notes) + "筛选。\n\n" + context
         result.context = context
     merge_elapsed = time.time() - t1
     result.elapsed["assembly"] = merge_elapsed
@@ -1395,7 +1579,7 @@ def query_evidence(
         coverage = "unknown"
     result.enumeration = enumeration_mode
     if (enum_truncated or retrieval_diagnostics.get("bm25_truncated")
-            or support.get("status") == "partial") and result.retrieved:
+            or support.get("status") == "partial" or missing_sides) and result.retrieved:
         coverage = "partial"
     enum_stats["processed_documents"] = len(group_documents(used))
     # Query 理解的意图概括随证据元数据透出：分批提取与语义复审共用同一次类别理解，
@@ -1475,9 +1659,9 @@ def answer_stream(
                                    else os.urandom(16).hex(), cfg, summary_llm)
         history, memory_text = prepared.history, prepared.memory or "（当前单会话无旧摘要，近期对话已按预算提供。）"
         project_context = conversation_project(question, archive_history, saved if isinstance(saved, dict) else None)
-        if project_context:
+        if project_context and "turn" in project_context:
             state["project_reference"] = project_context
-        else:
+        elif not project_context:
             state.pop("project_reference", None)
 
     def _attach_conversation(result):
@@ -1663,7 +1847,8 @@ def answer_stream(
                                                         ("rank", "score", "text", "channels")},
                                               channels=s["channels"]) for s in outcome.sources]
             result.context = "\n\n".join(f"[{s['rank']}] {s.get('source')} | {s.get('section') or '-'}\n{s['text']}" for s in outcome.sources)
-            result.answer = render_records(outcome, resolve_answer_language(question, history))
+            result.answer = render_records(outcome, resolve_answer_language(question, history),
+                                           coverage=evidence_meta["coverage"])
             result.elapsed["llm"] = 0.0  # 提取/规划的模型用量与耗时单列在 enumeration。
             result.elapsed["total"] = sum(result.elapsed.get(k, 0.0) for k in
                                           ("query_understanding", "retrieval_only", "rerank", "assembly", "enumeration", "conversation"))
