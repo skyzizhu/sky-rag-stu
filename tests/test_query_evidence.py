@@ -7,11 +7,11 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import io
 import json
 import unittest
+from dataclasses import replace
 from unittest import mock
 
 from src.pipeline import query_evidence
@@ -44,6 +44,50 @@ class QueryEvidenceTests(IngestHarness):
                                       use_query_understanding=False, use_rerank=False)
         self.assertEqual(len(result.retrieved), 0)
         self.assertEqual(meta["coverage"], "not_found")
+
+    def test_factual_gate_rejects_unsupported_candidates_on_web_and_mcp(self):
+        from src import mcp_server
+        from src.pipeline import answer_question
+
+        self.ingest([self.write_note("验收工单 EVT-500 的实测阈值为 17 秒。采购预算尚未填报。", "evidence.md")])
+        for query, reason in (
+            ("工单 EVT-501 的验收阈值是多少？", "EVT-501"),
+            ("采购预算是多少？", "预算金额"),
+            ("是否记录了退款办法？", "退款"),
+        ):
+            with self.subTest(query=query), \
+                 mock.patch("src.pipeline.get_llm_client", side_effect=AssertionError("unexpected generation")):
+                result = answer_question(query, use_llm=True, use_query_understanding=False, use_rerank=False)
+                response = json.loads(mcp_server._tool_knowledge_search_impl(query))
+                self.assertEqual(result.sources, [])
+                self.assertIn(reason, result.evidence_meta["evidence_support"]["missing"])
+                self.assertEqual(response["matches"], [])
+                self.assertTrue(response["refused"])
+                self.assertTrue(response["reason"])
+
+    def test_factual_gate_keeps_partial_and_supported_fields(self):
+        from src.evidence_support import assess_evidence
+
+        row = "本期正式验证合计 18 次。2025-11-01 完成验收。计划阈值为 20 秒，实测阈值未记录。"
+        support = assess_evidence("实测阈值和验证次数分别是多少？", [row])
+        self.assertEqual(support["status"], "partial")
+        self.assertEqual(support["missing"], ["实测阈值"])
+        self.assertEqual(assess_evidence("验收日期是哪天？", [row])["status"], "supported")
+        self.assertEqual(assess_evidence("预算金额是多少？", ["预算金额 | 120,000 元"])["status"], "supported")
+        self.assertEqual(assess_evidence("如何设置降噪？", ["可开启噪声抑制。"]), {})
+
+    def test_evidence_only_uses_local_rerank_without_llm(self):
+        from src.reranker import RerankOutcome
+
+        def rerank(question, items, top_k, cfg):
+            return RerankOutcome(items=items, backend="local_onnx", ok=True)
+
+        with mock.patch("src.pipeline.rerank_documents_local", side_effect=rerank) as local, \
+             mock.patch("src.pipeline.get_llm_client", side_effect=AssertionError("unexpected LLM")):
+            result, _ = query_evidence("Xtools 怎么降噪？", use_llm=False,
+                                       config=replace(self.cfg, rerank_backend="local_onnx"))
+        local.assert_called_once()
+        self.assertTrue(result.sources)
 
     def test_coverage_partial_when_quota_cuts_cards(self):
         """枚举模式名额用满（丢弃原因含「上限」）→ coverage=partial。"""
@@ -117,10 +161,9 @@ class McpDocumentToolsTests(IngestHarness):
             if d["source"] == "doc.md")
 
     def _call(self, fn, *args, **kwargs):
-        import asyncio
         from src import mcp_server
         with contextlib.redirect_stdout(io.StringIO()):
-            return json.loads(asyncio.run(getattr(mcp_server, fn)(*args, **kwargs)))
+            return json.loads(getattr(mcp_server, f"_tool_{fn}_impl")(*args, **kwargs))
 
     def test_knowledge_search_exposes_coverage_and_document_id(self):
         """查询模式响应：coverage 粗判定 + matches 带 document_id（get_document 入口）。"""
@@ -176,7 +219,7 @@ class McpDocumentToolsTests(IngestHarness):
         with mock.patch.object(mcp_server, "_identity_from_ctx",
                                return_value=(["finance"], "eve", {"username": "eve"})), \
              contextlib.redirect_stdout(io.StringIO()):
-            denied = json.loads(asyncio.run(mcp_server.get_document([self.document_id])))
+            denied = self._call("get_document", [self.document_id])
         self.assertTrue(denied.get("refused"))
 
     def test_document_access_is_audited(self):
@@ -201,8 +244,25 @@ class McpDocumentToolsTests(IngestHarness):
         with mock.patch.object(mcp_server, "_identity_from_ctx",
                                return_value=(["finance"], "eve", {"username": "eve"})), \
              contextlib.redirect_stdout(io.StringIO()):
-            denied = json.loads(asyncio.run(mcp_server.list_documents()))
+            denied = self._call("list_documents")
         self.assertEqual(denied["total"], 0)
+
+    def test_read_historical_match_by_version_and_status(self):
+        p = self.knowledge / "reference/general/doc.md"
+        p.write_text("# 新版\n\n只在新版本出现的产品说明。", encoding="utf-8")
+        self.ingest([p])
+        search = self._call("knowledge_search", "功能说明", status="expired")
+        match = search["matches"][0]
+        self.assertEqual(match["status"], "expired")
+        old = self._call("get_document", [match["document_id"]], version=match["version"],
+                         status=match["status"], mode="full")
+        self.assertEqual(old["version"], match["version"])
+        self.assertIn("功能 01", old["full_text"])
+        self.assertNotIn("只在新版本", old["full_text"])
+        all_versions = self._call("list_documents", status="all", page=2, page_size=1)
+        self.assertEqual(all_versions["total"], 2)
+        self.assertEqual(len(all_versions["documents"]), 1)
+        self.assertFalse(all_versions["has_more"])
 
 
 if __name__ == "__main__":
@@ -229,11 +289,13 @@ class IdentityFromCtxTests(unittest.TestCase):
         self.assertEqual(username, "alice")
         self.assertIn("hr", groups)
 
-    def test_missing_or_bad_token_falls_back_to_contextvar(self):
+    def test_http_request_missing_token_is_rejected(self):
         from src import mcp_server
         ctx = self._fake_ctx(None)
         with mock.patch.object(mcp_server, "_request_groups", mock.Mock(get=lambda: None)), \
              mock.patch.object(mcp_server, "_request_user",
                                mock.Mock(get=lambda: {"username": "bob", "department": "it"})):
-            groups, username, user = mcp_server._identity_from_ctx(ctx)
-        self.assertEqual(username, "bob")  # 无请求头 → 回退 contextvar（stdio 兜底口径）
+            with self.assertRaises(PermissionError):
+                mcp_server._identity_from_ctx(ctx)
+            groups, username, user = mcp_server._identity_from_ctx(None)
+        self.assertEqual(username, "bob")  # 仅无 HTTP 请求的调用保留个人模式兜底。

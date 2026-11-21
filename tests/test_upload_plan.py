@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 import tempfile
 import time
 import unittest
+from dataclasses import replace
 from pathlib import Path
+from unittest import mock
 
 from src.upload_plan import (COPY, KIND_BATCH_DUPLICATE, KIND_BATCH_SAME_NAME, KIND_DUPLICATE,
                              KIND_NEW, KIND_SAME_NAME, KIND_SAME_PATH, NEW, NEW_VERSION, SKIP,
@@ -159,6 +163,42 @@ class UploadIngestIntegrationTests(IngestHarness):
         to_ingest, skipped = execute_uploads(plan, files, self.knowledge, choices)
         summary = self.ingest(to_ingest, skip_unchanged=True) if to_ingest else None
         return plan, summary, skipped
+
+    def test_txt_ingest_with_emoji_and_strict_gbk_progress_output(self):
+        from src import pipeline
+
+        self.use_fakes()
+        name = "维护说明🤖.txt"
+        body = "设备维护说明。请按流程检查机器人和工单。"
+        cfg = replace(self.cfg, auto_tag=True)
+        plan = plan_uploads([(name, body.encode("utf-8"))], "learning", {}, self.knowledge)
+        paths, _ = execute_uploads(plan, [(name, body.encode("utf-8"))], self.knowledge)
+        with io.TextIOWrapper(io.BytesIO(), encoding="gbk") as output, contextlib.redirect_stdout(output), \
+                mock.patch("src.pipeline.get_llm_client"), \
+                mock.patch("src.auto_tagger.auto_tag", return_value={"topic": ["设备🤖"], "tags": []}):
+            summary = pipeline.ingest_files(paths=paths, config=cfg, skip_unchanged=True)
+            skipped = pipeline.ingest_files(paths=paths, config=cfg, skip_unchanged=True)
+            output.flush()
+            log = output.buffer.getvalue().decode("gbk")
+        relative = f"learning/{name}"
+        self.assertEqual(summary.new_files, [relative])
+        self.assertEqual(skipped.skipped_files, [relative])
+        self.assertIn(relative, self.ledger())
+        self.assertIn("自动标签", log)
+        self.assertIn(r"\U0001f916", log)
+        [document] = self.store.list_documents()
+        self.assertEqual((document["path"], document["topic"]), (relative, ["设备🤖"]))
+
+    def test_domain_root_upload_records_path_without_category(self):
+        _, summary, _ = self.upload([("new.md", note("新资料"))], target_dir="learning")
+        relative_path = "learning/new.md"
+        self.assertEqual(summary.new_files, [relative_path])
+        self.assertTrue((self.knowledge / relative_path).is_file())
+        self.assertFalse((self.knowledge / "learning/general/new.md").exists())
+        self.assertIn(relative_path, self.ledger())
+        [document] = self.store.list_documents()
+        self.assertEqual((document["path"], document["domain"]), (relative_path, "learning"))
+        self.assertTrue(all("category" not in card["payload"] for card in self.store.get_all_cards()))
 
     def test_changed_file_becomes_new_version_not_duplicate(self):
         self.upload([("a.md", note("第一版"))])

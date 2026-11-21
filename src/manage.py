@@ -14,7 +14,9 @@ import time
 from pathlib import Path
 
 from src.config import AppConfig, get_config
+from src.document_department import normalize_department
 from src.document_type import normalize_doc_type
+from src.ingest_audit import IngestAudit
 from src.metadata import document_id_for
 from src.pipeline import ingest_files
 from src.vector_store import get_vector_store
@@ -50,7 +52,7 @@ def _safe_knowledge_path(relative_path: str, cfg: AppConfig) -> Path:
 
 
 def _second_level_directory(relative_path: str, knowledge_dir: Path) -> Path | None:
-    """返回 domain/category 二级目录；根目录或一级目录文件不触发目录清理。"""
+    """返回领域下的第一级子目录。领域根目录的文件不触发目录清理。"""
     parts = Path(relative_path.replace("\\", "/")).parts
     if len(parts) < 3 or parts[0] in ("", ".", "..") or parts[1] in ("", ".", ".."):
         return None
@@ -68,6 +70,91 @@ def _has_user_files(directory: Path) -> bool:
         path.is_file() and not path.name.startswith(".")
         for path in directory.rglob("*")
     )
+
+
+def _visibility_snapshot(state, relative_path, store) -> dict:
+    from src import index_state
+    from src.permissions import normalize_visibility
+
+    info = index_state.visibility_info_for(state, relative_path)
+    if info:
+        return info
+    for doc in store.list_documents({"document_id": document_id_for(relative_path)}):
+        if doc["status"] in ("active", "archive"):
+            acl = normalize_visibility(doc.get("allowed_groups"), doc.get("allowed_users"),
+                                       legacy_default=False)
+            return {"manual": acl, "value": acl}
+    return {}
+
+
+def _stage_moved_visibility(state, source: str, target: str, store) -> None:
+    from src import index_state
+
+    visibility = _visibility_snapshot(state, source, store)
+    if visibility:
+        state.setdefault(target, {})["visibility_info"] = visibility
+        # 先持久化目标路径的 ACL，文件移动后即使切片失败也不能丢掉授权。
+        index_state.save_state(state, strict=True)
+
+
+def revoke_document_user(username: str) -> int:
+    """移除所有版本中的个人授权，支持停用后重试；空名单继续封闭。"""
+    from qdrant_client import models
+    from src import index_epoch, index_state
+    from src.auth_db import document_acl_write
+    from src.keyword_search import invalidate_cache
+    from src.permissions import normalize_visibility
+    from src.pipeline import _ingest_lock, clear_qa_cache
+
+    def remove(acl: dict) -> bool:
+        users = acl.get("allowed_users") or []
+        if username not in users:
+            return False
+        acl.update(normalize_visibility(acl.get("allowed_groups"),
+                                        [user for user in users if user != username],
+                                        legacy_default=False))
+        return True
+
+    changed_documents = set()
+    with _ingest_lock, document_acl_write():
+        state = index_state.load_state()
+        changed_ledger = False
+        for entry in state.values():
+            info = entry.get("visibility_info") or {}
+            for key in ("manual", "upload_default", "value"):
+                changed_ledger = remove(info.get(key) or {}) or changed_ledger
+            changed_ledger = remove(entry.get("overrides") or {}) or changed_ledger
+            if username in info.get("granted_revocations", {}):
+                del info["granted_revocations"][username]
+                changed_ledger = True
+        if changed_ledger:
+            index_state.save_state(state, strict=True)
+
+        store = get_vector_store()
+        target = models.FieldCondition(key="allowed_users", match=models.MatchValue(value=username))
+        if not store.collection_exists():
+            return 0
+        store.ensure_allowed_users_index()
+        try:
+            for doc in store.list_documents({"allowed_users": [username]}):
+                remove(doc)
+                fields = {"document_id": doc["document_id"], "status": doc["status"], "version": doc["version"]}
+                selector = models.Filter(must=[target, *[
+                    models.FieldCondition(key=key, match=models.MatchValue(value=value))
+                    for key, value in fields.items()
+                ]])
+                changed_documents.add(doc["document_id"])
+                store.client.set_payload(
+                    collection_name=store.cfg.qdrant_collection,
+                    payload={key: doc[key] for key in ("allowed_groups", "allowed_users", "classification")},
+                    points=models.FilterSelector(filter=selector), wait=True,
+                )
+        finally:
+            if changed_documents:
+                index_epoch.bump()
+                invalidate_cache()
+                clear_qa_cache()
+    return len(changed_documents)
 
 
 def reingest(relative_path: str, owner: str | None = None) -> dict:
@@ -90,16 +177,24 @@ def archive(relative_path: str, owner: str | None = None) -> dict:
         stamp = time.strftime("%Y%m%d_%H%M%S")
         dest = dest.with_name(f"{dest.stem}_{stamp}{dest.suffix}")
     from src import index_state as istate
-    type_info = istate.snapshot_doc_type(istate.load_state(), relative_path)
+    state = istate.load_state()
+    type_info = istate.snapshot_doc_type(state, relative_path)
+    department_info = istate.snapshot_department(state, relative_path)
+    store = get_vector_store()
+    _stage_moved_visibility(state, relative_path, dest.relative_to(knowledge_dir).as_posix(), store)
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(path), str(dest))
 
     # 文件换路径 = 换 document_id：先删旧知识，再按新路径入库（新路径自动 status=archive）
     from src.metadata import document_id_for
 
-    store = get_vector_store()
     store.delete_documents([document_id_for(relative_path)])
-    with istate.carry_doc_types({dest.relative_to(knowledge_dir).as_posix(): type_info}):
+    with istate.carry_doc_types({dest.relative_to(knowledge_dir).as_posix(): type_info},
+                                department_values={dest.relative_to(knowledge_dir).as_posix():
+                                                   department_info},
+                                project_values={dest.relative_to(knowledge_dir).as_posix():
+                                                istate.project_link_for(state, relative_path)},
+                                ):
         summary = ingest_files(paths=[dest], owner=owner)
     if summary.ok_files == 0:
         raise ManageError(f"归档后重新入库失败：{summary.failed_files}")
@@ -133,15 +228,23 @@ def restore(archived_relative_path: str, owner: str | None = None) -> dict:
         stamp = time.strftime("%Y%m%d_%H%M%S")
         target = target.with_name(f"{target.stem}_{stamp}{target.suffix}")
     from src import index_state as istate
-    type_info = istate.snapshot_doc_type(istate.load_state(), archived_relative_path)
+    state = istate.load_state()
+    type_info = istate.snapshot_doc_type(state, archived_relative_path)
+    department_info = istate.snapshot_department(state, archived_relative_path)
+    store = get_vector_store()
+    _stage_moved_visibility(state, archived_relative_path, target.relative_to(knowledge_dir).as_posix(), store)
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(path), str(target))
 
     from src.metadata import document_id_for
 
-    store = get_vector_store()
     store.delete_documents([document_id_for(archived_relative_path)])
-    with istate.carry_doc_types({target.relative_to(knowledge_dir).as_posix(): type_info}):
+    with istate.carry_doc_types({target.relative_to(knowledge_dir).as_posix(): type_info},
+                                department_values={target.relative_to(knowledge_dir).as_posix():
+                                                   department_info},
+                                project_values={target.relative_to(knowledge_dir).as_posix():
+                                                istate.project_link_for(state, archived_relative_path)},
+                                ):
         summary = ingest_files(paths=[target], owner=owner)
     if summary.ok_files == 0:
         raise ManageError(f"恢复后重新入库失败：{summary.failed_files}")
@@ -199,19 +302,40 @@ def confirm_document_version(relative_path: str, value: str, revision: str,
 
 
 def update_metadata(relative_path: str, updates: dict) -> dict:
+    """保存档案，与入库串行写入台账。"""
+    from src.pipeline import _ingest_lock
+    from src.auth_db import document_acl_write
+
+    with _ingest_lock, document_acl_write():
+        return _update_metadata(relative_path, updates)
+
+
+def _update_metadata(relative_path: str, updates: dict) -> dict:
     """编辑文档档案：把可编辑字段写入该文档的全部知识卡片，并记入台账覆盖设置。
 
-    可编辑字段：title / category / topic / tags / version / status / allowed_groups / doc_type。
+    可编辑字段：title / category / topic / tags / version / status / doc_type /
+    department / project_id / allowed_groups / allowed_users。
     覆盖设置存入入库台账，重新入库时依然生效；磁盘文件不做改动。
-    doc_type 的空值是显式清除，与未编辑该字段不同。
+    doc_type / department 的空值是显式清除，与未编辑该字段不同。
+    department 是归属部门档案字段（与 allowed_groups 可见权限无关）。
     """
     path, _, cfg = _resolve(relative_path)
-    # V3.7：allowed_groups（可见部门列表）可编辑；空列表规范化为 ["all"]（全员可见）
-    allowed = {"title", "category", "topic", "tags", "version", "status", "allowed_groups"}
+    allowed = {"title", "category", "topic", "tags", "version", "status"}
     clean: dict = {}
     for key, value in (updates or {}).items():
+        if key in ('allowed_groups', 'allowed_users'):
+            clean[key] = value
+            continue
         if key == "doc_type":
             clean[key] = normalize_doc_type(value)
+            continue
+        if key == "department":
+            clean[key] = normalize_department(value)
+            continue
+        if key == "project_id":
+            from src.projects import validate_project_id
+
+            clean[key] = validate_project_id(value)
             continue
         if key not in allowed or value in (None, "", "all"):
             continue
@@ -219,11 +343,6 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
             value = [v.strip() for v in (value if isinstance(value, list) else [value]) if str(v).strip()]
             if not value:
                 continue
-        elif key == "allowed_groups":
-            value = [v.strip() for v in (value if isinstance(value, list) else [value]) if str(v).strip()]
-            value = value or ["all"]  # 空列表 = 全员可见，保证 payload 永不为空列表
-            from src.auth_db import normalize_department_groups
-            value = normalize_department_groups(value)
         else:
             value = str(value).strip()
             if not value:
@@ -235,6 +354,23 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
 
     state = istate.load_state()
     entry = state.setdefault(relative_path, {})
+    acl_info = None
+    if 'allowed_groups' in clean or 'allowed_users' in clean:
+        from src.permissions import normalize_visibility
+        from src.auth_db import document_user_revocations, get_user, normalize_department_groups
+        old_info = _visibility_snapshot(state, relative_path, get_vector_store())
+        existing = old_info.get('value') or old_info.get('manual') or {}
+        acl = normalize_visibility(clean.get('allowed_groups', existing.get('allowed_groups')),
+                                   clean.get('allowed_users', existing.get('allowed_users')),
+                                   legacy_default=False)
+        acl['allowed_groups'] = normalize_department_groups(acl['allowed_groups'])
+        if any((get_user(u) or {}).get('status') != 'active' for u in acl['allowed_users']):
+            raise ManageError('授权名单只能包含有效员工')
+        clean.update(acl)
+        revocations = document_user_revocations()
+        acl_info = dict(entry.get('visibility_info', {}))
+        acl_info.update(manual=dict(acl), value=dict(acl),
+                        granted_revocations={u: revocations.get(u) for u in acl['allowed_users']})
     revision_changed = "version" in clean and clean["version"] != entry.get("version")
     payload = dict(clean)
     if revision_changed:
@@ -246,6 +382,10 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
     store = get_vector_store()
     if store.collection_exists():
         from qdrant_client import models
+        if clean.get("project_id") is not None:
+            store.ensure_project_index()
+        if acl_info is not None and acl_info['value']['allowed_users']:
+            store.ensure_allowed_users_index()
         conditions = [models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id))]
         if revision_changed:
             conditions.extend([
@@ -256,6 +396,12 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
         if revision_changed and store.client.count(
                 collection_name=cfg.qdrant_collection, count_filter=selector, exact=True).count == 0:
             raise ManageError("没有匹配的当前入库版本，请刷新档案后重试")
+        if revision_changed and acl_info is not None:
+            # 版本编辑只更新生效版本；权限仍要覆盖历史版本。
+            store.client.set_payload(
+                collection_name=cfg.qdrant_collection, payload=acl_info["value"],
+                points=models.FilterSelector(filter=models.Filter(must=conditions[:1])), wait=True,
+            )
         store.client.set_payload(
             collection_name=cfg.qdrant_collection,
             payload=payload,
@@ -284,21 +430,30 @@ def update_metadata(relative_path: str, updates: dict) -> dict:
             info = dict(entry.get("doc_type_info", {}))
             info.update(manual=value, value=value, source="manual")
             entry["doc_type_info"] = info
+        elif key == "department":
+            info = dict(entry.get("department_info", {}))
+            info.update(manual=value, value=value, source="manual")
+            entry["department_info"] = info
+        elif key == "project_id":
+            entry["project_id"] = value
         elif value:
             overrides[key] = value
         else:
             overrides.pop(key, None)
     entry["overrides"] = overrides
+    if acl_info is not None:
+        entry['visibility_info'] = acl_info
+        entry['overrides'].update(acl_info['value'])
     entry["document_id"] = document_id
-    istate.save_state(state)
+    istate.save_state(state, strict=acl_info is not None)
     return {"message": f"已更新档案：{relative_path}（{len(clean)} 个字段）"}
 
 
 def remove_documents(relative_paths: list[str], delete_files: bool = False) -> dict:
     """批量移除知识；可选同时删除磁盘文件并清理空的二级目录。
 
-    所有路径会在执行前完成安全校验。无论是否删除磁盘文件，都同步移除增量
-    入库台账记录，确保保留在磁盘上的文件之后可以正常重新入库。
+    所有路径会在执行前完成安全校验。索引移除后清掉指纹，保留磁盘文件的内部或受限授权，
+    以免重入库时默认成为公开文件。
     """
     paths = list(dict.fromkeys(str(path).strip() for path in relative_paths if str(path).strip()))
     if not paths:
@@ -316,14 +471,19 @@ def remove_documents(relative_paths: list[str], delete_files: bool = False) -> d
 
     store = get_vector_store()
     document_ids = [document_id_for(relative_path) for relative_path in paths]
-    store.delete_documents(document_ids)
-
     from src import index_state as istate
 
     state = istate.load_state()
+    visibility = {relative_path: _visibility_snapshot(state, relative_path, store)
+                  for relative_path in paths}
+    store.delete_documents(document_ids)
     for relative_path in paths:
         istate.remove_entry(state, relative_path)
-    istate.save_state(state)
+        info = visibility[relative_path]
+        acl = info.get("value") or info.get("manual") or {}
+        if resolved[relative_path].is_file() and acl.get("classification") in ("内部", "受限"):
+            state[relative_path] = {"visibility_info": info}
+    istate.save_state(state, strict=True)
 
     deleted_files: list[str] = []
     cleaned_directories: list[str] = []
@@ -341,8 +501,10 @@ def remove_documents(relative_paths: list[str], delete_files: bool = False) -> d
                     f"向量知识已移除，但磁盘文件删除失败：{relative_path}（{exc}）"
                 ) from exc
             deleted_files.append(relative_path)
+            istate.remove_entry(state, relative_path)
+        istate.save_state(state, strict=True)
 
-        # 只删除 domain/category；一级领域目录永远保留。
+        # 只清理领域下的空子目录，领域目录保留。
         for directory in sorted(candidate_directories, key=lambda path: len(path.parts), reverse=True):
             if directory.is_dir() and not _has_user_files(directory):
                 try:
@@ -380,27 +542,46 @@ def remove_from_index_and_disk(relative_path: str) -> dict:
 
 
 def ingest_web_page(url: str, domain: str = "reference",
-                    category: str = "webpages", on_progress=None,
+                    category: str | None = None, on_progress=None,
                     default_groups: list[str] | None = None,
                     snapshot_path: Path | None = None,
                     owner: str | None = None, *,
-                    default_doc_type: str | None = None) -> dict:
+                    default_doc_type: str | None = None,
+                    default_department: str | None = None,
+                    default_project_id: int | None = None,
+                    default_allowed_users: list[str] | None = None,
+                    blocked_paths: frozenset[Path] = frozenset(),
+                    audit: IngestAudit | None = None) -> dict:
     """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
 
-    流程：fetch URL → 提取正文 → 保存为 .md 快照（领域 / 分类写进文件头）→ 标准入库
+    流程：抓取 URL → 提取正文 → 保存到所选领域（已有快照复用原路径）→ 标准入库。
+    category 仅供旧调用和历史快照兼容。
     on_progress(msg)：每个阶段开始时回调一次（界面用它显示分步进度）。
     default_groups（V3.7）：上传表单选择的可见部门，透传给入库流水线。
+    default_department：非空上传默认归属部门（档案字段，与权限无关）。
     """
     from src.domains import enabled_codes
+    from src.project_directories import other_project_paths, upload_directory
     from src.web_fetcher import fetch_and_parse, save_web_snapshot
     from src import index_state as istate
     if default_doc_type is not None:
         default_doc_type = normalize_doc_type(default_doc_type)
-    # 在快照覆写前保存类型声明；其余源文件字段仍按抓取结果重新生成。
+    if default_department is not None:
+        default_department = normalize_department(default_department)
+    if default_project_id is not None:
+        from src.projects import validate_project_id
+
+        validate_project_id(default_project_id)
+    # 在快照覆写前保存类型与归属部门声明；其余源文件字段仍按抓取结果重新生成。
     type_carry = {}
+    department_carry = {}
+    visibility_carry = {}
     if snapshot_path is not None:
         rel = Path(snapshot_path).resolve().relative_to(get_config().knowledge_dir.resolve()).as_posix()
-        type_carry[rel] = istate.snapshot_doc_type(istate.load_state(), rel)
+        state = istate.load_state()
+        type_carry[rel] = istate.snapshot_doc_type(state, rel)
+        department_carry[rel] = istate.snapshot_department(state, rel)
+        visibility_carry[rel] = _visibility_snapshot(state, rel, get_vector_store())
 
     # archive 的卡片必须是 archive 状态，而状态由所在目录决定：快照不在 archive/ 下就会
     # 变成「归档领域里的生效卡片」，所以网页不能直接进归档领域（要归档走知识库管理页）
@@ -412,19 +593,46 @@ def ingest_web_page(url: str, domain: str = "reference",
             on_progress(msg)
 
     _report("fetch")
+    if audit:
+        audit.stage = "fetch"
     result = fetch_and_parse(url)
     _report("save")
-    file_path = save_web_snapshot(url, result["text"], result.get("title", ""),
-                                  domain=domain, category=category,
-                                  knowledge_dir=get_config().knowledge_dir, target=snapshot_path)
+    if audit:
+        audit.stage = "save"
+    knowledge_dir = get_config().knowledge_dir
+    if snapshot_path is not None:
+        file_path = save_web_snapshot(url, result["text"], result.get("title", ""),
+                                      domain=domain, category=category, knowledge_dir=knowledge_dir,
+                                      target=snapshot_path, blocked_paths=blocked_paths)
+    else:
+        state = istate.load_state()
+        blocked_paths = blocked_paths | other_project_paths(state, default_project_id)
+        with upload_directory(knowledge_dir, domain, default_project_id) as destination:
+            existing_paths = tuple(knowledge_dir / rel for rel, entry in state.items()
+                                   if entry.get("project_id") == default_project_id
+                                   and not rel.startswith("archive/")
+                                   and (default_project_id is None or rel.startswith(f"{domain}/")))
+            file_path = save_web_snapshot(url, result["text"], result.get("title", ""),
+                                          domain=domain, category=category, knowledge_dir=knowledge_dir,
+                                          blocked_paths=blocked_paths, destination=destination,
+                                          existing_paths=existing_paths, include_legacy=default_project_id is None)
+    if audit:
+        audit.saved(0, file_path)
+        audit.stage = "index"
 
     _report("ingest")
     # 入库（走标准流水线）：skip_unchanged 让同 URL 重复抓取时走增量判断，
     # 网页内容没变就跳过（省 LLM 标签、切片和向量化）
-    with istate.carry_doc_types(type_carry):
+    with istate.carry_doc_types(type_carry, department_values=department_carry,
+                               visibility_values=visibility_carry):
         summary = ingest_files(paths=[file_path], skip_unchanged=True,
                                default_groups=default_groups, owner=owner,
-                               default_doc_type=default_doc_type)
+                               default_doc_type=default_doc_type,
+                               default_department=default_department,
+                               default_project_id=default_project_id,
+                               default_allowed_users=default_allowed_users)
+    if audit:
+        audit.finish(summary)
     if summary.skipped_files and not summary.ok_files:
         return {
             "message": f"网页内容未变化，已跳过入库：{url}（增量判断命中，省时省钱）",
@@ -450,8 +658,7 @@ def ingest_web_page(url: str, domain: str = "reference",
 def refetch_web_page(relative_path: str, owner: str | None = None) -> dict:
     """重新抓取网页：按快照文件头里的原文网址重抓并写回原快照，内容变了生成新版本、没变就跳过。
 
-    领域 / 分类沿用文件头里的声明，可见部门沿用当前卡片——入库时表单选的部门只在卡片里、
-    不在文件头里，不传回去重抓后会变成全员可见。
+    沿用快照的领域和历史文件头声明，授权从台账或已有卡片携带。
     """
     path, knowledge_dir, _ = _resolve(relative_path)
     relative_path = path.relative_to(knowledge_dir).as_posix()
@@ -462,11 +669,9 @@ def refetch_web_page(relative_path: str, owner: str | None = None) -> dict:
     origin = read_snapshot_origin(path)
     if origin is None:
         raise ManageError("这个文件不是网页快照（文件头里没有原文网址）。")
-    groups = next((d["allowed_groups"] for d in get_vector_store().list_documents()
-                   if d["path"] == relative_path and d["status"] == "active"), None)
     try:
         return ingest_web_page(origin["url"], domain=origin["domain"], category=origin["category"],
-                               default_groups=groups, snapshot_path=path, owner=owner)
+                               snapshot_path=path, owner=owner)
     except ManageError:
         raise
     except Exception as exc:  # 网络错误、网站返回异常等：给出可读的提示，不让页面崩溃

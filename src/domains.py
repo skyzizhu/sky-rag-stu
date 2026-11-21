@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 
 from src.config import PROJECT_ROOT
+from src.project_directories import is_generated_info
 
 REGISTRY_PATH = PROJECT_ROOT / "storage" / "domains.json"
 BUILTIN_CODES = ("work", "learning", "life", "projects", "reference", "archive")
@@ -262,7 +263,7 @@ def usage_by_domain(knowledge_dir: Path, ledger: dict, documents: list[dict]) ->
 
     if knowledge_dir.exists():
         for p in knowledge_dir.rglob("*"):
-            if p.is_file() and not p.name.startswith("."):
+            if p.is_file() and not p.name.startswith(".") and not is_generated_info(p):
                 bump(p.relative_to(knowledge_dir).as_posix(), "files")
     for rel in ledger:
         bump(rel, "ledger")
@@ -300,11 +301,11 @@ def delete_domain(code: str, stat: dict | None, knowledge_dir: Path | None = Non
 
 
 def _remove_empty_tree(folder: Path) -> None:
-    """只删空目录树（连同 .DS_Store / .gitkeep 这类占位文件）；有任何其他文件就原样保留。"""
+    """清理空目录、占位文件和生成的说明，保留用户文件。"""
     if not folder.is_dir():
         return
     for sub in sorted(folder.rglob("*"), key=lambda p: len(p.parts), reverse=True):
-        if sub.is_file() and sub.name in _JUNK_FILES:
+        if sub.is_file() and (sub.name in _JUNK_FILES or is_generated_info(sub)):
             sub.unlink(missing_ok=True)
         elif sub.is_dir():
             try:
@@ -327,7 +328,8 @@ def unregistered_dirs(knowledge_dir: Path) -> list[dict]:
     for folder in sorted(knowledge_dir.iterdir()):
         if not folder.is_dir() or folder.name.startswith(".") or folder.name.lower() in codes:
             continue
-        files = sum(1 for p in folder.rglob("*") if p.is_file() and not p.name.startswith("."))
+        files = sum(1 for p in folder.rglob("*")
+                    if p.is_file() and not p.name.startswith(".") and not is_generated_info(p))
         if files:
             code = folder.name.lower()
             valid = bool(_CODE_RE.match(code)) and code not in FORBIDDEN_CODES

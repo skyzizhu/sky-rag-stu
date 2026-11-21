@@ -1,0 +1,2076 @@
+{
+  "indexed": 17,
+  "cards": 21,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "questions": [],
+  "mcp": [
+    {
+      "id": "C09",
+      "sources": [
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "refused": false,
+      "forbidden_hits": []
+    },
+    {
+      "id": "C12",
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md",
+        "learning/星海RAG技术培训笔记.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "refused": false,
+      "forbidden_hits": []
+    }
+  ],
+  "replay": [
+    {
+      "test": "year_as_mtime",
+      "id": "M03",
+      "difficulty": "medium",
+      "question": "2024 年度哪个部门的预算最多？是多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.019539594650268555,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.019539594650268555,
+        "total": 0.019539594650268555
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        },
+        "updated_at": {
+          "from": "2024-01-01",
+          "to": "2024-12-31"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "研发",
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "year_as_content",
+      "id": "M03",
+      "difficulty": "medium",
+      "question": "2024 年度哪个部门的预算最多？是多少？",
+      "seconds": 0.032,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.018444299697875977,
+        "rerank": 0.0,
+        "assembly": 0.0040283203125,
+        "retrieval": 0.022472620010375977,
+        "total": 0.022472620010375977
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "研发",
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "year_as_mtime",
+      "id": "C01",
+      "difficulty": "complex",
+      "question": "2024 年度公司所有部门的预算总额是多少万元？",
+      "seconds": 0.015,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.009117603302001953,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.009117603302001953,
+        "total": 0.009117603302001953
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        },
+        "updated_at": {
+          "from": "2024-01-01",
+          "to": "2024-12-31"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "855"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "year_as_content",
+      "id": "C01",
+      "difficulty": "complex",
+      "question": "2024 年度公司所有部门的预算总额是多少万元？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.002454519271850586,
+        "rerank": 0.0,
+        "assembly": 0.0030519962310791016,
+        "retrieval": 0.0055065155029296875,
+        "total": 0.0055065155029296875
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "855"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "year_as_mtime",
+      "id": "C13",
+      "difficulty": "complex",
+      "question": "2024 年公司举办了哪些对外活动？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.006025552749633789,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.006025552749633789,
+        "total": 0.006025552749633789
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "updated_at": {
+          "from": "2024-01-01",
+          "to": "2024-12-31"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "sources_min_count": false,
+          "answer_must": true,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [],
+        "any_miss": [
+          "发布会"
+        ],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "year_as_content",
+      "id": "C13",
+      "difficulty": "complex",
+      "question": "2024 年公司举办了哪些对外活动？",
+      "seconds": 0.047,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.031159162521362305,
+        "rerank": 0.0,
+        "assembly": 0.002184629440307617,
+        "retrieval": 0.03334379196166992,
+        "total": 0.03334379196166992
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "sources_min_count": false,
+          "answer_must": true,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [],
+        "any_miss": [
+          "发布会"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海薪酬福利制度.md"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "year_as_content_enum",
+      "id": "C13",
+      "difficulty": "complex",
+      "question": "2024 年公司举办了哪些对外活动？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.015691757202148438,
+        "rerank": 0.0,
+        "assembly": 0.013282299041748047,
+        "retrieval": 0.028974056243896484,
+        "total": 0.028974056243896484
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 7,
+        "must_miss": [],
+        "any_miss": [
+          "发布会"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "projects/星云项目/星云项目章程.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海合同/华信数据采购合同_2024.pdf"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "department_as_metadata",
+      "id": "S06",
+      "difficulty": "simple",
+      "question": "研发部 2024 年度的预算是多少？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.01738119125366211,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.01738119125366211,
+        "total": 0.01738119125366211
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        },
+        "department": "研发部"
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "metadata_scope": {
+          "department": "研发部"
+        },
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "找到了候选资料，但没有足够证据支持这个问题。"
+    },
+    {
+      "test": "department_as_content",
+      "id": "S06",
+      "difficulty": "simple",
+      "question": "研发部 2024 年度的预算是多少？",
+      "seconds": 0.015,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.017583131790161133,
+        "rerank": 0.0,
+        "assembly": 0.0030019283294677734,
+        "retrieval": 0.020585060119628906,
+        "total": 0.020585060119628906
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海运维/机房巡检通知.jpg",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "generic_doc_type_as_metadata",
+      "id": "C11",
+      "difficulty": "complex",
+      "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.003265857696533203,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.003265857696533203,
+        "total": 0.003265857696533203
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "doc_type": "制度"
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "metadata_scope": {
+          "doc_type": "制度"
+        },
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "2"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "generic_doc_type_as_content",
+      "id": "C11",
+      "difficulty": "complex",
+      "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.009443521499633789,
+        "rerank": 0.0,
+        "assembly": 0.0008206367492675781,
+        "retrieval": 0.010264158248901367,
+        "total": 0.010264158248901367
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "2"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "learning/星海RAG技术培训笔记.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "archive_only",
+      "id": "C03",
+      "difficulty": "complex",
+      "question": "现在的差旅住宿报销标准比 2022 年旧版员工手册的标准涨了多少？",
+      "seconds": 0.015,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.0228884220123291,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0228884220123291,
+        "total": 0.0228884220123291
+      },
+      "filters": {
+        "status": "archive",
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "400",
+          "350"
+        ],
+        "any_miss": [
+          "50"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "archive/星海旧版员工手册_2022.md"
+      ],
+      "source_versions": [
+        {
+          "path": "archive/星海旧版员工手册_2022.md",
+          "version": "1.0",
+          "status": "archive"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "active_and_archive",
+      "id": "C03",
+      "difficulty": "complex",
+      "question": "现在的差旅住宿报销标准比 2022 年旧版员工手册的标准涨了多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.0296933650970459,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0296933650970459,
+        "total": 0.0296933650970459
+      },
+      "filters": {
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "400",
+          "350"
+        ],
+        "any_miss": [
+          "50"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "archive/星海旧版员工手册_2022.md",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md"
+      ],
+      "source_versions": [
+        {
+          "path": "archive/星海旧版员工手册_2022.md",
+          "version": "1.0",
+          "status": "archive"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "unregistered",
+      "id": "S03",
+      "difficulty": "simple",
+      "question": "星云项目目前的预算总额是多少？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "星云"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "S09",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "周红"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "M02",
+      "difficulty": "medium",
+      "question": "星云项目最新章程相比最初立项时有哪些变化？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [
+          "刘洋"
+        ],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "星云项目章程里列了哪几个里程碑？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "星云",
+          "doc_type": "章程"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "M1",
+          "M2",
+          "M3"
+        ],
+        "any_miss": [
+          "M4"
+        ],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "C02",
+      "difficulty": "complex",
+      "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "陈明",
+          "周红",
+          "335"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "test": "unregistered",
+      "id": "C05",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "天枢",
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "test": "registered_without_document_link",
+      "id": "S03",
+      "difficulty": "simple",
+      "question": "星云项目目前的预算总额是多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.010160684585571289,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.010160684585571289,
+        "total": 0.010160684585571289
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云"
+        },
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "S03",
+      "difficulty": "simple",
+      "question": "星云项目目前的预算总额是多少？",
+      "seconds": 0.032,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.021515846252441406,
+        "rerank": 0.0,
+        "assembly": 0.0010001659393310547,
+        "retrieval": 0.02251601219177246,
+        "total": 0.02251601219177246
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "S09",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 0.015,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.006660938262939453,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.006660938262939453,
+        "total": 0.006660938262939453
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "周红"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "M02",
+      "difficulty": "medium",
+      "question": "星云项目最新章程相比最初立项时有哪些变化？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.0062177181243896484,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0062177181243896484,
+        "total": 0.0062177181243896484
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [
+          "刘洋"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "星云项目章程里列了哪几个里程碑？",
+      "seconds": 0.015,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.010304927825927734,
+        "rerank": 0.0,
+        "assembly": 0.0007283687591552734,
+        "retrieval": 0.011033296585083008,
+        "total": 0.011033296585083008
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ],
+        "doc_type": [
+          "章程",
+          "项目章程",
+          "項目章程"
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云",
+          "doc_type": "章程"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "M1",
+          "M2",
+          "M3"
+        ],
+        "any_miss": [
+          "M4"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.0057528018951416016,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0057528018951416016,
+        "total": 0.0057528018951416016
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "C02",
+      "difficulty": "complex",
+      "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "陈明",
+          "周红",
+          "335"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "C05",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "天枢",
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "test": "linked_with_exact_doc_type",
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "星云项目章程里列了哪几个里程碑？",
+      "seconds": 0.015,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.0047953128814697266,
+        "rerank": 0.0,
+        "assembly": 0.002004861831665039,
+        "retrieval": 0.006800174713134766,
+        "total": 0.006800174713134766
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ],
+        "doc_type": [
+          "章程",
+          "项目章程",
+          "項目章程"
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云",
+          "doc_type": "项目章程"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "M1",
+          "M2",
+          "M3"
+        ],
+        "any_miss": [
+          "M4"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "linked_to_exact_extracted_name",
+      "id": "S09",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.007798433303833008,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.007798433303833008,
+        "total": 0.007798433303833008
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "周红"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "linked_to_exact_extracted_name",
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.006195783615112305,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.006195783615112305,
+        "total": 0.006195783615112305
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    }
+  ]
+}

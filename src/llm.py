@@ -14,6 +14,7 @@ from functools import lru_cache
 from openai import APIConnectionError, APIStatusError, AuthenticationError, NotFoundError, OpenAI, RateLimitError
 
 from src.config import AppConfig, get_config
+from src.console import console_print
 from src.context import estimate_tokens
 
 
@@ -150,7 +151,7 @@ class LLMClient:
             usage_out.update(parsed or _estimate_usage(messages, answer))
             usage_out["finish_reason"] = getattr(response.choices[0], "finish_reason", None)
         if self.cfg.debug:
-            print(f"    LLM 调用完成：{self.cfg.llm_model}，耗时 {elapsed:.1f} 秒")
+            console_print(f"    LLM 调用完成：{self.cfg.llm_model}，耗时 {elapsed:.1f} 秒")
         return answer, elapsed
 
     def chat_stream(self, messages: list[dict], usage_out: dict | None = None):

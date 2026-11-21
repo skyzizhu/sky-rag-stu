@@ -14,7 +14,6 @@
             "title":       标题
             "section":     章节（解析阶段为空，切片时才知道）
             "page":        页码（解析阶段为空，切片时才知道）
-            "category":    分类
             "created_at":  文件创建日期
             "updated_at":  文件修改日期
             "version":     版本（V1 固定 1.0）
@@ -38,6 +37,7 @@ from docx import Document as DocxDocument
 from pypdf import PdfReader
 from striprtf.striprtf import rtf_to_text
 
+from src.console import console_print
 from src.config import get_config
 from src.metadata import parse_front_matter
 
@@ -99,7 +99,6 @@ def _file_dates(path: Path) -> tuple[str, str]:
 
 
 def _base_metadata(path: Path, title: str, file_type: str) -> dict:
-    cfg = get_config()
     created_at, updated_at = _file_dates(path)
     return {
         "source": path.name,
@@ -107,7 +106,6 @@ def _base_metadata(path: Path, title: str, file_type: str) -> dict:
         "title": title,
         "section": None,
         "page": None,
-        "category": cfg.default_category,
         "created_at": created_at,
         "updated_at": updated_at,
         "version": "1.0",
@@ -275,7 +273,7 @@ def _get_ocr_engine():
 
             _OCR_ENGINE = RapidOCR()
         except Exception as exc:
-            print(f"⚠️ OCR 引擎不可用，图片/扫描件内容将不被识别（{type(exc).__name__}: {exc}）")
+            console_print(f"⚠️ OCR 引擎不可用，图片/扫描件内容将不被识别（{type(exc).__name__}: {exc}）")
             _OCR_ENGINE = False
     return _OCR_ENGINE or None
 
@@ -306,7 +304,7 @@ def _ocr_image(data: bytes, hint: str = "") -> str:
         pixels = np.array(image)[:, :, ::-1]  # RGB → BGR（RapidOCR 按 OpenCV 约定读数组）
         result, _ = engine(pixels)
     except Exception as exc:
-        print(f"⚠️ 图片 OCR 失败{('（' + hint + '）') if hint else ''}：{exc}")
+        console_print(f"⚠️ 图片 OCR 失败{('（' + hint + '）') if hint else ''}：{exc}")
         return ""
     if not result:
         return ""
@@ -869,6 +867,8 @@ def parse_file(path: Path | str) -> ParsedDocument:
 
 def parse_directory(dir_path: Path | str) -> tuple[list[ParsedDocument], list[str]]:
     """解析整个目录（含子目录），返回（成功列表, 失败原因列表）。"""
+    from src.project_directories import is_generated_info
+
     dir_path = Path(dir_path)
     if not dir_path.exists():
         raise ParseError(f"知识目录不存在：{dir_path}")
@@ -878,7 +878,7 @@ def parse_directory(dir_path: Path | str) -> tuple[list[ParsedDocument], list[st
     for path in sorted(dir_path.rglob("*")):
         if any(part.startswith(".") for part in path.relative_to(dir_path).parts):
             continue  # 隐藏目录（.rag_converted 转换缓存等）不入解析清单
-        if not path.is_file() or path.name.startswith("."):
+        if not path.is_file() or path.name.startswith(".") or is_generated_info(path):
             continue
         if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             continue

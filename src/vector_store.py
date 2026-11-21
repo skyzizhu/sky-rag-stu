@@ -17,15 +17,17 @@ from functools import lru_cache
 from qdrant_client import QdrantClient, models
 
 from src import index_epoch
+from src.console import console_print
 from src.config import AppConfig, get_config
 from src.chunker import Chunk
 
 # 建立 Payload Index 的字段：给 Metadata Filter 查询提速
 # （topic / tags / allowed_groups 是列表字段，Qdrant 的 keyword 索引对「任一元素匹配」生效）
 INDEXED_FIELDS = [
-    "document_id", "source", "domain", "category", "doc_type",
+    "document_id", "source", "domain", "doc_type", "department",
     "topic", "tags", "status", "version", "file_type",
     "allowed_groups",  # V3.7 权限：可见部门列表
+    "allowed_users",  # V3.9 三级密级：受限名单（员工用户名）
 ]
 # 时间字段：建立 datetime 索引，支持范围过滤（如"最近三个月的笔记"）
 INDEXED_DATETIME_FIELDS = ["created_at", "updated_at"]
@@ -59,7 +61,7 @@ class VectorStore:
                 ),
             )
             if self.cfg.debug:
-                print(f"    已创建集合 {self.cfg.qdrant_collection}（向量维度 {vector_dimension}）")
+                console_print(f"    已创建集合 {self.cfg.qdrant_collection}（向量维度 {vector_dimension}）")
         else:
             info = self.client.get_collection(self.cfg.qdrant_collection)
             existing_dim = info.config.params.vectors.size
@@ -82,6 +84,21 @@ class VectorStore:
                 field_schema=models.PayloadSchemaType.DATETIME,
                 wait=True,
             )
+        self.ensure_project_index()
+
+    def ensure_project_index(self) -> None:
+        self.client.create_payload_index(
+            collection_name=self.cfg.qdrant_collection,
+            field_name="project_id",
+            field_schema=models.PayloadSchemaType.INTEGER,
+            wait=True,
+        )
+
+    def ensure_allowed_users_index(self) -> None:
+        self.client.create_payload_index(
+            collection_name=self.cfg.qdrant_collection, field_name="allowed_users",
+            field_schema=models.PayloadSchemaType.KEYWORD, wait=True,
+        )
 
     def count(self) -> int:
         """馆里一共有多少张卡片。"""
@@ -108,7 +125,7 @@ class VectorStore:
             self.client.upsert(collection_name=self.cfg.qdrant_collection, points=points, wait=True)
             total += len(points)
             if self.cfg.debug and len(chunks) > batch_size:
-                print(f"    入库进度：{total}/{len(chunks)}")
+                console_print(f"    入库进度：{total}/{len(chunks)}")
         index_epoch.bump()
         return total
 
@@ -163,6 +180,9 @@ class VectorStore:
 
         - 字符串值 → 精确/任一匹配；列表值 → 任一匹配；
         - doc_type="__unclassified__" → 缺失、null 或空字符串；与其他条件保持 AND。
+        - department="__no_department__" → 缺失、null 或空字符串；与其他条件保持 AND。
+        - "__viewer__"（三级密级）：{"groups": 用户组, "username": 用户名} →
+          allowed_groups 命中用户组 OR allowed_users 含本人用户名；与其他条件保持 AND。
         - time_range 形如 {"from": "2026-06-01", "to": "2026-08-29"} → 时间范围过滤；
           key 必须是 datetime 字段（created_at / updated_at）。
         """
@@ -170,10 +190,41 @@ class VectorStore:
         for key, value in (filters or {}).items():
             if value is None:
                 continue
+            if key in ('allowed_groups', 'allowed_users') and '__viewer__' in (filters or {}):
+                continue  # viewer 下推已经统一权限，不能再 AND 一个部门条件排掉个人授权。
+            if key == "__viewer__":
+                groups = list(value.get("groups") or [])
+                username = str(value.get("username") or "")
+                clauses = [models.FieldCondition(
+                    key='allowed_groups', match=models.MatchAny(any=groups))]
+                if username:
+                    clauses.append(models.FieldCondition(
+                        key="allowed_users", match=models.MatchAny(any=[username])))
+                conditions.append(models.Filter(should=clauses))
+                continue
+            if key == 'classification':
+                no_users = models.IsEmptyCondition(is_empty=models.PayloadField(key='allowed_users'))
+                no_groups = models.IsEmptyCondition(is_empty=models.PayloadField(key='allowed_groups'))
+                all_group = models.FieldCondition(key='allowed_groups', match=models.MatchValue(value='all'))
+                if value == '公开':
+                    conditions.append(models.Filter(must=[no_users, all_group]))
+                elif value == '内部':
+                    conditions.append(models.Filter(must=[no_users], must_not=[no_groups, all_group]))
+                elif value == '受限':
+                    conditions.append(models.Filter(should=[no_groups, models.Filter(must_not=[no_users])]))
+                else:
+                    raise ValueError('未知的文档密级')
+                continue
             if key == "doc_type" and value == "__unclassified__":
                 conditions.append(models.Filter(should=[
                     models.IsEmptyCondition(is_empty=models.PayloadField(key="doc_type")),
                     models.FieldCondition(key="doc_type", match=models.MatchValue(value="")),
+                ]))
+                continue
+            if key == "department" and value == "__no_department__":
+                conditions.append(models.Filter(should=[
+                    models.IsEmptyCondition(is_empty=models.PayloadField(key="department")),
+                    models.FieldCondition(key="department", match=models.MatchValue(value="")),
                 ]))
                 continue
             if key in INDEXED_DATETIME_FIELDS and isinstance(value, dict):
@@ -190,9 +241,28 @@ class VectorStore:
                     ),
                 ))
                 continue
-            values = [value] if isinstance(value, str) else [str(v) for v in value]
-            if not values:
+            if key == 'allowed_groups':
+                if not value:
+                    conditions.append(models.FieldCondition(key=key, match=models.MatchAny(any=[])))
+                    continue
+            if key == 'project_id':
+                ids = list(value) if isinstance(value, (list, tuple)) else [value]
+                if not ids or any(type(v) is not int or v < 1 for v in ids):
+                    raise ValueError('project_id must contain positive integer IDs')
+                conditions.append(models.FieldCondition(key=key, match=models.MatchAny(any=ids)))
                 continue
+            if isinstance(value, int) and not isinstance(value, bool):
+                # 数值标量（如 project_id）：精确匹配，不转字符串
+                conditions.append(models.FieldCondition(
+                    key=key, match=models.MatchValue(value=value)))
+                continue
+            if isinstance(value, (list, tuple, set)):
+                # 保留数值元素原类型（project_id 等 int 载荷与 int 过滤值才能严格匹配）
+                values = [v for v in value]
+            else:
+                values = [value]
+            if not values:
+                continue  # 空列表 = 不筛选该字段（如 topic=[]），不生成空 MatchAny 条件
             conditions.append(
                 models.FieldCondition(key=key, match=models.MatchAny(any=values))
             )
@@ -273,19 +343,22 @@ class VectorStore:
         )
         index_epoch.bump()  # 卡片数不变的写操作：必须显式通知所有进程的检索缓存
 
-    def list_documents(self) -> list[dict]:
-        """按 document_id 盘点所有入库文件：路径、分类、状态、卡片数。"""
+    def list_documents(self, filters: dict | None = None) -> list[dict]:
+        """按 document_id 盘点入库文件，可在扫描前限定元数据范围。"""
         if not self.collection_exists():
             return []
+        from src.permissions import classify_visibility
         docs: dict[tuple, dict] = {}
         offset = None
+        scroll_filter = self.build_filter(filters)
         while True:
             points, offset = self.client.scroll(
                 collection_name=self.cfg.qdrant_collection,
+                scroll_filter=scroll_filter,
                 limit=256,
                 offset=offset,
                 with_payload=["document_id", "source", "path", "domain", "category", "doc_type",
-                              "topic", "version", "status", "allowed_groups", "file_type",
+                              "department", "project_id", "topic", "version", "status", "allowed_groups", "allowed_users", "file_type",
                               "indexed_at", "owner", "title", "effective_date",
                               "classification", "document_version", "document_version_status",
                               "document_version_source", "document_version_evidence", "version_content_hash"],
@@ -301,16 +374,19 @@ class VectorStore:
                         "source": payload.get("source") or "?",
                         "path": payload.get("path") or "?",
                         "domain": payload.get("domain") or "?",
-                        "category": payload.get("category") or "?",
+                        "category": payload.get("category") or "",
                         "doc_type": payload.get("doc_type") or "",
+                        "department": payload.get("department") or "",
+                        "project_id": payload.get("project_id"),
                         "topic": payload.get("topic") or [],
-                        "allowed_groups": payload.get("allowed_groups") or ["all"],
+                        "allowed_groups": payload.get("allowed_groups", []),
+                        "allowed_users": payload.get("allowed_users") or [],
                         "file_type": payload.get("file_type") or "",
                         "indexed_at": payload.get("indexed_at") or "",
                         "owner": payload.get("owner") or "",
                         "title": payload.get("title") or "",
                         "effective_date": payload.get("effective_date") or "",
-                        "classification": payload.get("classification") or "公开",
+                        "classification": classify_visibility(payload.get("allowed_groups"), payload.get("allowed_users")),
                         "document_version": payload.get("document_version") or "",
                         "document_version_status": payload.get("document_version_status") or "unavailable",
                         "document_version_source": payload.get("document_version_source") or "",
@@ -325,20 +401,14 @@ class VectorStore:
                 break
         return sorted(docs.values(), key=lambda d: d["path"])
 
-    def categories(self, filters: dict | None = None) -> list[str]:
-        """查询理解只需分类名，使用索引分面，不逐张卡片扫描全库。"""
-        if not self.collection_exists():
-            return []
-        response = self.client.facet(collection_name=self.cfg.qdrant_collection, key="category",
-                                     facet_filter=self.build_filter(filters), limit=128)
-        return sorted(str(hit.value) for hit in response.hits)
-
     def document_catalog(self, filters: dict | None = None, max_documents: int = 200,
                          max_points: int = 50000, date_field: str = "updated_at",
                          dates: dict | None = None) -> dict:
         """只滚动读取元数据，按 document_id 去重；达到预算时明确返回不完整标记。"""
         documents = {}
         offset = None
+        from src.permissions import classify_visibility
+
         scanned = 0
         unknown_dates = set()
         if self.collection_exists():
@@ -347,13 +417,17 @@ class VectorStore:
                     collection_name=self.cfg.qdrant_collection,
                     scroll_filter=self.build_filter(filters), offset=offset,
                     limit=min(256, max_points - scanned), with_vectors=False,
-                    with_payload=["document_id", "source", "path", "title", "domain", "category", "doc_type",
-                                  "version", "status", "indexed_at", "updated_at"],
+                    with_payload=["document_id", "source", "path", "title", "domain", "doc_type",
+                                  "department", "project_id", "version", "status", "indexed_at", "updated_at",
+                                  "allowed_groups", "allowed_users"],
                 )
                 scanned += len(points)
                 for point in points:
                     meta = point.payload or {}
                     meta["doc_type"] = meta.get("doc_type") or ""
+                    meta["department"] = meta.get("department") or ""
+                    meta["classification"] = classify_visibility(
+                        meta.pop("allowed_groups", None), meta.pop("allowed_users", None))
                     if dates:
                         date = str(meta.get(date_field) or "")[:10]
                         if not date:
@@ -402,17 +476,14 @@ class VectorStore:
                 break
         return cards
 
-    def chunks_by_document(self, document_id: str, limit: int = 50) -> list[dict]:
+    def chunks_by_document(self, document_id: str, limit: int = 50, *,
+                           filters: dict | None = None) -> list[dict]:
         """查看某篇文档的所有卡片（Knowledge 页面展开用）。"""
         if not self.collection_exists():
             return []
         points, _ = self.client.scroll(
             collection_name=self.cfg.qdrant_collection,
-            scroll_filter=models.Filter(
-                must=[models.FieldCondition(
-                    key="document_id", match=models.MatchValue(value=document_id)
-                )]
-            ),
+            scroll_filter=self.build_filter({**(filters or {}), "document_id": document_id}),
             limit=limit,
             with_payload=True,
         )

@@ -1,12 +1,12 @@
 """知识库管理页的网页管理：快照识别 / 同网址复用文件 / 重新抓取保留可见部门。"""
 import contextlib
+from hashlib import md5
 import io
-from pathlib import Path
 from pathlib import Path
 from unittest import mock
 
 from src.manage import ManageError, ingest_web_page, refetch_web_page
-from src.web_fetcher import read_snapshot_origin
+from src.web_fetcher import read_snapshot_origin, save_web_snapshot
 from tests._helpers import IngestHarness
 
 
@@ -25,14 +25,14 @@ class SnapshotOriginTests(IngestHarness):
              contextlib.redirect_stdout(io.StringIO()):
             return ingest_web_page("https://example.com/policy",
                                    domain=kw.pop("domain", "reference"),
-                                   category=kw.pop("category", "webpages"), **kw)
+                                   **kw)
 
     def test_origin_read_from_snapshot(self):
         result = self._ingest_page()
         origin = read_snapshot_origin(result["file_path"])
         self.assertEqual(origin["url"], "https://example.com/policy")
         self.assertEqual(origin["domain"], "reference")
-        self.assertEqual(origin["category"], "webpages")
+        self.assertEqual(origin["category"], "")
 
     def test_reingest_from_disk_keeps_origin(self):
         """文件已入库，再次从磁盘增量入库（全库扫描）：来源信息不丢。"""
@@ -54,11 +54,24 @@ class SnapshotOriginTests(IngestHarness):
         self.assertEqual(Path(first["file_path"]), Path(again["file_path"]))
         # 标题在文件头里：标题变了 = 快照内容变了 = 重新入库为新版本（不是新文档、不多一份文件）
         self.assertTrue(again["message"].startswith("网页已入库"))  # 重新入库为新版本
-        self.assertEqual(len(list((self.cfg.knowledge_dir / "reference" / "webpages").glob("*.md"))), 1)
+        self.assertEqual(len(list((self.cfg.knowledge_dir / "reference/public").glob("*.md"))), 1)
 
     def test_plain_file_has_no_origin(self):
         path = self.write_note("普通笔记")
         self.assertIsNone(read_snapshot_origin(path))
+
+    def test_existing_legacy_snapshot_is_reused_without_a_new_version(self):
+        url = "https://example.com/policy"
+        prefix = md5(url.encode()).hexdigest()[:8]
+        path = self.knowledge / "reference" / "webpages" / f"{prefix}_报销制度.md"
+        save_web_snapshot(url, page("正文内容")["text"], "报销制度",
+                          category="policies", knowledge_dir=self.knowledge, target=path)
+        self.ingest([path])
+
+        result = self._ingest_page()
+        self.assertEqual(Path(result["file_path"]), path)
+        self.assertTrue(result["skipped"])
+        self.assertEqual(self.store.list_documents()[0]["category"], "policies")
 
 
 class RefetchTests(IngestHarness):
@@ -126,7 +139,7 @@ class ArchivedPageTests(IngestHarness):
              mock.patch("src.manage.get_config", return_value=self.cfg):
             archive(Path(result["file_path"]).relative_to(self.cfg.knowledge_dir).as_posix())
         with self.assertRaises(ManageError):
-            refetch_web_page("archive/reference/webpages/" + Path(result["file_path"]).name)
+            refetch_web_page("archive/reference/" + Path(result["file_path"]).name)
 
 
 if __name__ == "__main__":

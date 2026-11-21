@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-import os
+import logging
 import uuid
 
 from src.config import PROJECT_ROOT
@@ -26,11 +26,15 @@ def bump() -> None:
     """标记「知识库已变化」：所有进程的检索缓存在下次使用时作废。失败不抛出。"""
     try:
         EPOCH_PATH.parent.mkdir(parents=True, exist_ok=True)
-        tmp = EPOCH_PATH.with_name(f"{EPOCH_PATH.name}.{os.getpid()}.tmp")
-        tmp.write_text(uuid.uuid4().hex, encoding="utf-8")
-        os.replace(tmp, EPOCH_PATH)
+        revision = uuid.uuid4().hex
+        tmp = EPOCH_PATH.with_name(f"{EPOCH_PATH.name}.{revision}.tmp")
+        try:
+            tmp.write_text(revision, encoding="utf-8")
+            tmp.replace(EPOCH_PATH)
+        finally:
+            tmp.unlink(missing_ok=True)
     except OSError:
-        pass
+        logging.getLogger(__name__).warning("Could not publish retrieval index revision", exc_info=True)
 
 
 def current() -> str:

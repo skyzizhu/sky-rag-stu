@@ -15,20 +15,26 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
+import sys
 import time
+from datetime import datetime
+from ipaddress import ip_address
 from pathlib import Path
+from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Path as PathParam, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 from starlette.routing import Match
 
-from src import auth_db, business_directions, admin_audit
-from src.dashboard_stats import usage_statistics
+from src import auth_db, business_directions, admin_audit, ingest_audit, projects
+from src.config import get_config
+from src.dashboard_stats import ingestion_statistics, knowledge_inventory, usage_statistics
 
 app = FastAPI(title="Sky Personal RAG · 管理后台", docs_url=None, redoc_url=None)
 # V3.8 安全收紧：不再挂全局 CORS（原 allow_origin_regex=".*" + allow_credentials，
@@ -297,8 +303,14 @@ def api_overview(days: int = Query(30, ge=1, le=90), _: dict = Depends(require_a
         "admins": len(admins),
         "admins_active": len([a for a in admins if a["status"] == "active"]),
         "business_directions": len(business_directions.list_directions()),
+        "ingestion_statistics": ingestion_statistics(days),
         "usage_statistics": usage_statistics(days),
     }
+
+
+@app.get("/api/overview/inventory")
+def api_overview_inventory(_: dict = Depends(require_admin_api)):
+    return knowledge_inventory()
 
 
 # ---------------------------------------------------------------- JSON API：服务状态与控制
@@ -475,6 +487,65 @@ def api_business_direction_update(direction_id: int, body: BusinessDirectionEdit
     return {'ok': True, 'business_direction': after}
 
 
+# ---------------------------------------------------------------- JSON API：项目
+PositiveId = Annotated[int, Field(strict=True, gt=0, le=2**63 - 1)]
+ProjectId = Annotated[int, PathParam(gt=0, le=2**63 - 1)]
+
+
+class ProjectBody(BaseModel):
+    name: str = Field(max_length=80)
+    direction_id: PositiveId | None = None
+    lead_department_id: PositiveId | None = None
+    participant_department_ids: list[PositiveId] = Field(default_factory=list)
+    note: str = Field(default='', max_length=1000)
+
+
+class ProjectEditBody(ProjectBody):
+    revision: PositiveId
+
+
+@app.get('/api/projects')
+def api_projects(_: dict = Depends(require_admin_api)):
+    return {'ok': True, 'projects': projects.list_projects()}
+
+
+@app.get('/api/projects/{project_id}')
+def api_project_detail(project_id: ProjectId, _: dict = Depends(require_admin_api)):
+    project = projects.get_project(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail='项目不存在')
+    return {'ok': True, 'project': project}
+
+
+@app.post('/api/projects')
+def api_project_create(body: ProjectBody, request: Request,
+                       admin: dict = Depends(require_admin_api)):
+    try:
+        project = projects.save_project(projects.ProjectFields(**body.model_dump()))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _log_from_admin(request, 'project_create', admin['username'],
+                    detail=f"项目 #{project['id']} · {project['name']}")
+    return {'ok': True, 'project': project}
+
+
+@app.put('/api/projects/{project_id}')
+def api_project_update(project_id: ProjectId, body: ProjectEditBody, request: Request,
+                       admin: dict = Depends(require_admin_api)):
+    try:
+        fields = projects.ProjectFields(**body.model_dump(exclude={'revision'}))
+        project = projects.save_project(fields, project_id=project_id, revision=body.revision)
+    except projects.ProjectConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _log_from_admin(request, 'project_update', admin['username'],
+                    detail=f"项目 #{project_id} · {project['name']}")
+    return {'ok': True, 'project': project}
+
+
 # ---------------------------------------------------------------- JSON API：部门
 @app.get("/api/departments")
 def api_departments(_: dict = Depends(require_admin_api)):
@@ -634,11 +705,26 @@ def api_user_toggle(user_id: int, request: Request,
     if user is None:
         return JSONResponse({"ok": False, "detail": "用户不存在"}, status_code=404)
     new_status = "disabled" if user["status"] == "active" else "active"
-    auth_db.update_user(user_id, status=new_status)
+    from src.manage import revoke_document_user
+
+    if new_status == "disabled":
+        auth_db.update_user(user_id, status="disabled")
+    warning = ""
+    removed = 0
+    if new_status == "disabled" or user["username"] in auth_db.document_user_revocations():
+        try:
+            removed = revoke_document_user(user["username"])
+        except Exception:
+            logging.getLogger(__name__).exception("清理员工文档授权失败")
+            if new_status == "active":
+                raise HTTPException(status_code=503, detail="受限文档的旧授权清理未完成，账号保持停用，请稍后重试")
+            warning = "账号已停用。受限文档授权清理尚未完成，重新启用前会再次尝试。"
+    if new_status == "active":
+        auth_db.update_user(user_id, status="active")
     state = "启用" if new_status == "active" else "停用"
     _log_from_admin(request, "employee_toggle", admin["username"],
-                    detail=f"{user['username']} → {state}")
-    return {"ok": True, "status": new_status}
+                    detail=f"{user['username']} → {state}。{warning or f'已清理 {removed} 份文档的个人授权。'}")
+    return {"ok": True, "status": new_status, "warning": warning}
 
 
 # ---------------------------------------------------------------- JSON API：管理员（admins 表，与员工分列）
@@ -832,6 +918,85 @@ def api_logs_qa(limit: int = Query(20, le=100), page: int = Query(1, ge=1),
                                   department=department)
     return {"ok": True, "logs": logs, "total": total,
             "page": page, "page_size": limit}
+
+
+def _can_reveal_ingest_path(request: Request) -> bool:
+    if sys.platform not in ("win32", "darwin") or request.client is None:
+        return False
+
+    def is_loopback(host: str | None) -> bool:
+        try:
+            address = ip_address(host or "")
+            return (getattr(address, "ipv4_mapped", None) or address).is_loopback
+        except ValueError:
+            return False
+
+    host = request.url.hostname
+    return is_loopback(request.client.host) and (host == "localhost" or is_loopback(host))
+
+
+def _resolve_ingest_path(root: Path, relative: str) -> Path | None:
+    try:
+        path = Path(relative)
+        if not relative or path.anchor or ".." in path.parts:
+            return None
+        target = (root / path).resolve()
+        return target if target != root and target.is_relative_to(root) else None
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+@app.get("/api/logs/ingest")
+def api_logs_ingest(request: Request, page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
+                    username: str = Query("", max_length=80), keyword: str = Query("", max_length=256),
+                    batch_id: str = Query("", max_length=32),
+                    entry: Literal["", "file", "directory", "web"] = "",
+                    outcome: Literal["", "running", "ingested", "skipped", "failed"] = "",
+                    since: datetime | None = None, before: datetime | None = None,
+                    _: dict = Depends(require_admin_api)):
+    if any(date is not None and date.utcoffset() is None for date in (since, before)):
+        raise HTTPException(status_code=422, detail="时间范围必须包含时区")
+    if since is not None and before is not None and since >= before:
+        raise HTTPException(status_code=422, detail="起始时间须早于截止时间")
+    result = ingest_audit.list_logs(page=page, page_size=page_size, username=username.strip(),
+                                   keyword=keyword.strip(), batch_id=batch_id, entry=entry,
+                                   outcome=outcome, since=since, before=before)
+    root = get_config().knowledge_dir.resolve()
+    reveal_available = _can_reveal_ingest_path(request)
+    for log in result["logs"]:
+        target = _resolve_ingest_path(root, log["path"])
+        log["absolute_path"] = str(target) if target is not None else ""
+        log["can_reveal"] = reveal_available and target is not None and target.is_file()
+    result["reveal_available"] = reveal_available
+    result["department_labels"] = {
+        department["permission_key"]: department["name"] for department in auth_db.list_departments()
+    } if any(log["attributes"].get("classification") == "内部" for log in result["logs"]) else {}
+    return result
+
+
+@app.post("/api/logs/ingest/{log_id}/reveal")
+def api_reveal_ingest_file(request: Request, log_id: int = PathParam(ge=1, le=2**63 - 1),
+                           _: dict = Depends(require_admin_api)):
+    if not _can_reveal_ingest_path(request):
+        raise HTTPException(status_code=403, detail="请在知识库所在电脑上通过 localhost 打开管理后台，再定位文件。")
+    relative = ingest_audit.get_log_path(log_id)
+    if relative is None:
+        raise HTTPException(status_code=404, detail="找不到这条入库记录。")
+    target = _resolve_ingest_path(get_config().knowledge_dir.resolve(), relative)
+    if target is None or not target.is_file():
+        raise HTTPException(status_code=404, detail="记录中的文件已移动、删除或尚未写入知识库。")
+    try:
+        if sys.platform == "win32":
+            os.startfile(str(target.parent), "open")
+        else:
+            import subprocess
+
+            subprocess.Popen(["/usr/bin/open", "-R", str(target)],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError as exc:
+        logging.getLogger(__name__).warning("Could not reveal ingestion log file %s", log_id, exc_info=True)
+        raise HTTPException(status_code=503, detail="无法打开文件管理器，请复制路径后手动打开。") from exc
+    return {"ok": True}
 
 
 @app.get("/api/llm/costs")

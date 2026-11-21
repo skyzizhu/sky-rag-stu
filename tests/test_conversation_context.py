@@ -162,7 +162,7 @@ class ConversationContextTests(IngestHarness):
 
     def test_pipeline_supplies_the_same_context_to_query_understanding_and_generation(self):
         from src.query_understanding import QueryUnderstanding
-        self.ingest([self.write_note('RAG用于检索增强生成。' * 10)])
+        self.ingest([self.write_note('项目预算为6789元。' + 'RAG用于检索增强生成。' * 10)])
         llm = self.summarizer()
         llm.chat_stream.side_effect = lambda *a, **k: iter(['回答 [1]'])
         history = [{'role': 'user', 'content': '早期预算6789元。' * 40}]

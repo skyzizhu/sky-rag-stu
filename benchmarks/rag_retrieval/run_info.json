@@ -1,0 +1,21 @@
+{
+  "embedding_model": "qwen3-embedding:4b",
+  "reranker": "bge-reranker-v2-m3-onnx",
+  "physical_files": 42,
+  "indexed_cards": 43,
+  "embedding_warm_ms": [
+    407.1,
+    345.95,
+    337.59,
+    366.05,
+    504.11,
+    297.79
+  ],
+  "top_k": 5,
+  "profiles": [
+    "vector",
+    "hybrid",
+    "web_evidence",
+    "mcp_search"
+  ]
+}

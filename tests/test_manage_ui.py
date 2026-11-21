@@ -1,18 +1,69 @@
 """知识库列表分页：真实 AppTest 验证翻页、筛选和跨页勾选，数据源隔离。"""
 from __future__ import annotations
 
+import ast
 import contextlib
 import io
+import logging
+from functools import wraps
 from pathlib import Path
 from unittest import mock
 
 import streamlit as st
+from qdrant_client.http.exceptions import ApiException, ResponseHandlingException
 from streamlit.testing.v1 import AppTest
 
+from src.i18n import LANGUAGE_ORDER, _CATALOG
+from src.vector_store import VectorStoreError
 from tests._helpers import IngestHarness, isolate_app_settings
 
 APP = str(Path(__file__).resolve().parent.parent / 'app.py')
 _real_page = st.Page
+
+
+class ManagementDatabaseNoticeTests(IngestHarness):
+    def test_disconnected_pages_show_notice_and_reload_when_reachable(self):
+        self.use_fakes()
+        self.addCleanup(self.store.client.close)
+        tree = ast.parse(Path(APP).read_text(encoding="utf-8"))
+        names = {"_show_management_error", "_guard_management_database", "page_manage", "page_domains"}
+        functions = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in names]
+        ui = mock.MagicMock()
+        ui.session_state = {}
+        ui.text_input.return_value = ""
+        ui.button.return_value = ui.form_submit_button.return_value = False
+        ui.columns.side_effect = lambda count: [ui] * count
+        domains = mock.Mock()
+        domains.load_domains.return_value = domains.unregistered_dirs.return_value = []
+        env = dict(__name__="management_page_test", st=ui, store=self.store, cfg=self.cfg,
+                   domain_reg=domains, istate=mock.Mock(), ApiException=ApiException,
+                   VectorStoreError=VectorStoreError, wraps=wraps, logging=logging,
+                   t=_CATALOG["zh-CN"].__getitem__, require_perm=mock.Mock(), _viewer_filters=dict)
+        exec(compile(ast.Module(body=functions, type_ignores=[]), APP, "exec"), env)
+
+        fault = ResponseHandlingException(ConnectionRefusedError("[WinError 10061] connection refused"))
+        with mock.patch.object(self.store.client, "collection_exists", side_effect=fault):
+            with self.assertLogs("management_page_test", level="WARNING") as logs:
+                env["page_manage"]()
+                env["page_domains"]()
+        self.assertEqual(ui.warning.call_args_list, [
+            mock.call(_CATALOG["zh-CN"]["services.vector_unavailable"]),
+            mock.call(_CATALOG["zh-CN"]["services.vector_unavailable"]),
+        ])
+        self.assertTrue(all("WinError 10061" in entry for entry in logs.output))
+        ui.error.assert_not_called()
+        ui.info.assert_not_called()
+        ui.expander.assert_not_called()
+        domains.usage_by_domain.assert_not_called()
+
+        ui.reset_mock()
+        env["page_manage"]()
+        env["page_domains"]()
+        ui.warning.assert_not_called()
+        ui.info.assert_called_once_with(_CATALOG["zh-CN"]["manage.empty"])
+        domains.usage_by_domain.assert_called_once()
+        for language in LANGUAGE_ORDER:
+            self.assertTrue(_CATALOG[language]["services.vector_unavailable"])
 
 
 def _manage_as_default(page, *args, **kwargs):

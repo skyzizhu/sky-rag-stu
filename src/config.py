@@ -157,7 +157,6 @@ class AppConfig:
     knowledge_dir: Path = field(
         default_factory=lambda: (PROJECT_ROOT / _env("KNOWLEDGE_DIR", "knowledge")).resolve()
     )
-    default_category: str = field(default_factory=lambda: _env("DEFAULT_CATEGORY", "未分类"))
     debug: bool = field(default_factory=lambda: _env_bool("DEBUG", True))
 
     @property

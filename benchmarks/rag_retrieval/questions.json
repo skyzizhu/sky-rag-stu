@@ -1,0 +1,1242 @@
+[
+  {
+    "id": "Q001",
+    "level": "简单",
+    "kind": "精确编号",
+    "question": "工单 UAV-A700 对应的验收记录是什么？",
+    "expected": [
+      "air-report"
+    ],
+    "facts": [
+      "UAV-A700"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q002",
+    "level": "简单",
+    "kind": "单文档事实",
+    "question": "低空监管平台的故障根因是什么？",
+    "expected": [
+      "air-incident"
+    ],
+    "facts": [
+      "GNSS 时钟漂移"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q003",
+    "level": "简单",
+    "kind": "表格编号",
+    "question": "查设备编号 AL-209 的台账。",
+    "expected": [
+      "air-ledger"
+    ],
+    "facts": [
+      "AL-209"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q004",
+    "level": "中等",
+    "kind": "项目与类型",
+    "question": "查「低空监管平台」项目的验收资料",
+    "expected": [
+      "air-report",
+      "air-plan"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": 2
+  },
+  {
+    "id": "Q005",
+    "level": "中等",
+    "kind": "同义改写",
+    "question": "低空监管平台上次出问题，调查后发现是哪个环节出了岔子？",
+    "expected": [
+      "air-incident"
+    ],
+    "facts": [
+      "GNSS 时钟漂移"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q006",
+    "level": "中等",
+    "kind": "权限命中",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [
+      "air-private"
+    ],
+    "facts": [
+      "AIR-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "低空监管平台",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q007",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「低空监管平台」项目的验收实测阈值和本期验证次数分别是多少？",
+    "expected": [
+      "air-report",
+      "air-ledger"
+    ],
+    "facts": [
+      "17 秒",
+      "18 次"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q008",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「低空监管平台」项目交接由谁值班，同时说明故障复盘记录里的根因。",
+    "expected": [
+      "air-handover",
+      "air-incident"
+    ],
+    "facts": [
+      "工务部",
+      "GNSS 时钟漂移"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q009",
+    "level": "复杂",
+    "kind": "权限拒绝",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "低空监管平台",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "air-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q010",
+    "level": "中等",
+    "kind": "近主题无答案",
+    "question": "「低空监管平台」项目的年度采购预算和结算金额是多少？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q011",
+    "level": "简单",
+    "kind": "精确编号",
+    "question": "工单 COLD-K881 对应的验收记录是什么？",
+    "expected": [
+      "cold-report"
+    ],
+    "facts": [
+      "COLD-K881"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q012",
+    "level": "简单",
+    "kind": "单文档事实",
+    "question": "曙光冷链的故障根因是什么？",
+    "expected": [
+      "cold-incident"
+    ],
+    "facts": [
+      "探头接头松动"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q013",
+    "level": "简单",
+    "kind": "表格编号",
+    "question": "查设备编号 CL-311 的台账。",
+    "expected": [
+      "cold-ledger"
+    ],
+    "facts": [
+      "CL-311"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q014",
+    "level": "中等",
+    "kind": "项目与类型",
+    "question": "查「曙光冷链」项目的验收资料",
+    "expected": [
+      "cold-report",
+      "cold-plan"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": 2
+  },
+  {
+    "id": "Q015",
+    "level": "中等",
+    "kind": "同义改写",
+    "question": "曙光冷链上次出问题，调查后发现是哪个环节出了岔子？",
+    "expected": [
+      "cold-incident"
+    ],
+    "facts": [
+      "探头接头松动"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q016",
+    "level": "中等",
+    "kind": "权限命中",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [
+      "cold-private"
+    ],
+    "facts": [
+      "COLD-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "曙光冷链",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q017",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「曙光冷链」项目的验收实测阈值和本期验证次数分别是多少？",
+    "expected": [
+      "cold-report",
+      "cold-ledger"
+    ],
+    "facts": [
+      "4.8 摄氏度",
+      "12 次"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q018",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「曙光冷链」项目交接由谁值班，同时说明故障复盘记录里的根因。",
+    "expected": [
+      "cold-handover",
+      "cold-incident"
+    ],
+    "facts": [
+      "城运部",
+      "探头接头松动"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q019",
+    "level": "复杂",
+    "kind": "权限拒绝",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "曙光冷链",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "cold-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q020",
+    "level": "中等",
+    "kind": "近主题无答案",
+    "question": "「曙光冷链」项目的年度采购预算和结算金额是多少？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q021",
+    "level": "简单",
+    "kind": "精确编号",
+    "question": "工单 GRID-P602 对应的验收记录是什么？",
+    "expected": [
+      "grid-report"
+    ],
+    "facts": [
+      "GRID-P602"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q022",
+    "level": "简单",
+    "kind": "单文档事实",
+    "question": "青禾配电的故障根因是什么？",
+    "expected": [
+      "grid-incident"
+    ],
+    "facts": [
+      "断路器位置信号抖动"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q023",
+    "level": "简单",
+    "kind": "表格编号",
+    "question": "查设备编号 PD-473 的台账。",
+    "expected": [
+      "grid-ledger"
+    ],
+    "facts": [
+      "PD-473"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q024",
+    "level": "中等",
+    "kind": "项目与类型",
+    "question": "查「青禾配电」项目的验收资料",
+    "expected": [
+      "grid-report",
+      "grid-plan"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": 2
+  },
+  {
+    "id": "Q025",
+    "level": "中等",
+    "kind": "同义改写",
+    "question": "青禾配电上次出问题，调查后发现是哪个环节出了岔子？",
+    "expected": [
+      "grid-incident"
+    ],
+    "facts": [
+      "断路器位置信号抖动"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q026",
+    "level": "中等",
+    "kind": "权限命中",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [
+      "grid-private"
+    ],
+    "facts": [
+      "GRID-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "青禾配电",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q027",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「青禾配电」项目的验收实测阈值和本期验证次数分别是多少？",
+    "expected": [
+      "grid-report",
+      "grid-ledger"
+    ],
+    "facts": [
+      "11 秒",
+      "21 次"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q028",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「青禾配电」项目交接由谁值班，同时说明故障复盘记录里的根因。",
+    "expected": [
+      "grid-handover",
+      "grid-incident"
+    ],
+    "facts": [
+      "物流部",
+      "断路器位置信号抖动"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q029",
+    "level": "复杂",
+    "kind": "权限拒绝",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "青禾配电",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "grid-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q030",
+    "level": "中等",
+    "kind": "近主题无答案",
+    "question": "「青禾配电」项目的年度采购预算和结算金额是多少？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q031",
+    "level": "简单",
+    "kind": "精确编号",
+    "question": "工单 TRIAGE-F937 对应的验收记录是什么？",
+    "expected": [
+      "clinic-report"
+    ],
+    "facts": [
+      "TRIAGE-F937"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q032",
+    "level": "简单",
+    "kind": "单文档事实",
+    "question": "星港分诊的故障根因是什么？",
+    "expected": [
+      "clinic-incident"
+    ],
+    "facts": [
+      "扫码设备未配对"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q033",
+    "level": "简单",
+    "kind": "表格编号",
+    "question": "查设备编号 CLN-502 的台账。",
+    "expected": [
+      "clinic-ledger"
+    ],
+    "facts": [
+      "CLN-502"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q034",
+    "level": "中等",
+    "kind": "项目与类型",
+    "question": "查「星港分诊」项目的验收资料",
+    "expected": [
+      "clinic-report",
+      "clinic-plan"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": 2
+  },
+  {
+    "id": "Q035",
+    "level": "中等",
+    "kind": "同义改写",
+    "question": "星港分诊上次出问题，调查后发现是哪个环节出了岔子？",
+    "expected": [
+      "clinic-incident"
+    ],
+    "facts": [
+      "扫码设备未配对"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q036",
+    "level": "中等",
+    "kind": "权限命中",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [
+      "clinic-private"
+    ],
+    "facts": [
+      "CLINIC-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "星港分诊",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q037",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「星港分诊」项目的验收实测阈值和本期验证次数分别是多少？",
+    "expected": [
+      "clinic-report",
+      "clinic-ledger"
+    ],
+    "facts": [
+      "23 秒",
+      "16 次"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q038",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「星港分诊」项目交接由谁值班，同时说明故障复盘记录里的根因。",
+    "expected": [
+      "clinic-handover",
+      "clinic-incident"
+    ],
+    "facts": [
+      "城运部",
+      "扫码设备未配对"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q039",
+    "level": "复杂",
+    "kind": "权限拒绝",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "星港分诊",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "clinic-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q040",
+    "level": "中等",
+    "kind": "近主题无答案",
+    "question": "「星港分诊」项目的年度采购预算和结算金额是多少？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q041",
+    "level": "简单",
+    "kind": "精确编号",
+    "question": "工单 WATER-W315 对应的验收记录是什么？",
+    "expected": [
+      "water-report"
+    ],
+    "facts": [
+      "WATER-W315"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q042",
+    "level": "简单",
+    "kind": "单文档事实",
+    "question": "澄溪水务的故障根因是什么？",
+    "expected": [
+      "water-incident"
+    ],
+    "facts": [
+      "采样泵气泡干扰"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q043",
+    "level": "简单",
+    "kind": "表格编号",
+    "question": "查设备编号 WT-714 的台账。",
+    "expected": [
+      "water-ledger"
+    ],
+    "facts": [
+      "WT-714"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q044",
+    "level": "中等",
+    "kind": "项目与类型",
+    "question": "查「澄溪水务」项目的验收资料",
+    "expected": [
+      "water-report",
+      "water-plan"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": 2
+  },
+  {
+    "id": "Q045",
+    "level": "中等",
+    "kind": "同义改写",
+    "question": "澄溪水务上次出问题，调查后发现是哪个环节出了岔子？",
+    "expected": [
+      "water-incident"
+    ],
+    "facts": [
+      "采样泵气泡干扰"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q046",
+    "level": "中等",
+    "kind": "权限命中",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [
+      "water-private"
+    ],
+    "facts": [
+      "WATER-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "澄溪水务",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q047",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「澄溪水务」项目的验收实测阈值和本期验证次数分别是多少？",
+    "expected": [
+      "water-report",
+      "water-ledger"
+    ],
+    "facts": [
+      "0.42 NTU",
+      "24 次"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q048",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「澄溪水务」项目交接由谁值班，同时说明故障复盘记录里的根因。",
+    "expected": [
+      "water-handover",
+      "water-incident"
+    ],
+    "facts": [
+      "工务部",
+      "采样泵气泡干扰"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q049",
+    "level": "复杂",
+    "kind": "权限拒绝",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "澄溪水务",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "water-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q050",
+    "level": "中等",
+    "kind": "近主题无答案",
+    "question": "「澄溪水务」项目的年度采购预算和结算金额是多少？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q051",
+    "level": "简单",
+    "kind": "精确编号",
+    "question": "工单 PORT-L409 对应的验收记录是什么？",
+    "expected": [
+      "port-report"
+    ],
+    "facts": [
+      "PORT-L409"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q052",
+    "level": "简单",
+    "kind": "单文档事实",
+    "question": "海棠闸口的故障根因是什么？",
+    "expected": [
+      "port-incident"
+    ],
+    "facts": [
+      "车牌识别逆光"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q053",
+    "level": "简单",
+    "kind": "表格编号",
+    "question": "查设备编号 GT-818 的台账。",
+    "expected": [
+      "port-ledger"
+    ],
+    "facts": [
+      "GT-818"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q054",
+    "level": "中等",
+    "kind": "项目与类型",
+    "question": "查「海棠闸口」项目的验收资料",
+    "expected": [
+      "port-report",
+      "port-plan"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": 2
+  },
+  {
+    "id": "Q055",
+    "level": "中等",
+    "kind": "同义改写",
+    "question": "海棠闸口上次出问题，调查后发现是哪个环节出了岔子？",
+    "expected": [
+      "port-incident"
+    ],
+    "facts": [
+      "车牌识别逆光"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q056",
+    "level": "中等",
+    "kind": "权限命中",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [
+      "port-private"
+    ],
+    "facts": [
+      "PORT-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "海棠闸口",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q057",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「海棠闸口」项目的验收实测阈值和本期验证次数分别是多少？",
+    "expected": [
+      "port-report",
+      "port-ledger"
+    ],
+    "facts": [
+      "31 秒",
+      "15 次"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q058",
+    "level": "复杂",
+    "kind": "跨文档组合",
+    "question": "「海棠闸口」项目交接由谁值班，同时说明故障复盘记录里的根因。",
+    "expected": [
+      "port-handover",
+      "port-incident"
+    ],
+    "facts": [
+      "医疗部",
+      "车牌识别逆光"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q059",
+    "level": "复杂",
+    "kind": "权限拒绝",
+    "question": "这个项目的权限演练口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "海棠闸口",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "port-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q060",
+    "level": "中等",
+    "kind": "近主题无答案",
+    "question": "「海棠闸口」项目的年度采购预算和结算金额是多少？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q061",
+    "level": "复杂",
+    "kind": "已知对象无答案",
+    "question": "「低空监管平台」项目是否记录了供应商违约赔付和退款办法？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q062",
+    "level": "复杂",
+    "kind": "已知对象无答案",
+    "question": "「曙光冷链」项目是否记录了供应商违约赔付和退款办法？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q063",
+    "level": "复杂",
+    "kind": "已知对象无答案",
+    "question": "「青禾配电」项目是否记录了供应商违约赔付和退款办法？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q064",
+    "level": "复杂",
+    "kind": "已知对象无答案",
+    "question": "「星港分诊」项目是否记录了供应商违约赔付和退款办法？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q065",
+    "level": "复杂",
+    "kind": "已知对象无答案",
+    "question": "「澄溪水务」项目是否记录了供应商违约赔付和退款办法？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q066",
+    "level": "复杂",
+    "kind": "已知对象无答案",
+    "question": "「海棠闸口」项目是否记录了供应商违约赔付和退款办法？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q067",
+    "level": "简单",
+    "kind": "通用资料",
+    "question": "值班服务台编号 HELP-780 在哪个手册里？",
+    "expected": [
+      "g-contacts"
+    ],
+    "facts": [
+      "HELP-780"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q068",
+    "level": "简单",
+    "kind": "通用资料",
+    "question": "档案命名规范里的归档编号是什么？",
+    "expected": [
+      "g-format"
+    ],
+    "facts": [
+      "ARCH-42"
+    ],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q069",
+    "level": "简单",
+    "kind": "库外无答案",
+    "question": "银河舰队 ZQ-9876 的量子跃迁手册在哪里？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q070",
+    "level": "简单",
+    "kind": "库外无答案",
+    "question": "员工食堂周五供应哪些甜点？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q071",
+    "level": "中等",
+    "kind": "文档版本",
+    "question": "低空监管平台生效版验收阈值是多少？",
+    "expected": [
+      "air-report"
+    ],
+    "facts": [
+      "17 秒"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "低空监管平台",
+      "doc_type": "验收报告",
+      "status": "active"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q072",
+    "level": "中等",
+    "kind": "历史版本",
+    "question": "低空监管平台历史版实测阈值是多少？",
+    "expected": [
+      "air-report@1.0"
+    ],
+    "facts": [
+      "29 秒"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "低空监管平台",
+      "doc_type": "验收报告",
+      "status": "expired"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q073",
+    "level": "中等",
+    "kind": "部门归属",
+    "question": "请列出归属城运部的资料",
+    "expected": [
+      "air-report",
+      "air-plan",
+      "air-incident",
+      "cold-handover",
+      "clinic-handover"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {
+      "department": "城运部"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q074",
+    "level": "中等",
+    "kind": "空范围",
+    "question": "不存在的文档类型里有什么文件？",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {
+      "doc_type": "航天保险批单"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q075",
+    "level": "复杂",
+    "kind": "业务方向与类型",
+    "question": "查城市治理方向的验收资料",
+    "expected": [
+      "air-report",
+      "air-plan",
+      "grid-report",
+      "grid-plan"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": 4
+  },
+  {
+    "id": "Q076",
+    "level": "复杂",
+    "kind": "业务方向与类型",
+    "question": "列出供应保障方向的验收资料",
+    "expected": [
+      "cold-report",
+      "cold-plan",
+      "port-report",
+      "port-plan"
+    ],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": 4
+  },
+  {
+    "id": "Q077",
+    "level": "复杂",
+    "kind": "冲突范围",
+    "question": "查「低空监管平台」项目的验收报告",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {
+      "project": "曙光冷链"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q078",
+    "level": "复杂",
+    "kind": "多项目暂不支持",
+    "question": "请查「低空监管平台」项目和「曙光冷链」项目的资料",
+    "expected": [],
+    "facts": [],
+    "actor": "auditor",
+    "filters": {},
+    "forbidden": [],
+    "expected_count": null
+  }
+]

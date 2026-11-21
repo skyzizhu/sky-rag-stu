@@ -1,0 +1,218 @@
+[
+  {
+    "id": "Q079",
+    "level": "中等",
+    "kind": "授权对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [
+      "air-private"
+    ],
+    "facts": [
+      "AIR-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "低空监管平台",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q080",
+    "level": "复杂",
+    "kind": "拒绝对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "低空监管平台",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "air-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q081",
+    "level": "中等",
+    "kind": "授权对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [
+      "cold-private"
+    ],
+    "facts": [
+      "COLD-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "曙光冷链",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q082",
+    "level": "复杂",
+    "kind": "拒绝对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "曙光冷链",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "cold-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q083",
+    "level": "中等",
+    "kind": "授权对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [
+      "grid-private"
+    ],
+    "facts": [
+      "GRID-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "青禾配电",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q084",
+    "level": "复杂",
+    "kind": "拒绝对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "青禾配电",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "grid-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q085",
+    "level": "中等",
+    "kind": "授权对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [
+      "clinic-private"
+    ],
+    "facts": [
+      "CLINIC-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "星港分诊",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q086",
+    "level": "复杂",
+    "kind": "拒绝对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "星港分诊",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "clinic-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q087",
+    "level": "中等",
+    "kind": "授权对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [
+      "water-private"
+    ],
+    "facts": [
+      "WATER-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "澄溪水务",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q088",
+    "level": "复杂",
+    "kind": "拒绝对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "澄溪水务",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "water-private"
+    ],
+    "expected_count": null
+  },
+  {
+    "id": "Q089",
+    "level": "中等",
+    "kind": "授权对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [
+      "port-private"
+    ],
+    "facts": [
+      "PORT-RESTRICT-271"
+    ],
+    "actor": "auditor",
+    "filters": {
+      "project": "海棠闸口",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [],
+    "expected_count": null
+  },
+  {
+    "id": "Q090",
+    "level": "复杂",
+    "kind": "拒绝对照",
+    "question": "内部演练的口令是什么？",
+    "expected": [],
+    "facts": [],
+    "actor": "guest",
+    "filters": {
+      "project": "海棠闸口",
+      "doc_type": "权限演练记录"
+    },
+    "forbidden": [
+      "port-private"
+    ],
+    "expected_count": null
+  }
+]

@@ -1,9 +1,9 @@
 """知识库管理：目录 → 元数据（Metadata）。
 
 产品视角：这一层回答的是「这条知识是谁、从哪来、属于哪个领域」——
-- 目录负责物理管理：一级目录 = domain，二级目录 = category，三级目录提示 topic
-- Front Matter 负责人工声明：Markdown 文件可以在文件头声明自己的分类
-- 系统负责兜底：任何字段都不允许缺失，哪怕是空值
+- 目录负责物理管理：一级目录 = domain，三级目录提示 topic
+- Front Matter 负责人工声明：Markdown 文件可以在文件头声明领域、主题等元数据
+- 历史 category 声明仍可读取，目录和默认值不再生成该字段
 
 合并优先级（高 → 低）：
     系统强制字段 > Front Matter > 目录推断 > 默认值
@@ -23,7 +23,9 @@ from pathlib import Path
 
 import yaml
 
+from src.console import console_print
 from src.domains import all_codes as domain_codes
+from src.document_department import resolve_department
 from src.document_type import resolve_doc_type
 
 # ---------------- 规范常量 ----------------
@@ -129,15 +131,18 @@ FORCED_FIELDS = {"document_id", "chunk_id", "source", "path", "file_type", "inde
 # 各字段默认值（Knowledge Management V1 规范 §26）
 DEFAULTS = {
     "domain": "reference",
-    "category": "general",
     "doc_type": "",
+    # V3.9 四层标签：归属部门（资料属于哪个部门），与 allowed_groups 可见权限无关；空 = 未指定
+    "department": "",
     "topic": [],
     "tags": [],
     "version": "1.0",
     "status": "active",
     # V3.7 权限：可见部门名列表；["all"] = 全员可见；空值一律落为 ["all"]
     "allowed_groups": ["all"],
-    # 密级（建档要求）：默认"公开"；Markdown 可在 Front Matter 声明，如 classification: 秘密
+    # V3.9 三级密级：受限名单（员工用户名）；公开/内部不使用该字段
+    "allowed_users": [],
+    # 密级（建档要求）：默认"公开"；实际密级由 pipeline 按可见配置自动派生
     "classification": "公开",
 }
 
@@ -174,7 +179,7 @@ def parse_front_matter(text: str) -> tuple[dict, str]:
     try:
         data = yaml.safe_load(match.group(1))
     except yaml.YAMLError as exc:
-        print(f"⚠️ Front Matter 解析失败，已忽略声明块（{exc}）")
+        console_print(f"⚠️ Front Matter 解析失败，已忽略声明块（{exc}）")
         return {}, body
     if not isinstance(data, dict):
         return {}, body
@@ -183,25 +188,25 @@ def parse_front_matter(text: str) -> tuple[dict, str]:
 
 # ---------------- 目录推断 ----------------
 def normalize_category(raw) -> str:
-    """category 规范化：转小写、去首尾空格；空值 → general。"""
+    """category 规范化：转小写、去首尾空格；空值 → 空字符串。"""
     if raw is None:
-        return DEFAULTS["category"]
+        return ""
     cleaned = str(raw).strip().lower()
-    return cleaned or DEFAULTS["category"]
+    return cleaned
 
 
 def infer_from_path(relative_path: str) -> dict:
-    """从相对路径推断 domain / category / topic / status。
+    """从相对路径推断 domain / topic / status。
 
     规则：
-        learning/ai/rag/x.md  → domain=learning, category=ai, topic=[RAG]
-        work/projects/x.md    → domain=work,     category=projects, topic=[]
-        archive/x.md          → domain=archive, category=general, status=archive（强制）
-        x.md（根目录散落文件）→ domain=reference（默认）, category=general
+        learning/ai/rag/x.md  → domain=learning, topic=[RAG]
+        work/projects/x.md    → domain=work, topic=[]
+        archive/x.md          → domain=archive, status=archive（强制）
+        x.md（根目录散落文件）→ domain=reference（默认）
     """
     parts = [p for p in relative_path.replace("\\", "/").split("/") if p and p != "."]
     if len(parts) <= 1:  # 直接放在 knowledge/ 根目录的文件
-        return {"domain": DEFAULTS["domain"], "category": DEFAULTS["category"],
+        return {"domain": DEFAULTS["domain"],
                 "topic": [], "status": DEFAULTS["status"]}
 
     dirs = parts[:-1]  # 最后一段是文件名，其余才是目录链
@@ -210,17 +215,16 @@ def infer_from_path(relative_path: str) -> dict:
     if domain not in known:
         # 目录名不是已登记领域时回退默认值：否则这些文档按领域筛选永远筛不出来
         # （前台「领域管理」页会把这类目录列为「未登记目录」，可一键登记）
-        print(f"⚠️ 目录「{dirs[0]}」不是已登记领域（{'/'.join(known)}），按 {DEFAULTS['domain']} 处理")
+        console_print(f"⚠️ 目录「{dirs[0]}」不是已登记领域（{'/'.join(known)}），按 {DEFAULTS['domain']} 处理")
         domain = DEFAULTS["domain"]
-    category = normalize_category(dirs[1]) if len(dirs) >= 2 else DEFAULTS["category"]
 
     topic = []
-    if len(dirs) >= 3:  # category 下的下一级目录提示主题
+    if len(dirs) >= 3:  # 保留历史目录的主题推断
         topic_dir = dirs[2].strip()
         topic = [TOPIC_NAME_MAP.get(topic_dir.lower(), topic_dir)] if topic_dir else []
 
     status = "archive" if domain == "archive" else DEFAULTS["status"]
-    return {"domain": domain, "category": category, "topic": topic, "status": status}
+    return {"domain": domain, "topic": topic, "status": status}
 
 
 # ---------------- 字段校验 ----------------
@@ -257,6 +261,8 @@ def build_document_metadata(
     created_at: str | None,
     updated_at: str | None,
     front_matter: dict | None = None,
+    *,
+    inference_path: str | None = None,
 ) -> dict:
     """生成符合统一 Schema 的完整文档级 Metadata。
 
@@ -264,18 +270,18 @@ def build_document_metadata(
     注意 archive 目录的 status 是「目录强制」，Front Matter 也改不掉。
     """
     fm = front_matter or {}
-    path_info = infer_from_path(relative_path)
+    path_info = infer_from_path(inference_path or relative_path)
 
-    # domain / category / topic / tags：FM > 目录 > 默认
+    # domain / topic / tags：FM > 目录 > 默认
     domain = _valid_domain(fm.get("domain")) or path_info["domain"] or DEFAULTS["domain"]
-    category = normalize_category(fm.get("category") or path_info["category"])
+    category = normalize_category(fm.get("category"))  # 兼容旧文档显式声明
     topic = _as_list(fm.get("topic")) or path_info["topic"] or []
     tags = _as_list(fm.get("tags"))
 
-    # V3.7 权限：FM 显式声明的可见部门 > 默认全员（规范化：空列表落为 ["all"]）
-    allowed_groups = [g.strip() for g in _as_list(fm.get("allowed_groups")) if str(g).strip()]
-    if not allowed_groups:
-        allowed_groups = list(DEFAULTS["allowed_groups"])
+    # 未声明的旧文档默认全员；显式空授权不能回落 all，防受限文档被开放。
+    from src.permissions import normalize_visibility
+    acl = normalize_visibility(fm.get("allowed_groups"), fm.get("allowed_users"))
+    allowed_groups, allowed_users = acl["allowed_groups"], acl["allowed_users"]
 
     # status：archive 目录强制；其余 FM > 目录默认
     if path_info["status"] == "archive":
@@ -291,9 +297,9 @@ def build_document_metadata(
     # version：FM 可手动指定，默认 1.0
     version = (version_from_filename(source)
                or str(fm.get("version") or "").strip() or DEFAULTS["version"])
-    # 密级（建档要求）：FM 声明 > 默认"公开"；自由文本暂不做档位白名单（后续完善），
-    # 仅做长度与默认兜底
-    classification = str(fm.get("classification") or "").strip()[:20] or DEFAULTS["classification"]
+    # 密级（建档要求）：FM 声明 > 默认"公开"；档位白名单（公开/内部/受限）由
+    # pipeline 按最终可见配置派生并覆盖，此处仅保留 FM 标注用于告警比对
+    classification = acl["classification"]
 
     warn = []
     if fm.get("domain") is not None and _valid_domain(fm.get("domain")) is None:
@@ -301,7 +307,7 @@ def build_document_metadata(
     if fm.get("status") is not None and _valid_status(fm.get("status")) is None:
         warn.append(f"Front Matter status 非法：{fm.get('status')}（已忽略，枚举仅限 {STATUSES}）")
     for message in warn:
-        print(f"⚠️ {message}")
+        console_print(f"⚠️ {message}")
 
     return {
         # 系统强制字段（Front Matter 无权修改）
@@ -319,12 +325,16 @@ def build_document_metadata(
         "page": None,          # 切片时填写
         # 分类字段
         "domain": domain,
-        "category": category,
+        **({"category": category} if category else {}),
         "doc_type": resolve_doc_type(source, fm, is_web=fm.get("source_type") == "web")["value"],
+        # V3.9 四层标签：归属部门声明（pipeline 会再叠加台账人工设置与上传默认）
+        "department": resolve_department(None, fm)["value"],
         "topic": topic,
         "tags": tags,
-        # 密级（建档要求）
+        # 密级（建档要求）：此处为 FM 标注；实际密级由 pipeline 按可见配置派生
         "classification": classification,
+        # V3.9 三级密级：受限名单（员工用户名）
+        "allowed_users": allowed_users,
         # V3.7 权限字段
         "allowed_groups": allowed_groups,
         # 生命周期字段
@@ -348,12 +358,12 @@ if __name__ == "__main__":
         and not any(part.startswith(".") for part in p.relative_to(cfg.knowledge_dir).parts)
     )
     print(f"知识目录：{cfg.knowledge_dir}\n")
-    header = f"{'相对路径':<44} {'domain':<10} {'category':<12} {'topic':<14} status"
+    header = f"{'相对路径':<44} {'domain':<10} {'topic':<14} status"
     print(header)
     print("-" * len(header.expandtabs()))
     for path in files:
         rel = path.relative_to(cfg.knowledge_dir).as_posix()
         info = infer_from_path(rel)
         topic = ",".join(info["topic"]) or "-"
-        print(f"{rel:<44} {info['domain']:<10} {info['category']:<12} {topic:<14} {info['status']}")
+        print(f"{rel:<44} {info['domain']:<10} {topic:<14} {info['status']}")
     sys.exit(0)

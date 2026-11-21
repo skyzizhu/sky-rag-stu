@@ -27,12 +27,19 @@ class ScopeFiltersTests(unittest.TestCase):
 
     def test_injects_groups_plus_all_and_keeps_other_filters(self):
         out = scope_filters({"domain": "work"}, ["hr"])
-        self.assertEqual(out, {"domain": "work", "allowed_groups": ["all", "hr"]})
+        # V3.9 三级密级：__viewer__ 携带组与用户名，由 build_filter 翻译为可见性 OR
+        self.assertEqual(out["allowed_groups"], ["all", "hr"])
+        self.assertEqual(out["__viewer__"]["groups"], ["all", "hr"])
+        self.assertEqual(out["__viewer__"]["username"], "")
 
     def test_caller_cannot_forge_wider_scope(self):
         # 调用方伪造 allowed_groups=["develop"]：注入后必须被覆盖为本人可见域
         out = scope_filters({"allowed_groups": ["develop"]}, ["hr"])
         self.assertEqual(out["allowed_groups"], ["all", "hr"])
+        out = scope_filters({"allowed_users": ["alice"], "__viewer__": {"username": "alice"}},
+                            ["hr"], "bob")
+        self.assertNotIn("allowed_users", out)
+        self.assertEqual(out["__viewer__"]["username"], "bob")
 
     def test_does_not_mutate_input(self):
         original = {"domain": "work"}

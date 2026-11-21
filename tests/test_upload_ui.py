@@ -91,27 +91,30 @@ class UploadPageFlowTests(IngestHarness):
         self.assert_no_exception(at)
         self.assertFalse(any("确认入库" in b.label for b in at.button), "无冲突不应多一步")
         self.assertEqual(self.versions("fresh.md"), {"1.0": "active"})
+        self.assertTrue((self.knowledge / "learning/fresh.md").is_file())
+        self.assertFalse((self.knowledge / "learning/general/fresh.md").exists())
+        self.assertEqual(self.store.list_documents()[0]["category"], "")
 
     def test_changed_file_confirmed_as_new_version(self):
-        self.ingest([self.write_note("第一版", "a.md")])
+        self.ingest([self.write_note("第一版", "a.md", "learning")])
         at = self.click(self.open_upload_page([("a.md", note("第二版"))]), "开始入库")
         self.assertEqual([(r.label, r.value) for r in at.radio], [("a.md", "new_version")])
         self.click(at, "确认入库")
         self.assert_no_exception(at)
         self.assertEqual(self.versions("a.md"), {"1.0": "expired", "1.1": "active"})
-        self.assertFalse((self.knowledge / "learning/general/a-2.md").exists())
+        self.assertFalse((self.knowledge / "learning/a-2.md").exists())
 
     def test_user_can_choose_copy_instead(self):
-        self.ingest([self.write_note("原文", "a.md")])
+        self.ingest([self.write_note("原文", "a.md", "learning")])
         at = self.click(self.open_upload_page([("a.md", note("改过"))]), "开始入库")
         at.radio[0].set_value("copy").run()
         self.click(at, "确认入库")
         self.assert_no_exception(at)
-        self.assertTrue((self.knowledge / "learning/general/a-2.md").exists())
+        self.assertTrue((self.knowledge / "learning/a-2.md").exists())
         self.assertEqual(self.versions("a.md"), {"1.0": "active"})  # 原文档不受影响
 
     def test_identical_reupload_is_skipped(self):
-        self.ingest([self.write_note("同样的内容", "a.md")])
+        self.ingest([self.write_note("同样的内容", "a.md", "learning")])
         before = self.store.count()
         at = self.click(self.open_upload_page([("a.md", note("同样的内容"))]), "开始入库")
         self.assertEqual(len(at.radio), 0)  # 同位置同内容只能跳过，不给选项
@@ -121,12 +124,12 @@ class UploadPageFlowTests(IngestHarness):
         self.assertTrue(any("跳过" in i.value for i in at.info))
 
     def test_cancel_writes_nothing(self):
-        self.ingest([self.write_note("原文", "a.md")])
+        self.ingest([self.write_note("原文", "a.md", "learning")])
         at = self.click(self.open_upload_page([("a.md", note("改过"))]), "开始入库")
         self.click(at, "取消")
         self.assert_no_exception(at)
         self.assertFalse(any("确认入库" in b.label for b in at.button))
-        self.assertEqual((self.knowledge / "learning/general/a.md").read_bytes(), note("原文"))
+        self.assertEqual((self.knowledge / "learning/a.md").read_bytes(), note("原文"))
         self.assertEqual(self.versions("a.md"), {"1.0": "active"})
 
     def test_web_tab_cannot_choose_archive_domain(self):

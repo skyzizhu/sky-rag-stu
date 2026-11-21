@@ -1,0 +1,5921 @@
+{
+  "indexed": 17,
+  "cards": 21,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "questions": [
+    {
+      "id": "S01",
+      "difficulty": "simple",
+      "question": "员工手册里出差住宿报销标准是多少钱一晚？",
+      "seconds": 2.813,
+      "elapsed": {
+        "retrieval_only": 2.744062662124634,
+        "rerank": 0.0,
+        "assembly": 0.012237548828125,
+        "retrieval": 2.756300210952759,
+        "total": 2.756300210952759
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "400",
+          "300"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海信息安全管理制度.md",
+        "projects/北斗项目/北斗项目总结报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S02",
+      "difficulty": "simple",
+      "question": "星海科技是哪一年成立的？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.007031679153442383,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.007031679153442383,
+        "total": 0.007031679153442383
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 2,
+        "must_miss": [
+          "2016"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "learning/星海RAG技术培训笔记.md",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S03",
+      "difficulty": "simple",
+      "question": "星云项目目前的预算总额是多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.011604070663452148,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.011604070663452148,
+        "total": 0.011604070663452148
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 2,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/北斗项目/北斗项目总结报告.md",
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "learning/星海产品培训_基础篇.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S04",
+      "difficulty": "simple",
+      "question": "华信数据采购合同的合同编号是什么？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.006500720977783203,
+        "rerank": 0.0,
+        "assembly": 0.01075601577758789,
+        "retrieval": 0.017256736755371094,
+        "total": 0.017256736755371094
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 4
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "HX-2024-088"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "learning/星海RAG技术培训笔记.md",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/北斗项目/北斗项目总结报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S05",
+      "difficulty": "simple",
+      "question": "产品 X-1000 的电池续航是多久？",
+      "seconds": 0.032,
+      "elapsed": {
+        "retrieval_only": 0.010362625122070312,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.010362625122070312,
+        "total": 0.010362625122070312
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "18"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海简介/公司简介.html",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "projects/北斗项目/北斗项目总结报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S06",
+      "difficulty": "simple",
+      "question": "研发部 2024 年度的预算是多少？",
+      "seconds": 0.093,
+      "elapsed": {
+        "retrieval_only": 0.0714256763458252,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0714256763458252,
+        "total": 0.0714256763458252
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海运维/机房巡检通知.jpg",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S07",
+      "difficulty": "simple",
+      "question": "RAG 内训笔记里建议的 chunk_size 初始值是多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.0016796588897705078,
+        "rerank": 0.0,
+        "assembly": 0.025565147399902344,
+        "retrieval": 0.02724480628967285,
+        "total": 0.02724480628967285
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "512"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海RAG技术培训笔记.md",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "work/星海员工手册_2024版.md",
+        "reference/星海合同/华信数据采购合同_2024.pdf"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S08",
+      "difficulty": "simple",
+      "question": "X-2000 新品发布会是哪一天举行的？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.018582820892333984,
+        "rerank": 0.0,
+        "assembly": 0.003918170928955078,
+        "retrieval": 0.022500991821289062,
+        "total": 0.022500991821289062
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 2
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "2024-11-18"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "learning/星海产品培训_基础篇.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S09",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 0.031,
+      "elapsed": {},
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "周红"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "id": "S10",
+      "difficulty": "simple",
+      "question": "星海科技的总部在哪个城市？",
+      "seconds": 0.032,
+      "elapsed": {
+        "retrieval_only": 0.025002479553222656,
+        "rerank": 0.0,
+        "assembly": 0.0039958953857421875,
+        "retrieval": 0.028998374938964844,
+        "total": 0.028998374938964844
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 2,
+        "must_miss": [
+          "杭州"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S11",
+      "difficulty": "simple",
+      "question": "产品评审会议的结论是什么？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.010913372039794922,
+        "rerank": 0.0,
+        "assembly": 0.0012454986572265625,
+        "retrieval": 0.012158870697021484,
+        "total": 0.012158870697021484
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "通过"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "learning/星海RAG技术培训笔记.md",
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S12",
+      "difficulty": "simple",
+      "question": "信息安全管理制度要求登录密码长度至少多少位？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.008613109588623047,
+        "rerank": 0.0,
+        "assembly": 0.005392789840698242,
+        "retrieval": 0.014005899429321289,
+        "total": 0.014005899429321289
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "12"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海信息安全管理制度.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "work/星海财务报销制度_v2.1.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S13",
+      "difficulty": "simple",
+      "question": "按照财务报销制度，单笔报销超过多少钱需要总经理审批？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.017702341079711914,
+        "rerank": 0.0,
+        "assembly": 0.011897087097167969,
+        "retrieval": 0.029599428176879883,
+        "total": 0.029599428176879883
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "5000"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海表格/2024年度部门预算表.xlsx"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S14",
+      "difficulty": "simple",
+      "question": "星海科技现在一共有多少名员工？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.009042024612426758,
+        "rerank": 0.0,
+        "assembly": 0.006453514099121094,
+        "retrieval": 0.015495538711547852,
+        "total": 0.015495538711547852
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 3,
+        "must_miss": [
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海财务报销制度_v2.1.md"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "S15",
+      "difficulty": "simple",
+      "question": "机房巡检是什么时间？",
+      "seconds": 0.015,
+      "elapsed": {
+        "retrieval_only": 0.007937192916870117,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.007937192916870117,
+        "total": 0.007937192916870117
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "周三",
+          "14"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海运维/机房巡检通知.jpg",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M01",
+      "difficulty": "medium",
+      "question": "我下周要去北京和成都出差，住宿报销上限分别是多少钱一晚？",
+      "seconds": 0.032,
+      "elapsed": {
+        "retrieval_only": 0.008684396743774414,
+        "rerank": 0.0,
+        "assembly": 0.004510402679443359,
+        "retrieval": 0.013194799423217773,
+        "total": 0.013194799423217773
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 2,
+        "must_miss": [
+          "400",
+          "300"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海RAG技术培训笔记.md",
+        "learning/星海产品培训_基础篇.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M02",
+      "difficulty": "medium",
+      "question": "星云项目最新章程相比最初立项时有哪些变化？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.024786949157714844,
+        "rerank": 0.0,
+        "assembly": 0.003000974655151367,
+        "retrieval": 0.02778792381286621,
+        "total": 0.02778792381286621
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 5,
+        "selected_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [
+          "刘洋"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "learning/星海产品培训_基础篇.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M03",
+      "difficulty": "medium",
+      "question": "2024 年度哪个部门的预算最多？是多少？",
+      "seconds": 0.015,
+      "elapsed": {
+        "retrieval_only": 0.008303403854370117,
+        "rerank": 0.0,
+        "assembly": 0.0039975643157958984,
+        "retrieval": 0.012300968170166016,
+        "total": 0.012300968170166016
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "研发",
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M04",
+      "difficulty": "medium",
+      "question": "X-1000 和 X-2000 的电池续航分别是多少小时？",
+      "seconds": 0.0,
+      "elapsed": {
+        "retrieval_only": 0.004999637603759766,
+        "rerank": 0.0,
+        "assembly": 0.002733469009399414,
+        "retrieval": 0.00773310661315918,
+        "total": 0.00773310661315918
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "18",
+          "30"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海简介/公司简介.html",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "learning/星海RAG技术培训笔记.md"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "星云项目章程里列了哪几个里程碑？",
+      "seconds": 0.016,
+      "elapsed": {
+        "retrieval_only": 0.016041278839111328,
+        "rerank": 0.0,
+        "assembly": 0.0031108856201171875,
+        "retrieval": 0.019152164459228516,
+        "total": 0.019152164459228516
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 5,
+        "selected_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "M1",
+          "M2",
+          "M3"
+        ],
+        "any_miss": [
+          "M4"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "learning/星海产品培训_基础篇.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M06",
+      "difficulty": "medium",
+      "question": "华信数据合同的付款方式是怎么约定的？",
+      "seconds": 0.016,
+      "elapsed": {
+        "retrieval_only": 0.003998517990112305,
+        "rerank": 0.0,
+        "assembly": 0.0029947757720947266,
+        "retrieval": 0.006993293762207031,
+        "total": 0.006993293762207031
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 4
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "30",
+          "50",
+          "20"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M07",
+      "difficulty": "medium",
+      "question": "公司的报销流程一共需要哪几个步骤？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.002995014190673828,
+        "rerank": 0.0,
+        "assembly": 0.017922163009643555,
+        "retrieval": 0.020917177200317383,
+        "total": 0.020917177200317383
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 7,
+        "selected_documents": 7
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "主管",
+          "财务"
+        ],
+        "any_miss": [
+          "OA"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html",
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M08",
+      "difficulty": "medium",
+      "question": "知识库里哪些文档提到了数据安全方面的要求？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.03267788887023926,
+        "rerank": 0.0,
+        "assembly": 0.003840923309326172,
+        "retrieval": 0.03651881217956543,
+        "total": 0.03651881217956543
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "work/星海信息安全管理制度.md",
+        "learning/星海RAG技术培训笔记.md",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/星云项目/星云项目章程.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海员工手册_2024版.md",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海运维/机房巡检通知.jpg",
+        "reference/星海简介/公司简介.html",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M09",
+      "difficulty": "medium",
+      "question": "按照公司薪酬制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.02509284019470215,
+        "rerank": 0.0,
+        "assembly": 0.012979984283447266,
+        "retrieval": 0.038072824478149414,
+        "total": 0.038072824478149414
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "2"
+        ],
+        "any_miss": [
+          "4"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海信息安全管理制度.md",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md",
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M10",
+      "difficulty": "medium",
+      "question": "公司会议室需要提前多久预约？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.03387856483459473,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.03387856483459473,
+        "total": 0.03387856483459473
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "工作日"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 0.016,
+      "elapsed": {},
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "id": "M12",
+      "difficulty": "medium",
+      "question": "发票开具后多少天内必须拿去报销，逾期会怎样？",
+      "seconds": 0.015,
+      "elapsed": {
+        "retrieval_only": 0.006049633026123047,
+        "rerank": 0.0,
+        "assembly": 0.006526470184326172,
+        "retrieval": 0.012576103210449219,
+        "total": 0.012576103210449219
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "90"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海RAG技术培训笔记.md",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M13",
+      "difficulty": "medium",
+      "question": "公司拿到了哪些资质认证？",
+      "seconds": 0.016,
+      "elapsed": {
+        "retrieval_only": 0.008661985397338867,
+        "rerank": 0.0,
+        "assembly": 0.011566877365112305,
+        "retrieval": 0.020228862762451172,
+        "total": 0.020228862762451172
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 6,
+        "selected_documents": 6
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "ISO9001"
+        ],
+        "any_miss": [
+          "CMMI",
+          "高新技术企业"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海简介/公司简介.html",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海信息安全管理制度.md",
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M14",
+      "difficulty": "medium",
+      "question": "混合检索为什么比单纯只用向量检索效果更好？",
+      "seconds": 0.016,
+      "elapsed": {
+        "retrieval_only": 0.0060269832611083984,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0060269832611083984,
+        "total": 0.0060269832611083984
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 3
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "语义"
+        ],
+        "any_miss": [
+          "BM25"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html",
+        "learning/星海产品培训_基础篇.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "M15",
+      "difficulty": "medium",
+      "question": "发布会纪要里提到的合作媒体有哪几家？",
+      "seconds": 0.062,
+      "elapsed": {
+        "retrieval_only": 0.04730725288391113,
+        "rerank": 0.0,
+        "assembly": 0.004884958267211914,
+        "retrieval": 0.05219221115112305,
+        "total": 0.05219221115112305
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "市场部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "市场部"
+          ],
+          "username": "liuye"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 5,
+        "selected_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "科技日报"
+        ],
+        "any_miss": [
+          "电子发烧友"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C01",
+      "difficulty": "complex",
+      "question": "2024 年度公司所有部门的预算总额是多少万元？",
+      "seconds": 0.063,
+      "elapsed": {
+        "retrieval_only": 0.046923160552978516,
+        "rerank": 0.0,
+        "assembly": 0.019732952117919922,
+        "retrieval": 0.06665611267089844,
+        "total": 0.06665611267089844
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 9,
+        "selected_documents": 9
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "855"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "reference/星海合同/华信数据采购合同_2024.pdf"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C02",
+      "difficulty": "complex",
+      "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 0.0,
+      "elapsed": {},
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "陈明",
+          "周红",
+          "335"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "id": "C03",
+      "difficulty": "complex",
+      "question": "现在的差旅住宿报销标准比 2022 年旧版员工手册的标准涨了多少？",
+      "seconds": 0.016,
+      "elapsed": {
+        "retrieval_only": 0.009279489517211914,
+        "rerank": 0.0,
+        "assembly": 0.00740814208984375,
+        "retrieval": 0.016687631607055664,
+        "total": 0.016687631607055664
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "400",
+          "350"
+        ],
+        "any_miss": [
+          "50"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海薪酬福利制度.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C04",
+      "difficulty": "complex",
+      "question": "知识库里有哪些文档和星云项目有关？",
+      "seconds": 0.063,
+      "elapsed": {
+        "retrieval_only": 0.03625607490539551,
+        "rerank": 0.0,
+        "assembly": 0.02061152458190918,
+        "retrieval": 0.05686759948730469,
+        "total": 0.05686759948730469
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海信息安全管理制度.md",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "reference/星海运维/机房巡检通知.jpg",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "work/星海薪酬福利制度.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C05",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+      "seconds": 0.0,
+      "elapsed": {},
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "天枢",
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "id": "C06",
+      "difficulty": "complex",
+      "question": "员工手册里试用期是多久？入职满 5 年不满 10 年的年假有几天？",
+      "seconds": 0.031,
+      "elapsed": {
+        "retrieval_only": 0.010648012161254883,
+        "rerank": 0.0,
+        "assembly": 0.004033803939819336,
+        "retrieval": 0.014681816101074219,
+        "total": 0.014681816101074219
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "6",
+          "10 天"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海财务报销制度_v2.1.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C07",
+      "difficulty": "complex",
+      "question": "华信数据合同的金额和研发部的年度预算比，哪个更大？相差多少万元？",
+      "seconds": 0.032,
+      "elapsed": {
+        "retrieval_only": 0.010587930679321289,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.010587930679321289,
+        "total": 0.010587930679321289
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 4
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "520",
+          "86"
+        ],
+        "any_miss": [
+          "434"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "reference/星海简介/公司简介.html",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海表格/2024年度部门预算表.xlsx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C08",
+      "difficulty": "complex",
+      "question": "公司对外发布过的产品型号都有哪些？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.03526902198791504,
+        "rerank": 0.0,
+        "assembly": 0.01538395881652832,
+        "retrieval": 0.05065298080444336,
+        "total": 0.05065298080444336
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 10,
+        "selected_documents": 10
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "X-1000",
+          "X-2000"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海员工手册_2024版.md",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C09",
+      "difficulty": "complex",
+      "question": "我是市场部的员工，我能查到哪些项目相关的资料？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.03230094909667969,
+        "rerank": 0.0,
+        "assembly": 0.010647296905517578,
+        "retrieval": 0.042948246002197266,
+        "total": 0.042948246002197266
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "市场部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "市场部"
+          ],
+          "username": "liuye"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 7,
+        "selected_documents": 7
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "must_not_sources": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 6,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C10",
+      "difficulty": "complex",
+      "question": "我们财务部想核对一下，研发部今年的预算是多少？",
+      "seconds": 0.032,
+      "elapsed": {
+        "retrieval_only": 0.01480412483215332,
+        "rerank": 0.0,
+        "assembly": 0.002987384796142578,
+        "retrieval": 0.0177915096282959,
+        "total": 0.0177915096282959
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C11",
+      "difficulty": "complex",
+      "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 0.063,
+      "elapsed": {
+        "retrieval_only": 0.04113268852233887,
+        "rerank": 0.0,
+        "assembly": 0.016228199005126953,
+        "retrieval": 0.05736088752746582,
+        "total": 0.05736088752746582
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "2"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md",
+        "work/星海信息安全管理制度.md",
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C12",
+      "difficulty": "complex",
+      "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 0.047,
+      "elapsed": {
+        "retrieval_only": 0.02772831916809082,
+        "rerank": 0.0,
+        "assembly": 0.00699925422668457,
+        "retrieval": 0.03472757339477539,
+        "total": 0.03472757339477539
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "市场部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "市场部"
+          ],
+          "username": "liuye"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 7,
+        "selected_documents": 7
+      },
+      "grade": {
+        "checks": {
+          "sources_must_empty": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true,
+          "refuse": false
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md",
+        "learning/星海RAG技术培训笔记.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C13",
+      "difficulty": "complex",
+      "question": "2024 年公司举办了哪些对外活动？",
+      "seconds": 0.078,
+      "elapsed": {
+        "retrieval_only": 0.03784608840942383,
+        "rerank": 0.0,
+        "assembly": 0.018715381622314453,
+        "retrieval": 0.05656147003173828,
+        "total": 0.05656147003173828
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 7,
+        "must_miss": [],
+        "any_miss": [
+          "发布会"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "projects/星云项目/星云项目章程.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海合同/华信数据采购合同_2024.pdf"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C14",
+      "difficulty": "complex",
+      "question": "X-2000 是什么时候发布的？发布会在哪里举行的？合作媒体有哪几家？",
+      "seconds": 0.109,
+      "elapsed": {
+        "retrieval_only": 0.053142547607421875,
+        "rerank": 0.0,
+        "assembly": 0.03427767753601074,
+        "retrieval": 0.08742022514343262,
+        "total": 0.08742022514343262
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "2024-11-18",
+          "杭州",
+          "科技日报"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海简介/公司简介.html",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "projects/星云项目/星云项目章程.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海员工手册_2024版.md",
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "work/星海薪酬福利制度.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "id": "C15",
+      "difficulty": "complex",
+      "question": "员工手册和信息安全管理制度的密码要求是否一致？分别是什么？",
+      "seconds": 0.016,
+      "elapsed": {
+        "retrieval_only": 0.012073040008544922,
+        "rerank": 0.0,
+        "assembly": 0.004981517791748047,
+        "retrieval": 0.01705455780029297,
+        "total": 0.01705455780029297
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "8",
+          "12"
+        ],
+        "any_miss": [
+          "不一致"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海信息安全管理制度.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    }
+  ],
+  "mcp": [
+    {
+      "id": "C09",
+      "sources": [
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "refused": false,
+      "forbidden_hits": []
+    },
+    {
+      "id": "C12",
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md",
+        "learning/星海RAG技术培训笔记.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "refused": false,
+      "forbidden_hits": []
+    }
+  ],
+  "replay": [
+    {
+      "test": "year_as_mtime",
+      "id": "M03",
+      "difficulty": "medium",
+      "question": "2024 年度哪个部门的预算最多？是多少？",
+      "seconds": 0.11,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.06615257263183594,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.06615257263183594,
+        "total": 0.06615257263183594
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        },
+        "updated_at": {
+          "from": "2024-01-01",
+          "to": "2024-12-31"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "研发",
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "year_as_content",
+      "id": "M03",
+      "difficulty": "medium",
+      "question": "2024 年度哪个部门的预算最多？是多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.012572288513183594,
+        "rerank": 0.0,
+        "assembly": 0.005499362945556641,
+        "retrieval": 0.018071651458740234,
+        "total": 0.018071651458740234
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "研发",
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "year_as_mtime",
+      "id": "C01",
+      "difficulty": "complex",
+      "question": "2024 年度公司所有部门的预算总额是多少万元？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.03359842300415039,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.03359842300415039,
+        "total": 0.03359842300415039
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        },
+        "updated_at": {
+          "from": "2024-01-01",
+          "to": "2024-12-31"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "855"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "year_as_content",
+      "id": "C01",
+      "difficulty": "complex",
+      "question": "2024 年度公司所有部门的预算总额是多少万元？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.002096414566040039,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.002096414566040039,
+        "total": 0.002096414566040039
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "855"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "year_as_mtime",
+      "id": "C13",
+      "difficulty": "complex",
+      "question": "2024 年公司举办了哪些对外活动？",
+      "seconds": 0.047,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.028343915939331055,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.028343915939331055,
+        "total": 0.028343915939331055
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "updated_at": {
+          "from": "2024-01-01",
+          "to": "2024-12-31"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "sources_min_count": false,
+          "answer_must": true,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [],
+        "any_miss": [
+          "发布会"
+        ],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "year_as_content",
+      "id": "C13",
+      "difficulty": "complex",
+      "question": "2024 年公司举办了哪些对外活动？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.011778116226196289,
+        "rerank": 0.0,
+        "assembly": 0.005003452301025391,
+        "retrieval": 0.01678156852722168,
+        "total": 0.01678156852722168
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "sources_min_count": false,
+          "answer_must": true,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [],
+        "any_miss": [
+          "发布会"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海薪酬福利制度.md"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "year_as_content_enum",
+      "id": "C13",
+      "difficulty": "complex",
+      "question": "2024 年公司举办了哪些对外活动？",
+      "seconds": 0.156,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.09652829170227051,
+        "rerank": 0.0,
+        "assembly": 0.03471779823303223,
+        "retrieval": 0.13124608993530273,
+        "total": 0.13124608993530273
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 7,
+        "must_miss": [],
+        "any_miss": [
+          "发布会"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "projects/星云项目/星云项目章程.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海合同/华信数据采购合同_2024.pdf"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "department_as_metadata",
+      "id": "S06",
+      "difficulty": "simple",
+      "question": "研发部 2024 年度的预算是多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.01883864402770996,
+        "rerank": 0.0,
+        "assembly": 0.0030786991119384766,
+        "retrieval": 0.021917343139648438,
+        "total": 0.021917343139648438
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        },
+        "department": "研发部"
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "metadata_scope": {
+          "department": "研发部"
+        },
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "找到了候选资料，但没有足够证据支持这个问题。"
+    },
+    {
+      "test": "department_as_content",
+      "id": "S06",
+      "difficulty": "simple",
+      "question": "研发部 2024 年度的预算是多少？",
+      "seconds": 0.125,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.038848876953125,
+        "rerank": 0.0,
+        "assembly": 0.01819324493408203,
+        "retrieval": 0.05704212188720703,
+        "total": 0.05704212188720703
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "520"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海运维/机房巡检通知.jpg",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "generic_doc_type_as_metadata",
+      "id": "C11",
+      "difficulty": "complex",
+      "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 0.032,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.015373706817626953,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.015373706817626953,
+        "total": 0.015373706817626953
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "doc_type": "制度"
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "metadata_scope": {
+          "doc_type": "制度"
+        },
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "2"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "generic_doc_type_as_content",
+      "id": "C11",
+      "difficulty": "complex",
+      "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.016078472137451172,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.016078472137451172,
+        "total": 0.016078472137451172
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "2"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "learning/星海RAG技术培训笔记.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "archive_only",
+      "id": "C03",
+      "difficulty": "complex",
+      "question": "现在的差旅住宿报销标准比 2022 年旧版员工手册的标准涨了多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.022345781326293945,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.022345781326293945,
+        "total": 0.022345781326293945
+      },
+      "filters": {
+        "status": "archive",
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "400",
+          "350"
+        ],
+        "any_miss": [
+          "50"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "archive/星海旧版员工手册_2022.md"
+      ],
+      "source_versions": [
+        {
+          "path": "archive/星海旧版员工手册_2022.md",
+          "version": "1.0",
+          "status": "archive"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "active_and_archive",
+      "id": "C03",
+      "difficulty": "complex",
+      "question": "现在的差旅住宿报销标准比 2022 年旧版员工手册的标准涨了多少？",
+      "seconds": 0.125,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.07355260848999023,
+        "rerank": 0.0,
+        "assembly": 0.015230178833007812,
+        "retrieval": 0.08878278732299805,
+        "total": 0.08878278732299805
+      },
+      "filters": {
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "400",
+          "350"
+        ],
+        "any_miss": [
+          "50"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "archive/星海旧版员工手册_2022.md",
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "learning/星海产品培训_基础篇.docx",
+        "learning/星海RAG技术培训笔记.md"
+      ],
+      "source_versions": [
+        {
+          "path": "archive/星海旧版员工手册_2022.md",
+          "version": "1.0",
+          "status": "archive"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "unregistered",
+      "id": "S03",
+      "difficulty": "simple",
+      "question": "星云项目目前的预算总额是多少？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "S09",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 0.032,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "周红"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "M02",
+      "difficulty": "medium",
+      "question": "星云项目最新章程相比最初立项时有哪些变化？",
+      "seconds": 0.0,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [
+          "刘洋"
+        ],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "星云项目章程里列了哪几个里程碑？",
+      "seconds": 0.015,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "星云项目",
+          "doc_type": "章程"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "M1",
+          "M2",
+          "M3"
+        ],
+        "any_miss": [
+          "M4"
+        ],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "unregistered",
+      "id": "C02",
+      "difficulty": "complex",
+      "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 0.015,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "陈明",
+          "周红",
+          "335"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "test": "unregistered",
+      "id": "C05",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "天枢",
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "test": "registered_without_document_link",
+      "id": "S03",
+      "difficulty": "simple",
+      "question": "星云项目目前的预算总额是多少？",
+      "seconds": 0.047,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.014632225036621094,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.014632225036621094,
+        "total": 0.014632225036621094
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "S03",
+      "difficulty": "simple",
+      "question": "星云项目目前的预算总额是多少？",
+      "seconds": 0.047,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.026697874069213867,
+        "rerank": 0.0,
+        "assembly": 0.000993967056274414,
+        "retrieval": 0.02769184112548828,
+        "total": 0.02769184112548828
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "S09",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 0.031,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "周红"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "M02",
+      "difficulty": "medium",
+      "question": "星云项目最新章程相比最初立项时有哪些变化？",
+      "seconds": 0.079,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.03513002395629883,
+        "rerank": 0.0,
+        "assembly": 0.0015671253204345703,
+        "retrieval": 0.0366971492767334,
+        "total": 0.0366971492767334
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "135"
+        ],
+        "any_miss": [
+          "刘洋"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "星云项目章程里列了哪几个里程碑？",
+      "seconds": 0.093,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.04755759239196777,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.04755759239196777,
+        "total": 0.04755759239196777
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ],
+        "doc_type": "章程"
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云项目",
+          "doc_type": "章程"
+        },
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "M1",
+          "M2",
+          "M3"
+        ],
+        "any_miss": [
+          "M4"
+        ],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": null
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 0.047,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "C02",
+      "difficulty": "complex",
+      "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 0.016,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "陈明",
+          "周红",
+          "335"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "test": "registered_and_linked",
+      "id": "C05",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+      "seconds": 0.062,
+      "elapsed": {
+        "query_understanding": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "天枢",
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "test": "linked_with_exact_doc_type",
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "星云项目章程里列了哪几个里程碑？",
+      "seconds": 0.094,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.09131908416748047,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.09131908416748047,
+        "total": 0.09131908416748047
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ],
+        "doc_type": "项目章程"
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云项目",
+          "doc_type": "项目章程"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "M1",
+          "M2",
+          "M3"
+        ],
+        "any_miss": [
+          "M4"
+        ],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "linked_to_exact_extracted_name",
+      "id": "S09",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 0.109,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.0692598819732666,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0692598819732666,
+        "total": 0.0692598819732666
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "周红"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    },
+    {
+      "test": "linked_to_exact_extracted_name",
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 0.063,
+      "elapsed": {
+        "query_understanding": 0.0,
+        "retrieval_only": 0.01868271827697754,
+        "rerank": 0.0,
+        "assembly": 0.0005064010620117188,
+        "retrieval": 0.019189119338989258,
+        "total": 0.019189119338989258
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": 1,
+        "must_miss": [
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": null
+    }
+  ]
+}

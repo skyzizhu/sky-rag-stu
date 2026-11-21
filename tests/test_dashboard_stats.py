@@ -1,16 +1,19 @@
 """工作台统计：日期补零、完整日志聚合、入口/部门隔离与本次 LLM 用量。"""
 import json
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest import mock
 
-from src import admin_app, auth_db, business_directions
-from src.dashboard_stats import usage_statistics
+from qdrant_client import models
+from qdrant_client.http.exceptions import ResponseHandlingException
+
+from src import admin_app, auth_db, business_directions, ingest_audit, projects
+from src.dashboard_stats import _indexed_projects, ingestion_statistics, knowledge_inventory, usage_statistics
 from src.usage_reporting import usage_for_log
 from src.answer_evaluator import run_evaluation
 from src.pipeline import QAResult
-from tests._helpers import TempAuthDB
+from tests._helpers import IngestHarness, TempAuthDB
 from tests.test_admin_api import ApiTestCase
 
 NOW = datetime(2026, 11, 19, 12)
@@ -114,6 +117,77 @@ class UsageReportingTests(unittest.TestCase):
             evaluation = run_evaluation(result, llm=object())
         self.assertFalse(evaluation['ok'])
         self.assertEqual(usage_for_log(result, evaluation)['calls'], 1)
+
+
+class KnowledgeDashboardTests(IngestHarness):
+    def setUp(self):
+        super().setUp()
+        self.use_fakes()
+        self.addCleanup(self.store.client.close)
+        self.addCleanup(_indexed_projects.cache_clear)
+
+    def test_inventory_counts_each_active_document_once(self):
+        direction = business_directions.create_direction("低空经济")
+        project = projects.save_project(projects.ProjectFields("监管平台", direction["id"], None, [], ""))
+        orphan = projects.save_project(projects.ProjectFields("待规划项目", None, None, [], ""))
+        dimension = self.embedding.dimension()
+        self.store.ensure_collection(dimension)
+        metadata = [
+            ("same-document", "active", project["id"]),
+            ("same-document", "active", project["id"]),
+            ("same-document", "expired", orphan["id"]),
+            ("orphan-project-document", "active", orphan["id"]),
+            ("unlinked-document", "active", None),
+            ("archived-document", "archive", project["id"]),
+        ]
+        self.store.client.upsert(collection_name=self.cfg.qdrant_collection, points=[
+            models.PointStruct(id=i, vector=[1.0] + [0.0] * (dimension - 1),
+                               payload={"document_id": doc, "status": status, "project_id": project_id})
+            for i, (doc, status, project_id) in enumerate(metadata, 1)
+        ])
+        with mock.patch("src.dashboard_stats.get_vector_store", return_value=self.store):
+            data = knowledge_inventory()
+        self.assertEqual((data["documents"], data["linked_documents"], data["unlinked_documents"]), (3, 2, 1))
+        self.assertEqual((data["direction_count"], data["project_count"]), (1, 2))
+        self.assertEqual([(group["name"], group["documents"]) for group in data["groups"]],
+                         [("低空经济", 1), ("未关联业务方向", 1)])
+
+    def test_unavailable_vector_store_keeps_project_information(self):
+        direction = business_directions.create_direction("低空经济")
+        projects.save_project(projects.ProjectFields("监管平台", direction["id"], None, [], ""))
+        error = ResponseHandlingException(ConnectionRefusedError("offline"))
+        with mock.patch("src.dashboard_stats.get_vector_store", return_value=self.store), \
+             mock.patch.object(self.store, "collection_exists", side_effect=error), \
+             self.assertLogs("src.dashboard_stats", level="WARNING"):
+            data = knowledge_inventory()
+        self.assertFalse(data["available"])
+        self.assertIsNone(data["documents"])
+        self.assertEqual(data["project_count"], 1)
+        self.assertEqual(data["groups"][0]["projects"], [{"name": "监管平台", "documents": None}])
+
+    def test_ingest_totals_and_failure_drill_down_share_date_boundaries(self):
+        local_now = datetime(2026, 11, 19, 12, tzinfo=timezone(timedelta(hours=8)))
+        with auth_db._connect() as conn:
+            conn.executemany("""INSERT INTO ingest_logs(batch_id,file_index,username,actor_department,ip,
+                entry,file_name,source_path,path,started_at,outcome,reason,requested,attributes)
+                VALUES(?,?,'alice','','','file','same.md','','learning/same.md',?,?,'','{}','{}')""", [
+                ("outside-before", 0, "2026-11-12T15:59:59.999+00:00", "failed"),
+                ("first", 0, "2026-11-12T16:00:00.000+00:00", "ingested"),
+                ("first", 1, "2026-11-12T16:00:00.000+00:00", "skipped"),
+                ("second", 0, "2026-11-18T08:00:00.000+00:00", "ingested"),
+                ("second", 1, "2026-11-18T08:00:00.000+00:00", "failed"),
+                ("pending", 0, "2026-11-19T15:59:59.999+00:00", "running"),
+                ("outside-after", 0, "2026-11-19T16:00:00.000+00:00", "failed"),
+            ])
+        stats = ingestion_statistics(7, now=local_now)
+        self.assertEqual([stats[key] for key in ("batches", "ingested", "skipped", "failed", "running")],
+                         [3, 2, 1, 1, 1])
+        self.assertEqual(stats["first_log_date"], "2026-11-12")
+        period = stats["period"]
+        logs = ingest_audit.list_logs(page=1, page_size=20, outcome="failed",
+                                      since=datetime.fromisoformat(period["since"]),
+                                      before=datetime.fromisoformat(period["before"]))
+        self.assertEqual(logs["total"], stats["failed"])
 
 
 class DashboardApiTests(ApiTestCase):

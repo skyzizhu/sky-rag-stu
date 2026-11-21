@@ -25,6 +25,7 @@ import threading
 import time
 import unicodedata
 from datetime import datetime
+from contextlib import contextmanager
 from pathlib import Path
 
 from src.config import PROJECT_ROOT
@@ -46,13 +47,31 @@ def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
-def _connect() -> sqlite3.Connection:
+def _connect(*, timeout: float = 15) -> sqlite3.Connection:
     AUTH_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=15)
+    conn = sqlite3.connect(DB_PATH, timeout=timeout)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
+
+
+PROJECT_DIRECTORIES_SCHEMA = """
+CREATE TABLE IF NOT EXISTS project_directories (
+    domain TEXT NOT NULL,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+    dirname TEXT NOT NULL COLLATE NOCASE,
+    PRIMARY KEY (domain, project_id),
+    UNIQUE (domain, dirname)
+)
+"""
+
+_RETRIEVAL_ACL_SCHEMA = """
+CREATE TABLE IF NOT EXISTS retrieval_acl_epoch (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+)
+"""
 
 
 _LOG_COLS = """
@@ -91,6 +110,23 @@ CREATE TABLE IF NOT EXISTS business_directions (
     note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    direction_id INTEGER REFERENCES business_directions(id) ON DELETE RESTRICT,
+    lead_department_id INTEGER REFERENCES departments(id) ON DELETE RESTRICT,
+    note TEXT NOT NULL DEFAULT '',
+    revision INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS project_departments (
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+    PRIMARY KEY (project_id, department_id)
+);
+CREATE INDEX IF NOT EXISTS idx_projects_direction ON projects(direction_id);
+CREATE INDEX IF NOT EXISTS idx_projects_lead_department ON projects(lead_department_id);
+CREATE INDEX IF NOT EXISTS idx_project_departments_department ON project_departments(department_id);
 CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
@@ -113,6 +149,10 @@ CREATE TABLE IF NOT EXISTS users (
     real_name TEXT NOT NULL DEFAULT '',
     note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS document_user_revocations (
+    username TEXT PRIMARY KEY,
+    revoked_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS tokens (
     token_hash TEXT PRIMARY KEY,
@@ -182,6 +222,56 @@ CREATE TABLE IF NOT EXISTS doc_access_logs (
 CREATE INDEX IF NOT EXISTS idx_doc_access_time ON doc_access_logs(created_at DESC);
 """
 
+INGEST_LOG_SCHEMA = """
+CREATE TABLE IF NOT EXISTS ingest_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id TEXT NOT NULL,
+    file_index INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    actor_department TEXT NOT NULL,
+    ip TEXT NOT NULL,
+    user_agent TEXT NOT NULL DEFAULT '',
+    browser TEXT NOT NULL DEFAULT '',
+    os_name TEXT NOT NULL DEFAULT '',
+    fingerprint TEXT NOT NULL DEFAULT '',
+    entry TEXT NOT NULL CHECK(entry IN ('file', 'directory', 'web')),
+    file_name TEXT NOT NULL,
+    source_path TEXT NOT NULL,
+    path TEXT NOT NULL,
+    bytes INTEGER,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    elapsed_ms INTEGER,
+    outcome TEXT NOT NULL CHECK(outcome IN ('running', 'ingested', 'skipped', 'failed')),
+    reason TEXT NOT NULL,
+    requested TEXT NOT NULL,
+    attributes TEXT NOT NULL,
+    UNIQUE(batch_id, file_index)
+);
+CREATE INDEX IF NOT EXISTS idx_ingest_logs_user ON ingest_logs(username, id DESC);
+CREATE INDEX IF NOT EXISTS idx_ingest_logs_entry ON ingest_logs(entry, id DESC);
+CREATE INDEX IF NOT EXISTS idx_ingest_logs_outcome ON ingest_logs(outcome, id DESC);
+CREATE INDEX IF NOT EXISTS idx_ingest_logs_time ON ingest_logs(started_at);
+"""
+
+
+def ensure_ingest_log_schema(conn: sqlite3.Connection) -> None:
+    """Create the audit table or add browser fields without rewriting existing rows."""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(ingest_logs)")}
+    if not columns:
+        conn.executescript(INGEST_LOG_SCHEMA)
+        return
+    fields = ("user_agent", "browser", "os_name", "fingerprint")
+    if all(field in columns for field in fields):
+        return
+    # The admin service and frontend can both be the first to migrate an old database.
+    with conn:
+        conn.execute("BEGIN IMMEDIATE")
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(ingest_logs)")}
+        for field in fields:
+            if field not in columns:
+                conn.execute(f"ALTER TABLE ingest_logs ADD COLUMN {field} TEXT NOT NULL DEFAULT ''")
+
 
 def init_db() -> None:
     """建表（幂等）+ 存量迁移。两服务启动时各调一次。
@@ -197,6 +287,9 @@ def init_db() -> None:
     """
     with _write_lock, _connect() as conn:
         conn.executescript(_SCHEMA)
+        conn.execute(PROJECT_DIRECTORIES_SCHEMA)
+        conn.execute(_RETRIEVAL_ACL_SCHEMA)
+        ensure_ingest_log_schema(conn)
         _init_department_permissions(conn)
         # V3.9 存量迁移：qa_logs 补 usage 列（老行默认 '{}'）
         qa_cols = {r["name"] for r in conn.execute("PRAGMA table_info(qa_logs)")}
@@ -400,10 +493,18 @@ def set_department_disabled(dep_id: int, disabled: bool) -> None:
 
 def delete_department(dep_id: int) -> None:
     with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         n = conn.execute("SELECT COUNT(*) AS n FROM users WHERE department_id=?",
                          (dep_id,)).fetchone()["n"]
         if n:
             raise ValueError(f"该部门下仍有 {n} 名员工，请先转移再删除")
+        assigned = conn.execute(
+            "SELECT 1 FROM projects WHERE lead_department_id=? "
+            "UNION ALL SELECT 1 FROM project_departments WHERE department_id=? LIMIT 1",
+            (dep_id, dep_id),
+        ).fetchone()
+        if assigned:
+            raise ValueError("该部门仍关联项目，请先在项目管理中调整牵头或参与部门")
         cur = conn.execute("DELETE FROM departments WHERE id=?", (dep_id,))
         if cur.rowcount == 0:
             raise ValueError("部门不存在")
@@ -536,6 +637,53 @@ def count_users() -> int:
         return conn.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
 
 
+def document_user_revocations() -> dict[str, str]:
+    with _connect() as conn:
+        rows = conn.execute('SELECT username, revoked_at FROM document_user_revocations').fetchall()
+    return {r['username']: r['revoked_at'] for r in rows}
+
+
+@contextmanager
+def document_acl_write():
+    """Serialize ACL writes and invalidate cross-process readers before changing Qdrant."""
+    from contextlib import closing
+
+    token = secrets.token_hex(16)
+    with closing(_connect()) as conn, conn:
+        conn.execute(_RETRIEVAL_ACL_SCHEMA)
+        conn.execute("INSERT INTO retrieval_acl_epoch VALUES (?, '')", (token,))
+        conn.commit()
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            yield
+        finally:
+            # Even a partially failed Qdrant write must retire the old cache generation.
+            conn.execute("INSERT OR REPLACE INTO retrieval_acl_epoch VALUES ('revision', ?)", (token,))
+            conn.execute("DELETE FROM retrieval_acl_epoch WHERE key=?", (token,))
+            conn.commit()
+
+
+def retrieval_acl_revision() -> str | None:
+    """Return None while ACL changes are pending or their revision cannot be checked."""
+    from contextlib import closing
+
+    try:
+        with closing(_connect()) as conn:
+            rows = dict(conn.execute("SELECT key, value FROM retrieval_acl_epoch"))
+    except (OSError, sqlite3.Error):
+        return None
+    revision = rows.pop("revision", "")
+    scope = rows.pop("scope", "")
+    return None if rows else f"{revision}:{scope}"
+
+
+def touch_retrieval_scope(conn: sqlite3.Connection) -> None:
+    """Invalidate retrieval scopes in the same transaction as a project or direction edit."""
+    conn.execute(_RETRIEVAL_ACL_SCHEMA)
+    conn.execute("INSERT OR REPLACE INTO retrieval_acl_epoch VALUES ('scope', ?)",
+                 (secrets.token_hex(16),))
+
+
 def update_user(user_id: int, department_id: int | None = ...,
                 status: str | None = None,
                 permissions: list[str] | None = None,
@@ -550,6 +698,11 @@ def update_user(user_id: int, department_id: int | None = ...,
             if status not in ("active", "disabled"):
                 raise ValueError("非法状态")
             conn.execute("UPDATE users SET status=? WHERE id=?", (status, user_id))
+            if status == 'disabled':
+                row = conn.execute('SELECT username FROM users WHERE id=?', (user_id,)).fetchone()
+                if row:
+                    conn.execute('INSERT OR REPLACE INTO document_user_revocations VALUES (?,?)',
+                                 (row['username'], _now() + ':' + secrets.token_hex(8)))
         if permissions is not None:
             conn.execute("UPDATE users SET permissions=? WHERE id=?",
                          (json.dumps(_valid_permissions(permissions)), user_id))
@@ -906,7 +1059,8 @@ def log_qa_event(username: str, department: str, entry: str, question: str,
     usage（V3.9）：云端 LLM 消耗 {"input","input_cached","output","calls","estimated"}。
     """
     slim_sources = [
-        {"source": s.get("source"), "score": round(float(s.get("score", 0)), 4)}
+        {"source": s.get("source"), "score": round(float(s.get("score", 0)), 4),
+         **{key: s[key] for key in ("path", "document_id", "version") if s.get(key)}}
         for s in (sources or [])[:12]
     ]
     try:

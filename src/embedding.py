@@ -17,6 +17,7 @@ from functools import lru_cache
 
 import requests
 
+from src.console import console_print
 from src.config import AppConfig, get_config
 
 
@@ -85,9 +86,9 @@ class EmbeddingClient:
                 raise EmbeddingError("Ollama 返回的向量数量和输入不一致。")
             vectors.extend(embeddings)
             if self.cfg.debug and total > batch_size:
-                print(f"    向量化进度：{min(begin + batch_size, total)}/{total}")
+                console_print(f"    向量化进度：{min(begin + batch_size, total)}/{total}")
         if self.cfg.debug:
-            print(f"    向量化完成：{total} 条，耗时 {time.time() - start:.1f} 秒")
+            console_print(f"    向量化完成：{total} 条，耗时 {time.time() - start:.1f} 秒")
         return vectors
 
     def embed_query(self, query: str, *, timeout: float | None = None) -> list[float]:

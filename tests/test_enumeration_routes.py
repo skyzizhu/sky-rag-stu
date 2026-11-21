@@ -165,12 +165,3 @@ class EnumerationRouteTests(IngestHarness):
         self.assertEqual(meta['processed_documents'], 2)
         self.assertIn('ITEM0', result.context)
         self.assertIn('ITEM1', result.context)
-
-    def test_category_discovery_uses_filtered_facet(self):
-        self.ingest([self.write_note('公开资料', 'a.md')])
-        hidden = self.knowledge / 'learning' / 'secret' / 'b.md'
-        hidden.parent.mkdir(parents=True)
-        hidden.write_text('# 机密\n\n机密资料')
-        self.ingest([hidden], default_groups=['finance'])
-        categories = self.store.categories({'allowed_groups': ['all', 'hr']})
-        self.assertEqual(categories, ['general'])

@@ -16,7 +16,9 @@ from unittest import mock
 
 from src.app_settings import SETTINGS_KEYS, _normalize_choices, load_app_settings, save_app_settings
 from src.document_type import normalize_doc_type, normalize_doc_type_filter
+from src.document_department import normalize_department, normalize_department_filter
 from src.i18n import LANGUAGE_ORDER, _CATALOG
+from src.ingest_audit import IngestItem
 from tests._helpers import IngestHarness, isolate_app_settings
 
 APP = Path(__file__).resolve().parent.parent / "app.py"
@@ -69,6 +71,10 @@ class DocumentTypeStructureTests(unittest.TestCase):
         for name in ("_start_upload", "_render_upload_confirmation", "_do_directory_upload", "ingest_web_page"):
             node = calls(page, name)[0]
             self.assertIn("default_doc_type", {key.arg for key in node.keywords})
+        for name in ("_start_upload", "_render_upload_confirmation"):
+            self.assertEqual(ast.unparse(calls(page, name)[0].args[1]), "upload_domain")
+        self.assertNotIn("upload.category", ast.unparse(page))
+        self.assertNotIn("web.category", ast.unparse(page))
         for name in ("_start_upload", "_render_upload_confirmation", "_run_upload", "_do_directory_upload"):
             self.assertIn("default_doc_type", {arg.arg for arg in function(name).args.kwonlyargs})
         for name in ("_start_upload", "_render_upload_confirmation"):
@@ -85,20 +91,53 @@ class DocumentTypeStructureTests(unittest.TestCase):
         for value, expected in ((" 技术方案 ", "技术方案"), (" ", None)):
             ingest = mock.Mock()
             execute_nodes([ast.Expr(value=call)],
-                          dict(ingest_web_page=ingest, web_url=" https://example.invalid/a ",
-                               web_domain="reference", web_category="webpages", web_groups=["all"],
+                          dict(ingest_web_page=ingest, audit=None, web_url=" https://example.invalid/a ",
+                               web_domain="reference", web_groups=["all"], web_project=7,
                                web_doc_type=value, normalize_doc_type=normalize_doc_type,
+                               web_department=" ", normalize_department=normalize_department,
+                               web_allowed_users=None,
+                               blocked_paths=frozenset(),
+                               istate=SimpleNamespace(load_state=dict),
                                st=SimpleNamespace(session_state={}), tr=lambda text: text))
             self.assertEqual(ingest.call_args.args, ("https://example.invalid/a",))
             self.assertEqual(ingest.call_args.kwargs["default_doc_type"], expected)
+            self.assertEqual(ingest.call_args.kwargs["default_department"], None)
+            self.assertIsNone(ingest.call_args.kwargs["default_allowed_users"])
             self.assertEqual(ingest.call_args.kwargs["domain"], "reference")
-            self.assertEqual(ingest.call_args.kwargs["category"], "webpages")
+            self.assertEqual(ingest.call_args.kwargs["default_project_id"], 7)
+            self.assertNotIn("category", ingest.call_args.kwargs)
             self.assertEqual(ingest.call_args.kwargs["default_groups"], ["all"])
+
+    def test_project_selection_defaults_domain_without_locking_it(self):
+        state = {"project_widget": 7, "domain_widget": "learning"}
+        env = execute_nodes([function("_default_project_domain")],
+                            {"st": SimpleNamespace(session_state=state)})
+        callback = env["_default_project_domain"]
+        callback("project_widget", "domain_widget", ["learning", "projects"])
+        self.assertEqual(state["domain_widget"], "projects")
+        state["domain_widget"] = "reference"
+        callback("project_widget", "domain_widget", ["learning", "reference"])
+        self.assertEqual(state["domain_widget"], "reference")
+        state["project_widget"] = None
+        callback("project_widget", "domain_widget", ["learning", "projects", "reference"])
+        self.assertEqual(state["domain_widget"], "reference")
+
+    def test_clearing_upload_project_uses_localized_placeholder(self):
+        selectbox = mock.Mock(return_value=None)
+        env = execute_nodes([function(name) for name in (
+            "project_label", "_default_project_domain", "_upload_project",
+        )], {"st": SimpleNamespace(selectbox=selectbox), "t": lambda key: f"localized:{key}"})
+        self.assertIsNone(env["_upload_project"]({7: {"name": "Platform"}}, "project", "domain", ["projects"]))
+        self.assertEqual(selectbox.call_args.args[1], [None, 7])
+        self.assertEqual(selectbox.call_args.kwargs["placeholder"], "localized:project.none")
+        self.assertEqual(selectbox.call_args.kwargs["format_func"](None), "localized:project.none")
 
     def test_actual_row_preserves_format_and_type_is_read_only(self):
         page = function("page_manage")
         env = execute_nodes([function("_row", page)],
-                            dict(origins={}, selected_ids=set(), t=lambda key: key, domain_label=lambda value: value))
+                            dict(origins={}, selected_ids=set(), t=lambda key: key, domain_label=lambda value: value,
+                                 project_catalog={}, project_label=lambda project_id, catalog: "未挂项目",
+                                 _visibility_label=lambda value: value or "—"))
         for value in (None, "", "  ", " 技术方案 "):
             row = env["_row"](document(doc_type=value))
             self.assertEqual(row["manage.col.type"], "MD")
@@ -122,14 +161,18 @@ class DocumentTypeStructureTests(unittest.TestCase):
                 row["doc_type"] = value
             result = eval(compile(expression, str(APP), "eval"),
                           dict(summary=SimpleNamespace(file_rows=[row]), t=lambda key: key,
-                               domain_label=lambda value: value))
+                               domain_label=lambda value: value, project_catalog={},
+                               project_label=lambda project_id, catalog: "未挂项目",
+                               _visibility_label=lambda value: value or "—"))
             self.assertEqual(result[0]["common.doc_type"], (value or "").strip() or "doc_type.unclassified")
-            self.assertEqual(result[0]["ingest.col.category"], "general")
+            self.assertNotIn("ingest.col.category", result[0])
 
     def test_actual_management_filter_handles_legacy_and_exact_values(self):
         page = function("page_manage")
         env = execute_nodes([function("_match", page)],
-                            dict(origins={}, keyword="", dom_filter="all", status_filter="all", origin_filter="all"))
+                            dict(origins={}, keyword="", dom_filter="all", status_filter="all",
+                                 origin_filter="all", department_filter=("all", ""), project_filter=None,
+                                 direction_filter=None, project_catalog={}, visibility_filter=""))
         for choice, expected in ((("all", ""), [True, True, True, True]),
                                  (("unclassified", ""), [True, True, True, False]),
                                  (("exact", "技术方案"), [False, False, False, True])):
@@ -141,8 +184,25 @@ class DocumentTypeStructureTests(unittest.TestCase):
         env["type_filter"] = ("exact", "all")
         self.assertTrue(env["_match"](document(doc_type="all")))
         self.assertFalse(env["_match"](document()))
+
+        env.update(keyword="", type_filter=("all", ""), department_filter=("all", ""),
+                   project_filter=7, direction_filter=1, project_catalog={7: {"direction_id": 1}})
+        self.assertTrue(env["_match"](document(project_id=7)))
+        self.assertFalse(env["_match"](document(project_id=8)))
+        env["project_catalog"][7]["direction_id"] = 2
+        self.assertFalse(env["_match"](document(project_id=7)))
+        env.update(project_filter=None, direction_filter=None)
         env["keyword"] = "other"
         self.assertFalse(env["_match"](document(doc_type="all")))
+        # 归属部门筛选：先清掉上一个场景的关键词与类型条件。
+        env["keyword"] = ""
+        env["type_filter"] = ("all", "")
+        env["department_filter"] = ("no_department", "")
+        self.assertTrue(env["_match"](document()))
+        self.assertFalse(env["_match"](document(department="系统工程事业部")))
+        env["department_filter"] = ("exact", "系统工程事业部")
+        self.assertTrue(env["_match"](document(department="系统工程事业部")))
+        self.assertFalse(env["_match"](document()))
 
     def test_independent_form_saves_only_type_and_supports_manual_clear(self):
         page = function("page_manage")
@@ -189,8 +249,10 @@ class DocumentTypeStructureTests(unittest.TestCase):
         for value in (None, "", '<img src=x onerror="alert(1)">'):
             st.markdown.reset_mock()
             result = SimpleNamespace(sources=[dict(rank=1, source="note", score=0.9, text="text",
+                                                   path="learning/public/note.md",
                                                    doc_type=value, status="active", version="1.0")])
             env["show_answer_sources"](result)
+            self.assertEqual(st.text.call_args.args, ("learning/public/note.md",))
             rendered = "\n".join(str(call.args[0]) for call in st.markdown.call_args_list
                                  if call.kwargs.get("unsafe_allow_html"))
             self.assertIn(html.escape(value) if value else "doc_type.unclassified", rendered)
@@ -199,6 +261,7 @@ class DocumentTypeStructureTests(unittest.TestCase):
         heading = next(node for node in calls(page, "markdown")
                        if "html.escape(str(d['source']))" in ast.unparse(node))
         env = dict(st=st, html=html, d=document(doc_type="<script>x</script>"), origin={}, status_tag="",
+                   _visibility_label=lambda value: value or "—",
                    t=lambda key: key, tag=env["tag"], domain_label=lambda value: value)
         execute_nodes([ast.Expr(value=heading)], env)
         self.assertIn("&lt;script&gt;", st.markdown.call_args.args[0])
@@ -229,7 +292,8 @@ class DocumentTypeSettingsTests(unittest.TestCase):
     def test_consume_filter_normalizes_and_keeps_existing_filters(self):
         st = SimpleNamespace(session_state=dict(domain_choice="learning", scope_choice="archive"))
         env = load_functions(["build_filters"], dict(st=st, normalize_doc_type_filter=normalize_doc_type_filter,
-                                                    domain_reg=SimpleNamespace(sanitize_choice=lambda value: value)))
+                                                     normalize_department_filter=normalize_department_filter,
+                                                     domain_reg=SimpleNamespace(sanitize_choice=lambda value: value)))
         for value, expected in ((" 技术方案 ", "技术方案"), ("__unclassified__", "__unclassified__"),
                                 ("", None), (None, None), ("all", None), (123, None), ("x" * 81, None)):
             st.session_state["doc_type_choice"] = value
@@ -237,7 +301,6 @@ class DocumentTypeSettingsTests(unittest.TestCase):
             self.assertEqual(filters.get("doc_type"), expected)
             self.assertEqual(filters["domain"], "learning")
             self.assertEqual(filters["status"], "archive")
-            self.assertEqual(set(filters), {"domain", "status"} | ({"doc_type"} if expected else set()))
 
     def test_untouched_blank_default_is_not_added_by_unrelated_save(self):
         self.addCleanup(isolate_app_settings("zh-CN"))
@@ -271,11 +334,21 @@ class DocumentTypeUploadContractTests(IngestHarness):
         self.st = mock.MagicMock()
         self.st.session_state = {"auth_user": {"username": "fake"}}
         self.ingest_mock = mock.Mock(return_value=object())
+        from src import projects, auth_db
+
+        self.project_id = projects.save_project(
+            projects.ProjectFields("低空试点", None, None, [], "")
+        )["id"]
         self.env = load_functions(
-            ["_clean_directory_name", "_upload_files", "_upload_signature", "_start_upload",
+            ["_validate_upload_visibility", "_clean_directory_name", "_upload_files", "_upload_signature", "_plan_frontend_upload", "_start_upload",
              "_render_upload_confirmation", "_run_upload", "_do_directory_upload"],
-            dict(st=self.st, cfg=self.cfg, Path=Path, re=__import__("re"),
-                 normalize_doc_type=normalize_doc_type, content_hash=content_hash, istate=index_state,
+            dict(st=self.st, cfg=self.cfg, Path=Path, re=__import__("re"), projects=projects, auth_db=auth_db,
+                 IngestItem=IngestItem, _new_ingest_audit=mock.MagicMock(),
+                 normalize_doc_type=normalize_doc_type, normalize_department=normalize_department,
+                 normalize_doc_type_filter=normalize_doc_type_filter,
+                 normalize_department_filter=normalize_department_filter,
+                 content_hash=content_hash, istate=index_state,
+                 _upload_blocked_paths=lambda ledger: frozenset(),
                  plan_uploads=plan_uploads, execute_uploads=execute_uploads,
                  write_directory_import=write_directory_import, ingest_files=self.ingest_mock,
                  _show_ingest_result=mock.Mock(), SUPPORTED_EXTENSIONS={".md", ".txt"},
@@ -289,6 +362,7 @@ class DocumentTypeUploadContractTests(IngestHarness):
         original = signature(files, "learning/general", "技术方案")
         self.assertNotEqual(original, signature(files, "learning/general", "需求文档"))
         self.assertNotEqual(original, signature(files, "work/general", "技术方案"))
+        self.assertNotEqual(original, signature(files, "learning/general", "技术方案", default_project_id=7))
         self.assertEqual(original, signature(files, "learning/general", " 技术方案 "))
         self.assertEqual(signature(files, "learning/general", None), signature(files, "learning/general", "  "))
         upload = SimpleNamespace(name="note.md", getvalue=lambda: b"body")
@@ -299,9 +373,11 @@ class DocumentTypeUploadContractTests(IngestHarness):
         self.st.radio.assert_not_called()
 
     def test_new_and_renamed_files_forward_only_default_type(self):
-        self.write_note("existing", "note.md")
+        old = self.knowledge / "learning/public/note.md"
+        old.parent.mkdir()
+        old.write_bytes(b"existing")
         files = [("note.md", b"new body")]
-        plan = self.env["plan_uploads"](files, "learning/general", {}, self.knowledge)
+        plan = self.env["plan_uploads"](files, "learning/public", {}, self.knowledge)
         self.env["_run_upload"](files, plan, {0: "copy"}, ["all"], default_doc_type=" 技术方案 ")
         kwargs = self.ingest_mock.call_args.kwargs
         self.assertEqual(kwargs["default_doc_type"], "技术方案")
@@ -310,11 +386,21 @@ class DocumentTypeUploadContractTests(IngestHarness):
         self.assertNotIn("doc_type_paths", kwargs)
         self.assertEqual(kwargs["paths"][0].name, "note-2.md")
 
+    def test_file_and_directory_upload_forward_selected_project(self):
+        upload = SimpleNamespace(name="new.md", getvalue=lambda: b"file body")
+        self.env["_start_upload"]([upload], "projects", ["all"], default_project_id=self.project_id)
+        self.assertEqual(self.ingest_mock.call_args.kwargs["default_project_id"], self.project_id)
+        self.assertTrue((self.knowledge / "projects/dikongshidian/new.md").is_file())
+        self.env["_do_directory_upload"]([(("folder", "dir.md"), b"directory body")],
+                                         "projects", "batch", ["all"], default_project_id=self.project_id)
+        self.assertEqual(self.ingest_mock.call_args.kwargs["default_project_id"], self.project_id)
+        self.assertTrue((self.knowledge / "projects/dikongshidian/folder/dir.md").is_file())
+
     def test_skipped_duplicate_is_not_reingested_or_retyped(self):
         path = self.write_note("same", "note.md")
         data = path.read_bytes()
         digest = self.env["content_hash"](data)
-        plan = self.env["plan_uploads"]([("note.md", data)], "learning/general",
+        plan = self.env["plan_uploads"]([("note.md", data)], "learning/public",
                                        {"learning/general/note.md": {"hash": digest}}, self.knowledge)
         self.env["_run_upload"]([("note.md", data)], plan, {}, ["all"], default_doc_type="技术方案")
         self.ingest_mock.assert_not_called()
@@ -322,8 +408,9 @@ class DocumentTypeUploadContractTests(IngestHarness):
 
     def test_blank_default_remains_optional(self):
         upload = SimpleNamespace(name="fresh.md", getvalue=lambda: b"body")
-        self.env["_start_upload"]([upload], "learning/general", ["all"], default_doc_type="  ")
+        self.env["_start_upload"]([upload], "learning", ["all"], default_doc_type="  ")
         self.assertIsNone(self.ingest_mock.call_args.kwargs["default_doc_type"])
+        self.assertTrue((self.knowledge / "learning/public/fresh.md").is_file())
 
     def test_invalid_default_does_not_write_files(self):
         upload = SimpleNamespace(name="fresh.md", getvalue=lambda: b"body")
@@ -345,10 +432,10 @@ class DocumentTypeUploadContractTests(IngestHarness):
             actual_root = "技术方案" if merge else "技术方案-2"
             other_root = "会议纪要" if merge else "会议纪要-2"
             expected = {
-                str((self.knowledge / "learning" / actual_root / "nested/a.md").resolve()): " 技术方案 /nested/a.md",
-                str((self.knowledge / "learning" / actual_root / "需求文档/c.md").resolve()): " 技术方案 /需求文档/c.md",
-                str((self.knowledge / "learning" / other_root / "b.md").resolve()): "会议纪要/b.md",
-                str((self.knowledge / "learning" / other_root / "ignored.bin").resolve()): "会议纪要/ignored.bin",
+                str((self.knowledge / "learning/public" / actual_root / "nested/a.md").resolve()): " 技术方案 /nested/a.md",
+                str((self.knowledge / "learning/public" / actual_root / "需求文档/c.md").resolve()): " 技术方案 /需求文档/c.md",
+                str((self.knowledge / "learning/public" / other_root / "b.md").resolve()): "会议纪要/b.md",
+                str((self.knowledge / "learning/public" / other_root / "ignored.bin").resolve()): "会议纪要/ignored.bin",
             }
             self.assertEqual(kwargs["doc_type_paths"], expected)
             self.assertEqual(len(kwargs["paths"]), 3)

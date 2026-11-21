@@ -192,7 +192,9 @@ class DocumentTypeMcpTests(IngestHarness):
                     self.assertEqual(answer.call_args.kwargs["user_groups"], ["hr"])
                     self.assertEqual([s["doc_type"] for s in response[key]], ["一期方案", "", ""])
                     self.identity.assert_called_with(self.ctx)
-        self.assertEqual(ms._sources_payload([{"doc_type": "Plan"}])[0]["doc_type"], "Plan")
+        projected = ms._sources_payload([{"doc_type": "Plan", "category": "general"}])[0]
+        self.assertEqual(projected["doc_type"], "Plan")
+        self.assertNotIn("category", projected)
 
     def test_get_document_type_is_optional_and_active_permissions_remain(self):
         self.seed_cards()
@@ -203,6 +205,7 @@ class DocumentTypeMcpTests(IngestHarness):
                     doc_type="一期方案"))
                 self.assertEqual(result["document_id"], "first")
                 self.assertEqual(result["doc_type"], "一期方案")
+                self.assertNotIn("category", result)
                 self.assertEqual(set(result["not_found"]), {"second", "hidden", "expired"})
                 self.identity.assert_called_with(self.ctx)
         result = json.loads(ms._tool_get_document_impl(
@@ -226,8 +229,9 @@ class DocumentTypeMcpTests(IngestHarness):
                     "learning", "active", self.ctx, doc_type=label))
                 self.assertEqual({d["document_id"] for d in response["documents"]}, expected)
                 self.assertTrue(all("doc_type" in d for d in response["documents"]))
+                self.assertTrue(all("category" not in d for d in response["documents"]))
         # Explicit local checks must support old store/fake rows too, not only projected rows.
-        rows = [{"document_id": key, "domain": "learning", "status": "active", **extra}
+        rows = [{"document_id": key, "domain": "learning", "status": "active", "allowed_groups": ["all"], **extra}
                 for key, extra in (("missing", {}), ("null", {"doc_type": None}),
                                    ("empty", {"doc_type": ""}), ("concrete", {"doc_type": "需求文档"}))]
         with mock.patch.object(self.store, "list_documents", return_value=rows):
@@ -250,12 +254,14 @@ class DocumentTypeMcpTests(IngestHarness):
             impl = getattr(ms, f"_tool_{name}_impl")
             for fn in (public, impl):
                 params = list(inspect.signature(fn).parameters.values())
-                self.assertEqual(params[-2].name, "ctx")
-                self.assertEqual(params[-2].kind, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-                self.assertEqual(params[-1].name, "doc_type")
-                self.assertEqual(params[-1].kind, inspect.Parameter.KEYWORD_ONLY)
-                self.assertIsNone(params[-1].default)
-                self.assertIn("doc_type:", fn.__doc__)
+                positional = [p for p in params if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD]
+                self.assertEqual(positional[-1].name, "ctx")
+                self.assertEqual(len(positional), len(args))
+                for key in ("doc_type", "department", "project", "business_direction"):
+                    param = inspect.signature(fn).parameters[key]
+                    self.assertEqual(param.kind, inspect.Parameter.KEYWORD_ONLY)
+                    self.assertIsNone(param.default)
+                    self.assertIn(f"{key}:", fn.__doc__)
 
             async def run_inline(call):
                 self.assertIsInstance(call, functools.partial)
@@ -265,7 +271,16 @@ class DocumentTypeMcpTests(IngestHarness):
                  mock.patch.object(ms, f"_tool_{name}_impl", return_value="ok") as called, \
                  mock.patch.object(ms.anyio.to_thread, "run_sync", new=run_inline):
                 # Drive the mocked wrapper directly; no Windows asyncio socketpair required.
-                for kwargs in ({}, {"doc_type": "一期方案"}):
+                extra_defaults, extra_values = {
+                    "knowledge_search": ({"history": None}, {"history": [{"role": "user", "content": "查示例项目"}]}),
+                    "get_document": ({"version": None, "status": None}, {"version": "1.0", "status": "expired"}),
+                    "list_documents": ({"page": 1, "page_size": 100}, {"page": 2, "page_size": 4}),
+                }.get(name, ({}, {}))
+                for kwargs, forwarded in (
+                    ({}, extra_defaults),
+                    ({"doc_type": "一期方案", "project": "低空监管平台", "business_direction": 1,
+                      **extra_values}, extra_values),
+                ):
                     coroutine = public(*args, **kwargs)
                     try:
                         with self.assertRaises(StopIteration) as ended:
@@ -273,7 +288,11 @@ class DocumentTypeMcpTests(IngestHarness):
                         self.assertEqual(ended.exception.value, "ok")
                     finally:
                         coroutine.close()
-                    called.assert_called_with(*args, doc_type=kwargs.get("doc_type"))
+                    called.assert_called_with(*args, doc_type=kwargs.get("doc_type"),
+                                              department=kwargs.get("department"),
+                                              project=kwargs.get("project"),
+                                              business_direction=kwargs.get("business_direction"),
+                                              **forwarded)
 
     def test_sdk_public_schema_has_optional_doc_type_and_hides_ctx(self):
         from mcp.server.fastmcp.tools.base import Tool
@@ -285,9 +304,15 @@ class DocumentTypeMcpTests(IngestHarness):
                 self.assertIn("doc_type", properties)
                 self.assertNotIn("doc_type", tool.parameters.get("required", []))
                 self.assertNotIn("ctx", properties)
+                for key in ("project", "business_direction"):
+                    self.assertIn(key, properties)
+                    self.assertNotIn(key, tool.parameters.get("required", []))
                 self.assertIsNone(properties["doc_type"]["default"])
                 validated = tool.fn_metadata.arg_model.model_validate(
-                    {"question": "q", "topic": "q", "document_ids": ["doc"], "doc_type": "自定义类型"})
+                    {"question": "q", "topic": "q", "document_ids": ["doc"], "doc_type": "自定义类型",
+                     "project": "低空监管平台", "business_direction": 1})
                 self.assertEqual(validated.doc_type, "自定义类型")
+                self.assertEqual(validated.project, "低空监管平台")
+                self.assertEqual(validated.business_direction, 1)
                 self.assertEqual(tool.context_kwarg, "ctx")
                 self.assertIn("__unclassified__", tool.description)

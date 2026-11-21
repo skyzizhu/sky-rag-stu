@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 import sys
 import unicodedata
+from dataclasses import replace
 
 from src.config import AppConfig, get_config
 from src.retriever import RetrievedItem
@@ -39,8 +40,6 @@ def citation_label(item: RetrievedItem, number: int) -> str:
     label = f"[{number}] 来源: {meta.get('source', '?')}"
     if meta.get("domain"):
         label += f" | 领域: {meta['domain']}"
-    if meta.get("category") and meta["category"] != "general":
-        label += f" | 分类: {meta['category']}"
     if meta.get("section"):
         label += f" | 章节: {meta['section']}"
     if meta.get("page"):
@@ -187,6 +186,7 @@ def build_context(
             first = run[0]
             number = len(final_items) + 1
             label = citation_label(first, number)
+            text = first.text
             if len(run) > 1:
                 merged_text = _merge_run(run)
                 # 相邻拼接会叠加多张卡片的全文，可能突破第一轮的 token 预算：
@@ -201,16 +201,17 @@ def build_context(
                     merge_notes.append(
                         f"{first.metadata.get('source')} 的相邻卡片拼接后超出资料上限，已截断"
                     )
-                final_items.append(first)
-                final_blocks.append(f"{label}\n{merged_text}")
+                text = merged_text
                 merge_notes.append(
                     f"{first.metadata.get('source')} 的 {len(run)} 张相邻卡片"
                     f"（{first.metadata.get('chunk_id')} ~ {run[-1].metadata.get('chunk_id')}）"
                     f"已拼接为一条，恢复被切片切断的上下文"
                 )
-            else:
-                final_items.append(first)
-                final_blocks.append(f"{label}\n{first.text}")
+            metadata = {**first.metadata, "chunk_ids": [
+                item.metadata["chunk_id"] for item in run if item.metadata.get("chunk_id")
+            ]}
+            final_items.append(replace(first, rank=number, text=text, metadata=metadata))
+            final_blocks.append(f"{label}\n{text}")
 
     context = "\n\n".join(final_blocks) if final_blocks else "（没有检索到任何相关资料）"
     return context, final_items, dropped, merge_notes

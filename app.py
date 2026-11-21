@@ -12,22 +12,28 @@
 from __future__ import annotations
 
 import html
+import json
+import logging
 import os
 import re
 import sys
 import dataclasses
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
+from typing import get_args
 from urllib.parse import quote, unquote  # front_auth Cookie 值转 ASCII（中文名兼容）
 
 import streamlit as st
+from qdrant_client.http.exceptions import ApiException
+from streamlit.elements.lib.dialog import DialogWidth
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.app_settings import PRICE_DEFAULTS, SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
 from src import auth_client  # noqa: E402  # V3.7 登录/注册/偏好（FastAPI 认证服务 8700）
-from src import auth_db  # noqa: E402  # V3.7 部门列表（上传可见性选项）
-from src.permissions import visible_groups, write_group_options  # noqa: E402  # V3.8 权限规则
+from src import auth_db, projects  # noqa: E402
+from src.permissions import scope_filters, visible_groups, write_group_options  # noqa: E402
 from src.answer_format import format_answer_markdown  # noqa: E402
 from src.config import get_config  # noqa: E402
 from src.chat_scroll import scroll_chat_to_latest, scroll_follow_stream  # noqa: E402
@@ -36,6 +42,7 @@ from src.directory_uploader import (  # noqa: E402
     decode_native_directory_uploads,
     directory_drop_uploader,
 )
+from src.document_department import normalize_department, normalize_department_filter  # noqa: E402
 from src.document_type import normalize_doc_type, normalize_doc_type_filter  # noqa: E402
 from src.embedding import EmbeddingClient, EmbeddingError  # noqa: E402
 from src.llm import LLMError  # noqa: E402
@@ -60,6 +67,7 @@ from src.i18n import (  # noqa: E402
     t,
     tr,
 )
+from src.ingest_audit import IngestAudit, IngestItem, source_url_for_log  # noqa: E402
 from src.parser import SUPPORTED_EXTENSIONS  # noqa: E402
 from src.pipeline import (  # noqa: E402
     QAResult, answer_question, answer_stream, ingest_files,
@@ -111,6 +119,7 @@ def _is_hidden_relpath(parts: tuple[str, ...]) -> bool:
 st.session_state.setdefault("top_k", cfg.top_k)
 st.session_state.setdefault("domain_choice", "all")
 st.session_state.setdefault("doc_type_choice", "")
+st.session_state.setdefault("department_choice", "")
 st.session_state.setdefault("scope_choice", "active")
 st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
@@ -187,11 +196,39 @@ def confirm_logout() -> None:
         st.rerun()
 
 
+def _show_management_error(exc: Exception) -> None:
+    vector_errors = (VectorStoreError, ApiException)
+    if isinstance(exc, vector_errors) or isinstance(exc.__cause__, vector_errors):
+        logging.getLogger(__name__).warning("Management page could not access the vector database", exc_info=True)
+        st.warning(t("services.vector_unavailable"))
+    else:
+        st.error(str(exc))
+
+
+def _guard_management_database(render):
+    @wraps(render)
+    def guarded(*args, **kwargs):
+        try:
+            return render(*args, **kwargs)
+        except (VectorStoreError, ApiException) as exc:
+            _show_management_error(exc)
+
+    return guarded
+
+
 @st.dialog(t("dialog.remove.title"), width="small")
+@_guard_management_database
 def confirm_manage_remove() -> None:
     """确认批量移除向量数据，以及可选的磁盘文件删除。"""
     request = st.session_state.get("manage_remove_request")
     if not request:
+        return
+    if not require_perm("manage"):
+        return
+    visible = {doc["path"] for doc in store.list_documents(_viewer_filters())}
+    if not set(request["paths"]).issubset(visible):
+        st.session_state.pop("manage_remove_request", None)
+        st.error(t("perm.denied"))
         return
 
     count = len(request["paths"])
@@ -222,8 +259,8 @@ def confirm_manage_remove() -> None:
     ):
         try:
             info = remove_documents(request["paths"], delete_files=delete_files)
-        except (ManageError, VectorStoreError) as exc:
-            st.error(str(exc))
+        except ManageError as exc:
+            _show_management_error(exc)
             return
         # 移除了知识必须清问答缓存，否则同问题命中缓存返回已删知识的旧答案
         from src.pipeline import clear_qa_cache as _cqc
@@ -880,6 +917,10 @@ def persist_app_settings() -> None:
     # 仅初始化空默认值不应扩写已有设置（热重载/其他控件保存可能调用此入口）。
     if not data.get("doc_type_choice") and "doc_type_choice" not in load_app_settings():
         data.pop("doc_type_choice", None)
+    if not data.get("department_choice") and "department_choice" not in load_app_settings():
+        data.pop("department_choice", None)
+    if not data.get("classification_choice") and "classification_choice" not in load_app_settings():
+        data.pop("classification_choice", None)
     data["installed_plugins"] = get_installed_plugins()
     save_app_settings(data)
     user = st.session_state.get("auth_user")
@@ -1001,6 +1042,16 @@ def build_filters() -> dict:
         doc_type_choice = None
     if doc_type_choice is not None:
         filters["doc_type"] = doc_type_choice
+    # 归属部门同理：精确过滤档案字段，与可见权限无关；坏偏好回落为不过滤。
+    try:
+        department_choice = normalize_department_filter(st.session_state.get("department_choice", ""))
+    except ValueError:
+        department_choice = None
+    if department_choice is not None:
+        filters["department"] = department_choice
+    level = st.session_state.get("classification_choice")
+    if level in ("公开", "内部", "受限"):
+        filters["classification"] = level
     return filters
 
 
@@ -1018,6 +1069,76 @@ def require_perm(perm: str) -> bool:
     return False
 
 
+def _viewer_filters() -> dict:
+    username = (st.session_state.get("auth_user") or {}).get("username")
+    user = auth_db.get_user(username) if username else None
+    if not user or user["status"] != "active":
+        st.error(t("perm.denied"))
+        st.stop()
+    return scope_filters(None, visible_groups(user.get("department_group")), user["username"])
+
+
+def _upload_blocked_paths(ledger: dict) -> frozenset[Path]:
+    from src.permissions import document_visible
+
+    viewer = _viewer_filters()["__viewer__"]
+    blocked = {
+        Path(doc["path"]) for doc in store.list_documents()
+        if doc["status"] in ("active", "archive")
+        and not document_visible(doc, viewer["groups"], viewer["username"])
+    }
+    for rel in ledger:
+        info = istate.visibility_info_for(ledger, rel)
+        acl = info.get("value") or info.get("manual")
+        if acl is not None and not document_visible(acl, viewer["groups"], viewer["username"]):
+            blocked.add(Path(rel))
+    return frozenset(blocked)
+
+
+def document_department_options(current: str = "") -> list[str]:
+    """归属部门选项使用主数据名称，不读取或改变文档可见权限。"""
+    names = [d["name"] for d in auth_db.list_departments(include_disabled=False)]
+    if current and current not in names:
+        names.append(current)  # 旧文档的已停用归属仍可保留或清空。
+    return [""] + names
+
+
+def project_label(project_id: int | None, catalog: dict) -> str:
+    if project_id is None:
+        return t("project.none")
+    return catalog.get(project_id, {}).get("name") or f"#{project_id}"
+
+
+def _default_project_domain(project_key: str, domain_key: str, codes: list[str]) -> None:
+    if st.session_state[project_key] is not None and "projects" in codes:
+        st.session_state[domain_key] = "projects"
+
+
+def _upload_project(catalog: dict, key: str, domain_key: str, codes: list[str]) -> int | None:
+    selected = st.selectbox(
+        t("common.project"), [None, *catalog],
+        format_func=lambda project_id: project_label(project_id, catalog),
+        placeholder=t("project.none"),
+        help=t("project.upload.help"),
+        key=key, on_change=_default_project_domain, args=(key, domain_key, codes),
+    )
+    if selected is not None:
+        direction = catalog[selected].get("direction_name") or t("department.unspecified")
+        st.caption(t("project.direction", value=direction))
+    return selected
+
+
+def _upload_domain(codes: list[str], key: str, preferred: str, label: str) -> str:
+    if st.session_state.get(key) not in codes:
+        st.session_state[key] = codes[_domain_index(codes, preferred)]
+    return st.selectbox(label, codes, format_func=domain_label, index=None, key=key)
+
+
+def default_document_department(options: list[str]) -> str:
+    own = str((st.session_state.get("auth_user") or {}).get("department") or "")
+    return own if own in options else ""
+
+
 def group_write_options(current: list[str] | None = None) -> list[str]:
     """写入侧（上传归属 / 管理编辑）允许的可见域选项：全员域 + 自己部门。
 
@@ -1025,6 +1146,185 @@ def group_write_options(current: list[str] | None = None) -> list[str]:
     """
     _au = st.session_state.get("auth_user") or {}
     return write_group_options(auth_db.department_permission_key(_au.get("department"), _au.get("department_id")), current)
+
+
+def _visibility_classification(groups, users) -> str:
+    """Display classification from the actual ACL, never a stale metadata label."""
+    if users or not groups:
+        return "受限"
+    return "公开" if "all" in groups else "内部"
+
+
+def _visibility_label(classification: str) -> str:
+    key = {"公开": "public", "内部": "internal", "受限": "restricted"}.get(classification)
+    return t(f"visibility.{key}") if key else "—"
+
+
+def _visibility_employee_label(user: dict) -> str:
+    username = user["username"]
+    name = str(user.get("real_name") or username)
+    return f"{name}（{username}）" if name != username else username
+
+
+def _visibility_active_employees() -> list[dict]:
+    return [u for u in auth_db.list_users() if u.get("status") == "active" and u.get("username")]
+
+
+def _visibility_employee_changed(checkbox_key: str, username: str) -> None:
+    request = st.session_state.get("visibility_picker_request")
+    if not request:
+        return
+    draft = set(request["draft"])
+    if st.session_state.get(checkbox_key):
+        draft.add(username)
+    else:
+        draft.discard(username)
+    request["draft"] = sorted(draft)
+
+
+def _visibility_toggle_department(prefix: str, usernames: set[str]) -> None:
+    request = st.session_state.get("visibility_picker_request")
+    if not request or request["prefix"] != prefix:
+        return
+    draft = set(request["draft"])
+    select = not usernames.issubset(draft)
+    request["draft"] = sorted(draft | usernames if select else draft - usernames)
+    for username in usernames:
+        checkbox_key = f"{prefix}_employee_{username}"
+        if checkbox_key in st.session_state:
+            st.session_state[checkbox_key] = select
+
+
+def _open_visibility_employee_picker(key: str) -> None:
+    revision = st.session_state.get("visibility_picker_revision", 0) + 1
+    st.session_state["visibility_picker_revision"] = revision
+    st.session_state["visibility_picker_request"] = {
+        "key": key,
+        "prefix": f"{key}_employee_draft_{revision}",
+        "draft": list(st.session_state.get(f"{key}_allowed_users", [])),
+    }
+    visibility_employee_picker()
+
+
+@st.dialog(t("visibility.employees.title"), width=1120 if int in get_args(DialogWidth) else "medium")
+def visibility_employee_picker() -> None:
+    """Searchable department sections; only Confirm publishes the draft ACL."""
+    request = st.session_state.get("visibility_picker_request")
+    if not request:
+        return
+    prefix = request["prefix"]
+    employees = _visibility_active_employees()
+    query = st.text_input(t("visibility.employees.search"), key=f"{prefix}_search").strip().casefold()
+    st.caption(t("visibility.employees.help"))
+    sections: dict[int | None, list[dict]] = {}
+    for employee in employees:
+        sections.setdefault(employee.get("department_id"), []).append(employee)
+    draft = set(request["draft"])
+    matches_found = False
+    for department_id, members in sections.items():
+        label = members[0].get("department") or t("department.unspecified")
+        matches = [u for u in members if not query or query in " ".join(
+            [u["username"], str(u.get("real_name") or ""), label]).casefold()]
+        if not matches:
+            continue
+        matches_found = True
+        with st.container(horizontal=True, vertical_alignment="center"):
+            st.subheader(label, width="content")
+            if department_id is not None:
+                usernames = {u["username"] for u in members}
+                action = "clear_department" if usernames.issubset(draft) else "select_department"
+                st.button(t(f"visibility.employees.{action}", n=len(usernames)),
+                          key=f"{prefix}_department_{department_id}",
+                          on_click=_visibility_toggle_department, args=(prefix, usernames))
+        for employee in matches:
+            username = employee["username"]
+            checkbox_key = f"{prefix}_employee_{username}"
+            selected = st.checkbox(
+                _visibility_employee_label(employee),
+                value=checkbox_key not in st.session_state and username in draft,
+                key=checkbox_key, on_change=_visibility_employee_changed,
+                args=(checkbox_key, username),
+            )
+            if selected:
+                draft.add(username)
+            else:
+                draft.discard(username)
+    if not matches_found:
+        st.info(t("visibility.employees.no_matches"))
+    request["draft"] = sorted(draft)  # Includes selected employees hidden by search.
+    st.caption(t("visibility.employees.selected", n=len(draft)))
+    cancel_col, confirm_col = st.columns(2)
+    if cancel_col.button(t("common.cancel"), key=f"{prefix}_cancel", width="stretch"):
+        st.session_state.pop("visibility_picker_request", None)
+        st.rerun()
+        return
+    active_names = {u["username"] for u in employees}
+    confirmed_users = sorted(draft & active_names)
+    if confirm_col.button(t("visibility.employees.confirm"), key=f"{prefix}_confirm",
+                          disabled=not confirmed_users, type="primary", width="stretch"):
+        st.session_state[f"{request['key']}_allowed_users"] = confirmed_users
+        st.session_state.pop("visibility_picker_request", None)
+        st.rerun()
+
+
+def render_visibility_selector(key: str, current=None) -> dict | None:
+    """Reusable upload/edit ACL selector; None means an empty, non-submittable ACL.
+
+    Keys and stored employee values are usernames, not display-label tuples. For
+    edits, initialize from the real groups/users, including explicit empty lists.
+    """
+    groups = list(current.get("allowed_groups", []) or []) if current is not None else []
+    users = list(current.get("allowed_users", []) or []) if current is not None else []
+    initial = {"公开": "public", "内部": "internal", "受限": "restricted"}[
+        _visibility_classification(groups, users)] if current is not None else "internal"
+    st.session_state.setdefault(f"{key}_allowed_users", users)
+    levels = ["public", "internal", "restricted"]
+    level = st.radio(t("visibility.level"), levels, index=levels.index(initial),
+                     format_func=lambda value: t(f"visibility.{value}"),
+                     key=f"{key}_visibility", horizontal=True, help=t("visibility.help"))
+    if level == "public":
+        st.caption(t("visibility.public.hint"))
+        return {"allowed_groups": ["all"], "allowed_users": [], "classification": "公开"}
+    if level == "internal":
+        departments = auth_db.list_departments(include_disabled=False)
+        options = list(dict.fromkeys(d["permission_key"] for d in departments
+                                    if d.get("permission_key") and d["permission_key"] != "all"))
+        if current is not None:
+            options = list(dict.fromkeys(options + [g for g in groups if g != "all"]))
+        own = st.session_state.get("auth_user") or {}
+        own_key = auth_db.department_permission_key(own.get("department"), own.get("department_id"))
+        defaults = [g for g in groups if g in options] if current is not None else (
+            [own_key] if own_key in options else [])
+        selected = st.multiselect(
+            t("visibility.departments"), options, default=defaults, key=f"{key}_allowed_groups",
+            format_func=auth_db.department_label, help=t("upload.groups.internal.help"),
+            disabled=not options,
+        )
+        if not selected:
+            st.error(t("visibility.internal.required") if options else t("visibility.internal.no_departments"))
+            return None
+        return {"allowed_groups": list(selected), "allowed_users": [], "classification": "内部"}
+    selected = list(st.session_state.get(f"{key}_allowed_users", []))
+    with st.container(horizontal=True, vertical_alignment="center"):
+        if st.button(t("visibility.employees.choose"), key=f"{key}_choose_employees"):
+            _open_visibility_employee_picker(key)
+        with st.container(width="content", gap=None):
+            st.caption(t("visibility.employees.selected", n=len(selected)))
+            if not selected:
+                st.caption(f":red[{t('visibility.restricted.required')}]")
+    if not selected:
+        return None
+    employees = {u["username"]: u for u in _visibility_active_employees()}
+    st.write(", ".join(_visibility_employee_label(employees[u]) if u in employees else u for u in selected))
+    return {"allowed_groups": [], "allowed_users": selected, "classification": "受限"}
+
+
+def _validate_upload_visibility(groups, users) -> None:
+    # Pure validator is shared with the core; never silently turn [] into [all].
+    from src.permissions import normalize_visibility
+    normalized = normalize_visibility(groups, users, legacy_default=False)
+    if not normalized["allowed_groups"] and not normalized["allowed_users"]:
+        raise ValueError(t("visibility.restricted.required"))
 
 
 def _apply_user_prefs(username: str) -> None:
@@ -1076,8 +1376,13 @@ def auth_gate() -> bool:
     - 已有用户 → 登录 / 注册 两个标签页（注册需选择部门，密码两次确认）
     - 认证服务（8700）未启动 → 显示提示并停止
     """
-    if st.session_state.get("auth_user"):
-        return True
+    if signed_in := st.session_state.get("auth_user"):
+        user = auth_db.get_user(signed_in["username"])
+        if user and user["status"] == "active":
+            for field in ("department", "department_id", "permissions"):
+                signed_in[field] = user.get(field)
+            return True
+        st.session_state.pop("auth_user", None)
 
     # 浏览器访问前台的 host（含端口）——供持久化 iframe 拼认证服务地址
     global front_host_global
@@ -1387,6 +1692,16 @@ def show_answer_sources(result) -> None:
         if conversation.get("invalidated"):
             st.caption(t("chat.context.invalidated"))
     coverage = getattr(result, "evidence_meta", None) or {}
+    scope = coverage.get("metadata_scope") or {}
+    if scope and not coverage.get("scope_issue"):
+        actual_type = result.filters.get("doc_type")
+        if "doc_type" in scope and isinstance(actual_type, str):
+            scope = {**scope, "doc_type": actual_type}
+        details = " · ".join(
+            f"{t('common.' + field)} {scope[field]}"
+            for field in ("project", "business_direction", "department", "doc_type") if field in scope
+        )
+        st.caption(t("sources.metadata_scope", scope=details))
     if coverage.get("route") in {"catalog", "document", "cross_document"}:
         st.caption(t("sources.coverage.range",
                      n=coverage.get("matched_documents", coverage.get("candidate_documents", 0)),
@@ -1422,13 +1737,19 @@ def show_answer_sources(result) -> None:
             if extras:
                 head += "　·　" + "　".join(extras)
             st.markdown(head)
+            if item.get("path"):
+                st.text(str(item["path"]))
             tags = [tag(f"🗂 {html.escape(str(item.get('domain') or ''))}", "blue"),
-                    tag(f"📁 {html.escape(str(item.get('category') or ''))}", "blue"),
                     tag(html.escape(t("common.doc_type")) + ": "
                         + html.escape(str(item.get("doc_type") or "").strip()
-                                      or t("doc_type.unclassified")), "blue")]
+                                      or t("doc_type.unclassified")), "blue"),
+                    tag(html.escape(t("common.department")) + ": "
+                        + html.escape(str(item.get("department") or "").strip()
+                                      or t("department.unspecified")), "blue")]
             if item.get("topic"):
                 tags.append(tag("🏷 " + html.escape(" / ".join(item["topic"]))))
+            if item.get("classification"):
+                tags.append(tag("🔒 " + html.escape(_visibility_label(item["classification"])), "blue"))
             tags.append(tag(f"v{item.get('version')}", "green" if item.get("status") == "active" else "amber"))
             tags.append(tag("✅ active" if item.get("status") == "active" else "🗄 archive",
                             "green" if item.get("status") == "active" else "amber"))
@@ -1476,7 +1797,7 @@ def show_answer_sources(result) -> None:
                     [{t("debug.col.rank"): s["rank"], t("debug.col.score"): round(s["score"], 4),
                       t("debug.col.channel"): s.get("channels", "向量"),
                       "Source": s["source"],
-                      "Domain": s.get("domain"), "Category": s.get("category"),
+                      "Domain": s.get("domain"),
                       "Topic": ", ".join(s.get("topic") or []),
                       t("debug.col.section"): s.get("section") or "",
                       t("debug.col.page"): s.get("page") or "",
@@ -1733,41 +2054,56 @@ def page_upload():
     tab_files = _tab_objs[0]
     tab_dir = _tab_objs[1]
     tab_web = _tab_objs[2] if _has_web else None
+    project_catalog = {p["id"]: p for p in projects.list_projects()}
 
     with tab_files:
-        # V3.7.2 归属设置卡片：领域/分类/可见部门收进带边框容器，视觉上分组清晰
         with st.container(border=True):
             st.markdown(f'<div class="section-title">{t("upload.attribution")}</div>',
                         unsafe_allow_html=True)
-            col1, col2 = st.columns(2)
-            with col1:
-                _up_codes = domain_reg.enabled_codes()  # 停用的领域不再接收新上传
-                upload_domain = st.selectbox(t("upload.domain"), _up_codes,
-                                             format_func=domain_label,
-                                             index=_domain_index(_up_codes, "learning"))
-            with col2:
-                upload_category = st.text_input(t("upload.category"), value="",
-                                                help=t("upload.category.help"))
-            upload_doc_type = st.text_input(t("doc_type.default"), value="", max_chars=80,
-                                            key="upload_doc_type", help=t("doc_type.default.help"))
-            # V3.7 权限：可见部门多选（默认全员）；写入侧只能选 全员 + 自己部门
-            _dep_options = group_write_options()
-            upload_groups = st.multiselect(t("upload.groups"), _dep_options,
-                                           default=["all"], format_func=auth_db.department_label, help=t("upload.groups.help"))
+            _up_codes = [c for c in domain_reg.enabled_codes() if c != "archive"]
+            domain_col, project_col = st.columns(2)
+            with domain_col:
+                upload_domain = _upload_domain(_up_codes, "upload_domain", "learning", t("upload.domain"))
+            with project_col:
+                upload_project = _upload_project(project_catalog, "upload_project", "upload_domain", _up_codes)
+            type_col, department_col = st.columns(2)
+            upload_doc_type = type_col.text_input(
+                t("doc_type.default"), value="", max_chars=80,
+                key="upload_doc_type", help=t("doc_type.default.help"))
+            # V3.9 归属部门：资料属于哪个部门（档案字段，与可见权限无关）；默认本人部门
+            _dep_choices = document_department_options()
+            _dep_default = default_document_department(_dep_choices)
+            upload_department = department_col.selectbox(
+                t("department.default"), _dep_choices,
+                format_func=lambda v: t("department.unspecified") if v == "" else v,
+                index=_dep_choices.index(_dep_default), key="upload_department",
+                help=t("department.default.help"))
+            upload_acl = render_visibility_selector("upload")
+            upload_groups = upload_acl["allowed_groups"] if upload_acl else []
+            upload_allowed_users = upload_acl["allowed_users"] if upload_acl else []
         uploads = st.file_uploader(t("upload.dropzone"),
                                    type=SUPPORTED_UPLOAD_TYPES, accept_multiple_files=True)
         if uploads:
             st.caption(t("upload.selected", n=len(uploads), kb=f"{sum(u.size for u in uploads) / 1024:.0f}"))
-        _upload_target = f"{upload_domain}/{upload_category.strip().lower() or 'general'}"
-        if st.button(t("upload.start"), disabled=not uploads, width="stretch", type="primary"):
-            _start_upload(uploads, _upload_target, upload_groups, default_doc_type=upload_doc_type)
-        _render_upload_confirmation(uploads, _upload_target, upload_groups,
-                                    default_doc_type=upload_doc_type)
+        if st.button(t("upload.start"), disabled=not uploads or upload_acl is None, width="stretch", type="primary"):
+            _start_upload(uploads, upload_domain, upload_groups, default_doc_type=upload_doc_type,
+                          default_department=normalize_department(upload_department) or None,
+                          default_allowed_users=upload_allowed_users,
+                          default_project_id=upload_project)
+        _render_upload_confirmation(uploads, upload_domain, upload_groups,
+                                    default_doc_type=upload_doc_type,
+                                    default_department=normalize_department(upload_department) or None,
+                                    default_allowed_users=upload_allowed_users,
+                                    default_project_id=upload_project)
 
         # 上传框内的「200MB per file • 平铺扩展名」小字由组件按 type 参数渲染，
         # 无法直接分组——用同源 iframe 脚本原地改写为归组文案。Streamlit 重渲染
         # 会重建 DOM，MutationObserver 负责再次改写；内容已是归组文案时不重写，
         # 不会触发改写循环。
+        choose_files = t("upload.browse_files")
+        choose_folders = t("upload.browse_folders")
+        uploader_labels = json.dumps({"Upload": choose_files, "Browse files": choose_files,
+                                      "Upload directories": choose_folders, "Browse folders": choose_folders})
         from streamlit.components.v1 import html as components_html
         components_html(f'''
 <script>
@@ -1775,15 +2111,33 @@ def page_upload():
   var root = parent.document;
   var GROUPED = {types_grouped!r};
   var SIZE = '单文件不超过 200MB';
+  var LABELS = {uploader_labels};
   function fix() {{
+    root.querySelectorAll('[data-testid="stFileUploaderDropzone"] button').forEach(function(button) {{
+      var walker = root.createTreeWalker(button, NodeFilter.SHOW_TEXT);
+      for (var node = walker.nextNode(); node; node = walker.nextNode()) {{
+        var source = node.skyUploadLabel || node.nodeValue;
+        if (Object.hasOwn(LABELS, source)) {{
+          node.skyUploadLabel = source;
+          if (node.nodeValue !== LABELS[source]) node.nodeValue = LABELS[source];
+        }}
+      }}
+    }});
     root.querySelectorAll('[data-testid="stFileUploaderDropzoneInstructions"] span').forEach(function(span) {{
       if (/per file/.test(span.textContent) && !/文档/.test(span.textContent)) {{
         span.innerHTML = GROUPED + '<br>' + SIZE;
       }}
     }});
   }}
+  if (root.skyUploadObserver) root.skyUploadObserver.disconnect();
   fix();
-  new MutationObserver(fix).observe(root.body, {{childList: true, subtree: true}});
+  var observer = new MutationObserver(fix);
+  root.skyUploadObserver = observer;
+  observer.observe(root.body, {{childList: true, characterData: true, subtree: true}});
+  window.addEventListener('unload', function() {{
+    observer.disconnect();
+    if (root.skyUploadObserver === observer) delete root.skyUploadObserver;
+  }}, {{once: true}});
 }})();
 </script>
 ''', height=0)
@@ -1793,21 +2147,26 @@ def page_upload():
         st.caption(t("dir.caption"))
         # V3.7.2 归属设置卡片：领域与可见部门收进带边框容器
         with st.container(border=True):
-            _dir_codes = domain_reg.enabled_codes()
-            dir_domain = st.selectbox(
-                t("dir.target"),
-                _dir_codes,
-                format_func=domain_label,
-                index=_domain_index(_dir_codes, "learning"),
-                key="directory_domain",
-            )
-            dir_doc_type = st.text_input(t("doc_type.default"), value="", max_chars=80,
-                                         key="dir_doc_type", help=t("doc_type.default.help"))
-            # V3.7 权限：本批目录导入的可见部门（默认全员）；写入侧限自己部门
-            _dep_options_dir = group_write_options()
-            dir_groups = st.multiselect(t("upload.groups"), _dep_options_dir,
-                                        default=["all"], key="dir_groups", format_func=auth_db.department_label,
-                                        help=t("upload.groups.help"))
+            _dir_codes = [c for c in domain_reg.enabled_codes() if c != "archive"]
+            domain_col, project_col = st.columns(2)
+            with domain_col:
+                dir_domain = _upload_domain(_dir_codes, "directory_domain", "learning", t("dir.target"))
+            with project_col:
+                dir_project = _upload_project(project_catalog, "directory_project", "directory_domain", _dir_codes)
+            type_col, department_col = st.columns(2)
+            dir_doc_type = type_col.text_input(
+                t("doc_type.default"), value="", max_chars=80,
+                key="dir_doc_type", help=t("doc_type.default.help"))
+            # 部门归属只由人工声明/选择确定，不从目录名推断。
+            _dir_dep_choices = document_department_options()
+            dir_department = department_col.selectbox(
+                t("department.default"), _dir_dep_choices,
+                format_func=lambda v: t("department.unspecified") if v == "" else v,
+                index=_dir_dep_choices.index(default_document_department(_dir_dep_choices)),
+                key="dir_department", help=t("department.default.help"))
+            dir_acl = render_visibility_selector("dir")
+            dir_groups = dir_acl["allowed_groups"] if dir_acl else []
+            dir_allowed_users = dir_acl["allowed_users"] if dir_acl else []
         directory_mode = st.segmented_control(
             t("dir.mode"),
             ["drop", "native"],
@@ -1843,8 +2202,11 @@ def page_upload():
                     batch_id = "native:" + "|".join(upload_ids)
                 # 隐藏目录/文件（.rag_converted 转换缓存、.git 等）与 CLI 入库同一规则跳过，
                 # 避免转换缓存被当新文档重复入库（幻影）
-                decoded_entries = [entry for entry in decoded_entries
-                                   if not _is_hidden_relpath(entry[0])]
+                from src.project_directories import is_generated_info_content, preview_directory
+
+                decoded_entries = [(parts, content) for parts, content in decoded_entries
+                                   if not _is_hidden_relpath(parts)
+                                   and not is_generated_info_content(parts[-1], content)]
                 roots = []
                 for parts, _content in decoded_entries:
                     root = _clean_directory_name(parts[0])
@@ -1858,7 +2220,8 @@ def page_upload():
                 )
                 st.success(t("dir.selected", n=len(decoded_entries),
                              kb=f"{total_kb:.1f}", docs=supported_count))
-                st.caption(t("dir.target_hint", domain=dir_domain, roots=root_text))
+                target = preview_directory(cfg.knowledge_dir, dir_domain, dir_project).relative_to(cfg.knowledge_dir).as_posix()
+                st.caption(t("dir.target_hint", domain=target, roots=root_text))
             except ValueError as exc:
                 roots = []
                 st.error(str(exc))
@@ -1868,7 +2231,17 @@ def page_upload():
 
         # V3.8 重复导入防护：同名目录已存在时才出现选项，默认合并（按文件增量更新）
         dir_merge = True
-        _dir_existing = [r for r in roots if (cfg.knowledge_dir / dir_domain / r).exists()]
+        dir_target = target if roots else dir_domain
+        directory_key = f"{batch_id}@{dir_domain}:{dir_project}"
+        _dir_existing = [r for r in roots if (cfg.knowledge_dir / dir_target / r).exists()]
+        if roots:
+            legacy_roots = {
+                parts[1] for rel, entry in istate.load_state().items()
+                if entry.get("project_id") == dir_project
+                and len(parts := Path(rel).parts) > 2 and parts[0] == dir_domain
+                and (cfg.knowledge_dir / rel).is_file()
+            }
+            _dir_existing = [r for r in roots if r in _dir_existing or r in legacy_roots]
         if _dir_existing:
             _dir_mode = st.radio(
                 t("dir.exists_mode", roots="、".join(_dir_existing)), ["merge", "copy"],
@@ -1880,15 +2253,19 @@ def page_upload():
             t("dir.start"),
             disabled=(
                 not decoded_entries
+                or dir_acl is None
                 or not roots
-                or st.session_state.get("processed_directory_batch") == f"{batch_id}@{dir_domain}"
+                or st.session_state.get("processed_directory_batch") == directory_key
             ),
             width="stretch",
             type="primary",
             key="import_directory",
         ):
             _do_directory_upload(decoded_entries, dir_domain, batch_id, dir_groups, merge=dir_merge,
-                                 default_doc_type=dir_doc_type)
+                                 default_doc_type=dir_doc_type,
+                                 default_department=dir_department or None,
+                                 default_allowed_users=dir_allowed_users,
+                                 default_project_id=dir_project)
 
     # ---------- 🌐 添加网页 Tab ----------
     if _has_web:
@@ -1898,38 +2275,53 @@ def page_upload():
 
             web_url = st.text_input(t("web.url"), placeholder="https://example.com/article",
                                     help=t("web.url.help"))
-            # V3.7.2 归属设置卡片：领域/分类/可见部门收进带边框容器
             with st.container(border=True):
-                col_w1, col_w2 = st.columns(2)
-                with col_w1:
-                    _web_codes = [c for c in domain_reg.enabled_codes() if c != "archive"]
-                    web_domain = st.selectbox(t("common.domain"), _web_codes,
-                                              format_func=domain_label,
-                                              index=_domain_index(_web_codes, "reference"))
-                with col_w2:
-                    web_category = st.text_input(t("web.category"), value="webpages")
-                web_doc_type = st.text_input(t("doc_type.default"), value="", max_chars=80,
-                                             key="web_doc_type", help=t("doc_type.default.help"))
-                web_groups = st.multiselect(t("upload.groups"),
-                                            group_write_options(),
-                                            default=["all"], key="web_groups", format_func=auth_db.department_label,
-                                            help=t("upload.groups.help"))
+                _web_codes = [c for c in domain_reg.enabled_codes() if c != "archive"]
+                domain_col, project_col = st.columns(2)
+                with domain_col:
+                    web_domain = _upload_domain(_web_codes, "web_domain", "reference", t("common.domain"))
+                with project_col:
+                    web_project = _upload_project(project_catalog, "web_project", "web_domain", _web_codes)
+                type_col, department_col = st.columns(2)
+                web_doc_type = type_col.text_input(
+                    t("doc_type.default"), value="", max_chars=80,
+                    key="web_doc_type", help=t("doc_type.default.help"))
+                _web_dep_choices = document_department_options()
+                web_department = department_col.selectbox(
+                    t("department.default"), _web_dep_choices,
+                    format_func=lambda v: t("department.unspecified") if v == "" else v,
+                    index=_web_dep_choices.index(default_document_department(_web_dep_choices)),
+                    key="web_department", help=t("department.default.help"))
+                web_acl = render_visibility_selector("web")
+                web_groups = web_acl["allowed_groups"] if web_acl else []
+                web_allowed_users = web_acl["allowed_users"] if web_acl else []
 
-            if st.button(t("web.ingest"), disabled=not web_url.strip(), width="stretch", type="primary"):
+            if st.button(t("web.ingest"), disabled=not web_url.strip() or web_acl is None,
+                         width="stretch", type="primary"):
                 from src.manage import ingest_web_page
                 try:
-                    # st.status 分步显示：抓取 → 保存 → 入库，点击后立刻有反馈，
-                    # 不再是笼统转圈等十几秒
-                    with st.status(t("web.status.working"), expanded=True) as status:
-                        st.write(t("web.status.fetch"))
-                        result = ingest_web_page(
-                            web_url.strip(), domain=web_domain,
-                            category=web_category.strip().lower() or "webpages",
-                            on_progress=lambda msg: st.write(tr(msg)),
-                            default_groups=web_groups,
-                            default_doc_type=normalize_doc_type(web_doc_type) or None,
-                            owner=str((st.session_state.get("auth_user") or {}).get("username") or ""),
-                        )
+                    with _new_ingest_audit(
+                        "web", [IngestItem("", source_path=source_url_for_log(web_url.strip()))],
+                        web_domain, web_groups, web_allowed_users, web_doc_type, web_department, web_project,
+                    ) as audit:
+                        _validate_upload_visibility(web_groups, web_allowed_users)
+                        with st.status(t("web.status.working"), expanded=True) as status:
+                            st.write(t("web.status.fetch"))
+                            audit.stage = "preflight"
+                            blocked_paths = _upload_blocked_paths(istate.load_state())
+                            audit.stage = "validation"
+                            result = ingest_web_page(
+                                web_url.strip(), domain=web_domain,
+                                on_progress=lambda msg: st.write(tr(msg)),
+                                default_groups=web_groups,
+                                default_doc_type=normalize_doc_type(web_doc_type) or None,
+                                default_department=normalize_department(web_department) or None,
+                                default_allowed_users=web_allowed_users,
+                                blocked_paths=blocked_paths,
+                                default_project_id=web_project,
+                                owner=str((st.session_state.get("auth_user") or {}).get("username") or ""),
+                                audit=audit,
+                            )
                     status.update(label=t("web.status.done"), state="complete", expanded=False)
                     st.success(f"🎉 {result['message']}")
                 except Exception as exc:
@@ -1937,15 +2329,55 @@ def page_upload():
 
 
 def _upload_files(uploads) -> list[tuple[str, bytes]]:
-    return [(u.name, u.getvalue()) for u in uploads or []]
+    from src.project_directories import is_generated_info_content
+
+    files = [(u.name, u.getvalue()) for u in uploads or []]
+    return [(name, data) for name, data in files if not is_generated_info_content(name, data)]
+
+
+def _new_ingest_audit(entry, items, domain, groups, users, doc_type, department, project_id, **options):
+    account = st.session_state.get("auth_user") or {}
+    browser = auth_client.browser_context()
+    peer_ip = getattr(st.context, "ip_address", None)
+    return IngestAudit(entry, items, username=str(account.get("username") or ""),
+                       actor_department=str(account.get("department") or ""),
+                       ip=browser["client_ip"], peer_ip=peer_ip or "",
+                       user_agent=browser["user_agent"], accept_language=browser["accept_language"],
+                       knowledge_dir=cfg.knowledge_dir, requested={
+                           "domain": domain, "allowed_groups": groups, "allowed_users": users,
+                           "doc_type": doc_type, "department": department, "project_id": project_id, **options,
+                       })
+
+
+def _plan_frontend_upload(files, target_dir, groups, users, doc_type, department, project_id):
+    from src.project_directories import INFO_NAME, other_project_paths, preview_directory
+
+    try:
+        ledger = istate.load_state()
+        if any(Path(name).name.casefold() == INFO_NAME for name, _ in files):
+            raise ValueError(f"{INFO_NAME} 是入库目录的保留说明文件")
+        destination = preview_directory(cfg.knowledge_dir, target_dir, project_id).relative_to(cfg.knowledge_dir).as_posix()
+        return plan_uploads(files, destination, ledger, cfg.knowledge_dir,
+                            blocked_paths=_upload_blocked_paths(ledger) | other_project_paths(ledger, project_id))
+    except (ApiException, VectorStoreError, OSError, ValueError) as exc:
+        items = [IngestItem(name, source_path=name, bytes=len(data)) for name, data in files]
+        with _new_ingest_audit("file", items, target_dir, groups, users, doc_type, department, project_id) as audit:
+            audit.fail("preflight")
+        _show_management_error(exc)
+        return None
 
 
 def _upload_signature(files: list[tuple[str, bytes]], target_dir: str,
-                      default_doc_type: str | None = None) -> str:
-    """文件、目标目录或默认文档类型改变时，旧批次的确认/选择就作废。"""
+                      default_doc_type: str | None = None,
+                      default_department: str | None = None,
+                      default_project_id: int | None = None, *, groups=None, users=None) -> str:
+    """Invalidate confirmation when files, attribution, or either ACL channel changes."""
     doc_type = normalize_doc_type("" if default_doc_type is None else default_doc_type)
+    department = normalize_department("" if default_department is None else default_department)
     return content_hash(repr([(n, content_hash(d)) for n, d in files]
-                             + [target_dir, doc_type]).encode())
+                             + [target_dir, doc_type, department, default_project_id,
+                                None if groups is None else sorted(groups),
+                                None if users is None else sorted(users)]).encode())
 
 
 def _conflict_reason(d) -> str:
@@ -1969,31 +2401,48 @@ def _action_label(action: str) -> str:
               NEW: "upload.action.new", COPY: "upload.action.copy"}[action])
 
 
-def _start_upload(uploads, target_dir: str, groups, *, default_doc_type: str | None = None) -> None:
+def _start_upload(uploads, target_dir: str, groups, *, default_doc_type: str | None = None,
+                  default_department: str | None = None, default_project_id: int | None = None,
+                  default_allowed_users: list[str] | None = None) -> None:
     """V3.8 上传入口：先做冲突预检。全是新文件 → 直接入库（与以前一样不多一步）；
     有重复 / 同名冲突 → 进确认面板，由用户逐个确认（默认值按已定规则预选好）。"""
     files = _upload_files(uploads)
+    if not files:
+        st.info(t("ingest.nothing_changed"))
+        return
     try:
-        signature = _upload_signature(files, target_dir, default_doc_type)
+        _validate_upload_visibility(groups, default_allowed_users)
+        signature = _upload_signature(files, target_dir, default_doc_type, default_department,
+                                      default_project_id, groups=groups, users=default_allowed_users)
     except ValueError as exc:
         st.session_state.pop("upload_pending", None)
         st.error(str(exc))
         return
-    plan = plan_uploads(files, target_dir, istate.load_state(), cfg.knowledge_dir)
+    plan = _plan_frontend_upload(files, target_dir, groups, default_allowed_users,
+                                 default_doc_type, default_department, default_project_id)
+    if plan is None:
+        return
     if any(d.needs_confirmation for d in plan):
         st.session_state["upload_pending"] = signature
     else:
-        _run_upload(files, plan, {}, groups, default_doc_type=default_doc_type)
+        _run_upload(files, plan, {}, groups, default_doc_type=default_doc_type,
+                    default_department=default_department, default_project_id=default_project_id,
+                    default_allowed_users=default_allowed_users)
 
 
 def _render_upload_confirmation(uploads, target_dir: str, groups, *,
-                                default_doc_type: str | None = None) -> None:
+                                default_doc_type: str | None = None,
+                                default_department: str | None = None,
+                                default_project_id: int | None = None,
+                                default_allowed_users: list[str] | None = None) -> None:
     pending = st.session_state.get("upload_pending")
     if not pending:
         return
     files = _upload_files(uploads)
     try:
-        signature = _upload_signature(files, target_dir, default_doc_type)
+        _validate_upload_visibility(groups, default_allowed_users)
+        signature = _upload_signature(files, target_dir, default_doc_type, default_department,
+                                      default_project_id, groups=groups, users=default_allowed_users)
     except ValueError as exc:
         st.session_state.pop("upload_pending", None)
         st.error(str(exc))
@@ -2002,7 +2451,11 @@ def _render_upload_confirmation(uploads, target_dir: str, groups, *,
         st.session_state.pop("upload_pending", None)  # 选择变了：作废旧的确认
         return
     # 预检是确定性的（同样的文件 + 同样的台账），每次重绘重新计算即可，无需缓存文件内容
-    plan = plan_uploads(files, target_dir, istate.load_state(), cfg.knowledge_dir)
+    plan = _plan_frontend_upload(files, target_dir, groups, default_allowed_users,
+                                 default_doc_type, default_department, default_project_id)
+    if plan is None:
+        st.session_state.pop("upload_pending", None)
+        return
     choices: dict[int, str] = {}
     with st.container(border=True):
         st.markdown(f"**{t('upload.conflict.title')}**")
@@ -2031,93 +2484,178 @@ def _render_upload_confirmation(uploads, target_dir: str, groups, *,
         st.rerun()
     if confirmed:
         st.session_state.pop("upload_pending", None)
-        _run_upload(files, plan, choices, groups, default_doc_type=default_doc_type)
+        _run_upload(files, plan, choices, groups, default_doc_type=default_doc_type,
+                    default_department=default_department, default_project_id=default_project_id,
+                    default_allowed_users=default_allowed_users)
 
 
-def _run_upload(files, plan, choices, groups, *, default_doc_type: str | None = None) -> None:
-    try:
-        default_doc_type = normalize_doc_type("" if default_doc_type is None else default_doc_type) or None
-    except ValueError as exc:
-        st.error(str(exc))
-        return
-    to_ingest, skipped = execute_uploads(plan, files, cfg.knowledge_dir, choices)
-    if skipped:
-        st.info(t("upload.skipped_dup", n=len(skipped), files="、".join(d.name for d in skipped)))
-    if not to_ingest:
-        st.info(t("ingest.nothing_changed"))
-        return
-    with st.spinner(t("ingest.spinner")):
+def _run_upload(files, plan, choices, groups, *, default_doc_type: str | None = None,
+                default_department: str | None = None, default_project_id: int | None = None,
+                default_allowed_users: list[str] | None = None) -> None:
+    items = [IngestItem(name, source_path=name, path=decision.target, bytes=len(data))
+             for decision, (name, data) in zip(plan, files)]
+    domain = items[0].path.split("/", 1)[0] if items else ""
+    with _new_ingest_audit("file", items, domain, groups, default_allowed_users,
+                           default_doc_type, default_department, default_project_id) as audit:
         try:
-            # skip_unchanged：内容没变的不重跑整条流水线（「重新入库」按钮仍是强制重跑入口）
-            summary = ingest_files(paths=to_ingest, skip_unchanged=True, default_groups=groups,
-                                    default_doc_type=default_doc_type,
-                                    owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
-        except (LLMError, VectorStoreError, EmbeddingError) as exc:
+            _validate_upload_visibility(groups, default_allowed_users)
+            default_doc_type = normalize_doc_type("" if default_doc_type is None else default_doc_type) or None
+            if default_department is not None:
+                default_department = normalize_department(default_department) or None
+            if default_project_id is not None:
+                projects.validate_project_id(default_project_id)
+        except ValueError as exc:
             st.error(str(exc))
             return
-        except Exception as exc:
-            st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+        try:
+            from contextlib import nullcontext
+            from src.project_directories import other_project_paths, upload_directory
+
+            audit.stage = "preflight"
+            ledger = istate.load_state()
+            blocked_paths = _upload_blocked_paths(ledger) | other_project_paths(ledger, default_project_id)
+            audit.stage = "save"
+            destination = nullcontext()
+            if plan:
+                destination = upload_directory(
+                    cfg.knowledge_dir, domain, default_project_id,
+                    expected=(cfg.knowledge_dir / plan[0].target).parent)
+            with destination:
+                to_ingest, skipped = execute_uploads(
+                    plan, files, cfg.knowledge_dir, choices,
+                    blocked_paths=blocked_paths,
+                    on_saved=audit.saved, on_skipped=audit.skip)
+        except (OSError, ValueError) as exc:
+            st.error(str(exc))
             return
-    _show_ingest_result(summary)
+        if skipped:
+            st.info(t("upload.skipped_dup", n=len(skipped), files="、".join(d.name for d in skipped)))
+        if not to_ingest:
+            st.info(t("ingest.nothing_changed"))
+            return
+        audit.stage = "index"
+        with st.spinner(t("ingest.spinner")):
+            try:
+                # skip_unchanged：内容没变的不重跑整条流水线（「重新入库」按钮仍是强制重跑入口）
+                summary = ingest_files(paths=to_ingest, skip_unchanged=True, default_groups=groups,
+                                        default_doc_type=default_doc_type,
+                                        default_department=default_department,
+                                        default_project_id=default_project_id,
+                                        default_allowed_users=default_allowed_users,
+                                        owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
+            except (LLMError, VectorStoreError, EmbeddingError) as exc:
+                st.error(str(exc))
+                return
+            except Exception as exc:
+                st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+                return
+        audit.finish(summary)
+        _show_ingest_result(summary)
 
 
 def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool = True, *,
-                         default_doc_type: str | None = None):
+                         default_doc_type: str | None = None,
+                         default_department: str | None = None,
+                         default_project_id: int | None = None,
+                         default_allowed_users: list[str] | None = None):
     """把浏览器选中的目录写入领域目录，然后增量入库。
 
     V3.8：同名目录已存在时默认合并（merge=True）——没变的跳过、改了的升版本、
     新增的入库，源目录里已删除的文件保留；merge=False 为另存副本目录（原行为）。
     """
-    try:
-        default_doc_type = normalize_doc_type("" if default_doc_type is None else default_doc_type) or None
-    except ValueError as exc:
-        st.error(str(exc))
-        return
-    domain_dir = cfg.knowledge_dir / dir_domain
-    domain_dir.mkdir(parents=True, exist_ok=True)
+    from src.project_directories import is_generated_info_content
 
-    grouped: dict[str, list[tuple[tuple[str, ...], bytes]]] = {}
-    original_paths: dict[str, list[str]] = {}
-    try:
-        for parts, content in entries:
-            root = _clean_directory_name(parts[0])
-            grouped.setdefault(root, []).append((parts[1:], content))
-            # 保留用户选择的原始根目录；不要使用领域、清理后的名称或副本目录名。
-            original_paths.setdefault(root, []).append("/".join(parts))
-    except ValueError as exc:
-        st.error(str(exc))
-        return
-
-    saved, copied_roots = write_directory_import(grouped, domain_dir, merge=merge)
-    # writer 按 grouped 的根目录/文件顺序返回实际路径（含另存副本的改名）。
-    # 浏览器批次可交错多个根目录，因此先按相同分组顺序展开原始路径再配对。
-    originals = [original for root in grouped for original in original_paths[root]]
-    doc_type_paths = {str(path.resolve()): original for path, original in zip(saved, originals)}
-
-    if not saved:
-        st.warning(t("dir.no_docs"))
-        return
-
-    ingest_paths = [path for path in saved if path.suffix.lower() in SUPPORTED_EXTENSIONS]
-    if not ingest_paths:
-        st.warning(t("dir.copied_none", types=", ".join(sorted(SUPPORTED_EXTENSIONS))))
-        return
-
-    st.info(t("dir.copied", n=len(saved), domain=dir_domain,
-              roots="、".join(copied_roots), docs=len(ingest_paths)))
-    with st.spinner(t("ingest.spinner")):
+    entries = [(parts, content) for parts, content in entries if not is_generated_info_content(parts[-1], content)]
+    items = [IngestItem(parts[-1], source_path="/".join(parts), bytes=len(content))
+             for parts, content in entries]
+    with _new_ingest_audit("directory", items, dir_domain, groups, default_allowed_users,
+                           default_doc_type, default_department, default_project_id,
+                           directory_mode="merge" if merge else "copy") as audit:
         try:
-            summary = ingest_files(paths=ingest_paths, skip_unchanged=True, default_groups=groups,
-                                   default_doc_type=default_doc_type, doc_type_paths=doc_type_paths,
-                                   owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
-        except (LLMError, VectorStoreError, EmbeddingError) as exc:
+            _validate_upload_visibility(groups, default_allowed_users)
+            default_doc_type = normalize_doc_type("" if default_doc_type is None else default_doc_type) or None
+            if default_department is not None:
+                default_department = normalize_department(default_department) or None
+            if default_project_id is not None:
+                projects.validate_project_id(default_project_id)
+        except ValueError as exc:
             st.error(str(exc))
             return
-        except Exception as exc:
-            st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+        grouped: dict[str, list[tuple[tuple[str, ...], bytes]]] = {}
+        original_indices: dict[str, list[int]] = {}
+        try:
+            for index, (parts, content) in enumerate(entries):
+                root = _clean_directory_name(parts[0])
+                grouped.setdefault(root, []).append((parts[1:], content))
+                # 保留用户选择的原始根目录；不要使用领域、清理后的名称或副本目录名。
+                original_indices.setdefault(root, []).append(index)
+        except ValueError as exc:
+            st.error(str(exc))
             return
-    st.session_state["processed_directory_batch"] = f"{batch_id}@{dir_domain}"
-    _show_ingest_result(summary)
+
+        order = [index for root in grouped for index in original_indices[root]]
+        try:
+            from src.project_directories import (
+                INFO_NAME, managed_directory_names, other_project_paths, upload_directory, without_storage_directory,
+            )
+
+            audit.stage = "preflight"
+            ledger = istate.load_state()
+            blocked_paths = _upload_blocked_paths(ledger) | other_project_paths(ledger, default_project_id)
+            if any(root.casefold() == INFO_NAME for root in grouped):
+                raise ValueError(f"{INFO_NAME} 是入库目录的保留说明文件")
+            audit.stage = "save"
+            registered = managed_directory_names()
+            legacy_paths = {
+                Path(rel) for rel, entry in ledger.items()
+                if entry.get("project_id") == default_project_id and without_storage_directory(rel, registered) == rel
+            }
+            with upload_directory(cfg.knowledge_dir, dir_domain, default_project_id) as domain_dir:
+                saved, copied_roots = write_directory_import(
+                    grouped, domain_dir, merge=merge, blocked_paths=blocked_paths,
+                    knowledge_dir=cfg.knowledge_dir, legacy_paths=legacy_paths,
+                    on_saved=lambda index, path: audit.saved(order[index], path))
+        except (OSError, ValueError) as exc:
+            st.error(str(exc))
+            return
+        # writer 按 grouped 的根目录/文件顺序返回实际路径（含另存副本的改名）。
+        # 浏览器批次可交错多个根目录，因此先按相同分组顺序展开原始路径再配对。
+        doc_type_paths = {str(path.resolve()): items[index].source_path for path, index in zip(saved, order)}
+
+        if not saved:
+            st.warning(t("dir.no_docs"))
+            return
+
+        ingest_paths = []
+        for path, index in zip(saved, order):
+            if path.suffix.lower() in SUPPORTED_EXTENSIONS:
+                ingest_paths.append(path)
+            else:
+                audit.skip(index, "unsupported_type")
+        if not ingest_paths:
+            st.warning(t("dir.copied_none", types=", ".join(sorted(SUPPORTED_EXTENSIONS))))
+            return
+
+        st.info(t("dir.copied", n=len(saved), domain=domain_dir.relative_to(cfg.knowledge_dir).as_posix(),
+                  roots="、".join(copied_roots), docs=len(ingest_paths)))
+        audit.stage = "index"
+        with st.spinner(t("ingest.spinner")):
+            try:
+                summary = ingest_files(paths=ingest_paths, skip_unchanged=True, default_groups=groups,
+                                       default_doc_type=default_doc_type, doc_type_paths=doc_type_paths,
+                                       default_department=default_department,
+                                       default_project_id=default_project_id,
+                                       default_allowed_users=default_allowed_users,
+                                       owner=str((st.session_state.get("auth_user") or {}).get("username") or ""))
+            except (LLMError, VectorStoreError, EmbeddingError) as exc:
+                st.error(str(exc))
+                return
+            except Exception as exc:
+                st.error(t("chat.unexpected", err=f"{type(exc).__name__}: {exc}"))
+                return
+        audit.finish(summary)
+        st.session_state["processed_directory_batch"] = f"{batch_id}@{dir_domain}:{default_project_id}"
+        _show_ingest_result(summary)
 
 
 def _show_ingest_result(summary):
@@ -2133,10 +2671,14 @@ def _show_ingest_result(summary):
         st.caption(t("ingest.breakdown", new=len(summary.new_files),
                      updated=len(summary.updated_files), skipped=len(summary.skipped_files)))
     if summary.file_rows:
+        project_catalog = ({p["id"]: p for p in projects.list_projects()}
+                           if any(r.get("project_id") for r in summary.file_rows) else {})
         st.dataframe(
             [{t("ingest.col.path"): r["path"], t("ingest.col.domain"): domain_label(r["domain"]),
-              t("ingest.col.category"): r["category"],
+              t("common.project"): project_label(r.get("project_id"), project_catalog),
               t("common.doc_type"): str(r.get("doc_type") or "").strip() or t("doc_type.unclassified"),
+              t("common.department"): str(r.get("department") or "").strip() or t("department.unspecified"),
+              t("visibility.level"): _visibility_label(r.get("classification")),
               t("ingest.col.status"): r["status"], t("ingest.col.chunks"): r["chunks"],
               t("version.col.declared"): r.get("document_version") or t("version.empty"),
               t("version.col.status"): t("version.state." + r.get("document_version_status", "unavailable")),
@@ -2149,8 +2691,8 @@ def _show_ingest_result(summary):
     st.divider()
     st.markdown(f'<div class="section-title">{t("upload.dir_status")}</div>', unsafe_allow_html=True)
     if cfg.knowledge_dir.exists():
-        existing = sorted(p for p in cfg.knowledge_dir.rglob("*")
-                          if p.is_file() and not p.name.startswith("."))
+        existing = sorted({cfg.knowledge_dir / doc["path"] for doc in store.list_documents(_viewer_filters())
+                           if (cfg.knowledge_dir / doc["path"]).is_file()})
         by_domain: dict[str, int] = {}
         for p in existing:
             first = p.relative_to(cfg.knowledge_dir).parts[0]
@@ -2171,10 +2713,12 @@ def _show_ingest_result(summary):
 
 
 # ---------------------------------------------------------------- 页面 3：知识管理台
+@_guard_management_database
 def page_manage():
     require_perm('manage')
     st.markdown(f'<div class="section-title">{t("manage.title")}</div>', unsafe_allow_html=True)
     st.caption(t("manage.caption"))
+    documents = store.list_documents(_viewer_filters())
     if notice := st.session_state.pop("manage_action_notice", None):
         st.toast(notice, icon="✅")
 
@@ -2197,6 +2741,7 @@ def page_manage():
                     "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
                     top_k=10,
                     user_groups=_sum_groups,
+                    username=_sum_au.get("username"),
                 )
             # V3.7.1 使用记录：跨文档总结同样落库（管理员操作）
             _sum_user = st.session_state.get("auth_user") or {}
@@ -2217,12 +2762,6 @@ def page_manage():
                 st.caption(t("manage.sum.sources",
                              names="、".join(sorted({s["source"] for s in result.sources}))))
 
-    try:
-        documents = store.list_documents()
-    except VectorStoreError as exc:
-        st.error(str(exc))
-        documents = []
-
     if not documents:
         st.info(t("manage.empty"))
         return
@@ -2237,7 +2776,8 @@ def page_manage():
         m3.metric(t("manage.metric.domains"), f"{domains_covered} / {len(domain_reg.all_codes())}")
         m4.metric(t("manage.metric.archived"), archived)
 
-    f1, f2, f3, f4, f5 = st.columns([3, 1.2, 1.2, 1.2, 1.5])
+    project_catalog = {p["id"]: p for p in projects.list_projects()}
+    f1, f2, f3, f4, f5, f6 = st.columns([3, 1.2, 1.2, 1.2, 1.2, 1.3])
     keyword = f1.text_input(t("manage.search"), placeholder=t("manage.search.ph"))
     dom_codes = ["all"] + domain_reg.all_codes()  # 含停用领域：其数据仍可检索与管理
     dom_filter = f2.selectbox(t("common.domain"), dom_codes,
@@ -2260,6 +2800,34 @@ def page_manage():
         else t("doc_type.unclassified") if choice[0] == "unclassified" else choice[1],
         key="manage_doc_type_select",
     )
+    # 归属部门筛选：全部 / 未指定 / 现有归属值（从文档元数据派生，不建部门副表）
+    departments = sorted({str(d.get("department") or "").strip() for d in documents} - {""})
+    department_options = [("all", ""), ("no_department", "")] + [("exact", value) for value in departments]
+    department_filter = f6.selectbox(
+        t("common.department"), department_options,
+        format_func=lambda choice: t("common.all") if choice[0] == "all"
+        else t("department.unspecified") if choice[0] == "no_department" else choice[1],
+        key="manage_department_select",
+    )
+    project_ids = sorted({d["project_id"] for d in documents if d.get("project_id") is not None})
+    project_column, direction_column, visibility_column = st.columns(3)
+    project_filter = project_column.selectbox(
+        t("common.project"), [None, 0, *project_ids], key="manage_project_select",
+        format_func=lambda pid: t("common.all") if pid is None
+        else project_label(pid or None, project_catalog),
+    )
+    directions = {p["direction_id"]: p["direction_name"] for pid in project_ids
+                  if (p := project_catalog.get(pid)) and p["direction_id"] is not None}
+    direction_filter = direction_column.selectbox(
+        t("common.business_direction"), [None, *sorted(directions, key=directions.get)],
+        format_func=lambda did: t("common.all") if did is None else directions[did],
+        key="manage_project_direction_select",
+    )
+    visibility_filter = visibility_column.selectbox(
+        t("visibility.level"), ["", "公开", "内部", "受限"],
+        format_func=lambda value: _visibility_label(value) if value else t("common.all"),
+        key="manage_classification_select",
+    )
 
     # V3.7.1：网页快照带上原文网址 / 标题，搜索和「来源」筛选都能用（只读快照文件头，不动卡片）
     origins = {d["path"]: read_snapshot_origin(cfg.knowledge_dir / d["path"]) for d in documents}
@@ -2272,10 +2840,17 @@ def page_manage():
         return ((not keyword or keyword.lower() in hay)
                 and (dom_filter == "all" or d["domain"] == dom_filter)
                 and (status_filter == "all" or d["status"] == status_filter)
+                and (not visibility_filter or d.get("classification") == visibility_filter)
                 and (origin_filter == "all" or is_web == (origin_filter == "web"))
+                and (project_filter is None or (d.get("project_id") or 0) == project_filter)
+                and (direction_filter is None
+                     or project_catalog.get(d.get("project_id"), {}).get("direction_id") == direction_filter)
                 and (type_filter[0] == "all"
                      or (type_filter[0] == "unclassified" and not str(d.get("doc_type") or "").strip())
-                     or (type_filter[0] == "exact" and str(d.get("doc_type") or "").strip() == type_filter[1])))
+                     or (type_filter[0] == "exact" and str(d.get("doc_type") or "").strip() == type_filter[1]))
+                and (department_filter[0] == "all"
+                     or (department_filter[0] == "no_department" and not str(d.get("department") or "").strip())
+                     or (department_filter[0] == "exact" and str(d.get("department") or "").strip() == department_filter[1])))
 
     filtered = [d for d in documents if _match(d)]
 
@@ -2284,7 +2859,8 @@ def page_manage():
     visible_ids = {d["document_id"] for d in filtered}
     selected_ids = set(st.session_state.get(selection_key, [])) & visible_ids
     st.session_state[selection_key] = sorted(selected_ids)
-    filter_signature = (keyword, dom_filter, status_filter, origin_filter, type_filter)
+    filter_signature = (keyword, dom_filter, status_filter, origin_filter, type_filter,
+                        department_filter, project_filter, direction_filter, visibility_filter)
     if st.session_state.get("manage_filter_signature") != filter_signature:
         st.session_state["manage_page"] = 1
         st.session_state["manage_filter_signature"] = filter_signature
@@ -2366,19 +2942,23 @@ def page_manage():
     def _row(d) -> dict:
         origin = origins.get(d["path"]) or {}
         file_cell = ("🌐 " if origin else "") + str(d["source"])
+        project = project_catalog.get(d.get("project_id"), {})
         return {"_id": d["document_id"], t("manage.col.select"): d["document_id"] in selected_ids,
                 t("manage.col.file"): file_cell, t("manage.col.type"): "web" if origin
                 else str(d.get("file_type") or "").upper(),
                 t("common.doc_type"): str(d.get("doc_type") or "").strip() or t("doc_type.unclassified"),
+                t("common.department"): str(d.get("department") or "").strip() or t("department.unspecified"),
+                t("common.project"): project_label(d.get("project_id"), project_catalog),
+                t("common.business_direction"): project.get("direction_name") or "—",
                 t("manage.col.indexed_at"): str(d.get("indexed_at") or "")[:16],
                 t("manage.col.path"): d["path"],
-                "Domain": domain_label(d["domain"]), "Category": d["category"],
+                "Domain": domain_label(d["domain"]),
                 "Topic": ", ".join(d["topic"]) or "-",
-                "Groups": ", ".join(d.get("allowed_groups") or ["all"]),
+                "Groups": ", ".join(d.get("allowed_groups", []) or []),
                 "Version": d["version"],
                 t("version.col.declared"): d.get("document_version") or t("version.empty"),
                 t("version.col.status"): t("version.state." + d.get("document_version_status", "unavailable")),
-                "密级": d.get("classification") or "公开",
+                t("visibility.level"): _visibility_label(d.get("classification")),
                 "Status": d["status"], t("manage.col.chunks"): d["chunks"],
                 t("manage.col.url"): (origin.get("url") or None)}
 
@@ -2396,12 +2976,14 @@ def page_manage():
                                                                     help=t("manage.col.select.help")),
             t("manage.col.type"): st.column_config.TextColumn(t("manage.col.type"), width="small"),
             t("common.doc_type"): st.column_config.TextColumn(t("common.doc_type"), width="medium"),
+            t("common.department"): st.column_config.TextColumn(t("common.department"), width="medium"),
             t("manage.col.url"): st.column_config.LinkColumn(t("manage.col.url"), width="medium",
                                                              help=t("manage.col.url.help")),
         },
-        disabled=[t("manage.col.file"), t("manage.col.path"), t("manage.col.type"), t("common.doc_type"), "Domain",
-                  "Category", "Topic", "Groups", "Version", t("version.col.declared"),
-                  t("version.col.status"), "密级", "Status", t("manage.col.chunks"),
+        disabled=[t("manage.col.file"), t("manage.col.path"), t("manage.col.type"), t("common.doc_type"),
+                  t("common.department"), t("common.project"), t("common.business_direction"), "Domain",
+                  "Topic", "Groups", "Version", t("version.col.declared"),
+                  t("version.col.status"), t("visibility.level"), "Status", t("manage.col.chunks"),
                   t("manage.col.url")],
     )
     records = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
@@ -2472,12 +3054,13 @@ def page_manage():
         st.markdown(
             f"### {('🌐' if origin else '📄')} {html.escape(str(d['source']))}　{status_tag}"
             + tag(f"🗂 {html.escape(domain_label(str(d['domain'])))}", "blue")
-            + tag(f"📁 {html.escape(str(d['category']))}", "blue")
             + tag(html.escape(t("common.doc_type")) + ": "
                   + html.escape(str(d.get("doc_type") or "").strip() or t("doc_type.unclassified")), "blue")
+            + tag(html.escape(t("common.department")) + ": "
+                  + html.escape(str(d.get("department") or "").strip() or t("department.unspecified")), "blue")
             + (tag("🏷 " + html.escape(" / ".join(d["topic"]))) if d["topic"] else "")
             + tag(f"v{html.escape(str(d['version']))}", "green")
-            + tag("🔒 " + html.escape(str(d.get("classification") or "公开")), "blue"),
+            + tag("🔒 " + html.escape(_visibility_label(d.get("classification"))), "blue"),
             unsafe_allow_html=True,
         )
         st.caption(t("manage.detail.cards", id=d["document_id"], n=d["chunks"]))
@@ -2527,7 +3110,7 @@ def page_manage():
                         st.session_state.get("manage_table_revision", 0) + 1
                     st.rerun()
                 except ManageError as exc:
-                    st.error(str(exc))
+                    _show_management_error(exc)
 
     # 独立原子表单：仅保存当前文档的类型，绝不连带提交其他档案/权限输入。
     _type_suffix = f"{d['document_id']}_{d['version']}_{st.session_state.get('manage_table_revision', 0)}"
@@ -2542,28 +3125,78 @@ def page_manage():
             st.session_state["manage_action_notice"] = info["message"]
             st.session_state["manage_table_revision"] = st.session_state.get("manage_table_revision", 0) + 1
             st.rerun()
-        except (ManageError, VectorStoreError, ValueError) as exc:
+        except (ManageError, ValueError) as exc:
             st.error(str(exc))
+
+    # 独立原子表单：仅保存当前文档的归属部门（清空=未指定），绝不连带提交其他档案/权限输入。
+    _current_department = str(d.get("department") or "").strip()
+    _dep_edit_choices = document_department_options(_current_department)
+    _department_suffix = f"{d['document_id']}_{d['version']}_{st.session_state.get('manage_table_revision', 0)}"
+    with st.form(key=f"department_form_{_department_suffix}"):
+        new_department = st.selectbox(
+            t("common.department"), _dep_edit_choices,
+            format_func=lambda v: t("department.unspecified") if v == "" else v,
+            index=_dep_edit_choices.index(_current_department),
+            key=f"ed_department_{_department_suffix}",
+            help=t("department.filter.help"))
+        save_department = st.form_submit_button(t("department.save"))
+    if save_department:
+        try:
+            info = update_metadata(d["path"], {"department": new_department})
+            st.session_state["manage_action_notice"] = info["message"]
+            st.session_state["manage_table_revision"] = st.session_state.get("manage_table_revision", 0) + 1
+            st.rerun()
+        except (ManageError, ValueError) as exc:
+            st.error(str(exc))
+
+    current_project = d.get("project_id")
+    project_options = [None, *project_catalog]
+    if current_project not in project_options:
+        project_options.append(current_project)
+    with st.form(key=f"project_form_{_department_suffix}"):
+        new_project = st.selectbox(
+            t("common.project"), project_options,
+            format_func=lambda pid: project_label(pid, project_catalog),
+            index=project_options.index(current_project),
+        )
+        save_project = st.form_submit_button(t("project.save"))
+    if save_project:
+        try:
+            info = update_metadata(d["path"], {"project_id": new_project})
+            st.session_state["manage_action_notice"] = info["message"]
+            st.session_state["manage_table_revision"] = st.session_state.get("manage_table_revision", 0) + 1
+            st.rerun()
+        except (ManageError, ValueError) as exc:
+            st.error(str(exc))
+
+    # Permission changes are isolated from archive/project/department edits.
+    # The selector stays outside st.form so its real dialog can rerun on search.
+    with st.container(border=True):
+        st.markdown(f"**{t('visibility.edit.title')}**")
+        permission_acl = render_visibility_selector(f"permission_{_department_suffix}", current=d)
+        with st.form(key=f"permission_form_{_department_suffix}"):
+            save_permissions = st.form_submit_button(t("visibility.save"), disabled=permission_acl is None)
+        if save_permissions and permission_acl is not None:
+            try:
+                info = update_metadata(d["path"], {
+                    "allowed_groups": permission_acl["allowed_groups"],
+                    "allowed_users": permission_acl["allowed_users"],
+                })
+                st.session_state["manage_action_notice"] = info["message"]
+                st.session_state["manage_table_revision"] = st.session_state.get("manage_table_revision", 0) + 1
+                st.rerun()
+            except (ManageError, ValueError) as exc:
+                st.error(str(exc))
 
     # 档案编辑（V3.4）：key 绑定当前文档——固定 key 会让切换文档后沿用
     # 上一个文档的输入值，保存时把 A 的档案写进 B
     with st.expander(t("manage.edit.title")):
-        e1, e2 = st.columns(2)
         _ed_suffix = d["document_id"]
-        new_title = e1.text_input(t("manage.edit.title.label"),
+        new_title = st.text_input(t("manage.edit.title.label"),
                                   value=d.get("source") or "",
                                   key=f"ed_title_{_ed_suffix}")
-        new_category = e2.text_input(t("manage.edit.category"), value=d["category"],
-                                     key=f"ed_cat_{_ed_suffix}")
         new_topic = st.text_input(t("manage.edit.topic"), value=", ".join(d["topic"]),
                                   key=f"ed_topic_{_ed_suffix}")
-        # V3.7 权限：可见部门多选（空 = 全员可见）；写入侧限 全员+自己部门，
-        # 文档现有可见域并入选项（只能保留管理员设的更宽范围，不能改成别的部门）
-        _group_options = group_write_options(current=d.get("allowed_groups") or ["all"])
-        new_groups = st.multiselect(t("manage.edit.groups"), _group_options,
-                                    default=d.get("allowed_groups") or ["all"],
-                                    key=f"ed_groups_{_ed_suffix}", format_func=auth_db.department_label,
-                                    help=t("manage.edit.groups.help"))
         new_version = st.text_input(t("manage.edit.version"), value=d["version"],
                                     key=f"ed_ver_{_ed_suffix}")
         _declared_suffix = f"{_ed_suffix}_{d['version']}_{d.get('version_content_hash', '')}_{st.session_state.get('manage_table_revision', 0)}"
@@ -2572,9 +3205,8 @@ def page_manage():
         confirm_version = st.checkbox(t("version.confirm"), key=f"ed_confirm_{_declared_suffix}",
                                       disabled=d["status"] not in ("active", "archive"))
         if st.button(t("manage.edit.save"), type="primary"):
-            updates = {"title": new_title, "category": new_category,
-                       "topic": [t.strip() for t in new_topic.split(",") if t.strip()],
-                       "allowed_groups": new_groups}
+            updates = {"title": new_title,
+                       "topic": [t.strip() for t in new_topic.split(",") if t.strip()]}
             if new_version != d["version"]:
                 updates["version"] = new_version
             try:
@@ -2591,7 +3223,7 @@ def page_manage():
             except ManageError as exc:
                 st.error(str(exc))
 
-    payloads = store.chunks_by_document(d["document_id"])
+    payloads = store.chunks_by_document(d["document_id"], filters=_viewer_filters())
     st.markdown(t("manage.cards.title", n=len(payloads)))
     for payload in payloads:
         head = t("manage.card.head", chunk_id=payload.get("chunk_id", "?"),
@@ -2668,6 +3300,30 @@ def page_retrieval_settings():
     st.text_input(t("common.doc_type"), value=doc_type_choice, max_chars=80,
                   key="set_doc_type", on_change=_sync_setting("doc_type_choice", "set_doc_type"),
                   help=t("doc_type.filter.help"), placeholder=t("doc_type.filter.optional"))
+    try:
+        department_choice = normalize_department_filter(
+            st.session_state.get("department_choice", "")) or ""
+    except ValueError:
+        department_choice = ""
+    _reg_departments = document_department_options()[1:]
+    _stored_departments = sorted({str(d.get("department") or "").strip()
+                                    for d in store.list_documents(_viewer_filters())} - {""})
+    department_options = list(dict.fromkeys(
+        ["", "__no_department__"] + _reg_departments + _stored_departments
+        + ([department_choice] if department_choice else [])))
+    st.selectbox(t("common.department"), department_options,
+                 format_func=lambda v: t("common.all") if v == ""
+                 else t("department.unspecified") if v == "__no_department__" else v,
+                 index=department_options.index(department_choice)
+                 if department_choice in department_options else 0,
+                 key="set_department", on_change=_sync_setting("department_choice", "set_department"),
+                 help=t("department.filter.help"))
+    visibility_choices = ["", "公开", "内部", "受限"]
+    visibility_choice = st.session_state.get("classification_choice", "")
+    st.selectbox(t("visibility.level"), visibility_choices,
+                 format_func=lambda value: _visibility_label(value) if value else t("common.all"),
+                 index=visibility_choices.index(visibility_choice) if visibility_choice in visibility_choices else 0,
+                 key="set_classification", on_change=_sync_setting("classification_choice", "set_classification"))
     st.radio(t("set.scope"), scope_codes,
              format_func=lambda s: t(f"scope.{s}"),
              index=scope_codes.index(st.session_state["scope_choice"])
@@ -2955,6 +3611,7 @@ def page_plugins():
 
 # ---------------------------------------------------------------- 页面：领域管理（V3.8）
 @st.dialog(t("dommgr.delete.confirm.title"), width="small")
+@_guard_management_database
 def confirm_domain_delete() -> None:
     code = st.session_state.get("domain_delete_request")
     if not code:
@@ -2970,7 +3627,7 @@ def confirm_domain_delete() -> None:
             stat = domain_reg.usage_by_domain(cfg.knowledge_dir, istate.load_state(),
                                               store.list_documents()).get(code)
             domain_reg.delete_domain(code, stat, cfg.knowledge_dir)
-        except (domain_reg.DomainError, VectorStoreError) as exc:
+        except domain_reg.DomainError as exc:
             st.error(str(exc))
             return
         st.session_state.pop("domain_delete_request", None)
@@ -2978,6 +3635,7 @@ def confirm_domain_delete() -> None:
         st.rerun()
 
 
+@_guard_management_database
 def page_domains():
     """领域管理：增 / 改名称与描述 / 启停 / 删除（只能删空领域）/ 登记未登记目录。
 
@@ -2987,11 +3645,7 @@ def page_domains():
     st.markdown(f'<div class="section-title">{t("dommgr.title")}</div>', unsafe_allow_html=True)
     st.caption(t("dommgr.caption"))
 
-    try:
-        documents = store.list_documents()
-    except VectorStoreError as exc:
-        st.error(str(exc))
-        return
+    documents = store.list_documents()
     usage = domain_reg.usage_by_domain(cfg.knowledge_dir, istate.load_state(), documents)
 
     # ① 新增领域
@@ -3005,7 +3659,7 @@ def page_domains():
                 try:
                     created = domain_reg.create_domain(new_code, new_name, new_desc, store=store)
                 except domain_reg.DomainError as exc:
-                    st.error(str(exc))
+                    _show_management_error(exc)
                 else:
                     st.toast(t("dommgr.add.ok", code=created["code"]), icon="✅")
                     st.rerun()
@@ -3073,7 +3727,7 @@ def page_domains():
                 try:
                     created = domain_reg.register_directory(u["folder"], u["folder"], store)
                 except domain_reg.DomainError as exc:
-                    st.error(str(exc))
+                    _show_management_error(exc)
                 else:
                     st.toast(t("dommgr.unreg.ok", code=created["code"]), icon="✅")
                     st.rerun()

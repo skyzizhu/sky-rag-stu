@@ -45,6 +45,7 @@ def create_direction(name: str, code: str = '', note: str = '') -> dict:
             )
             row = conn.execute('SELECT * FROM business_directions WHERE id=?',
                                (cursor.lastrowid,)).fetchone()
+            auth_db.touch_retrieval_scope(conn)
     except sqlite3.IntegrityError as exc:
         raise ValueError('业务方向名称或字母编号已存在，请使用其他名称或编号') from exc
     return dict(row)
@@ -79,6 +80,7 @@ def update_direction(direction_id: int, name: str, code: str, note: str,
                 raise DirectionConflict('业务方向已被其他管理员修改，请关闭后重新编辑')
             conn.execute('UPDATE business_directions SET name=?,code=?,note=? WHERE id=?',
                          (name, code, note, direction_id))
+            auth_db.touch_retrieval_scope(conn)
             after = dict(conn.execute('SELECT * FROM business_directions WHERE id=?', (direction_id,)).fetchone())
     except sqlite3.IntegrityError as exc:
         raise ValueError('业务方向名称或字母编号已存在，请使用其他名称或编号') from exc

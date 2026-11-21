@@ -67,12 +67,12 @@ class MetadataEditCacheTests(_RetrievalCase):
         """① 同一类问题：改分类后，BM25 返回的卡片元数据不能还是旧分类。"""
         self.ingest_with_corpus("报销流程：先填申请单。", "a.md")
 
-        def categories() -> set[str]:
+        def categories() -> set[str | None]:
             hits = keyword_search.bm25_search("报销流程", top_k=1, store=self.store,
                                               filters={"status": "active"}, config=self.cfg)
-            return {h["payload"]["category"] for h in hits}
+            return {h["payload"].get("category") for h in hits}
 
-        self.assertEqual(categories(), {"general"})  # 缓存已建好
+        self.assertEqual(categories(), {None})  # 缓存已建好
         update_metadata("learning/general/a.md", {"category": "newcat"})
         self.assertEqual(categories(), {"newcat"})
 
@@ -84,6 +84,41 @@ class MetadataEditCacheTests(_RetrievalCase):
 
 
 class CrossProcessCacheTests(_RetrievalCase):
+    def test_acl_caches_expire_even_without_file_notification(self):
+        from src import auth_db, mcp_server
+        from src.permissions import scope_filters
+
+        self.ingest([self.write_note("RAG-CACHE-TEST：资料正文。", "cache.md")])
+        question = "RAG-CACHE-TEST"
+        identity = (["finance"], "employee", {})
+        scoped = scope_filters({"status": "active"}, *identity[:2])
+
+        def answer():
+            return pipeline_mod.answer_question(
+                question, use_query_understanding=False, use_rerank=False,
+                user_groups=identity[0], username=identity[1])
+
+        with mock.patch.object(pipeline_mod, "get_llm_client") as llm, \
+             mock.patch.object(mcp_server, "_identity_from_ctx", return_value=identity):
+            llm.return_value.chat_stream.side_effect = lambda *a, **kw: iter(["有权查看的资料"])
+            self.assertTrue(answer().sources)
+            self.assertTrue(answer().cache_hit)
+            self.assertTrue(json.loads(mcp_server._tool_knowledge_search_impl(question))["matches"])
+            self.assertTrue(keyword_search.bm25_search(question, 1, store=self.store, filters=scoped))
+
+            before = auth_db.retrieval_acl_revision()
+            with mock.patch.object(index_epoch, "bump"), \
+                 mock.patch.object(keyword_search, "invalidate_cache"), \
+                 mock.patch.object(pipeline_mod, "clear_qa_cache"):
+                update_metadata("learning/general/cache.md", {"allowed_groups": ["hr"]})
+            self.assertNotEqual(auth_db.retrieval_acl_revision(), before)
+            self.assertFalse(keyword_search.bm25_search(question, 1, store=self.store, filters=scoped))
+            denied = answer()
+            self.assertFalse(denied.cache_hit)
+            self.assertFalse(denied.sources)
+            self.assertFalse(json.loads(mcp_server._tool_knowledge_search_impl(question))["matches"])
+            self.assertEqual(llm.return_value.chat_stream.call_count, 1)
+
     def test_keyword_cache_notices_payload_change_by_another_process(self):
         """② 另一个进程只改了 payload：本进程没有任何清缓存调用，只能靠纪元文件感知。"""
         self.ingest_with_corpus("报销流程：先填申请单。", "a.md", "finance")
@@ -190,19 +225,18 @@ class McpDomainParameterTests(_RetrievalCase):
     def test_unknown_domain_returns_explicit_error_not_empty_result(self):
         from src import mcp_server
 
-        import asyncio
-        out = json.loads(asyncio.run(mcp_server.knowledge_search("报销流程", domain="不存在的领域")))
+        out = json.loads(mcp_server._tool_knowledge_search_impl("报销流程", domain="不存在的领域"))
         self.assertNotIn("matches", out)
         self.assertIn("不存在的领域", out["error"])
         self.assertIn("finance", out["error"])  # 带上可用编号，Agent 能自行纠正
-        out = json.loads(asyncio.run(mcp_server.knowledge_qa("报销流程", domain="不存在的领域")))
+        out = json.loads(mcp_server._tool_knowledge_qa_impl("报销流程", domain="不存在的领域"))
         self.assertIn("finance", out["error"])
 
     def test_search_by_display_name_finds_the_document(self):
         from src import mcp_server
 
         with mock.patch.object(mcp_server, "_log_qa"):  # 不写真实 RAG 日志
-            out = json.loads(asyncio.run(mcp_server.knowledge_search("报销流程", domain="财务")))
+            out = json.loads(mcp_server._tool_knowledge_search_impl("报销流程", domain="财务"))
         self.assertEqual([m["source"] for m in out["matches"]], ["a.md"])
 
 
@@ -216,17 +250,21 @@ class WebIngestDomainTests(_RetrievalCase):
     def test_selected_domain_and_category_take_effect(self):
         """⑥ 选了 finance：卡片属于 finance、分类生效，按 finance 能检索到。"""
         domains.create_domain("finance", "财务")
-        self.ingest_page(domain="finance", category="policies")
+        result = self.ingest_page(domain="finance", category="policies")
+        self.assertEqual(Path(result["file_path"]).parent, self.knowledge / "finance")
         [doc] = self.store.list_documents()
         self.assertEqual((doc["domain"], doc["category"]), ("finance", "policies"))
         self.assertEqual(self.sources("报销流程", domain="finance"), {doc["source"]})
         self.assertEqual(self.sources("报销流程", domain="reference"), set())
 
-    def test_default_snapshot_is_byte_compatible_with_old_ones(self):
+    def test_default_snapshot_lives_in_domain_and_can_be_reused(self):
         result = self.ingest_page()
-        text = Path(result["file_path"]).read_text(encoding="utf-8")
+        path = Path(result["file_path"])
+        self.assertEqual(path.parent, self.knowledge / "reference")
+        text = path.read_text(encoding="utf-8")
         self.assertNotIn("\ndomain:", text)    # 不写默认值：存量网页重抓不会无故升版本
         self.assertNotIn("\ncategory:", text)
+        self.assertEqual(self.store.list_documents()[0]["category"], "")
         self.assertTrue(self.ingest_page()["skipped"])
 
     def test_switching_domain_versions_the_same_document(self):
@@ -305,6 +343,16 @@ class FilterRelaxationTests(_RetrievalCase):
         self.assertNotIn("hr.md", hits)
         self.assertIn("hr.md", self.stream(user_groups=["hr"]))
 
+    def test_relaxation_keeps_individual_grants_in_both_retrieval_channels(self):
+        from src import auth_db
+        dep = next(iter(auth_db.list_departments()), None) or auth_db.create_department("hr")
+        auth_db.create_user("alice", "password123", department_id=dep["id"])
+        auth_db.create_user("bob", "password123", department_id=dep["id"])
+        self.ingest([self.write_note("报销流程：个人保密附件。", "restricted.md")],
+                    default_groups=[], default_allowed_users=["alice"])
+        self.assertIn("restricted.md", self.stream(user_groups=["hr"], username="alice"))
+        self.assertNotIn("restricted.md", self.stream(user_groups=["hr"], username="bob"))
+
     def test_relaxation_keeps_manual_domain_filter(self):
         self.assertIn("open.md", self.stream(filters={"domain": "learning"}))
         self.assertEqual(self.stream(filters={"domain": "work"}), set())
@@ -326,7 +374,12 @@ class CrossVersionContextTests(unittest.TestCase):
         self.assertEqual(len(used), 2)
 
     def test_adjacent_merge_within_one_version_still_works(self):
-        _context, used, _dropped, notes = build_context(
+        context, used, _dropped, notes = build_context(
             [self.item("1.1", 3, "第三段。"), self.item("1.1", 4, "第四段。")])
         self.assertEqual(len(notes), 1)
-        self.assertEqual(len(used), 1)
+        [evidence] = used
+        self.assertEqual(evidence.rank, 1)
+        self.assertEqual(evidence.text, "第三段。\n第四段。")
+        self.assertTrue(context.startswith("[1]"))
+        self.assertTrue(context.endswith(evidence.text))
+        self.assertEqual(evidence.metadata["chunk_ids"], ["doc_1_v1.1_0003", "doc_1_v1.1_0004"])

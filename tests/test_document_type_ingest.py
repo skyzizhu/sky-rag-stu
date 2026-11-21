@@ -60,7 +60,10 @@ class DocumentTypeIngestTests(IngestHarness):
         self.ingest(paths[2:])
         self.assertEqual([self.current(p)["doc_type"] for p in paths],
                          ["手工自由值", "二期方案", "测试报告", ""])
-        self.assertEqual(self.current(paths[1])["category"], "general")
+        self.assertEqual(self.current(paths[1])["category"], "")
+        cards = self.store.get_all_cards({"document_id": self.current(paths[1])["document_id"]})
+        self.assertTrue(cards)
+        self.assertTrue(all("category" not in card["payload"] for card in cards))
 
     def test_blank_and_invalid_front_matter_are_not_manual_clears(self):
         for i, declaration in enumerate(("doc_type: ''", "doc_type: null", "doc_type: 12",
@@ -142,7 +145,7 @@ class DocumentTypeIngestTests(IngestHarness):
                         doc_type_paths={str(path.resolve()): "一期方案/a.md"})
         self.assertEqual(before, self.ledger())
 
-    def test_rebuild_keeps_only_type_state_not_unrelated_manual_archives(self):
+    def test_rebuild_keeps_type_and_visibility_without_other_manual_fields(self):
         auto = self.write_note("原目录类型", "auto.md")
         default = self.write_note("默认类型", "default.md")
         clear = self.fm_note("doc_type: 需求文档", name="clear.md")
@@ -155,11 +158,11 @@ class DocumentTypeIngestTests(IngestHarness):
                          ["一期方案", "上传默认", ""])
         clear_doc = self.current(clear)
         self.assertEqual(clear_doc["version"], "1.0")
-        self.assertEqual(clear_doc["allowed_groups"], ["all"])
-        self.assertNotIn("overrides", self.ledger()[self.rel(clear)])
+        self.assertEqual(clear_doc["allowed_groups"], ["hr"])
+        self.assertNotIn("title", self.ledger()[self.rel(clear)]["overrides"])
         self.assertEqual(self.ledger()[self.rel(auto)]["doc_type_info"]["original_path"], "一期方案/附件/auto.md")
 
-    def test_archive_restore_and_conflicting_paths_keep_type_only(self):
+    def test_archive_restore_and_conflicting_paths_keep_type_and_visibility(self):
         path = self.write_note("正文", "a.md")
         self.ingest([path], doc_type_paths={str(path.resolve()): "一期方案/附件/a.md"})
         update_metadata(self.rel(path), {"doc_type": "", "title": "不继承的旧标题", "version": "7.0", "allowed_groups": ["hr"]})
@@ -174,9 +177,9 @@ class DocumentTypeIngestTests(IngestHarness):
         self.assertNotEqual(moved, conflict)
         self.assertEqual(self.current(moved)["doc_type"], "")
         self.assertEqual(self.current(moved)["version"], "1.0")
-        self.assertEqual(self.current(moved)["allowed_groups"], ["all"])
+        self.assertEqual(self.current(moved)["allowed_groups"], ["hr"])
         self.assertNotIn(self.rel(path), self.ledger())
-        self.assertNotIn("overrides", self.ledger()[self.rel(moved)])
+        self.assertNotIn("title", self.ledger()[self.rel(moved)]["overrides"])
         with contextlib.redirect_stdout(io.StringIO()):
             restored = restore(self.rel(moved))
         restored_path = self.knowledge / restored["summary"].file_rows[0]["path"]

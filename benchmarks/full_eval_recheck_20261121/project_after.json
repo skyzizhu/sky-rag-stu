@@ -1,0 +1,459 @@
+{
+  "indexed": 17,
+  "cards": 21,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "questions": [
+    {
+      "id": "S03",
+      "difficulty": "simple",
+      "question": "星云项目目前的预算总额是多少？",
+      "seconds": 3.656,
+      "elapsed": {
+        "query_understanding": 2.2437703609466553,
+        "retrieval_only": 0.7029998302459717,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.7029998302459717,
+        "total": 3.637028694152832,
+        "llm": 0.6902585029602051
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "星云项目的立项预算总额为 **135 万元** [1]。\n\n（资料中只给出了立项预算金额，未提及其他预算调整信息。）"
+    },
+    {
+      "id": "S09",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 2.235,
+      "elapsed": {
+        "query_understanding": 1.6015410423278809,
+        "retrieval_only": 0.0,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0,
+        "total": 2.218487024307251,
+        "llm": 0.6169459819793701
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "天枢项目的负责人是周红 [1]。"
+    },
+    {
+      "id": "M02",
+      "difficulty": "medium",
+      "question": "星云项目最新章程相比最初立项时有哪些变化？",
+      "seconds": 5.281,
+      "elapsed": {
+        "query_understanding": 3.2864956855773926,
+        "retrieval_only": 0.009084939956665039,
+        "rerank": 0.0,
+        "assembly": 0.0010209083557128906,
+        "retrieval": 0.01010584831237793,
+        "total": 5.2738494873046875,
+        "llm": 1.977247953414917
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "知识库中的资料不足以回答这个问题。\n\n- 资料 [1] 只包含《星云项目章程.md》当前版本的内容（项目概况、里程碑、协作约定、数据安全），没有提供“最初立项版本”的内容。\n- 资料中也没有任何版本修订记录或变更对比信息。\n\n因此，无法判断星云项目最新章程相比最初立项时有哪些变化。如需回答，请补充章程的历史版本或变更记录。\n\n作为参考，现有资料记录的当前章程要点如下 [1]：\n- 立项预算 135 万元，周期 2024-01 至 2024-09，项目负责人陈明\n- 里程碑：M1 需求确认 2024-03、M2 开发完成 2024-06、M3 系统上线 2024-09、M4 项目验收 2024-12\n- 与天枢项目共享测试环境；北斗项目为前置预研项目，其遗留设计文档问题在本项目整改\n- 数据平台按等级保护三级标准建设，数据安全测评费用已列入预算"
+    },
+    {
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "星云项目章程里列了哪几个里程碑？",
+      "seconds": 6.734,
+      "elapsed": {
+        "query_understanding": 1.6238625049591064,
+        "retrieval_only": 0.014134645462036133,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.014134645462036133,
+        "total": 6.7159971504006535,
+        "enumeration": 5.077999999979511,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ],
+        "doc_type": [
+          "章程",
+          "项目章程",
+          "項目章程"
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "document",
+        "metadata_scope": {
+          "project": "星云",
+          "doc_type": "章程"
+        },
+        "processed_documents": 1,
+        "selected_documents": 1,
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 1,
+          "valid_batches": 1,
+          "cards_read": 1,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "document_read",
+          "elapsed": 5.077999999979511,
+          "calls": 1,
+          "estimated_tokens": 1311,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 4,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "本次从已处理资料中整理出 **4 条带原文证据的记录**；这不是全库确定总数。\n\n1. **M1 需求确认**：M1 需求确认：2024-03； [1]\n\n2. **M2 开发完成**：M2 开发完成：2024-06； [1]\n\n3. **M3 系统上线**：M3 系统上线：2024-09； [1]\n\n4. **M4 项目验收**：M4 项目验收：2024-12。 [1]\n\n处理范围：1 份文档、1 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 3.219,
+      "elapsed": {
+        "query_understanding": 2.1630098819732666,
+        "retrieval_only": 0.004033088684082031,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.004033088684082031,
+        "total": 3.2161691188812256,
+        "llm": 1.049126148223877
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "天枢项目的接口响应时间目标是 **≤200ms**，验收方式为压测报告 [1]。"
+    },
+    {
+      "id": "C02",
+      "difficulty": "complex",
+      "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 3.235,
+      "elapsed": {
+        "query_understanding": 3.229917526245117
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "陈明",
+          "周红",
+          "335"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    },
+    {
+      "id": "C05",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+      "seconds": 2.36,
+      "elapsed": {
+        "query_understanding": 2.352792501449585
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "scope_issue": "multiple"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "天枢",
+          "200"
+        ],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。"
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}

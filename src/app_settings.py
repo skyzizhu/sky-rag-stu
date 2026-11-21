@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 
 from src.config import PROJECT_ROOT
+from src.document_department import normalize_department_filter
 from src.document_type import normalize_doc_type_filter
 
 SETTINGS_PATH = PROJECT_ROOT / "settings.json"
@@ -19,6 +20,8 @@ SETTINGS_KEYS = [
     "top_k",
     "domain_choice",
     "doc_type_choice",
+    "department_choice",
+    "classification_choice",
     "scope_choice",
     "debug_mode",
     "query_understanding",
@@ -61,6 +64,14 @@ def _normalize_choices(settings: dict) -> dict:
             settings["doc_type_choice"] = normalize_doc_type_filter(settings["doc_type_choice"]) or ""
         except ValueError:
             settings["doc_type_choice"] = ""
+    # 归属部门取自部门注册表显示名；空值或 all 不过滤，哨兵值仅作为筛选值保留。
+    if "department_choice" in settings:
+        try:
+            settings["department_choice"] = normalize_department_filter(settings["department_choice"]) or ""
+        except ValueError:
+            settings["department_choice"] = ""
+    if "classification_choice" in settings and settings["classification_choice"] not in ("", "公开", "内部", "受限"):
+        settings["classification_choice"] = ""
     sc = settings.get("scope_choice")
     if sc is not None and not isinstance(sc, str):
         settings["scope_choice"] = "active"

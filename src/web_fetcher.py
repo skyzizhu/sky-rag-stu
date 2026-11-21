@@ -141,11 +141,6 @@ def is_valid_url(url: str) -> bool:
     return bool(re.match(r"^https?://[^\s/$.?#].[^\s]*$", url.strip(), re.IGNORECASE))
 
 
-# 网页快照保存目录
-_SNAPSHOT_DIR = PROJECT_ROOT / "knowledge" / "reference" / "webpages"
-
-
-
 def _sanitize_single_line(value: str) -> str:
     """压成单行：标题/URL 含换行会把任意键注入 YAML Front Matter（元数据投毒）。"""
     return re.sub(r"[\r\n]+", " ", value or "").strip()
@@ -157,7 +152,7 @@ def read_snapshot_origin(path: Path) -> dict | None:
     网页的原文网址只在快照文件头里（卡片元数据里没有），文件随归档 / 恢复一起移动，
     所以文件头是网页来源唯一可靠的记录。
     """
-    from src.metadata import parse_front_matter
+    from src.metadata import infer_from_path, parse_front_matter
 
     if Path(path).suffix.lower() != ".md":
         return None
@@ -170,49 +165,67 @@ def read_snapshot_origin(path: Path) -> dict | None:
     url = str(front_matter.get("source_url") or "").strip()
     if front_matter.get("source_type") != "web" or not url:
         return None
+    path_domain = infer_from_path(str(front_matter.get("path") or ""))["domain"]
     return {"url": url, "title": str(front_matter.get("title") or "").strip(),
-            "domain": str(front_matter.get("domain") or "reference"),
-            "category": str(front_matter.get("category") or "webpages")}
+            "domain": str(front_matter.get("domain") or path_domain),
+            "category": str(front_matter.get("category") or "")}
 
 
 def save_web_snapshot(url: str, text: str, title: str, domain: str = "reference",
-                      category: str = "webpages", knowledge_dir: Path | None = None,
-                      target: Path | None = None) -> Path:
-    """将网页正文保存为 .md 文件到 knowledge/reference/webpages/ 目录。
+                      category: str | None = None, knowledge_dir: Path | None = None,
+                      target: Path | None = None, *,
+                      blocked_paths: frozenset[Path] = frozenset(),
+                      destination: Path | None = None,
+                      existing_paths: tuple[Path, ...] = (),
+                      include_legacy: bool = False) -> Path:
+    """把新快照写入所选领域。已有 URL 复用原路径，保留文档 ID 和版本历史。
 
-    这样网页内容就走标准的文件入库流水线，不需要改动任何核心节点。
-    界面所选的领域 / 分类写进 Front Matter（优先级高于目录）。不按领域分目录存放：
-    换领域重抓同一网址时是同一文档的新版本，而不是多出一份同时生效的副本。
-    取默认值时不写入，存量网页的快照内容不变、重抓不会无故升版本。
-    文件名：URL 的 MD5 前 8 位 + 页面标题（截取 30 字）.md。同一网址再次抓取时沿用已有快照
-    文件：网页标题变了也还是同一文档（文件名决定 document_id），是新版本而不是新文档。
-    target 指定写入位置（知识库管理页「重新抓取」写回原快照文件）。
+    同一网址改选领域时通过 Front Matter 更新领域。历史快照已有的分类声明随原文件保留。
     """
     import hashlib
 
+    from src.domains import validate_code
+    from src.upload_plan import available_path
+
+    domain = validate_code(domain)
     url = _sanitize_single_line(url)
     title = _sanitize_single_line(title)
     short_hash = hashlib.md5(url.encode()).hexdigest()[:8]
     safe_title = re.sub(r'[\\/:*?"<>|\s]+', "_", title[:30]) if title else short_hash
     root = knowledge_dir or PROJECT_ROOT / "knowledge"
-    snapshot_dir = root / "reference" / "webpages"
     if target is None:
         # 文件名前缀只有 8 位哈希，用文件头里的网址再确认一次，避免两个网址撞前缀
-        target = next((p for p in sorted(snapshot_dir.glob(f"{short_hash}_*.md"))
-                       if (read_snapshot_origin(p) or {}).get("url") == url), None) \
-            or snapshot_dir / f"{short_hash}_{safe_title}.md"
+        pattern = f"{short_hash}_*.md"
+        candidates = sorted(destination.glob(pattern)) if destination is not None else []
+        if destination is None or include_legacy:
+            candidates.extend(sorted((root / "reference" / "webpages").glob(pattern)))
+            candidates.extend(p for p in sorted(root.glob(f"*/{pattern}"))
+                              if p.parent.name != "archive")
+        candidates.extend(p for p in existing_paths if p.match(pattern))
+        target = next((p for p in candidates if p.is_file()
+                       and p.resolve() == root.resolve() / p.relative_to(root)
+                       and p.relative_to(root) not in blocked_paths
+                       and (read_snapshot_origin(p) or {}).get("url") == url), None)
+        if target is None:
+            target = available_path(destination or root / domain, f"{short_hash}_{safe_title}", ".md")
     target = Path(target)
+    if target.resolve() != root.resolve() / target.relative_to(root):
+        raise ValueError("网页快照路径不能通过符号链接访问")
+    if blocked_paths and target.relative_to(root) in blocked_paths:
+        raise ValueError("当前账号无权覆盖已有网页快照")
+    if category is None:
+        category = (read_snapshot_origin(target) or {}).get("category")
     target.parent.mkdir(parents=True, exist_ok=True)
     filename = target.name
     try:
         rel_path = target.resolve().relative_to(Path(root).resolve()).as_posix()
     except ValueError:
-        rel_path = f"reference/webpages/{filename}"
+        rel_path = f"{domain}/{filename}"
 
     declared = ""
-    if domain != "reference":
+    if domain != rel_path.split("/", 1)[0]:
         declared += f"domain: {domain}\n"
-    if category and category != "webpages":  # 界面自由输入：JSON 字符串同时是合法 YAML，冒号等不会破坏文件头
+    if category and category != "webpages":
         declared += f"category: {json.dumps(_sanitize_single_line(category), ensure_ascii=False)}\n"
 
     # Front Matter：让入库时自动带上 URL 和来源信息

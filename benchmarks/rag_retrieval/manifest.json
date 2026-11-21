@@ -1,0 +1,356 @@
+{
+  "air-report": {
+    "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+    "format": "docx",
+    "project": "低空监管平台",
+    "direction": "城市治理",
+    "department": "城运部",
+    "doc_type": "验收报告",
+    "acl": "公开"
+  },
+  "air-plan": {
+    "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+    "format": "md",
+    "project": "低空监管平台",
+    "direction": "城市治理",
+    "department": "城运部",
+    "doc_type": "验收方案",
+    "acl": "公开"
+  },
+  "air-incident": {
+    "path": "projects/dikongjianguanpingtai/低空监管平台故障复盘.txt",
+    "format": "txt",
+    "project": "低空监管平台",
+    "direction": "城市治理",
+    "department": "城运部",
+    "doc_type": "故障复盘",
+    "acl": "公开"
+  },
+  "air-ledger": {
+    "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+    "format": "xlsx",
+    "project": "低空监管平台",
+    "direction": "城市治理",
+    "department": "评测运营部",
+    "doc_type": "运营台账",
+    "acl": "内部"
+  },
+  "air-handover": {
+    "path": "projects/dikongjianguanpingtai/低空监管平台交接纪要.pptx",
+    "format": "pptx",
+    "project": "低空监管平台",
+    "direction": "城市治理",
+    "department": "工务部",
+    "doc_type": "交接纪要",
+    "acl": "公开"
+  },
+  "air-private": {
+    "path": "projects/dikongjianguanpingtai/低空监管平台权限演练记录.html",
+    "format": "html",
+    "project": "低空监管平台",
+    "direction": "城市治理",
+    "department": "评测运营部",
+    "doc_type": "权限演练记录",
+    "acl": "受限"
+  },
+  "cold-report": {
+    "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+    "format": "docx",
+    "project": "曙光冷链",
+    "direction": "供应保障",
+    "department": "物流部",
+    "doc_type": "验收报告",
+    "acl": "公开"
+  },
+  "cold-plan": {
+    "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+    "format": "md",
+    "project": "曙光冷链",
+    "direction": "供应保障",
+    "department": "物流部",
+    "doc_type": "验收方案",
+    "acl": "公开"
+  },
+  "cold-incident": {
+    "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+    "format": "txt",
+    "project": "曙光冷链",
+    "direction": "供应保障",
+    "department": "物流部",
+    "doc_type": "故障复盘",
+    "acl": "公开"
+  },
+  "cold-ledger": {
+    "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+    "format": "xlsx",
+    "project": "曙光冷链",
+    "direction": "供应保障",
+    "department": "评测运营部",
+    "doc_type": "运营台账",
+    "acl": "内部"
+  },
+  "cold-handover": {
+    "path": "projects/shuguanglenglian/曙光冷链交接纪要.pptx",
+    "format": "pptx",
+    "project": "曙光冷链",
+    "direction": "供应保障",
+    "department": "城运部",
+    "doc_type": "交接纪要",
+    "acl": "公开"
+  },
+  "cold-private": {
+    "path": "projects/shuguanglenglian/曙光冷链权限演练记录.html",
+    "format": "html",
+    "project": "曙光冷链",
+    "direction": "供应保障",
+    "department": "评测运营部",
+    "doc_type": "权限演练记录",
+    "acl": "受限"
+  },
+  "grid-report": {
+    "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+    "format": "docx",
+    "project": "青禾配电",
+    "direction": "城市治理",
+    "department": "工务部",
+    "doc_type": "验收报告",
+    "acl": "公开"
+  },
+  "grid-plan": {
+    "path": "projects/qinghepeidian/青禾配电验收方案.md",
+    "format": "md",
+    "project": "青禾配电",
+    "direction": "城市治理",
+    "department": "工务部",
+    "doc_type": "验收方案",
+    "acl": "公开"
+  },
+  "grid-incident": {
+    "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+    "format": "txt",
+    "project": "青禾配电",
+    "direction": "城市治理",
+    "department": "工务部",
+    "doc_type": "故障复盘",
+    "acl": "公开"
+  },
+  "grid-ledger": {
+    "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+    "format": "xlsx",
+    "project": "青禾配电",
+    "direction": "城市治理",
+    "department": "评测运营部",
+    "doc_type": "运营台账",
+    "acl": "内部"
+  },
+  "grid-handover": {
+    "path": "projects/qinghepeidian/青禾配电交接纪要.pptx",
+    "format": "pptx",
+    "project": "青禾配电",
+    "direction": "城市治理",
+    "department": "物流部",
+    "doc_type": "交接纪要",
+    "acl": "公开"
+  },
+  "grid-private": {
+    "path": "projects/qinghepeidian/青禾配电权限演练记录.html",
+    "format": "html",
+    "project": "青禾配电",
+    "direction": "城市治理",
+    "department": "评测运营部",
+    "doc_type": "权限演练记录",
+    "acl": "受限"
+  },
+  "clinic-report": {
+    "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+    "format": "docx",
+    "project": "星港分诊",
+    "direction": "公共服务",
+    "department": "医疗部",
+    "doc_type": "验收报告",
+    "acl": "公开"
+  },
+  "clinic-plan": {
+    "path": "projects/xinggangfenzhen/星港分诊验收方案.md",
+    "format": "md",
+    "project": "星港分诊",
+    "direction": "公共服务",
+    "department": "医疗部",
+    "doc_type": "验收方案",
+    "acl": "公开"
+  },
+  "clinic-incident": {
+    "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+    "format": "txt",
+    "project": "星港分诊",
+    "direction": "公共服务",
+    "department": "医疗部",
+    "doc_type": "故障复盘",
+    "acl": "公开"
+  },
+  "clinic-ledger": {
+    "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+    "format": "xlsx",
+    "project": "星港分诊",
+    "direction": "公共服务",
+    "department": "评测运营部",
+    "doc_type": "运营台账",
+    "acl": "内部"
+  },
+  "clinic-handover": {
+    "path": "projects/xinggangfenzhen/星港分诊交接纪要.pptx",
+    "format": "pptx",
+    "project": "星港分诊",
+    "direction": "公共服务",
+    "department": "城运部",
+    "doc_type": "交接纪要",
+    "acl": "公开"
+  },
+  "clinic-private": {
+    "path": "projects/xinggangfenzhen/星港分诊权限演练记录.html",
+    "format": "html",
+    "project": "星港分诊",
+    "direction": "公共服务",
+    "department": "评测运营部",
+    "doc_type": "权限演练记录",
+    "acl": "受限"
+  },
+  "water-report": {
+    "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+    "format": "docx",
+    "project": "澄溪水务",
+    "direction": "环境监测",
+    "department": "环保部",
+    "doc_type": "验收报告",
+    "acl": "公开"
+  },
+  "water-plan": {
+    "path": "projects/chengxishuiwu/澄溪水务验收方案.md",
+    "format": "md",
+    "project": "澄溪水务",
+    "direction": "环境监测",
+    "department": "环保部",
+    "doc_type": "验收方案",
+    "acl": "公开"
+  },
+  "water-incident": {
+    "path": "projects/chengxishuiwu/澄溪水务故障复盘.txt",
+    "format": "txt",
+    "project": "澄溪水务",
+    "direction": "环境监测",
+    "department": "环保部",
+    "doc_type": "故障复盘",
+    "acl": "公开"
+  },
+  "water-ledger": {
+    "path": "projects/chengxishuiwu/澄溪水务运营台账.xlsx",
+    "format": "xlsx",
+    "project": "澄溪水务",
+    "direction": "环境监测",
+    "department": "评测运营部",
+    "doc_type": "运营台账",
+    "acl": "内部"
+  },
+  "water-handover": {
+    "path": "projects/chengxishuiwu/澄溪水务交接纪要.pptx",
+    "format": "pptx",
+    "project": "澄溪水务",
+    "direction": "环境监测",
+    "department": "工务部",
+    "doc_type": "交接纪要",
+    "acl": "公开"
+  },
+  "water-private": {
+    "path": "projects/chengxishuiwu/澄溪水务权限演练记录.html",
+    "format": "html",
+    "project": "澄溪水务",
+    "direction": "环境监测",
+    "department": "评测运营部",
+    "doc_type": "权限演练记录",
+    "acl": "受限"
+  },
+  "port-report": {
+    "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+    "format": "docx",
+    "project": "海棠闸口",
+    "direction": "供应保障",
+    "department": "物流部",
+    "doc_type": "验收报告",
+    "acl": "公开"
+  },
+  "port-plan": {
+    "path": "projects/haitangzhakou/海棠闸口验收方案.md",
+    "format": "md",
+    "project": "海棠闸口",
+    "direction": "供应保障",
+    "department": "物流部",
+    "doc_type": "验收方案",
+    "acl": "公开"
+  },
+  "port-incident": {
+    "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+    "format": "txt",
+    "project": "海棠闸口",
+    "direction": "供应保障",
+    "department": "物流部",
+    "doc_type": "故障复盘",
+    "acl": "公开"
+  },
+  "port-ledger": {
+    "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+    "format": "xlsx",
+    "project": "海棠闸口",
+    "direction": "供应保障",
+    "department": "评测运营部",
+    "doc_type": "运营台账",
+    "acl": "内部"
+  },
+  "port-handover": {
+    "path": "projects/haitangzhakou/海棠闸口交接纪要.pptx",
+    "format": "pptx",
+    "project": "海棠闸口",
+    "direction": "供应保障",
+    "department": "医疗部",
+    "doc_type": "交接纪要",
+    "acl": "公开"
+  },
+  "port-private": {
+    "path": "projects/haitangzhakou/海棠闸口权限演练记录.html",
+    "format": "html",
+    "project": "海棠闸口",
+    "direction": "供应保障",
+    "department": "评测运营部",
+    "doc_type": "权限演练记录",
+    "acl": "受限"
+  },
+  "g-contacts": {
+    "path": "learning/public/公共值班手册.md",
+    "format": "md",
+    "acl": "公开"
+  },
+  "g-format": {
+    "path": "learning/public/文档命名规范.txt",
+    "format": "txt",
+    "acl": "公开"
+  },
+  "g-supplier": {
+    "path": "learning/public/通用供应商入场指引.html",
+    "format": "html",
+    "acl": "公开"
+  },
+  "g-forms": {
+    "path": "learning/public/通用差旅审批表.xlsx",
+    "format": "xlsx",
+    "acl": "公开"
+  },
+  "g-disaster": {
+    "path": "learning/public/通用备份恢复演练.pptx",
+    "format": "pptx",
+    "acl": "公开"
+  },
+  "g-procurement": {
+    "path": "learning/public/通用采购流程.docx",
+    "format": "docx",
+    "acl": "公开"
+  }
+}

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import functools
 import json
+import logging
 import os
 import re
 import sys
@@ -93,6 +94,7 @@ def _identity_from_ctx(ctx) -> tuple[list[str] | None, str, dict]:
                 groups = visible_groups(ident.get("department_group", ident["department"]))
                 user = {"username": ident["username"], "department": ident["department"]}
                 return groups, str(ident["username"]), user
+        raise PermissionError('MCP 令牌无效或已停用')
     # 兜底：中间件写入的 contextvar（stdio 个人模式 = None/空）
     groups = _request_groups.get()
     user = _request_user.get() or {}
@@ -132,7 +134,9 @@ def _log_qa(question: str, result, top_k: int, elapsed: float,
 
 
 def _filters(domain: str | None, status: str | None, *,
-             doc_type: str | None = None) -> dict | None:
+             doc_type: str | None = None, department: str | None = None,
+             project: str | int | None = None,
+             business_direction: str | int | None = None) -> dict | None:
     """组装 Metadata 过滤条件；未提供任何过滤时返回 None（检索默认范围）。
 
     domain 可传编号或显示名称，这里解析成编号（此后全链路只认编号）。识别不了就抛
@@ -140,6 +144,8 @@ def _filters(domain: str | None, status: str | None, *,
     「知识库里没有」。"all" 表示不限领域。
     doc_type 是独立的原始文档类型标签，去首尾空白后精确匹配，不做别名合并；
     留空 / all 表示不限，__unclassified__ 表示缺失 / null / 空字符串。
+    department 是独立的归属部门名称原文，去首尾空白后精确匹配，不做别名合并；
+    留空 / all 表示不限，__no_department__ 表示缺失 / null / 空字符串。
     """
     filters: dict = {}
     if domain and str(domain).strip().lower() != "all":
@@ -155,22 +161,54 @@ def _filters(domain: str | None, status: str | None, *,
             from src.metadata import STATUSES
             if status not in STATUSES:
                 raise ValueError(f"无法识别状态「{status}」。可用值：{'、'.join(STATUSES)} 或 all")
-            filters["status"] = status
+        filters["status"] = status
     from src.document_type import normalize_doc_type_filter
 
     normalized_type = normalize_doc_type_filter(doc_type)
     if normalized_type is not None:
         filters["doc_type"] = normalized_type
+    from src.document_department import normalize_department_filter
+
+    normalized_department = normalize_department_filter(department)
+    if normalized_department is not None:
+        filters["department"] = normalized_department
+    if project is not None or business_direction is not None:
+        from src.projects import resolve_project_filter
+
+        project_ids = resolve_project_filter(project, business_direction)
+        if project_ids is not None:
+            filters["project_id"] = project_ids
     return filters or None
 
 
+def _answer_in_scope(question: str, *, filters: dict | None, user_groups, username=None, **kwargs):
+    from src.config import get_config
+    from src.pipeline import QAResult, answer_question
+
+    if filters and filters.get("project_id") == []:
+        from src.permissions import scope_filters
+        from src.retriever import effective_filters
+
+        return QAResult(
+            question=question, answer=None, retrieved=[], context="", sources=[],
+            filters=effective_filters(scope_filters(filters, user_groups, username)),
+            evidence_meta={"coverage": "complete", "reason": "no_matching_projects"},
+        )
+    cfg = get_config()
+    kwargs.setdefault("use_query_understanding", cfg.query_understanding)
+    kwargs.setdefault("use_hybrid", cfg.hybrid_search)
+    kwargs.setdefault("use_rerank", cfg.rerank_enabled)
+    return answer_question(question, filters=filters, user_groups=user_groups, username=username, **kwargs)
+
+
 def _history(history: list[dict] | None) -> list[dict]:
-    """透传 Agent 侧会话历史（最近 6 条），本服务不保存任何状态。"""
+    """最近 24 条用于项目指代，模型仍只收最近 6 条。MCP 不保存会话。"""
     return [
         {"role": str(m.get("role", "")), "content": str(m.get("content", ""))}
         for m in (history or [])
-        if m.get("role") in ("user", "assistant") and m.get("content")
-    ][-6:]
+        if isinstance(m, dict) and m.get("role") in ("user", "assistant")
+        and isinstance(m.get("content"), str) and m["content"].strip()
+    ][-24:]
 
 
 def _sources_payload(sources: list[dict]) -> list[dict]:
@@ -180,14 +218,18 @@ def _sources_payload(sources: list[dict]) -> list[dict]:
         {
             "rank": s.get("rank"),
             "source": s.get("source"),
+            "document_id": s.get("document_id"),
+            "chunk_ids": s.get("chunk_ids") or ([s["chunk_id"]] if s.get("chunk_id") else []),
             "score": round(float(s.get("score", 0)), 4),
             "channels": s.get("channels"),
             "path": s.get("path"),
             "section": s.get("section"),
             "page": s.get("page"),
             "domain": s.get("domain"),
-            "category": s.get("category"),
             "doc_type": s.get("doc_type") or "",
+            "department": s.get("department") or "",
+            "project_id": s.get("project_id"),
+            "classification": s.get("classification"),
             "version": s.get("version"),
             "status": s.get("status"),
             "excerpt": (s.get("text") or "")[:200],
@@ -223,7 +265,7 @@ if _raw_mode in ("query", "answer"):
     MCP_MODE = _raw_mode
 else:
     MCP_MODE = "query"
-    print(f"⚠️ MCP_MODE={_raw_mode!r} 非法（仅限 query/answer），已回退 query")
+    logging.getLogger(__name__).warning("Invalid MCP_MODE=%r. Falling back to query.", _raw_mode)
 _MODE_TOOLS: dict[str, tuple[str, ...]] = {
     "query": ("knowledge_search", "knowledge_status", "get_document", "list_documents"),
     "answer": ("knowledge_qa", "knowledge_digest", "knowledge_status",
@@ -240,7 +282,8 @@ def _tool_knowledge_qa_impl(
     status: str | None = None,
     history: list[dict] | None = None,
     ctx=None,
-    *, doc_type: str | None = None,
+    *, doc_type: str | None = None, department: str | None = None,
+    project: str | int | None = None, business_direction: str | int | None = None,
 ) -> str:
     """基于用户的个人知识库（含其简历、面试登记表、学习笔记、技术文档、网页收藏等私有资料）回答问题，返回带来源引用的答案。
 
@@ -255,28 +298,32 @@ def _tool_knowledge_qa_impl(
     不要用模型通用知识替答、也不要转而搜索磁盘；由用户决定是否换用其他途径
     （补充资料入库、或明确要求你另找途径）。
     多轮追问时请传入 history（最近几轮 user/assistant 消息），可正确解析指代。
+    比较项目负责人或预算时，可在 question 中列出 2 至 4 个项目名称。每个项目独立检索，缺少预算证据时只报告已确认的数据。
 
     Args:
         question: 用户问题（不可为空）
         top_k: 召回知识卡片数量，默认 5，范围 1~10
         domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active=生效 / archive=已归档 / expired=历史版本）
-        history: 可选，最近对话 [{"role":"user/assistant","content":"..."}]，最多取 6 条
+        history: 可选，按时间顺序的对话消息。项目指代最多看 24 条，模型最近对话最多取 6 条。
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
+        department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查未指定
+        project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
+        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
     """
     if not question or not question.strip():
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
-    from src.pipeline import answer_question
 
     groups, username, user = _identity_from_ctx(ctx)
 
     try:
-        filters = _filters(domain, status, doc_type=doc_type)
+        filters = _filters(domain, status, doc_type=doc_type, department=department,
+                           project=project, business_direction=business_direction)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
     _t0 = time.time()
-    result = answer_question(
+    result = _answer_in_scope(
         question.strip(),
         top_k=max(1, min(int(top_k), 10)),
         filters=filters,
@@ -294,7 +341,7 @@ def _tool_knowledge_qa_impl(
             "items": getattr(result, "enumerated_items", []),
             "sources": _sources_payload(result.sources),
             "filters_applied": result.filters,
-            "refused": result.answer is None,
+            "refused": result.answer is None or (result.evidence_meta or {}).get("coverage") == "not_found",
         },
         ensure_ascii=False,
         indent=2,
@@ -308,7 +355,9 @@ def _tool_knowledge_search_impl(
     domain: str | None = None,
     status: str | None = None,
     ctx=None,
-    *, doc_type: str | None = None,
+    *, doc_type: str | None = None, department: str | None = None,
+    project: str | int | None = None, business_direction: str | int | None = None,
+    history: list[dict] | None = None,
 ) -> str:
     """在用户的个人知识库中检索相关片段（其简历、登记表、笔记、技术文档、网页收藏等），不调用 LLM 生成答案（零生成成本、更快）。
 
@@ -326,28 +375,35 @@ def _tool_knowledge_search_impl(
     （补充资料入库、或明确要求你另找途径）。
 
     Args:
-        question: 检索问题或关键词
-        top_k: 返回片段数量，默认 5，范围 1~10
+        question: 检索问题或关键词。可明确指定项目、业务方向、归属部门和文档类型，
+            例如「查低空监管平台项目的验收资料」；只查文件清单时可返回目录元数据。
+        top_k: 正文片段的召回数量，默认 5，范围 1~10；文件清单按目录预算返回。
         domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active/archive/expired）
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
+        department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查未指定
+        project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
+        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
+        history: 可选，按时间顺序传入最近会话消息。用于解析「这个项目」等追问，最多取 24 条。
     """
     if not question or not question.strip():
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
-    from src.pipeline import answer_question
+    from src.permissions import classify_visibility
 
     try:
-        filters = _filters(domain, status, doc_type=doc_type)
+        filters = _filters(domain, status, doc_type=doc_type, department=department,
+                           project=project, business_direction=business_direction)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
     groups, username, user = _identity_from_ctx(ctx)
     _t0 = time.time()
-    result = answer_question(
+    result = _answer_in_scope(
         question.strip(),
         top_k=max(1, min(int(top_k), 10)),
         use_llm=False,  # 仅检索：不调用生成模型
         filters=filters,
+        history=_history(history),
         user_groups=groups,
         username=username,
     )
@@ -358,22 +414,33 @@ def _tool_knowledge_search_impl(
             "query": question.strip(),
             "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
             "coverage_details": getattr(result, "evidence_meta", None) or {},
+            "filters_applied": {key: value for key, value in result.filters.items()
+                                if key not in {"allowed_groups", "allowed_users", "__viewer__"}},
             "matches": [
                 {
                     "rank": i,
                     "document_id": item.metadata.get("document_id"),
                     "version": item.metadata.get("version"),
+                    "status": item.metadata.get("status"),
+                    "chunk_id": item.metadata.get("chunk_id"),
+                    "chunk_ids": item.metadata.get("chunk_ids") or (
+                        [item.metadata["chunk_id"]] if item.metadata.get("chunk_id") else []),
                     "source": item.metadata.get("source"),
                     "path": item.metadata.get("path"),
                     "doc_type": item.metadata.get("doc_type") or "",
+                    "department": item.metadata.get("department") or "",
+                    "project_id": item.metadata.get("project_id"),
+                    "classification": item.metadata.get("classification") or classify_visibility(
+                        item.metadata.get("allowed_groups"), item.metadata.get("allowed_users")),
                     "score": round(float(item.score), 4),
                     "channels": item.channels,
                     "section": item.metadata.get("section"),
-                    "text": item.text[:400],
+                    "text": item.text,
                 }
                 for i, item in enumerate(result.retrieved, start=1)
             ],
             "refused": not result.retrieved,
+            "reason": (result.evidence_meta or {}).get("support_notice") or (result.evidence_meta or {}).get("scope_notice"),
         },
         ensure_ascii=False,
         indent=2,
@@ -382,7 +449,10 @@ def _tool_knowledge_search_impl(
 
 def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
                                 status: str | None = None, top_k: int = 10,
-                                ctx=None, *, doc_type: str | None = None) -> str:
+                                ctx=None, *, doc_type: str | None = None,
+                                department: str | None = None,
+                                project: str | int | None = None,
+                                business_direction: str | int | None = None) -> str:
     """跨文档知识总结：围绕一个主题，综合用户知识库中的多个文档生成结构化摘要（要点+出处）。
 
     使用时机：用户要求"总结/归纳/梳理某主题在资料中的内容"时使用；不新建或修改知识文件。
@@ -398,21 +468,24 @@ def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
         status: 可选，知识状态过滤（active/archive/expired）
         top_k: 综合的资料卡片数量，默认 10，范围 1~20
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
+        department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查未指定
+        project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
+        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
     """
     if not topic or not topic.strip():
         return json.dumps({"error": "主题不能为空"}, ensure_ascii=False)
-    from src.pipeline import answer_question
 
     # V3.9 修复：此前漏调身份提取——groups/username/user 未定义（调用即 NameError），
     # 且部门权限过滤从未注入（跨文档总结同样必须遵循令牌可见范围）
     groups, username, user = _identity_from_ctx(ctx)
     try:
-        filters = _filters(domain, status, doc_type=doc_type)
+        filters = _filters(domain, status, doc_type=doc_type, department=department,
+                           project=project, business_direction=business_direction)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
     _t0 = time.time()
-    result = answer_question(
+    result = _answer_in_scope(
         f"请综合知识库中与「{topic.strip()}」相关的全部内容，"
         "输出一份结构化知识总结：核心要点 + 对应出处编号。资料不足时明确说明。",
         top_k=max(1, min(int(top_k), 20)),
@@ -430,7 +503,7 @@ def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
             "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
             "coverage_details": getattr(result, "evidence_meta", None) or {},
             "sources": _sources_payload(result.sources),
-            "refused": result.answer is None,
+            "refused": result.answer is None or (result.evidence_meta or {}).get("coverage") == "not_found",
         },
         ensure_ascii=False,
         indent=2,
@@ -439,14 +512,18 @@ def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
 
 def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: int = 5,
                             mode: str = "fragments", section: str | None = None,
-                            ctx=None, *, doc_type: str | None = None) -> str:
+                            ctx=None, *, doc_type: str | None = None,
+                            department: str | None = None,
+                            project: str | int | None = None,
+                            business_direction: str | int | None = None,
+                            version: str | None = None, status: str | None = None) -> str:
     """按 document_id 获取一篇或多篇文档：mode="full" 返回每篇拼接全文（去重叠）；
     mode="fragments"（默认）返回卡片片段，单文档时按页分页、多文档时按文档分组全量返回。
     可选 section 过滤：只返回章节名包含该关键词的内容（大小写不敏感）。
     不调用 LLM，零生成成本。
 
-    document_ids 来自 knowledge_search 的 matches（每条都带 document_id），可传一篇或多篇。
-    检索范围遵循调用者令牌的可见部门；无权限或文档不存在统一归入 not_found，不做区分。
+    document_ids 来自 knowledge_search 的 matches。历史版本请同时传入命中的 version 和 status。
+    检索范围遵循令牌所属员工的部门和个人授权；无权限或文档不存在统一归入 not_found。
 
     Args:
         document_ids: 文档编号列表（knowledge_search 结果中的 document_id 字段，1~10 篇）
@@ -454,13 +531,18 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
         page_size: fragments 模式每页卡片数（1~20，默认 5）
         mode: "fragments"（分页片段）或 "full"（拼接全文）
         section: 可选，章节名关键词——只返回章节名包含它的内容（大小写不敏感）
-        doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类；始终仅取 active 且有权限的文档
+        doc_type: 可选，文档类型原始标签；留空/all 不限，__unclassified__ 仅查未分类。
+        department: 可选，归属部门名称原文；留空/all 不限，__no_department__ 仅查未指定。
+        version: 可选，匹配结果中的精确版本号。批量读取时同一版本条件适用于所有文档。
+        status: 可选，active / archive / expired / all。未指定版本时默认 active，查询 expired 或 all 时需指定版本。
+        project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
+        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
     """
     import math
 
     from src.context import _merge_run
-    from src.permissions import scope_filters
-    from src.retriever import RetrievedItem
+    from src.permissions import classify_visibility, scope_filters
+    from src.retriever import RetrievedItem, effective_filters
     from src.vector_store import get_vector_store
 
     if isinstance(document_ids, str):  # 容错：直接调用时允许传单个字符串
@@ -473,17 +555,26 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
     if mode not in ("fragments", "full"):
         return json.dumps({"error": "mode 仅支持 fragments / full"}, ensure_ascii=False)
     section_kw = (section or "").strip().lower()
+    version = (version or "").strip()
+    status = (status or ("all" if version else "active")).strip().lower()
+    if status in {"expired", "all"} and not version:
+        return json.dumps({"error": "读取历史版本时请传入检索命中的 version"}, ensure_ascii=False)
 
     try:
-        doc_filters = {**(_filters(None, "active", doc_type=doc_type) or {}),
+        doc_filters = {**(_filters(None, status, doc_type=doc_type,
+                                   department=department, project=project,
+                                   business_direction=business_direction) or {}),
                        "document_id": wanted}
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
     groups, username, user = _identity_from_ctx(ctx)
-    filters = scope_filters(doc_filters, groups)
+    filters = effective_filters(scope_filters(doc_filters, groups, username))
+    if version:
+        filters["version"] = version
     truncated = False
     try:
-        cards = get_vector_store().get_all_cards(filters=filters, limit=2000)
+        cards = ([] if doc_filters.get("project_id") == []
+                 else get_vector_store().get_all_cards(filters=filters, limit=2000))
         truncated = len(cards) >= 2000  # 触顶：响应可能不完整，明确告知 Agent
     except Exception as exc:
         return json.dumps({"error": f"知识库访问失败：{exc}"}, ensure_ascii=False)
@@ -509,6 +600,9 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
                                    document_id=d,
                                    source=str(meta.get("source") or ""),
                                    detail={"mode": mode,
+                                           "path": meta.get("path"),
+                                           "version": meta.get("version"),
+                                           "status": meta.get("status"),
                                            "section": section_kw or None,
                                            "cards": len(by_doc[d])})
         except Exception:
@@ -518,6 +612,11 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
     section_missed: list[str] = []
     for d in ordered_ids:
         cards = sorted(by_doc[d], key=_seq)
+        if status == "all":
+            statuses = {c["payload"].get("status") for c in cards}
+            selected_status = next((value for value in ("active", "archive", "expired") if value in statuses),
+                                   cards[0]["payload"].get("status"))
+            cards = [c for c in cards if c["payload"].get("status") == selected_status]
         if section_kw:  # 章节过滤：只保留章节名含关键词的卡片（大小写不敏感）
             matched = [c for c in cards
                        if section_kw in str(c["payload"].get("section") or "").lower()]
@@ -528,11 +627,15 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
         meta = cards[0]["payload"]
         cards = sorted(cards, key=_seq)
         base = {"document_id": d, "source": meta.get("source"),
+                "path": meta.get("path"),
                 "title": meta.get("title"), "owner": meta.get("owner"),
                 "effective_date": meta.get("effective_date"),
-                "domain": meta.get("domain"), "category": meta.get("category"),
+                "domain": meta.get("domain"),
                 "doc_type": meta.get("doc_type") or "",
-                "version": meta.get("version"), "total_cards": len(cards),
+                "department": meta.get("department") or "",
+                "project_id": meta.get("project_id"),
+                "classification": classify_visibility(meta.get("allowed_groups"), meta.get("allowed_users")),
+                "version": meta.get("version"), "status": meta.get("status"), "total_cards": len(cards),
                 "sections": sorted({str(c["payload"].get("section") or "")
                                     for c in cards if c["payload"].get("section")})}
         if mode == "full":
@@ -569,13 +672,14 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
         result["section_not_matched"] = section_missed  # 可见但无匹配章节的文档
     if not documents:
         result["refused"] = True
-        if section_kw and not_found == wanted:
-            result["reason"] = "请求的文档均不存在、未生效或当前令牌无权限"
-        elif section_kw:
+        if section_kw and not_found != wanted:
             result["reason"] = ("章节过滤无匹配（文档存在且可见，但没有章节名包含该关键词）；"
                                  "可先不带 section 调用一次查看 sections 可用章节名")
         else:
-            result["reason"] = "请求的文档均不存在、未生效或当前令牌无权限"
+            reason = "请求的文档或指定版本不存在，或当前令牌无权限"
+            if "project_id" in doc_filters:
+                reason += "，或不在所选项目范围内"
+            result["reason"] = reason
     if len(ordered_ids) == 1 and documents:
         result.update(documents[0])  # 单文档模式：字段提到顶层（full/fragments 一致），便于阅读
         result.pop("documents")       # 扁平化后移除嵌套，避免同一内容重复两份
@@ -583,32 +687,45 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
 
 
 def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
-                              ctx=None, *, doc_type: str | None = None) -> str:
-    """枚举知识库目录：按权限列出文档（编号/文件名/领域/分类/文档类型/版本/状态/卡片数）。
-    不调用 LLM。用途：生成方案前先了解知识库里有哪些资料可供检索。
+                              ctx=None, *, doc_type: str | None = None,
+                              department: str | None = None,
+                              project: str | int | None = None,
+                              business_direction: str | int | None = None,
+                              page: int = 1, page_size: int = 100) -> str:
+    """枚举知识库目录：按权限列出文档（编号/文件名/领域/文档类型/归属部门/版本/状态/卡片数）。
+    不调用 LLM。内部文档按令牌所属员工的部门过滤，受限文档按员工本人的授权过滤。
 
     Args:
         domain: 可选，限定知识领域编号（{DOMAIN_CODES}）；"all" 表示不限
         status: 知识状态过滤（active/archive/expired/all，默认 active）
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查缺失/null/空字符串
+        department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查缺失/null/空字符串
+        project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
+        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
+        page: 页码，从 1 开始。
+        page_size: 每页文档版本数，默认 100，最多 200。
     """
-    from src.permissions import scope_filters
+    from src.permissions import classify_visibility, scope_filters, document_visible
+    from src.retriever import effective_filters
     from src.vector_store import get_vector_store
 
     try:
-        filters = _filters(domain, status, doc_type=doc_type)
+        filters = _filters(domain, status, doc_type=doc_type, department=department,
+                           project=project, business_direction=business_direction)
     except ValueError as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
     groups, username, user = _identity_from_ctx(ctx)
-    filters = scope_filters(filters, groups) or {}
-    allowed = set(filters.get("allowed_groups") or [])
+    filters = effective_filters(scope_filters(filters, groups, username))
     want_domain = filters.get("domain")
-    want_status = filters.get("status")  # "all" 已在 _filters 中剔除，不再过滤
+    want_status = filters.get("status")
     want_type = filters.get("doc_type")
+    want_department = filters.get("department")
+    want_projects = filters.get("project_id")
 
     docs = []
-    for d in get_vector_store().list_documents():
-        if allowed and not (set(d.get("allowed_groups") or ["all"]) & allowed):
+    candidates = [] if want_projects == [] else get_vector_store().list_documents(filters)
+    for d in candidates:
+        if not document_visible(d, groups, username):
             continue
         if want_domain and d.get("domain") != want_domain:
             continue
@@ -620,11 +737,20 @@ def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
                 continue
         elif want_type is not None and stored_type != want_type:
             continue
+        stored_department = d.get("department") or ""
+        if want_department == "__no_department__":
+            if stored_department != "":
+                continue
+        elif want_department is not None and stored_department != want_department:
+            continue
         docs.append({"document_id": d.get("document_id"), "source": d.get("source"),
+                     "path": d.get("path"),
                      "title": d.get("title"), "owner": d.get("owner"),
                      "effective_date": d.get("effective_date"),
-                     "domain": d.get("domain"), "category": d.get("category"),
-                     "doc_type": stored_type,
+                     "domain": d.get("domain"),
+                     "doc_type": stored_type, "department": stored_department,
+                     "project_id": d.get("project_id"),
+                     "classification": classify_visibility(d.get("allowed_groups"), d.get("allowed_users")),
                      "version": d.get("version"), "status": d.get("status"),
                      "chunks": d.get("chunks"), "indexed_at": d.get("indexed_at")})
     from src import auth_db
@@ -633,10 +759,16 @@ def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
                                department=str(user.get("department") or ""),
                                entry=_ENTRY, action="list_documents",
                                detail={"domain": want_domain, "status": want_status,
-                                       "doc_type": want_type, "total": len(docs)})
+                                       "doc_type": want_type, "department": want_department,
+                                       "project_ids": filters.get("project_id"),
+                                       "total": len(docs)})
     except Exception:
         pass  # 审计失败不影响枚举
-    return json.dumps({"total": len(docs), "documents": docs},
+    page, page_size = max(1, int(page)), min(200, max(1, int(page_size)))
+    start = (page - 1) * page_size
+    return json.dumps({"total": len(docs), "page": page, "page_size": page_size,
+                       "has_more": start + page_size < len(docs),
+                       "documents": docs[start:start + page_size]},
                       ensure_ascii=False, indent=2)
 
 
@@ -699,46 +831,72 @@ def _tool_knowledge_status_impl() -> str:
 async def knowledge_qa(question: str, top_k: int = 5, domain: str | None = None,
                        status: str | None = None,
                        history: list[dict] | None = None,
-                       ctx: Context | None = None, *, doc_type: str | None = None) -> str:
-    """基于用户的个人知识库回答问题（带来源引用；详见实现说明）。"""
+                       ctx: Context | None = None, *, doc_type: str | None = None,
+                       department: str | None = None,
+                       project: str | int | None = None,
+                       business_direction: str | int | None = None) -> str:
+    """从知识库回答并引用来源。可在问题中列出 2 至 4 个项目比较负责人、预算或计算合计。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_knowledge_qa_impl, question, top_k, domain, status,
-                          history, ctx, doc_type=doc_type))
+                          history, ctx, doc_type=doc_type, department=department,
+                          project=project, business_direction=business_direction))
 
 
 async def knowledge_search(question: str, top_k: int = 5, domain: str | None = None,
                            status: str | None = None,
-                           ctx: Context | None = None, *, doc_type: str | None = None) -> str:
-    """在用户的个人知识库中检索相关片段（不调用 LLM，详见实现说明）。"""
+                           ctx: Context | None = None, *, doc_type: str | None = None,
+                           department: str | None = None,
+                           project: str | int | None = None,
+                           business_direction: str | int | None = None,
+                           history: list[dict] | None = None) -> str:
+    """在知识库中检索原文片段。多项目预算比较按项目返回证据及缺项。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_knowledge_search_impl, question, top_k, domain,
-                          status, ctx, doc_type=doc_type))
+                          status, ctx, doc_type=doc_type, department=department,
+                          project=project, business_direction=business_direction,
+                          history=history))
 
 
 async def knowledge_digest(topic: str, domain: str | None = None,
                            status: str | None = None, top_k: int = 10,
-                           ctx: Context | None = None, *, doc_type: str | None = None) -> str:
+                           ctx: Context | None = None, *, doc_type: str | None = None,
+                           department: str | None = None,
+                           project: str | int | None = None,
+                           business_direction: str | int | None = None) -> str:
     """跨文档知识总结：围绕一个主题综合多文档生成结构化摘要（详见实现说明）。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_knowledge_digest_impl, topic, domain, status,
-                          top_k, ctx, doc_type=doc_type))
+                          top_k, ctx, doc_type=doc_type, department=department,
+                          project=project, business_direction=business_direction))
 
 
 async def get_document(document_ids: list[str], page: int = 1, page_size: int = 5,
                        mode: str = "fragments", section: str | None = None,
-                       ctx: Context | None = None, *, doc_type: str | None = None) -> str:
+                       ctx: Context | None = None, *, doc_type: str | None = None,
+                       department: str | None = None,
+                       project: str | int | None = None,
+                       business_direction: str | int | None = None,
+                       version: str | None = None, status: str | None = None) -> str:
     """按 document_id 获取一篇或多篇文档的全文/分页片段（详见实现说明）。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_get_document_impl, document_ids, page, page_size,
-                          mode, section, ctx, doc_type=doc_type))
+                          mode, section, ctx, doc_type=doc_type, department=department,
+                          project=project, business_direction=business_direction,
+                          version=version, status=status))
 
 
 async def list_documents(domain: str | None = None, status: str = "active",
-                         ctx: Context | None = None, *, doc_type: str | None = None) -> str:
+                         ctx: Context | None = None, *, doc_type: str | None = None,
+                         department: str | None = None,
+                         project: str | int | None = None,
+                         business_direction: str | int | None = None,
+                         page: int = 1, page_size: int = 100) -> str:
     """按权限枚举知识库目录（详见实现说明）。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_list_documents_impl, domain, status, ctx,
-                          doc_type=doc_type))
+                          doc_type=doc_type, department=department,
+                          project=project, business_direction=business_direction,
+                          page=page, page_size=page_size))
 
 
 async def knowledge_status(ctx: Context | None = None) -> str:

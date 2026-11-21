@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import gc
 import json
 import shutil
 import tempfile
@@ -69,6 +70,7 @@ class TempAuthDB(unittest.TestCase):
     def tearDown(self) -> None:
         for p in reversed(self._patches):
             p.stop()
+        gc.collect()
         self._tmp.cleanup()
         super().tearDown()
 
@@ -175,12 +177,14 @@ class IngestHarness(unittest.TestCase):
                       pipeline.clear_qa_cache):
             reset()
             self.addCleanup(reset)
+        # addCleanup 按后进先出执行：先回收已完成事务的 SQLite 连接，再删除临时目录。
         self.addCleanup(self._tmp.cleanup)
+        self.addCleanup(gc.collect)
 
     def use_fakes(self) -> None:
         """检索 / 管理层的工厂函数全部指向本用例的临时配置、内存向量库与假向量化。"""
         for target in ("src.config.get_config", "src.pipeline.get_config", "src.retriever.get_config",
-                       "src.keyword_search.get_config", "src.manage.get_config"):
+                       "src.manage.get_config"):
             self._patch(target, self.cfg)
         for target in ("src.vector_store.get_vector_store", "src.pipeline.get_vector_store",
                        "src.retriever.get_vector_store", "src.keyword_search.get_vector_store",

@@ -1,11 +1,20 @@
-"""工作台聚合：读取完整时间范围的检索日志，不受日志列表分页上限影响。"""
+"""工作台聚合：知识库存量、入库结果与检索使用统计。"""
 from __future__ import annotations
 
 import json
+import logging
 from collections import Counter
-from datetime import datetime, timedelta
+from contextlib import closing
+from datetime import datetime, time, timedelta, timezone
+from functools import lru_cache
+from time import monotonic
 
-from src import auth_db
+from qdrant_client.http.exceptions import ApiException
+
+from src import auth_db, business_directions, index_epoch, projects
+from src.vector_store import VectorStoreError, get_vector_store
+
+_LOG = logging.getLogger(__name__)
 
 CHANNELS = {'web': 'Web', 'mcp': 'MCP', 'other': '其他入口'}
 STAGES = {'query_understanding': '查询理解', 'rerank': 'LLM 精排', 'generation': '回答生成',
@@ -26,6 +35,91 @@ def _count(value) -> int:
         return max(0, int(value))
     except (TypeError, ValueError, OverflowError):
         return 0
+
+
+@lru_cache(maxsize=1)
+def _indexed_projects(store, epoch: str, refresh_window: int) -> tuple[int | None, ...]:
+    """Read just enough metadata to count each active document once."""
+    if not store.collection_exists():
+        return ()
+    documents: dict[str, int | None] = {}
+    offset = None
+    active = store.build_filter({"status": "active"})
+    while True:
+        points, offset = store.client.scroll(
+            collection_name=store.cfg.qdrant_collection, scroll_filter=active,
+            limit=256, offset=offset, with_payload=["document_id", "project_id"], with_vectors=False,
+        )
+        for point in points:
+            payload = point.payload or {}
+            document_id = payload.get("document_id")
+            if document_id:
+                project_id = payload.get("project_id")
+                documents.setdefault(document_id, project_id if type(project_id) is int else None)
+        if offset is None:
+            return tuple(documents.values())
+
+
+def knowledge_inventory() -> dict:
+    project_rows = projects.list_projects()
+    directions = {row["id"]: {"name": row["name"], "projects": []}
+                  for row in business_directions.list_directions()}
+    no_direction = {"name": "未关联业务方向", "projects": []}
+    try:
+        document_projects = _indexed_projects(get_vector_store(), index_epoch.current(), int(monotonic() // 30))
+        counts = Counter(document_projects)
+    except (ApiException, VectorStoreError, OSError):
+        _LOG.warning("Could not load dashboard knowledge inventory", exc_info=True)
+        document_projects = counts = None
+
+    for row in project_rows:
+        group = directions.get(row["direction_id"], no_direction)
+        group["projects"].append({"name": row["name"],
+                                  "documents": counts[row["id"]] if counts is not None else None})
+    groups = list(directions.values())
+    if no_direction["projects"]:
+        groups.append(no_direction)
+    for group in groups:
+        group["documents"] = (sum(item["documents"] for item in group["projects"])
+                              if counts is not None else None)
+    total = len(document_projects) if document_projects is not None else None
+    linked = sum(group["documents"] for group in groups) if counts is not None else None
+    return {
+        "available": total is not None,
+        "documents": total,
+        "linked_documents": linked,
+        "unlinked_documents": total - linked if total is not None else None,
+        "project_count": len(project_rows),
+        "direction_count": len(directions),
+        "groups": groups,
+    }
+
+
+def ingestion_statistics(days: int = 30, *, now: datetime | None = None) -> dict:
+    if not 1 <= days <= 90:
+        raise ValueError("统计范围需为 1～90 天")
+    today = (now or datetime.now()).date()
+    start = today - timedelta(days=days - 1)
+
+    def boundary(day):
+        midnight = datetime.combine(day, time.min, tzinfo=now.tzinfo if now else None)
+        return midnight.astimezone(timezone.utc).isoformat(timespec="milliseconds")
+
+    since, before = boundary(start), boundary(today + timedelta(days=1))
+    with closing(auth_db._connect()) as conn, conn:
+        conn.execute("BEGIN")
+        counts = conn.execute("""
+            SELECT COUNT(DISTINCT batch_id) AS batches,
+                   COUNT(CASE WHEN outcome = 'ingested' THEN 1 END) AS ingested,
+                   COUNT(CASE WHEN outcome = 'skipped' THEN 1 END) AS skipped,
+                   COUNT(CASE WHEN outcome = 'failed' THEN 1 END) AS failed,
+                   COUNT(CASE WHEN outcome = 'running' THEN 1 END) AS running
+            FROM ingest_logs WHERE started_at >= ? AND started_at < ?
+        """, (since, before)).fetchone()
+        first = conn.execute("SELECT MIN(started_at) FROM ingest_logs").fetchone()[0]
+    first_day = datetime.fromisoformat(first).astimezone(now.tzinfo if now else None).date() if first else None
+    return {**dict(counts), "first_log_date": str(first_day) if first_day else None,
+            "period": {"start": str(start), "end": str(today), "since": since, "before": before}}
 
 
 def usage_statistics(days: int = 30, *, now: datetime | None = None) -> dict:

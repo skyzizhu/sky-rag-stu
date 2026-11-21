@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
+from typing import AbstractSet
 
 # ---- 动作 ----
 SKIP = "skip"                # 不写盘、不入库
@@ -58,16 +59,19 @@ class UploadDecision:
 
 
 def plan_uploads(files: list[tuple[str, bytes]], target_dir: str,
-                 ledger: dict, knowledge_dir: Path) -> list[UploadDecision]:
+                 ledger: dict, knowledge_dir: Path, *,
+                 blocked_paths: AbstractSet[Path] = frozenset()) -> list[UploadDecision]:
     """为每个上传文件给出冲突类型与默认动作（不写盘）。
 
     files：[(文件名, 内容)]，顺序即执行顺序；target_dir：表单选择的目标目录
-    （相对知识目录，如 "learning/general"）；ledger：入库台账 {相对路径: {"hash", …}}。
+    （相对知识目录，如 "learning"）；ledger：入库台账 {相对路径: {"hash", …}}。
     """
     target_dir = target_dir.strip("/")
     by_hash: dict[str, list[str]] = {}
     by_name: dict[str, list[str]] = {}
     for rel, entry in ledger.items():
+        if Path(rel) in blocked_paths:
+            continue
         if entry.get("hash"):
             by_hash.setdefault(entry["hash"], []).append(rel)
         by_name.setdefault(PurePosixPath(rel).name, []).append(rel)
@@ -96,6 +100,11 @@ def plan_uploads(files: list[tuple[str, bytes]], target_dir: str,
         if target in batch_targets:
             decisions.append(UploadDecision(name, target, digest, KIND_BATCH_SAME_NAME,
                                             COPY, [COPY]))
+            continue
+
+        if Path(target) in blocked_paths:
+            decisions.append(UploadDecision(name, target, digest, KIND_NEW, NEW, [NEW]))
+            batch_targets.add(target)
             continue
 
         if (knowledge_dir / target).exists() or target in ledger:
@@ -132,7 +141,9 @@ def available_path(parent: Path, stem: str, suffix: str = "") -> Path:
 
 def execute_uploads(decisions: list[UploadDecision], files: list[tuple[str, bytes]],
                     knowledge_dir: Path,
-                    choices: dict[int, str] | None = None) -> tuple[list[Path], list[UploadDecision]]:
+                    choices: dict[int, str] | None = None, *,
+                    blocked_paths: AbstractSet[Path] = frozenset(), on_saved=None,
+                    on_skipped=None) -> tuple[list[Path], list[UploadDecision]]:
     """按决策落盘。返回 (需要入库的文件路径, 被跳过的决策)。
 
     choices：{序号: 动作}，用户在确认面板上的选择；不在该文件可选项里的值一律
@@ -146,6 +157,8 @@ def execute_uploads(decisions: list[UploadDecision], files: list[tuple[str, byte
             action = decision.action
         if action == SKIP:
             skipped.append(decision)
+            if on_skipped:
+                on_skipped(index, decision.kind)
             continue
         target = knowledge_dir / decision.target
         if action == NEW_VERSION:
@@ -154,29 +167,61 @@ def execute_uploads(decisions: list[UploadDecision], files: list[tuple[str, byte
             dest = knowledge_dir / action[len(VERSION_OF):]
         else:  # NEW / COPY：都不覆盖已有文件；NEW 在目标空闲时就用原名
             dest = available_path(target.parent, target.stem, target.suffix)
+        relative = dest.relative_to(knowledge_dir)
+        if relative in blocked_paths:
+            raise ValueError("当前账号无权覆盖已有文档")
+        if dest.resolve() != knowledge_dir.resolve() / relative:
+            raise ValueError("文件路径不能通过符号链接访问")
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
         to_ingest.append(dest)
+        if on_saved:
+            on_saved(index, dest)
     return to_ingest, skipped
 
 
 def write_directory_import(grouped: dict[str, list[tuple[tuple[str, ...], bytes]]],
-                           domain_dir: Path, merge: bool) -> tuple[list[Path], list[str]]:
+                           domain_dir: Path, merge: bool, *,
+                           blocked_paths: AbstractSet[Path] = frozenset(), on_saved=None,
+                           knowledge_dir: Path | None = None,
+                           legacy_paths: AbstractSet[Path] = frozenset()) -> tuple[list[Path], list[str]]:
     """把浏览器选中的目录写入领域目录。返回 (导入涉及的全部文件路径, 实际顶层目录名)。
 
     merge=True：写回同名目录；内容未变的文件不重写（保留修改时间），交给入库的
     增量判断跳过。源目录里已删除、但知识库目录里还在的文件不动（默认保留）。
     merge=False：已有同名目录时另存为副本目录（原行为）。
     """
+    knowledge_dir = knowledge_dir or domain_dir.parent
+    base = domain_dir.relative_to(knowledge_dir)
+    reserved: set[str] = set()
     saved: list[Path] = []
     roots: list[str] = []
+    writes: list[tuple[Path, bytes]] = []
     for root_name, entries in grouped.items():
-        root = domain_dir / root_name if merge else available_path(domain_dir, root_name)
+        root = domain_dir / root_name
+        if not merge:
+            suffix = 2
+            while root.exists() or root.is_symlink() or root.name.casefold() in reserved:
+                root = domain_dir / f"{root_name}-{suffix}"
+                suffix += 1
+            reserved.add(root.name.casefold())
         roots.append(root.name)
         for parts, content in entries:
             dest = root.joinpath(*parts)
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            if not (dest.exists() and dest.read_bytes() == content):
-                dest.write_bytes(content)
-            saved.append(dest)
+            legacy = Path(base.parts[0], root_name, *parts)
+            if merge and not dest.exists() and legacy in legacy_paths and (knowledge_dir / legacy).is_file():
+                dest = knowledge_dir / legacy
+            relative = dest.relative_to(knowledge_dir)
+            if relative in blocked_paths:
+                raise ValueError("目录中有当前账号无权覆盖的文档，请改用另存副本")
+            if dest.resolve() != knowledge_dir.resolve() / relative:
+                raise ValueError("文件路径不能通过符号链接访问")
+            writes.append((dest, content))
+    for dest, content in writes:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if not (dest.exists() and dest.read_bytes() == content):
+            dest.write_bytes(content)
+        if on_saved:
+            on_saved(len(saved), dest)
+        saved.append(dest)
     return saved, roots

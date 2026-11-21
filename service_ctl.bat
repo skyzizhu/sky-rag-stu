@@ -41,6 +41,7 @@ exit /b 1
 
 :front
 cd /d "%ROOT%"
+set "PYTHONIOENCODING=utf-8"
 start "" /B "%ROOT%.venv\Scripts\python.exe" -m streamlit run app.py --server.headless true --server.port 8501 >> "%LOGDIR%\svc_front.log" 2>&1
 exit /b 0
 
@@ -63,6 +64,7 @@ exit /b 0
 rem MCP 知识服务（streamable-http + PAT 鉴权）；MCP_MODE 由 src\mcp_server.py 从 .env 读取
 cd /d "%ROOT%"
 set "MCP_TRANSPORT=streamable-http"
+set "PYTHONIOENCODING=utf-8"
 start "" /B "%ROOT%.venv\Scripts\python.exe" "%ROOT%src\mcp_server.py" >> "%LOGDIR%\svc_mcp.log" 2>&1
 exit /b 0
 

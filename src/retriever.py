@@ -76,7 +76,8 @@ class Retriever:
     def retrieve(self, query: str, top_k: int | None = None,
                  filters: dict | None = None, trace: list | None = None,
                  keyword_query: list[str] | None = None,
-                 use_hybrid: bool = False, deadline: float | None = None) -> list[RetrievedItem]:
+                 use_hybrid: bool = False, deadline: float | None = None,
+                 diagnostics: dict | None = None) -> list[RetrievedItem]:
         """检索：问题 → 问题向量 → 默认过滤 + Metadata 过滤 → 最相近的 top_k 张卡片。
 
         use_hybrid=True（V2.4 混合检索）：并行执行 BM25 关键词检索通道，
@@ -115,7 +116,7 @@ class Retriever:
                 "🏷", "Metadata Filter", time_str=now_str(),
                 summary="检索前先按知识档案圈定范围，再在范围内找相似",
                 items=[
-                    ("Metadata 是什么", "每张知识卡片附带的档案信息：来源文件、路径、领域、分类、主题、"
+                    ("Metadata 是什么", "每张知识卡片附带的档案信息：来源文件、路径、领域、主题、"
                      "标签、章节、页码、版本、状态（active/archive）等"),
                     ("Metadata Filter 是什么", "检索前按档案字段过滤，缩小检索范围——"
                      "本阶段默认强制 status=active，所以归档（archive）知识不参与回答"),
@@ -155,6 +156,8 @@ class Retriever:
             t2 = time.time()
             bm25_hits = bm25_search(bm25_query, top_k=top_k, filters=used_filters,
                                     config=self.cfg, store=self.store, diagnostics=bm25_diagnostics)
+            if diagnostics is not None and bm25_diagnostics.get("truncated"):
+                diagnostics["bm25_truncated"] = True
             bm25_elapsed = time.time() - t2
             cache_status = ("缓存命中（直接复用索引）" if bm25_diagnostics.get("cache_hit")
                             else "首次构建（已缓存，下次复用）")
@@ -174,6 +177,8 @@ class Retriever:
                     items=[
                         ("检索词", f"{bm25_query}　（{kw_source}）"),
                         ("索引缓存", cache_status),
+                        ("索引覆盖", "已达到卡片上限，部分文档未参与关键词召回"
+                         if bm25_diagnostics.get("truncated") else "覆盖当前筛选范围"),
                         ("输入", f"过滤范围内全部卡片的分词全文（分词器：jieba）"),
                         ("输出", f"{len(keyword_items)} 条命中（BM25 分数只用于排序，与向量相似度分不可直接比较）"),
                         ("命中清单", "\n".join(lines) or "（无命中）"),
@@ -218,7 +223,7 @@ class Retriever:
                     items=[
                         ("触发条件", "过滤后可检索的卡片数量 = 0"),
                         ("后续走向", "继续走 Prompt → LLM → 后处理，但资料附页为空"),
-                        ("排查方向", "检查 Metadata Filter 条件是否过严，或知识库里是否缺整个分类的数据"),
+                        ("排查方向", "检查 Metadata Filter 条件是否过严，或所选领域内是否有可检索的文档"),
                     ],
                 ))
 

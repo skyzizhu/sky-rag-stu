@@ -374,6 +374,6 @@ if __name__ == "__main__":
         flag = " ⚠️超长" if est_tokens(chunk.text) > cfg.chunk_size else ""
         print(f"[{chunk.chunk_id}] {meta['source']} | {meta.get('section') or '无章节'}"
               f" | 页码:{meta['page'] or '-'} | {len(chunk.text)}字{flag}")
-        print(f"      domain={meta.get('domain')} category={meta.get('category')} status={meta.get('status')}")
+        print(f"      domain={meta.get('domain')} status={meta.get('status')}")
         print(f"      开头：{first_line}……")
     sys.exit(0)

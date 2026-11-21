@@ -31,6 +31,7 @@
   .sidebar .who b { color: #fff; }
   .sidebar .who a { color: #fff; cursor: pointer; display: inline-block; }
   main { flex: 1; min-width: 0; padding: 22px 26px 60px; }
+  .page-title { margin: 0 0 14px; font-size: 17px; }
   .stats { display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
   .stat { flex: 1; min-width: 160px; background: #fff; border: 1px solid #e3e8f2;
           border-radius: 10px; padding: 12px 16px; cursor: default; }
@@ -47,6 +48,12 @@
            vertical-align: middle; white-space: nowrap; }
   th { color: #5a6478; font-weight: 600; background: #f8f9fd; position: sticky; top: 0; }
   td.wrap { white-space: normal; max-width: 340px; }
+  .ingest-path { display: block; white-space: normal; overflow-wrap: anywhere; margin-top: 3px; }
+  button.ingest-path { padding: 0; background: transparent; color: #2453b3; text-decoration: underline;
+                       text-align: left; font-size: 12px; }
+  .ingest-access { display: grid; justify-items: start; gap: 4px; }
+  .ingest-access-scope { max-width: 200px; overflow-wrap: anywhere; }
+  .ingest-access .tag, .ingest-access-scope { white-space: normal; }
   form.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
   input, select, textarea { padding: 7px 10px; border: 1px solid #ccd3e0; border-radius: 7px; font-size: 13.5px; }
   input.wide { width: 260px; }
@@ -72,6 +79,34 @@
   .toast.ok { background: #1f9d55; } .toast.err { background: #d64545; }
   dialog { border: 0; border-radius: 12px; padding: 22px 24px; width: 420px; }
   dialog:has(#business-edit-form) { width: 600px; max-width: calc(100vw - 48px); }
+  .log-dialog { width: 760px; max-width: calc(100vw - 32px); max-height: 84vh; box-sizing: border-box;
+                   padding: 0; overflow: hidden; background: #f7f9fd; color: #26344d;
+                   box-shadow: 0 24px 72px #141c5038; }
+  .log-dialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .log-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+                          padding: 15px 22px; background: #fff; border-bottom: 1px solid #e3e8f2; }
+  .log-dialog-header h3 { margin: 0; color: #24375d; }
+  .log-dialog-header form { margin: 0; }
+  .log-dialog-body { min-height: 0; overflow-y: auto; overflow-wrap: anywhere; line-height: 1.6;
+                        padding: 16px; }
+  .qa-detail-field { margin: 12px 0 0; }
+  .qa-detail-field h4 { margin: 0; font-size: 13px; }
+  .ingest-overview, .ingest-detail-section { padding: 14px 16px; border: 1px solid #e3e8f2;
+                                            border-radius: 10px; background: #fff; margin-bottom: 12px; }
+  .ingest-overview { background: #eef3ff; border-color: #dbe5ff; }
+  .ingest-overview-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  .ingest-overview-head b { color: #24375d; font-size: 17px; }
+  .ingest-overview .mono { margin-top: 5px; color: #4a5e7d; }
+  .ingest-detail-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 12px; }
+  .ingest-detail-section h4 { margin: 0 0 8px; font-size: 13px; color: #24375d; }
+  .ingest-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr));
+                        gap: 10px 16px; margin: 0; }
+  .ingest-detail-grid dt { color: #5a6478; font-size: 12px; }
+  .ingest-detail-grid dd { margin: 1px 0 0; font-size: 13px; }
+  .ingest-detail-grid .wide { grid-column: 1 / -1; }
+  .ingest-detail-section summary { cursor: pointer; color: #24375d; font-size: 13px; font-weight: 600; }
+  .ingest-detail-section[open] summary { margin-bottom: 10px; }
+  .ingest-detail-section .mini { margin-top: 10px; }
   dialog::backdrop { background: rgba(20,28,50,.45); }
   dialog h3 { margin: 0 0 14px; font-size: 16px; }
   dialog label { display: block; font-size: 12.5px; color: #5a6478; margin: 10px 0 4px; }
@@ -87,6 +122,8 @@
                       padding: 7px 2px; font-size: 13.5px; }
   dialog .perm-item + .perm-item { border-top: 1px dashed #eef1f8; }
   dialog .perm-item input[type="checkbox"] { width: auto; margin: 0; }
+  #project-form .perm-list { max-height: 170px; overflow-y: auto; }
+  #project-form .perm-item { margin: 0; }
   .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
   .empty { text-align: center; color: #8a93a6; padding: 26px 0; font-size: 13px; }
   .cost-cards { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
@@ -123,12 +160,27 @@
   .dash-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin: 22px 0 12px; }
   .dash-head h3 { margin: 0 0 5px; font-size: 17px; }
   .dash-head .toolbar { margin: 0; }
-  .dashboard-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .dashboard-counts .stat { min-width: 0; }
   .dash-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .dash-metrics-overview { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .dash-metrics-usage { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .dash-metric { background: #fff; border: 1px solid #e3e8f2; border-radius: 10px; padding: 14px 16px; }
   .dash-metric span { color: #64748b; font-size: 12px; }
   .dash-metric b { display: block; font-size: 27px; margin-top: 5px; color: #263e71; }
+  .dash-pie-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .dash-pie-grid > .card { min-width: 0; margin-bottom: 0; }
+  .dash-pie-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .dash-pie-tools button[aria-pressed="true"] { background: #3d5af1; color: #fff; border-color: #3d5af1; }
+  .dash-pie { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; margin: 0; }
+  .dash-pie-ring { width: 160px; height: 160px; flex: 0 0 160px; display: grid; place-items: center;
+                   border-radius: 50%; background: var(--dash-pie-colors); }
+  .dash-pie-center { width: 104px; height: 104px; display: flex; flex-direction: column; align-items: center;
+                     justify-content: center; border-radius: 50%; background: #fff; color: #263e71; }
+  .dash-pie-center b { font-size: 24px; }
+  .dash-pie-legend { flex: 1 1 180px; min-width: 0; padding: 0; margin: 0; list-style: none; max-height: 200px; overflow-y: auto; }
+  .dash-pie-legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; align-items: center;
+                       gap: 8px; padding: 5px 0; font-size: 13px; }
+  .dash-pie-legend .dash-pie-key { overflow-wrap: anywhere; }
+  .dash-pie-legend .dash-pie-value { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; }
   .dash-grid > .card { min-width: 0; }
   .dash-subtitle { color: #64748b; font-size: 12px; margin: -3px 0 16px; line-height: 1.6; }
@@ -156,8 +208,8 @@
   .dash-channel b { display: block; font-size: 22px; color: #263e71; margin-top: 5px; }
   .dash-note { color: #64748b; font-size: 12px; line-height: 1.7; margin-top: 8px; }
   @media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } .dash-trend text { font-size: 14px; } }
-  @media (max-width: 1000px) { .dashboard-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 800px) { .dash-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dash-trend text { font-size: 16px; } }
+  @media (max-width: 700px) { .dash-pie-grid { grid-template-columns: 1fr; } }
   .hidden { display: none; }
 </style>
 </head>
@@ -181,6 +233,20 @@
     <button class="secondary" onclick="closeDlg()">取消</button>
     <button id="dlg-ok" type="button">确认</button>
   </div>
+</dialog>
+<dialog id="ingest-detail" class="log-dialog" aria-labelledby="ingest-detail-title">
+  <header class="log-dialog-header">
+    <h3 id="ingest-detail-title">入库详情</h3>
+    <form method="dialog"><button type="submit" class="mini secondary" autofocus>关闭</button></form>
+  </header>
+  <div id="ingest-detail-body" class="log-dialog-body"></div>
+</dialog>
+<dialog id="qa-log-detail" class="log-dialog" aria-labelledby="qa-log-detail-title">
+  <header class="log-dialog-header">
+    <h3 id="qa-log-detail-title">检索详情</h3>
+    <form method="dialog"><button type="submit" class="mini secondary" autofocus>关闭</button></form>
+  </header>
+  <div id="qa-log-detail-body" class="log-dialog-body"></div>
 </dialog>
 
 <script>
@@ -235,9 +301,15 @@ function confirmDo(title, msg, fn, okText = '确认', danger = false) {
 /* ---------- 标签页框架 ---------- */
 const TABS = [
   { id: 'dash',    name: '工作台',     render: renderDash },
-  { id: 'deps',    name: '部门管理',   render: renderDeps },
-  { id: 'business', name: '业务方向', render: renderBusinessDirections },
-  { id: 'emps',    name: '员工管理',   render: renderEmps },
+  { id: 'departments-employees', name: '部门及员工管理', children: [
+    { id: 'deps', name: '部门管理', render: renderDeps },
+    { id: 'emps', name: '员工管理', render: renderEmps },
+  ] },
+  { id: 'business-projects', name: '业务及项目管理', children: [
+    { id: 'business', name: '业务方向', render: renderBusinessDirections },
+    { id: 'projects', name: '项目管理', render: renderProjects },
+  ] },
+  { id: 'ingestlog', name: '入库文件', render: renderIngestLog },
   { id: 'admins',  name: '管理员',     render: renderAdmins },
   { id: 'tokens',  name: 'MCP访问令牌', render: renderTokens },
   { id: 'logs', name: '日志', children: [
@@ -252,30 +324,34 @@ const TABS = [
 let current = 'dash';
 let svcBusy = false;  // 服务控制动作进行中：防重复点击，按钮按当前状态禁用
 
-let logsMenuOpen = false;
+const openMenus = new Set();
 function renderNavigation() {
   const leaf = tab => `<button type="button" data-id="${tab.id}" class="${current === tab.id ? 'active' : ''}"
     ${current === tab.id ? 'aria-current="page"' : ''} onclick="switchTab('${tab.id}')">${esc(tab.name)}</button>`;
   $('#tabs').innerHTML = TABS.map(tab => {
     if (!tab.children) return leaf(tab);
     const active = tab.children.some(child => child.id === current);
+    const expanded = openMenus.has(tab.id);
     return `<button type="button" data-id="${tab.id}" class="nav-group ${active ? 'active' : ''}"
-      aria-expanded="${logsMenuOpen}" aria-controls="logs-submenu" onclick="toggleLogsMenu()">
-        ${esc(tab.name)}<span aria-hidden="true">${logsMenuOpen ? '▾' : '▸'}</span></button>
-      <div id="logs-submenu" class="nav-submenu" ${logsMenuOpen ? '' : 'hidden'}>
+      aria-expanded="${expanded}" aria-controls="${tab.id}-submenu" onclick="toggleMenu('${tab.id}')">
+        ${esc(tab.name)}<span aria-hidden="true">${expanded ? '▾' : '▸'}</span></button>
+      <div id="${tab.id}-submenu" class="nav-submenu" ${expanded ? '' : 'hidden'}>
         ${tab.children.map(leaf).join('')}
       </div>`;
   }).join('');
 }
-function toggleLogsMenu() {
-  logsMenuOpen = !logsMenuOpen;
+function toggleMenu(id) {
+  if (openMenus.has(id)) openMenus.delete(id);
+  else openMenus.add(id);
   renderNavigation();
+  $(`#tabs button[data-id="${id}"]`).focus();
 }
 function switchTab(id) {
   const tab = TABS.flatMap(item => item.children || [item]).find(item => item.id === id);
   if (!tab) return;
   current = id;
-  if (TABS.some(item => item.children?.some(child => child.id === id))) logsMenuOpen = true;
+  const parent = TABS.find(item => item.children?.some(child => child.id === id));
+  if (parent) openMenus.add(parent.id);
   renderNavigation();
   $('#view').innerHTML = '<div class="empty">加载中…</div>';
   return tab.render().catch(e => {
@@ -294,6 +370,9 @@ async function logout() {
 let dashboardDays = 30;
 let dashboardRequest = 0;
 let dashboardData = null;
+let dashboardIngestPeriod = null;
+let dashboardInventoryData = null;
+let dashboardInventoryMode = 'direction';
 let dashboardVisible = {web: true, mcp: true, other: true};
 const dashboardColors = {web: '#4263d7', mcp: '#0c9488', other: '#9b6bce'};
 const dashNum = n => Math.max(0, Number(n) || 0).toLocaleString();
@@ -389,55 +468,159 @@ function dashboardChangeDays(value) {
   dashboardDays = Number(value);
   renderDash().catch(e => toast(e.message, false));
 }
+const dashboardInventoryCount = value => value == null ? '—' : dashNum(value);
+function dashboardPie(items, label, unit, emptyText) {
+  const total = items.reduce((sum, item) => sum + item.count, 0);
+  if (!total) return `<div class="empty">${esc(emptyText)}</div>`;
+  let end = 0;
+  const stops = items.filter(item => item.count > 0).map((item, index, active) => {
+    const start = end;
+    end = index === active.length - 1 ? 100 : end + item.count / total * 100;
+    return `${item.color} ${start}% ${end}%`;
+  });
+  const legend = items.map(item => `<li>
+    <span aria-hidden="true" class="dash-dot" style="background:${item.color}"></span>
+    <span class="dash-pie-key">${esc(item.name)}</span>
+    <b class="dash-pie-value">${dashNum(item.count)} ${esc(unit)}</b>
+    <span class="muted dash-pie-value">${(item.count / total * 100).toLocaleString(undefined, {maximumFractionDigits: 1})}%</span>
+  </li>`).join('');
+  return `<figure class="dash-pie" aria-label="${esc(label)}">
+    <div class="dash-pie-ring" style="--dash-pie-colors:conic-gradient(${stops.join(',')})" aria-hidden="true">
+      <div class="dash-pie-center"><b>${dashNum(total)}</b><span class="muted">${esc(unit)}</span></div>
+    </div><ul class="dash-pie-legend">${legend}</ul></figure>`;
+}
+function dashboardInventoryPie(inventory, mode) {
+  const palette = ['#4263d7', '#0c9488', '#9b6bce', '#b85f16', '#308356', '#b94160', '#497b9f'];
+  const rows = mode === 'project' ? inventory.groups.flatMap(group => group.projects) : inventory.groups;
+  const items = rows.filter(row => row.documents > 0).sort((a, b) => b.documents - a.documents);
+  const segments = items.slice(0, palette.length).map((row, index) => ({
+    name: row.name, count: row.documents, color: palette[index],
+  }));
+  if (items.length > palette.length) segments.push({
+    name: mode === 'project' ? '其他项目' : '其他业务方向', color: '#6e80a7',
+    count: items.slice(palette.length).reduce((sum, row) => sum + row.documents, 0),
+  });
+  if (inventory.unlinked_documents > 0) segments.push({name: '未关联项目', count: inventory.unlinked_documents, color: '#a5afc0'});
+  return dashboardPie(segments, mode === 'project' ? '按项目分布' : '按业务方向分布', '份', '暂无有效索引文档');
+}
+function dashboardSetInventoryMode(mode) {
+  const chart = $('#dash-inventory-pie');
+  if (!dashboardInventoryData?.available || !chart || !['direction', 'project'].includes(mode)) return;
+  dashboardInventoryMode = mode;
+  chart.innerHTML = dashboardInventoryPie(dashboardInventoryData, mode);
+  document.querySelectorAll('[data-dashboard-inventory-mode]').forEach(button =>
+    button.setAttribute('aria-pressed', String(button.dataset.dashboardInventoryMode === mode)));
+}
+function dashboardOverviewCounts(overview, inventory) {
+  return [
+    ['RAG可检索文档', inventory?.documents],
+    ['业务方向', inventory?.direction_count ?? overview.business_directions],
+    ['项目', inventory?.project_count],
+    ['部门', overview.departments],
+    ['员工', overview.users],
+  ].map(([label, count]) => `<div class="dash-metric"><span>${label}</span><b>${dashboardInventoryCount(count)}</b></div>`).join('');
+}
+function dashboardInventory(inventory) {
+  return `<div class="dash-subtitle">当前可检索文档的归属分布</div>
+      ${inventory.available ? '' : '<p class="muted">暂时无法读取向量数据库，文档数待恢复后刷新。</p>'}
+      ${inventory.available ? `
+        <div class="dash-pie-tools" role="group" aria-label="资料分布统计口径">
+          <button type="button" class="mini secondary" data-dashboard-inventory-mode="direction" aria-pressed="${dashboardInventoryMode === 'direction'}" onclick="dashboardSetInventoryMode('direction')">按业务方向</button>
+          <button type="button" class="mini secondary" data-dashboard-inventory-mode="project" aria-pressed="${dashboardInventoryMode === 'project'}" onclick="dashboardSetInventoryMode('project')">按项目</button>
+        </div>
+        <div id="dash-inventory-pie">${dashboardInventoryPie(inventory, dashboardInventoryMode)}</div>` : ''}`;
+}
+async function renderDashboardInventory(requestId, overview) {
+  try {
+    const data = await api('GET', '/api/overview/inventory');
+    if (current === 'dash' && requestId === dashboardRequest) {
+      dashboardInventoryData = data;
+      $('#dash-overview-counts').innerHTML = dashboardOverviewCounts(overview, data);
+      $('#dash-inventory').innerHTML = dashboardInventory(data);
+    }
+  } catch (e) {
+    if (current === 'dash' && requestId === dashboardRequest) {
+      $('#dash-inventory').innerHTML = '<p class="muted">知识库存量暂时无法读取，请稍后刷新统计。</p>';
+    }
+  }
+}
+function dashboardIngestion(stats, period) {
+  const outcomes = stats ? [
+    {name: '成功', count: stats.ingested, color: '#21845b'},
+    {name: '跳过', count: stats.skipped, color: '#657aa6'},
+    {name: '失败', count: stats.failed, color: '#c44855'},
+    {name: '未完成', count: stats.running, color: '#be7919'},
+  ] : [];
+  return `<div class="card"><h3>入库与检索统计</h3>
+    <div class="dash-subtitle">${esc(period.start)} 至 ${esc(period.end)}${stats ? ` · ${dashNum(stats.batches)} 个入库批次` : ''}</div>
+    <div class="dash-pie-tools"><select aria-label="工作台统计范围" onchange="dashboardChangeDays(this.value)">
+      ${[7, 30, 90].map(n => `<option value="${n}" ${n === dashboardDays ? 'selected' : ''}>最近 ${n} 天</option>`).join('')}
+    </select><button type="button" class="mini secondary" onclick="renderDash().catch(e => toast(e.message, false))">刷新统计</button>
+      ${stats?.failed ? '<button type="button" class="mini secondary" onclick="dashboardShowIngestFailures()">查看失败记录</button>' : ''}</div>
+    ${dashboardPie(outcomes, '按文件操作次数统计入库结果', '次', stats ? '所选日期范围内暂无入库操作' : '入库统计暂不可用')}</div>`;
+}
+function dashboardShowIngestFailures() {
+  const period = dashboardIngestPeriod;
+  if (!period) return;
+  Object.assign(ingestFilter, {username: '', keyword: '', entry: '', outcome: 'failed',
+    start: period.start, end: period.end, period, batch_id: '', page: 1});
+  switchTab('ingestlog');
+}
 async function renderDash() {
   const requestId = ++dashboardRequest;
   const d = await api('GET', '/api/overview?days=' + dashboardDays);
   if (current !== 'dash' || requestId !== dashboardRequest) return;
-  const s = d.usage_statistics, llm = s.llm;
+  const s = d.usage_statistics, llm = s.llm, intake = d.ingestion_statistics;
   dashboardData = s;
+  dashboardInventoryData = null;
+  dashboardIngestPeriod = intake?.period || null;
   $('#view').innerHTML = `
-    <div class="stats dashboard-counts">
-      <div class="stat"><b>${dashNum(d.departments)}</b><span>部门（启用 ${dashNum(d.departments_enabled)}）</span></div>
-      <div class="stat"><b>${dashNum(d.business_directions)}</b><span>业务方向</span></div>
-      <div class="stat"><b>${dashNum(d.users)}</b><span>员工账户（启用 ${dashNum(d.users_active)}）</span></div>
-      <div class="stat"><b>${dashNum(d.admins)}</b><span>管理员账户（启用 ${dashNum(d.admins_active)}）</span></div>
+    <h3 class="page-title">工作台</h3>
+    <div class="card">
+      <h3>快捷操作</h3>
+      <div class="toolbar">
+        <button type="button" onclick="switchTab('deps')">创建部门</button>
+        <button type="button" onclick="switchTab('business').then(() => document.querySelector('#business-form input[name=name]')?.focus())">新增业务方向</button>
+        <button type="button" onclick="switchTab('projects')">项目管理</button>
+        <button type="button" onclick="switchTab('emps'); empCreateDlg()">创建员工</button>
+        <button type="button" onclick="switchTab('tokens')">签发访问令牌</button>
+      </div>
     </div>
-    <div class="card"><h3>快速操作</h3><div class="toolbar">
-      <button type="button" onclick="switchTab('deps')">＋ 创建部门</button>
-      <button type="button" onclick="switchTab('business').then(() => document.querySelector('#business-form input[name=name]')?.focus())">＋ 新增业务方向</button>
-      <button type="button" onclick="switchTab('emps'); empCreateDlg()">＋ 创建员工</button>
-      <button type="button" onclick="switchTab('tokens')">签发访问令牌</button>
-    </div></div>
-    <div class="dash-head"><div><h3>检索使用统计</h3><span class="muted">${esc(s.period.start)} 至 ${esc(s.period.end)}</span></div>
-      <div class="toolbar"><select aria-label="工作台统计范围" onchange="dashboardChangeDays(this.value)">
-        ${[7, 30, 90].map(n => `<option value="${n}" ${n === dashboardDays ? 'selected' : ''}>最近 ${n} 天</option>`).join('')}
-      </select><button class="secondary" onclick="renderDash().catch(e => toast(e.message, false))">刷新统计</button></div></div>
-    <div class="dash-metrics">
+    <div id="dash-overview-counts" class="dash-metrics dash-metrics-overview">${dashboardOverviewCounts(d)}</div>
+    <div class="dash-pie-grid">
+      <div class="card"><h3>业务方向与项目</h3>
+        <div id="dash-inventory" aria-live="polite"><p class="muted">正在读取当前知识库存量…</p></div>
+      </div>
+      ${dashboardIngestion(intake, s.period)}
+    </div>
+    <div class="dash-head"><h3>检索使用</h3></div>
+    <div class="dash-metrics dash-metrics-usage">
       <div class="dash-metric"><span>检索请求</span><b>${dashNum(s.requests)}</b></div>
       <div class="dash-metric"><span>活跃员工</span><b>${dashNum(s.active_employees)}</b></div>
       <div class="dash-metric"><span>活跃部门</span><b>${dashNum(s.active_departments)}</b></div>
-      <div class="dash-metric"><span>可核验 LLM 调用</span><b>${dashNum(llm.calls)}</b></div>
     </div>
     <div class="dash-grid">
       <div class="card"><h3>部门检索次数</h3><div class="dash-subtitle">按请求发生时的员工部门统计，包含所有入口</div>
         ${dashboardBars(s.departments, 'requests', '暂无部门检索记录')}</div>
       <div class="card"><h3>员工检索趋势</h3><div class="dash-subtitle">每条已完成的检索日志计一次请求，点击入口可切换显示</div>
         <div id="dash-trend-area">${dashboardTrend(s)}</div>
+        <div class="dash-channels">${s.channels.map(c => `<div class="dash-channel"><span class="muted">${esc(c.name)}</span><b>${dashNum(c.requests)} <small>次</small></b></div>`).join('')}</div>
         <div class="dash-note">Web 含知识库问答和跨文档总结；MCP 含 HTTP 与 stdio。未识别入口单列。</div></div>
     </div>
-    <div class="dash-grid">
-      <div class="card"><h3>LLM 调用环节</h3><div class="dash-subtitle">检索流程中有用量记录的模型调用，含回答评估</div>
-        ${dashboardBars(llm.stages.filter(row => row.calls > 0), 'calls', '所选时间暂无可核验的 LLM 调用')}
-        <div class="dash-note">已采集本次用量的请求：${dashNum(llm.verified_requests)} 次；平均每次 ${llm.average_calls} 次模型调用。<br>
-          不含 Embedding、本地精排、入库自动标签，以及没有返回用量的失败调用。</div>
-        ${llm.legacy_requests ? `<div class="dash-note">历史 ${dashNum(llm.legacy_requests)} 条请求缺少本次用量标记；原日志登记 ${dashNum(llm.legacy_reference_calls)} 次调用，仅供参考，未并入上方总数。</div>` : ''}
+    <div class="dash-note">仅统计能归属到员工的检索记录，包含答案缓存命中的请求。</div>
+    <div class="card" style="margin-top:16px">
+      <h3>LLM 调用统计</h3>
+      <div class="dash-subtitle">${esc(s.period.start)} 至 ${esc(s.period.end)} · 检索流程的模型调用，含回答评估</div>
+      <div class="dash-metrics dash-metrics-usage">
+        <div class="dash-metric"><span>可核验调用</span><b>${dashNum(llm.calls)}</b></div>
+        ${llm.legacy_requests ? `<div class="dash-metric"><span>历史日志登记调用（参考）</span><b>${dashNum(llm.legacy_reference_calls)}</b></div>` : ''}
       </div>
-      <div class="card"><h3>RAG 检索入口</h3><div class="dash-subtitle">按 Web、MCP 等入口统计检索请求次数</div>
-        <div class="dash-channels">${s.channels.map(c => `<div class="dash-channel"><span class="muted">${esc(c.name)}</span><b>${dashNum(c.requests)} <small>次</small></b></div>`).join('')}</div>
-        <div class="dash-note">所选时间共 ${dashNum(s.requests)} 次检索请求，包含答案缓存命中的请求；一次请求只按入口计一次，不按模型调用次数累加。</div>
-      </div>
-    </div>
-    <div class="dash-note">仅统计能归属到员工的检索记录，匿名个人模式不计入。</div>`;
+      ${llm.calls > 0 ? dashboardBars(llm.stages.filter(row => row.calls > 0), 'calls', '暂无环节明细') : ''}
+      ${llm.verified_requests ? `<div class="dash-note">${dashNum(llm.verified_requests)} 条请求已采集本次用量，平均每次 ${llm.average_calls} 次模型调用。</div>` : ''}
+      ${llm.legacy_requests ? `<div class="dash-note">${dashNum(llm.legacy_requests)} 条旧日志缺少本次用量标记。缓存命中可能沿用原回答的调用次数，历史登记次数仅供参考。</div>` : ''}
+      ${!llm.verified_requests && !llm.legacy_requests ? '<div class="empty">所选日期范围内暂无员工检索日志</div>' : ''}
+    </div>`;
+  renderDashboardInventory(requestId, d);
 }
 
 /* ---------- 服务状态与控制 ---------- */
@@ -685,6 +868,105 @@ async function businessEdit(id) {
   }, '保存修改');
   $('#dlg-ok').className = '';
 }
+/* ---------- 项目管理 ---------- */
+async function renderProjects() {
+  const data = await api('GET', '/api/projects');
+  if (current !== 'projects') return;
+  const rows = data.projects.map(project => `<tr>
+    <td class="wrap">${esc(project.name)}</td>
+    <td class="wrap">${esc(project.direction_name || '—')}</td>
+    <td class="wrap">${esc(project.lead_department_name || '—')}</td>
+    <td class="wrap">${esc(project.participants.map(dep => dep.name).join('、') || '—')}</td>
+    <td><button type="button" class="ghost mini" onclick="openProject(${project.id})">编辑</button></td>
+  </tr>`).join('');
+  $('#view').innerHTML = `<div class="card">
+    <h3>项目管理</h3>
+    <div class="toolbar"><button type="button" onclick="openProject()">＋ 新建项目</button></div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>项目名称</th><th>主业务方向</th><th>牵头部门</th><th>参与部门</th><th>操作</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="empty">暂无项目</td></tr>'}</tbody>
+    </table></div>
+  </div>`;
+}
+
+let projectEditorRequest = 0;
+async function openProject(id = null) {
+  const requestId = ++projectEditorRequest;
+  try {
+    const [directionData, departmentData, detail] = await Promise.all([
+      api('GET', '/api/business-directions'),
+      api('GET', '/api/departments'),
+      id === null ? null : api('GET', `/api/projects/${id}`),
+    ]);
+    if (current !== 'projects' || requestId !== projectEditorRequest) return;
+    const project = detail?.project;
+    const participants = new Set(project?.participants.map(dep => dep.id));
+    const departments = departmentData.departments.filter(dep =>
+      !dep.disabled || dep.id === project?.lead_department_id || participants.has(dep.id));
+    const label = dep => esc(dep.name + (dep.disabled ? '（已停用）' : ''));
+    const directions = directionData.business_directions.map(direction =>
+      `<option value="${direction.id}" ${direction.id === project?.direction_id ? 'selected' : ''}>${esc(direction.name)}</option>`);
+    const leads = departments.map(dep =>
+      `<option value="${dep.id}" ${dep.id === project?.lead_department_id ? 'selected' : ''}>${label(dep)}</option>`);
+    const checks = departments.map(dep => `<label class="perm-item">
+      <input type="checkbox" name="participant" value="${dep.id}" ${!project || participants.has(dep.id) ? 'checked' : ''}>
+      ${label(dep)}</label>`).join('');
+
+    openDlg(project ? '编辑项目' : '新建项目', `<form id="project-form">
+      <label for="project-name">项目名称</label>
+      <input id="project-name" name="name" value="${esc(project?.name || '')}" maxlength="80" required>
+      <label for="project-direction">主业务方向</label>
+      <select id="project-direction" name="direction_id"><option value="">未指定</option>${directions.join('')}</select>
+      <label for="project-lead">牵头部门</label>
+      <select id="project-lead" name="lead_department_id"><option value="">未指定</option>${leads.join('')}</select>
+      <label id="project-participants">参与部门（可多选）</label>
+      <div class="perm-list" role="group" aria-labelledby="project-participants">${checks || '<p class="muted">暂无可选部门</p>'}</div>
+      <label for="project-note">备注</label>
+      <textarea id="project-note" name="note" rows="3" maxlength="1000">${esc(project?.note || '')}</textarea>
+    </form>`, async () => {
+      const form = $('#project-form');
+      const button = $('#dlg-ok');
+      if (button.disabled) throw new Error('正在保存项目');
+      if (!form.reportValidity()) throw new Error('请填写项目名称');
+      const values = new FormData(form);
+      const payload = {
+        name: values.get('name').trim(),
+        direction_id: Number(values.get('direction_id')) || null,
+        lead_department_id: Number(values.get('lead_department_id')) || null,
+        participant_department_ids: values.getAll('participant').map(Number),
+        note: values.get('note').trim(),
+      };
+      button.disabled = true;
+      try {
+        if (project) {
+          await api('PUT', `/api/projects/${id}`, {...payload, revision: project.revision});
+        } else {
+          await api('POST', '/api/projects', payload);
+        }
+        toast(project ? '项目已更新' : '项目已创建');
+        try { await renderProjects(); }
+        catch (e) { toast('已保存，列表刷新失败：' + e.message, false); }
+      } finally { button.disabled = false; }
+    }, project ? '保存修改' : '创建项目');
+    $('#dlg-ok').className = '';
+    const form = $('#project-form');
+    const lead = form.elements.lead_department_id;
+    const updateParticipants = () => {
+      for (const checkbox of form.querySelectorAll('input[name="participant"]')) {
+        checkbox.disabled = checkbox.value === lead.value;
+      }
+    };
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      $('#dlg-ok').click();
+    });
+    lead.addEventListener('change', updateParticipants);
+    updateParticipants();
+  } catch (e) {
+    if (current === 'projects' && requestId === projectEditorRequest) toast(e.message, false);
+  }
+}
+
 /* ---------- 部门管理 ---------- */
 async function renderDeps() {
   const d = await api('GET', '/api/departments');
@@ -767,6 +1049,7 @@ async function renderEmps() {
     </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
+      <h3>员工管理</h3>
       <div class="toolbar">
         <button type="button" onclick="empCreateDlg()">＋ 新增员工</button>
         <input id="emp-search-input" class="wide"
@@ -938,7 +1221,7 @@ async function empEdit(id) {
 async function empToggle(uid) {
   try {
     const r = await api('POST', `/api/users/${uid}/toggle`);
-    toast(r.status === 'active' ? '已启用' : '已停用');
+    toast(r.warning || (r.status === 'active' ? '已启用' : '已停用'), !r.warning);
     if (empDlgRefresh) empDlgRefresh();
   } catch (e) { toast(e.message, false); }
 }
@@ -1053,6 +1336,188 @@ async function renderAdminOperations() {
       <select aria-label="每页条数" onchange="adminOperationChange('page_size', +this.value)">
         ${[20, 50, 100].map(n => `<option value="${n}" ${n === adminOperationFilter.page_size ? 'selected' : ''}>每页 ${n} 条</option>`).join('')}
       </select>
+    </div>
+  </div>`;
+}
+
+/* ---------- 入库文件 ---------- */
+const ingestEntries = { file: '文件上传', directory: '目录导入', web: '网页入库' };
+const ingestOutcomes = { running: '未完成', ingested: '已入库', skipped: '已跳过', failed: '失败' };
+const ingestReasons = {
+  indexed: '写入检索索引', new_revision: '更新索引版本', unchanged: '内容未变化',
+  duplicate: '内容重复', batch_duplicate: '批次内重复', same_path: '同路径冲突已跳过',
+  same_name: '同名冲突已跳过', batch_same_name: '批次内同名已跳过', no_text: '未生成知识卡片',
+  unsupported_type: '格式不支持入库', validation: '入库配置校验失败', preflight: '入库预检失败', fetch: '网页抓取失败',
+  save: '文件写入阶段失败', index: '索引阶段失败', file_missing: '文件不存在', parse_failed: '文件解析失败',
+};
+const ingestFields = {
+  domain: '领域', department: '归属部门', project_id: '项目 ID', project_name: '项目',
+  business_direction: '业务方向', doc_type: '文档类型', classification: '密级',
+  allowed_groups: '可见部门键', allowed_users: '可见员工', directory_mode: '导入方式',
+  document_id: '文档 ID', title: '标题', file_type: '文件格式', topic: '主题', tags: '标签',
+  status: '索引状态', version: '索引版本', document_version: '文档版本',
+  document_version_status: '版本识别状态', document_version_source: '版本来源', chunks: '卡片数',
+  owner: '入库人', source: '实际文件名', path: '库内路径',
+};
+const ingestFilter = { username: '', keyword: '', entry: '', outcome: '', start: '', end: '', period: null, batch_id: '', page: 1 };
+let ingestLogRequest = 0;
+let ingestRows = new Map();
+let ingestDepartmentLabels = new Map();
+function ingestFilterChange(key, value) {
+  if (key !== 'page') ingestFilter.page = 1;
+  if (key === 'start' || key === 'end') ingestFilter.period = null;
+  ingestFilter[key] = value;
+  renderIngestLog().catch(e => toast(e.message, false));
+}
+function ingestAttributes(attributes) {
+  return Object.entries(attributes).map(([key, value]) => {
+    const text = Array.isArray(value) ? value.join('、') : value;
+    return `<div>${esc(ingestFields[key] || key)} · ${text == null || text === '' ? '—' : esc(text)}</div>`;
+  }).join('') || '<span class="muted">无</span>';
+}
+function ingestOutcome(row) {
+  const tone = row.outcome === 'ingested' ? 'on' : row.outcome === 'failed' ? 'off' : 'neutral';
+  return `<span class="tag ${tone}">${esc(ingestOutcomes[row.outcome])}</span>`;
+}
+function ingestProject(attributes) {
+  return attributes.project_name || (attributes.project_id ? `#${attributes.project_id}` : '');
+}
+function ingestAccess(attributes, limit = Infinity) {
+  const level = attributes.classification;
+  const tones = { '公开': 'on', '内部': 'neutral', '受限': 'admin' };
+  if (!Object.hasOwn(tones, level)) return '<span class="muted">—</span>';
+  const names = level === '内部' ? (attributes.allowed_groups || []).map(key => ingestDepartmentLabels.get(key) || key)
+    : (attributes.allowed_users || []).map(name => `@${name}`);
+  const unit = level === '内部' ? '部门' : '人';
+  const summary = level === '公开' ? '全员可见' : names.length === 0 ? '暂无授权对象'
+    : names.slice(0, limit).join('、') + (names.length > limit ? `等 ${names.length} ${unit}` : '');
+  return `<div class="ingest-access"><span class="tag ${tones[level]}">${esc(level)}</span>
+    <span class="muted ingest-access-scope" title="${esc(names.join('、') || summary)}">${esc(summary)}</span></div>`;
+}
+function ingestDetailField(label, value, wide = false) {
+  return `<div${wide ? ' class="wide"' : ''}><dt>${esc(label)}</dt><dd>${esc(value) || '—'}</dd></div>`;
+}
+function showIngestDetail(id) {
+  const row = ingestRows.get(id);
+  if (!row) return;
+  const body = $('#ingest-detail-body');
+  const attributes = row.attributes;
+  body.innerHTML = `
+    <section class="ingest-overview">
+      <div class="ingest-overview-head"><b>${esc(row.file_name) || '—'}</b>${ingestOutcome(row)}</div>
+      <div class="mono">${esc(row.absolute_path || row.path) || '—'}</div>
+      ${row.reason ? `<div class="muted">${esc(ingestReasons[row.reason] || '')}</div>` : ''}
+    </section>
+    <section class="ingest-detail-section">
+      <h4>归属与检索权限</h4><dl class="ingest-detail-grid">
+        ${ingestDetailField('业务方向', attributes.business_direction)}
+        ${ingestDetailField('项目', ingestProject(attributes))}
+        ${ingestDetailField('归属部门', attributes.department)}
+        <div><dt>检索权限</dt><dd>${ingestAccess(attributes)}</dd></div>
+      </dl>
+    </section>
+    <div class="ingest-detail-panels">
+      <section class="ingest-detail-section">
+        <h4>入库操作</h4><dl class="ingest-detail-grid">
+          ${ingestDetailField('操作人', row.username)}
+          ${ingestDetailField('入库入口', ingestEntries[row.entry])}
+          ${ingestDetailField('开始时间', new Date(row.started_at).toLocaleString())}
+          ${ingestDetailField('完成时间', row.finished_at ? new Date(row.finished_at).toLocaleString() : '')}
+          ${ingestDetailField('文件大小', row.bytes == null ? '' : `${row.bytes} B`)}
+          ${ingestDetailField('批次耗时', row.elapsed_ms == null ? '' : `${row.elapsed_ms} ms`)}
+          ${ingestDetailField('原始来源', row.source_path, true)}
+        </dl>
+        <button type="button" class="mini secondary" data-batch="${esc(row.batch_id)}" onclick="showIngestBatch(this.dataset.batch)">查看同批次</button>
+      </section>
+      <section class="ingest-detail-section">
+        <h4>浏览器与连接</h4><dl class="ingest-detail-grid">
+          ${ingestDetailField('用户 IP', row.ip)}
+          ${ingestDetailField('浏览器', row.browser)}
+          ${ingestDetailField('操作系统', row.os_name)}
+          ${ingestDetailField('浏览器指纹', row.fingerprint)}
+          ${ingestDetailField('User-Agent', row.user_agent, true)}
+        </dl>
+      </section>
+    </div>
+    <details class="ingest-detail-section"><summary>表单设置</summary>${ingestAttributes(row.requested)}</details>
+    <details class="ingest-detail-section"><summary>实际入库属性</summary>${ingestAttributes(attributes)}</details>`;
+  const dialog = $('#ingest-detail');
+  dialog.showModal();
+  body.scrollTop = 0;
+}
+function showIngestBatch(batch) {
+  $('#ingest-detail').close();
+  ingestFilterChange('batch_id', batch);
+}
+async function revealIngestFile(id) {
+  try { await api('POST', `/api/logs/ingest/${id}/reveal`); }
+  catch (e) { toast(e.message, false); }
+}
+async function renderIngestLog() {
+  const requestId = ++ingestLogRequest;
+  const qs = new URLSearchParams({ page: ingestFilter.page });
+  for (const key of ['username', 'keyword', 'entry', 'outcome', 'batch_id']) {
+    if (ingestFilter[key]) qs.set(key, ingestFilter[key]);
+  }
+  if (ingestFilter.period) {
+    qs.set('since', ingestFilter.period.since);
+    qs.set('before', ingestFilter.period.before);
+  } else {
+    if (ingestFilter.start) qs.set('since', new Date(`${ingestFilter.start}T00:00:00`).toISOString());
+    if (ingestFilter.end) {
+      const day = new Date(`${ingestFilter.end}T00:00:00`);
+      day.setDate(day.getDate() + 1);
+      qs.set('before', day.toISOString());
+    }
+  }
+  const d = await api('GET', '/api/logs/ingest?' + qs);
+  if (current !== 'ingestlog' || requestId !== ingestLogRequest) return;
+  ingestFilter.page = d.page;
+  ingestRows = new Map(d.logs.map(row => [row.id, row]));
+  ingestDepartmentLabels = new Map(Object.entries(d.department_labels || {}));
+  const options = (labels, key) => Object.entries(labels).map(([value, label]) =>
+    `<option value="${value}" ${ingestFilter[key] === value ? 'selected' : ''}>${label}</option>`).join('');
+  const employeeOptions = (d.employee_options || []).map(({ username, real_name }) => {
+    const name = real_name.trim();
+    const label = name ? `${username} - ${name}` : username;
+    return `<option value="${esc(username)}" ${ingestFilter.username === username ? 'selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+  const rows = d.logs.map(l => `<tr>
+    <td class="muted">${esc(new Date(l.started_at).toLocaleString())}</td>
+    <td><b>${esc(l.username) || '—'}</b><br><span class="muted">${esc(l.actor_department)}</span></td>
+    <td class="wrap"><b>${esc(l.file_name) || '—'}</b>
+      ${l.can_reveal ? `<button type="button" class="ingest-path" title="在文件管理器中打开位置" onclick="revealIngestFile(${l.id})">${esc(l.absolute_path)}</button>`
+        : `<span class="ingest-path muted">${esc(l.absolute_path || l.path || l.source_path)}</span>`}</td>
+    <td class="wrap">${esc(l.attributes.business_direction) || '—'}</td>
+    <td class="wrap">${esc(ingestProject(l.attributes)) || '—'}</td>
+    <td class="wrap">${esc(l.attributes.department) || '—'}</td>
+    <td class="wrap">${ingestAccess(l.attributes, 2)}</td>
+    <td>${ingestOutcome(l)}
+      <br><span class="muted">${esc(ingestReasons[l.reason] || '')}</span></td>
+    <td><button type="button" class="mini secondary" onclick="showIngestDetail(${l.id})">查看</button></td>
+  </tr>`).join('');
+  $('#view').innerHTML = `<div class="card">
+    <h3>入库文件</h3>
+    <div class="toolbar">
+      <select aria-label="按员工账户筛选" onchange="ingestFilterChange('username', this.value)">
+        <option value="">全部员工</option>${employeeOptions}</select>
+      <input aria-label="文件名或路径" placeholder="搜索文件名或路径" maxlength="256" value="${esc(ingestFilter.keyword)}" onchange="ingestFilterChange('keyword', this.value.trim())">
+      <select aria-label="入库入口" onchange="ingestFilterChange('entry', this.value)"><option value="">全部入口</option>${options(ingestEntries, 'entry')}</select>
+      <select aria-label="入库结果" onchange="ingestFilterChange('outcome', this.value)"><option value="">全部结果</option>${options(ingestOutcomes, 'outcome')}</select>
+      <label>起始日期 <input type="date" value="${esc(ingestFilter.start)}" onchange="ingestFilterChange('start', this.value)"></label>
+      <label>截止日期 <input type="date" value="${esc(ingestFilter.end)}" onchange="ingestFilterChange('end', this.value)"></label>
+      <button class="mini secondary" onclick="ingestFilterChange('page', 1)">刷新</button>
+      ${ingestFilter.batch_id ? `<button class="mini secondary" onclick="ingestFilterChange('batch_id', '')">清除批次筛选</button>` : ''}
+    </div>
+    ${!d.reveal_available && d.logs.some(l => l.absolute_path) ? '<p class="muted">在知识库所在电脑通过 localhost 打开管理后台，即可定位文件。</p>' : ''}
+    <div style="overflow-x:auto"><table><tr><th>开始时间</th><th>员工</th><th>文件与路径</th><th>业务方向</th>
+      <th>项目</th><th>归属部门</th><th title="本次入库记录中的实际可见范围">检索权限</th><th>结果</th><th>详情</th></tr>
+      ${rows || '<tr><td colspan="9" class="empty">暂无符合条件的入库日志</td></tr>'}
+    </table></div>
+    <div class="toolbar" style="margin-top:12px">
+      <button class="mini secondary" ${d.page <= 1 ? 'disabled' : ''} onclick="ingestFilterChange('page', ingestFilter.page - 1)">上一页</button>
+      <span class="muted">第 ${d.page} / ${d.total_pages} 页，共 ${d.total} 条</span>
+      <button class="mini secondary" ${d.page >= d.total_pages ? 'disabled' : ''} onclick="ingestFilterChange('page', ingestFilter.page + 1)">下一页</button>
     </div>
   </div>`;
 }
@@ -1347,6 +1812,7 @@ function actionLabel(a) {
     employee_transfer: '调整部门', department_create: '创建部门',
     department_toggle: '停用/启用部门', department_delete: '删除部门',
     business_direction_create: '创建业务方向',
+    project_create: '创建项目', project_update: '编辑项目',
     admin_create: '新增管理员', admin_delete: '删除管理员',
     token_create: '签发令牌', token_revoke: '吊销令牌' };
   return m[a] || a;
@@ -1429,42 +1895,60 @@ async function renderLlmCost() {
 
 /* ---------- RAG 使用日志（只有员工会产生——管理员不能登录前台/MCP） ---------- */
 let qaLogFilter = { username: '', entry: '', department: '', page: 1 };
+let qaLogRequest = 0;
+let qaLogRows = new Map();
 const QA_PAGE_SIZE = 20;
+const qaEntryLabel = { web: '知识库问答', manage_summary: '跨文档总结',
+                       mcp_http: 'MCP（团队）', mcp_stdio: 'MCP（个人）' };
+
+function showQaLogDetail(id) {
+  const row = qaLogRows.get(id);
+  if (!row) return;
+  const sources = Array.isArray(row.sources) ? row.sources : [];
+  const body = $('#qa-log-detail-body');
+  const field = (label, value) => `<section class="qa-detail-field"><h4>${label}</h4><div class="log-detail">${esc(value)}</div></section>`;
+  body.innerHTML = `<div class="muted">${esc(row.created_at)} · ${esc(row.username) || '—'} · ${esc(row.department) || '—'} · ${esc(qaEntryLabel[row.entry] || row.entry)}</div>
+    <p><b>命中个数</b> ${sources.length} 个来源 <span class="muted">·</span> <b>耗时</b> ${esc(row.elapsed.toFixed(1))} 秒</p>
+    ${field('问题', row.question)}
+    ${field('回答', row.answer || '（仅检索，无生成）')}
+    ${row.answer?.length >= 3000 ? '<div class="muted">回答预览最多显示 3000 个字符。</div>' : ''}
+    ${field('命中来源', sources.map(item => item?.path || item?.source).filter(Boolean).join('、') || '无')}
+    ${field('过滤条件', JSON.stringify(row.filters || {}, null, 2))}`;
+  $('#qa-log-detail').showModal();
+  body.scrollTop = 0;
+}
+
 async function renderQaLog() {
+  const requestId = ++qaLogRequest;
   const qs = new URLSearchParams();
   qs.set('page', qaLogFilter.page);
   qs.set('limit', QA_PAGE_SIZE);
   if (qaLogFilter.username) qs.set('username', qaLogFilter.username);
   if (qaLogFilter.entry) qs.set('entry', qaLogFilter.entry);
   if (qaLogFilter.department) qs.set('department', qaLogFilter.department);
-  const d = await api('GET', '/api/logs/qa?' + qs.toString());
+  const [d, { users }, { departments }] = await Promise.all([
+    api('GET', '/api/logs/qa?' + qs.toString()), api('GET', '/api/users'), api('GET', '/api/departments'),
+  ]);
+  if (current !== 'qalog' || requestId !== qaLogRequest) return;
+  qaLogRows = new Map(d.logs.map(row => [row.id, row]));
   const totalPages = Math.max(1, Math.ceil(d.total / QA_PAGE_SIZE));
-  const users = (await api('GET', '/api/users')).users;
-  const entryLabel = { web: '知识库问答', manage_summary: '跨文档总结',
-                       mcp_http: 'MCP（团队）', mcp_stdio: 'MCP（个人）' };
   const rows = d.logs.map(l => `
-    <tr class="clickable" onclick="this.nextElementSibling.classList.toggle('hidden')">
+    <tr class="clickable" onclick="showQaLogDetail(${l.id})">
       <td class="muted">${esc(l.created_at)}</td>
       <td><b>${esc(l.username) || '—'}</b></td>
       <td>${esc(l.department) || '—'}</td>
-      <td><span class="tag neutral">${esc(entryLabel[l.entry] || l.entry)}</span></td>
+      <td><span class="tag neutral">${esc(qaEntryLabel[l.entry] || l.entry)}</span></td>
       <td class="wrap">${esc(l.question)}</td>
-      <td>${l.sources.length} 个来源</td>
       <td class="muted">${l.elapsed.toFixed(1)}s</td>
-    </tr>
-    <tr class="hidden"><td colspan="7">
-      <div class="log-detail"><b>回答：</b>${esc((l.answer || '（仅检索，无生成）').slice(0, 600))}
-        ${l.answer && l.answer.length > 600 ? '……' : ''}
-        <br><b>来源：</b>${esc(l.sources.map(s => s.source).join('、') || '无')}
-        <br><b>过滤：</b>${esc(JSON.stringify(l.filters))}</div>
-    </td></tr>`).join('');
+      <td><button type="button" class="mini secondary" onclick="event.stopPropagation(); showQaLogDetail(${l.id})">查看</button></td>
+    </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
       <h3>员工检索日志—— 共 ${d.total} 条</h3>
       <div class="toolbar">
         <select onchange="qaLogFilter.department=this.value; qaLogFilter.page=1; renderQaLog()">
           <option value="">全部部门</option>
-          ${(await api('GET', '/api/departments')).departments
+          ${departments
             .map(x => `<option value="${esc(x.name)}" ${x.name === qaLogFilter.department
               ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
         </select>
@@ -1473,16 +1957,16 @@ async function renderQaLog() {
           ${users.map(u => `<option value="${esc(u.username)}" ${u.username === qaLogFilter.username
             ? 'selected' : ''}>${esc(u.username)}${u.real_name ? '（' + esc(u.real_name) + '）' : ''}</option>`).join('')}
         </select>
-        <select onchange="qaLogFilter.entry=this.value; renderQaLog()">
+        <select onchange="qaLogFilter.entry=this.value; qaLogFilter.page=1; renderQaLog()">
           <option value="">全部入口</option>
-          ${Object.keys(entryLabel).map(k =>
-            `<option value="${k}" ${k === qaLogFilter.entry ? 'selected' : ''}>${entryLabel[k]}</option>`).join('')}
+          ${Object.keys(qaEntryLabel).map(k =>
+            `<option value="${k}" ${k === qaLogFilter.entry ? 'selected' : ''}>${qaEntryLabel[k]}</option>`).join('')}
         </select>
         <button class="mini secondary" onclick="renderQaLog()">刷新</button>
       </div>
       <div class="muted" style="margin-bottom:10px">只有员工会产生使用记录（管理员不能登录前台/MCP）。
-        记录所有入口的检索与提问，点击行展开回答全文、命中来源与生效的过滤条件（含部门权限域）。</div>
-      <table><tr><th>时间</th><th>账户</th><th>部门</th><th>入口</th><th>问题</th><th>命中</th><th>耗时</th></tr>
+        点击「查看」可查看回答、命中来源和生效的过滤条件。</div>
+      <table><tr><th>时间</th><th>账户</th><th>部门</th><th>入口</th><th>问题</th><th>耗时</th><th>详情</th></tr>
       ${rows || `<tr><td colspan="7" class="empty">暂无使用记录</td></tr>`}</table>
       <div class="pager" style="display:flex;gap:8px;align-items:center;margin:10px 0 0">
         <button class="mini secondary" ${qaLogFilter.page <= 1 ? 'disabled' : ''}

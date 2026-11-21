@@ -1,0 +1,320 @@
+[
+  {
+    "case": "Q079",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 3027.97,
+    "aligned": true,
+    "top5_documents": [
+      "air-private"
+    ],
+    "all_documents": [
+      "air-private"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "AIR-RESTRICT-271"
+    ],
+    "returned": 1,
+    "coverage": "unknown",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_c8193137",
+        "path": "projects/dikongjianguanpingtai/低空监管平台权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台权限演练记录.html\n低空监管平台授权演练记录，仅供授权员工查看。内部演练口令 AIR-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_c8193137_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q080",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 11.76,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": []
+  },
+  {
+    "case": "Q081",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 127.61,
+    "aligned": true,
+    "top5_documents": [
+      "cold-private"
+    ],
+    "all_documents": [
+      "cold-private"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "COLD-RESTRICT-271"
+    ],
+    "returned": 1,
+    "coverage": "unknown",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_19cc45d7",
+        "path": "projects/shuguanglenglian/曙光冷链权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：曙光冷链权限演练记录.html\n曙光冷链授权演练记录，仅供授权员工查看。内部演练口令 COLD-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_19cc45d7_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q082",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 10.35,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": []
+  },
+  {
+    "case": "Q083",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 130.36,
+    "aligned": true,
+    "top5_documents": [
+      "grid-private"
+    ],
+    "all_documents": [
+      "grid-private"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "GRID-RESTRICT-271"
+    ],
+    "returned": 1,
+    "coverage": "unknown",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_4230641e",
+        "path": "projects/qinghepeidian/青禾配电权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：青禾配电权限演练记录.html\n青禾配电授权演练记录，仅供授权员工查看。内部演练口令 GRID-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_4230641e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q084",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 10.27,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": []
+  },
+  {
+    "case": "Q085",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 121.53,
+    "aligned": true,
+    "top5_documents": [
+      "clinic-private"
+    ],
+    "all_documents": [
+      "clinic-private"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "CLINIC-RESTRICT-271"
+    ],
+    "returned": 1,
+    "coverage": "unknown",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_f6ceb50a",
+        "path": "projects/xinggangfenzhen/星港分诊权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：星港分诊权限演练记录.html\n星港分诊授权演练记录，仅供授权员工查看。内部演练口令 CLINIC-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_f6ceb50a_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q086",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 9.78,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": []
+  },
+  {
+    "case": "Q087",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 118.49,
+    "aligned": true,
+    "top5_documents": [
+      "water-private"
+    ],
+    "all_documents": [
+      "water-private"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "WATER-RESTRICT-271"
+    ],
+    "returned": 1,
+    "coverage": "unknown",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_0cd0d061",
+        "path": "projects/chengxishuiwu/澄溪水务权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：澄溪水务权限演练记录.html\n澄溪水务授权演练记录，仅供授权员工查看。内部演练口令 WATER-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_0cd0d061_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q088",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 10.04,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": []
+  },
+  {
+    "case": "Q089",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 116.92,
+    "aligned": true,
+    "top5_documents": [
+      "port-private"
+    ],
+    "all_documents": [
+      "port-private"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "PORT-RESTRICT-271"
+    ],
+    "returned": 1,
+    "coverage": "unknown",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_77ce6109",
+        "path": "projects/haitangzhakou/海棠闸口权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：海棠闸口权限演练记录.html\n海棠闸口授权演练记录，仅供授权员工查看。内部演练口令 PORT-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_77ce6109_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q090",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 8.24,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": []
+  }
+]

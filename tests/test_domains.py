@@ -237,7 +237,7 @@ class PromptsUseCodesOnlyTests(_RegistryCase):
                     raise RuntimeError("测试：不真正调用大模型")
                 return _fail
 
-        qu = understand_query("报销流程是什么", llm=_FailingLLM(), categories=["general"])
+        qu = understand_query("报销流程是什么", llm=_FailingLLM())
         self.assertIn("finance", qu.user_prompt)
         self.assertNotIn("财务专属名称", qu.user_prompt)
 

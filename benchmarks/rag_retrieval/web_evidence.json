@@ -1,0 +1,5213 @@
+[
+  {
+    "case": "Q001",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 3740.75,
+    "aligned": true,
+    "top5_documents": [
+      "air-report"
+    ],
+    "all_documents": [
+      "air-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "UAV-A700"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4765625,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_e914c30e",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.49193548387096775,
+        "text": "来源文档：低空监管平台验收方案.md\n低空监管平台验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 蓝湾调度中心，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_e914c30e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46923076923076923,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q002",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1224.81,
+    "aligned": true,
+    "top5_documents": [
+      "air-incident"
+    ],
+    "all_documents": [
+      "air-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "GNSS 时钟漂移"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_62aa1875",
+        "path": "projects/dikongjianguanpingtai/低空监管平台故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台故障复盘.txt\n低空监管平台复盘记录，影响低空数据回传。根因是 GNSS 时钟漂移。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_62aa1875_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4552238805970149,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8970588235294118,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8840579710144928,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8909381663113006,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q003",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1610.85,
+    "aligned": true,
+    "top5_documents": [
+      "air-ledger"
+    ],
+    "all_documents": [
+      "air-ledger"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "AL-209"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9533577533577533,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9457932692307692,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q004",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 6.63,
+    "aligned": true,
+    "top5_documents": [
+      "air-plan",
+      "air-report"
+    ],
+    "all_documents": [
+      "air-plan",
+      "air-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 2,
+    "coverage": "complete",
+    "matched_documents": 2,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：低空监管平台验收报告.docx\n路径：projects/dikongjianguanpingtai/低空监管平台验收报告.docx\n入库时间：2026-11-20 22:43:24",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_e914c30e",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：低空监管平台验收方案.md\n路径：projects/dikongjianguanpingtai/低空监管平台验收方案.md\n入库时间：2026-11-20 22:43:26",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q005",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1457.58,
+    "aligned": true,
+    "top5_documents": [
+      "air-incident"
+    ],
+    "all_documents": [
+      "air-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "GNSS 时钟漂移"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_62aa1875",
+        "path": "projects/dikongjianguanpingtai/低空监管平台故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台故障复盘.txt\n低空监管平台复盘记录，影响低空数据回传。根因是 GNSS 时钟漂移。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_62aa1875_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_e914c30e",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.953125,
+        "text": "来源文档：低空监管平台验收方案.md\n低空监管平台验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 蓝湾调度中心，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_e914c30e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_cf85e29f",
+        "path": "projects/dikongjianguanpingtai/低空监管平台交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9313519813519814,
+        "text": "来源文档：低空监管平台交接纪要.pptx\n低空监管平台夜班交接纪要。交接地址为 蓝湾调度中心，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_cf85e29f_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_c8193137",
+        "path": "projects/dikongjianguanpingtai/低空监管平台权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9462481962481962,
+        "text": "来源文档：低空监管平台权限演练记录.html\n低空监管平台授权演练记录，仅供授权员工查看。内部演练口令 AIR-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_c8193137_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q006",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.99,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": false,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q007",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 959.54,
+    "aligned": true,
+    "top5_documents": [
+      "air-ledger",
+      "air-report"
+    ],
+    "all_documents": [
+      "air-ledger",
+      "air-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "17 秒",
+      "18 次"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_e914c30e",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：低空监管平台验收方案.md\n低空监管平台验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 蓝湾调度中心，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_e914c30e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_cf85e29f",
+        "path": "projects/dikongjianguanpingtai/低空监管平台交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9533577533577533,
+        "text": "来源文档：低空监管平台交接纪要.pptx\n低空监管平台夜班交接纪要。交接地址为 蓝湾调度中心，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_cf85e29f_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_c8193137",
+        "path": "projects/dikongjianguanpingtai/低空监管平台权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：低空监管平台权限演练记录.html\n低空监管平台授权演练记录，仅供授权员工查看。内部演练口令 AIR-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_c8193137_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q008",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1927.58,
+    "aligned": true,
+    "top5_documents": [
+      "air-handover",
+      "air-incident"
+    ],
+    "all_documents": [
+      "air-handover",
+      "air-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "工务部",
+      "GNSS 时钟漂移"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_62aa1875",
+        "path": "projects/dikongjianguanpingtai/低空监管平台故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台故障复盘.txt\n低空监管平台复盘记录，影响低空数据回传。根因是 GNSS 时钟漂移。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_62aa1875_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_cf85e29f",
+        "path": "projects/dikongjianguanpingtai/低空监管平台交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：低空监管平台交接纪要.pptx\n低空监管平台夜班交接纪要。交接地址为 蓝湾调度中心，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_cf85e29f_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4552238805970149,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8909381663113006,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8905583972719522,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q009",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.63,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q010",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1066.4,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_cf85e29f",
+        "path": "projects/dikongjianguanpingtai/低空监管平台交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9313519813519814,
+        "text": "来源文档：低空监管平台交接纪要.pptx\n低空监管平台夜班交接纪要。交接地址为 蓝湾调度中心，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_cf85e29f_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_e914c30e",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：低空监管平台验收方案.md\n低空监管平台验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 蓝湾调度中心，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_e914c30e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_c8193137",
+        "path": "projects/dikongjianguanpingtai/低空监管平台权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：低空监管平台权限演练记录.html\n低空监管平台授权演练记录，仅供授权员工查看。内部演练口令 AIR-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_c8193137_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q011",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1520.02,
+    "aligned": true,
+    "top5_documents": [
+      "cold-report"
+    ],
+    "all_documents": [
+      "cold-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "COLD-K881"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.46212121212121215,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.961166253101737,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4841269841269841,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4765625,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q012",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2083.99,
+    "aligned": true,
+    "top5_documents": [
+      "cold-incident"
+    ],
+    "all_documents": [
+      "cold-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "探头接头松动"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4552238805970149,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8905583972719522,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_62aa1875",
+        "path": "projects/dikongjianguanpingtai/低空监管平台故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8714285714285714,
+        "text": "来源文档：低空监管平台故障复盘.txt\n低空监管平台复盘记录，影响低空数据回传。根因是 GNSS 时钟漂移。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_62aa1875_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_ec1823d1",
+        "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9313519813519814,
+        "text": "来源文档：曙光冷链验收方案.md\n曙光冷链验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 北港冷藏区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_ec1823d1_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q013",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1345.33,
+    "aligned": true,
+    "top5_documents": [
+      "cold-ledger"
+    ],
+    "all_documents": [
+      "cold-ledger"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "CL-311"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9173450927182271,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.953125,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_ca3d9e9d",
+        "path": "projects/chengxishuiwu/澄溪水务运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9533577533577533,
+        "text": "来源文档：澄溪水务运营台账.xlsx\n项目资料 | 记录明细\n澄溪水务运营台账 | 澄溪水务本期运营台账。设备编号为 WT-714。\n澄溪水务运营台账 | 本期正式验证合计 24 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_ca3d9e9d_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q014",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 4.43,
+    "aligned": true,
+    "top5_documents": [
+      "cold-plan",
+      "cold-report"
+    ],
+    "all_documents": [
+      "cold-plan",
+      "cold-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 2,
+    "coverage": "complete",
+    "matched_documents": 2,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：曙光冷链验收报告.docx\n路径：projects/shuguanglenglian/曙光冷链验收报告.docx\n入库时间：2026-11-20 22:43:32",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_ec1823d1",
+        "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：曙光冷链验收方案.md\n路径：projects/shuguanglenglian/曙光冷链验收方案.md\n入库时间：2026-11-20 22:43:33",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q015",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1256.3,
+    "aligned": true,
+    "top5_documents": [
+      "cold-incident"
+    ],
+    "all_documents": [
+      "cold-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "探头接头松动"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_ec1823d1",
+        "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.953125,
+        "text": "来源文档：曙光冷链验收方案.md\n曙光冷链验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 北港冷藏区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_ec1823d1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_979d1097",
+        "path": "projects/shuguanglenglian/曙光冷链交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9384615384615385,
+        "text": "来源文档：曙光冷链交接纪要.pptx\n曙光冷链夜班交接纪要。交接地址为 北港冷藏区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_979d1097_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q016",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.67,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": false,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q017",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 814.36,
+    "aligned": true,
+    "top5_documents": [
+      "cold-ledger",
+      "cold-report"
+    ],
+    "all_documents": [
+      "cold-ledger",
+      "cold-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "4.8 摄氏度",
+      "12 次"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_ec1823d1",
+        "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：曙光冷链验收方案.md\n曙光冷链验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 北港冷藏区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_ec1823d1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_979d1097",
+        "path": "projects/shuguanglenglian/曙光冷链交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9462481962481962,
+        "text": "来源文档：曙光冷链交接纪要.pptx\n曙光冷链夜班交接纪要。交接地址为 北港冷藏区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_979d1097_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_19cc45d7",
+        "path": "projects/shuguanglenglian/曙光冷链权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：曙光冷链权限演练记录.html\n曙光冷链授权演练记录，仅供授权员工查看。内部演练口令 COLD-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_19cc45d7_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q018",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1353.76,
+    "aligned": true,
+    "top5_documents": [
+      "cold-handover",
+      "cold-incident"
+    ],
+    "all_documents": [
+      "cold-handover",
+      "cold-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "城运部",
+      "探头接头松动"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_979d1097",
+        "path": "projects/shuguanglenglian/曙光冷链交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：曙光冷链交接纪要.pptx\n曙光冷链夜班交接纪要。交接地址为 北港冷藏区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_979d1097_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46923076923076923,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.910650623885918,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4552238805970149,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q019",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.75,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q020",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 769.04,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_979d1097",
+        "path": "projects/shuguanglenglian/曙光冷链交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9457932692307692,
+        "text": "来源文档：曙光冷链交接纪要.pptx\n曙光冷链夜班交接纪要。交接地址为 北港冷藏区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_979d1097_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_ec1823d1",
+        "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9540566959921799,
+        "text": "来源文档：曙光冷链验收方案.md\n曙光冷链验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 北港冷藏区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_ec1823d1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9682539682539681,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q021",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1193.45,
+    "aligned": true,
+    "top5_documents": [
+      "grid-report"
+    ],
+    "all_documents": [
+      "grid-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "GRID-P602"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.9041501976284586,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9122767857142856,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q022",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1137.71,
+    "aligned": true,
+    "top5_documents": [
+      "grid-incident"
+    ],
+    "all_documents": [
+      "grid-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "断路器位置信号抖动"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_3d1600ca",
+        "path": "projects/qinghepeidian/青禾配电验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9384615384615385,
+        "text": "来源文档：青禾配电验收方案.md\n青禾配电验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 青禾东站，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_3d1600ca_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8905583972719522,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_03f61d02",
+        "path": "projects/qinghepeidian/青禾配电交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：青禾配电交接纪要.pptx\n青禾配电夜班交接纪要。交接地址为 青禾东站，交接时先核对现场记录。\n交接值班由物流部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_03f61d02_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q023",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1326.71,
+    "aligned": true,
+    "top5_documents": [
+      "grid-ledger"
+    ],
+    "all_documents": [
+      "grid-ledger"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "PD-473"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9173450927182271,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9533577533577533,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.953125,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q024",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 4.21,
+    "aligned": true,
+    "top5_documents": [
+      "grid-plan",
+      "grid-report"
+    ],
+    "all_documents": [
+      "grid-plan",
+      "grid-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 2,
+    "coverage": "complete",
+    "matched_documents": 2,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：青禾配电验收报告.docx\n路径：projects/qinghepeidian/青禾配电验收报告.docx\n入库时间：2026-11-20 22:43:39",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_3d1600ca",
+        "path": "projects/qinghepeidian/青禾配电验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：青禾配电验收方案.md\n路径：projects/qinghepeidian/青禾配电验收方案.md\n入库时间：2026-11-20 22:43:40",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q025",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1264.67,
+    "aligned": true,
+    "top5_documents": [
+      "grid-incident"
+    ],
+    "all_documents": [
+      "grid-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "断路器位置信号抖动"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_3d1600ca",
+        "path": "projects/qinghepeidian/青禾配电验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：青禾配电验收方案.md\n青禾配电验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 青禾东站，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_3d1600ca_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.961166253101737,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_03f61d02",
+        "path": "projects/qinghepeidian/青禾配电交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.953125,
+        "text": "来源文档：青禾配电交接纪要.pptx\n青禾配电夜班交接纪要。交接地址为 青禾东站，交接时先核对现场记录。\n交接值班由物流部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_03f61d02_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_4230641e",
+        "path": "projects/qinghepeidian/青禾配电权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9242424242424243,
+        "text": "来源文档：青禾配电权限演练记录.html\n青禾配电授权演练记录，仅供授权员工查看。内部演练口令 GRID-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_4230641e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q026",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.94,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": false,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q027",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 794.12,
+    "aligned": true,
+    "top5_documents": [
+      "grid-ledger",
+      "grid-report"
+    ],
+    "all_documents": [
+      "grid-ledger",
+      "grid-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "11 秒",
+      "21 次"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_3d1600ca",
+        "path": "projects/qinghepeidian/青禾配电验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：青禾配电验收方案.md\n青禾配电验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 青禾东站，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_3d1600ca_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_03f61d02",
+        "path": "projects/qinghepeidian/青禾配电交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9533577533577533,
+        "text": "来源文档：青禾配电交接纪要.pptx\n青禾配电夜班交接纪要。交接地址为 青禾东站，交接时先核对现场记录。\n交接值班由物流部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_03f61d02_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_4230641e",
+        "path": "projects/qinghepeidian/青禾配电权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：青禾配电权限演练记录.html\n青禾配电授权演练记录，仅供授权员工查看。内部演练口令 GRID-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_4230641e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q028",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1330.74,
+    "aligned": true,
+    "top5_documents": [
+      "grid-handover",
+      "grid-incident"
+    ],
+    "all_documents": [
+      "grid-handover",
+      "grid-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "物流部",
+      "断路器位置信号抖动"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9919354838709679,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_03f61d02",
+        "path": "projects/qinghepeidian/青禾配电交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9919354838709679,
+        "text": "来源文档：青禾配电交接纪要.pptx\n青禾配电夜班交接纪要。交接地址为 青禾东站，交接时先核对现场记录。\n交接值班由物流部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_03f61d02_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.904945054945055,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46212121212121215,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9104477611940298,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q029",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.19,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q030",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 756.51,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_3d1600ca",
+        "path": "projects/qinghepeidian/青禾配电验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9692307692307693,
+        "text": "来源文档：青禾配电验收方案.md\n青禾配电验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 青禾东站，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_3d1600ca_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_03f61d02",
+        "path": "projects/qinghepeidian/青禾配电交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.953125,
+        "text": "来源文档：青禾配电交接纪要.pptx\n青禾配电夜班交接纪要。交接地址为 青禾东站，交接时先核对现场记录。\n交接值班由物流部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_03f61d02_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9919354838709679,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_4230641e",
+        "path": "projects/qinghepeidian/青禾配电权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9313519813519814,
+        "text": "来源文档：青禾配电权限演练记录.html\n青禾配电授权演练记录，仅供授权员工查看。内部演练口令 GRID-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_4230641e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q031",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1202.07,
+    "aligned": true,
+    "top5_documents": [
+      "clinic-report"
+    ],
+    "all_documents": [
+      "clinic-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "TRIAGE-F937"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.8978354978354978,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9250919117647058,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q032",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1135.5,
+    "aligned": true,
+    "top5_documents": [
+      "clinic-incident"
+    ],
+    "all_documents": [
+      "clinic-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "扫码设备未配对"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_62aa1875",
+        "path": "projects/dikongjianguanpingtai/低空监管平台故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8714285714285714,
+        "text": "来源文档：低空监管平台故障复盘.txt\n低空监管平台复盘记录，影响低空数据回传。根因是 GNSS 时钟漂移。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_62aa1875_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8972528661042612,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8905583972719522,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q033",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1350.08,
+    "aligned": true,
+    "top5_documents": [
+      "clinic-ledger"
+    ],
+    "all_documents": [
+      "clinic-ledger"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "CLN-502"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.910650623885918,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q034",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 4.85,
+    "aligned": true,
+    "top5_documents": [
+      "clinic-plan",
+      "clinic-report"
+    ],
+    "all_documents": [
+      "clinic-plan",
+      "clinic-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 2,
+    "coverage": "complete",
+    "matched_documents": 2,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：星港分诊验收报告.docx\n路径：projects/xinggangfenzhen/星港分诊验收报告.docx\n入库时间：2026-11-20 22:43:47",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_df587934",
+        "path": "projects/xinggangfenzhen/星港分诊验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：星港分诊验收方案.md\n路径：projects/xinggangfenzhen/星港分诊验收方案.md\n入库时间：2026-11-20 22:43:49",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q035",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1340.42,
+    "aligned": true,
+    "top5_documents": [
+      "clinic-incident"
+    ],
+    "all_documents": [
+      "clinic-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "扫码设备未配对"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_df587934",
+        "path": "projects/xinggangfenzhen/星港分诊验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9682539682539681,
+        "text": "来源文档：星港分诊验收方案.md\n星港分诊验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 星港夜诊区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_df587934_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_be3d31a1",
+        "path": "projects/xinggangfenzhen/星港分诊交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9457932692307692,
+        "text": "来源文档：星港分诊交接纪要.pptx\n星港分诊夜班交接纪要。交接地址为 星港夜诊区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_be3d31a1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q036",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.78,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": false,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q037",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 827.63,
+    "aligned": true,
+    "top5_documents": [
+      "clinic-ledger",
+      "clinic-report"
+    ],
+    "all_documents": [
+      "clinic-ledger",
+      "clinic-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "23 秒",
+      "16 次"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_df587934",
+        "path": "projects/xinggangfenzhen/星港分诊验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：星港分诊验收方案.md\n星港分诊验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 星港夜诊区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_df587934_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_be3d31a1",
+        "path": "projects/xinggangfenzhen/星港分诊交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9533577533577533,
+        "text": "来源文档：星港分诊交接纪要.pptx\n星港分诊夜班交接纪要。交接地址为 星港夜诊区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_be3d31a1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_f6ceb50a",
+        "path": "projects/xinggangfenzhen/星港分诊权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：星港分诊权限演练记录.html\n星港分诊授权演练记录，仅供授权员工查看。内部演练口令 CLINIC-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_f6ceb50a_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q038",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1333.29,
+    "aligned": true,
+    "top5_documents": [
+      "clinic-handover",
+      "clinic-incident"
+    ],
+    "all_documents": [
+      "clinic-handover",
+      "clinic-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "城运部",
+      "扫码设备未配对"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_be3d31a1",
+        "path": "projects/xinggangfenzhen/星港分诊交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：星港分诊交接纪要.pptx\n星港分诊夜班交接纪要。交接地址为 星港夜诊区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_be3d31a1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9037532923617208,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9173450927182271,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46923076923076923,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q039",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.79,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q040",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 761.14,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_be3d31a1",
+        "path": "projects/xinggangfenzhen/星港分诊交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9457932692307692,
+        "text": "来源文档：星港分诊交接纪要.pptx\n星港分诊夜班交接纪要。交接地址为 星港夜诊区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_be3d31a1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_df587934",
+        "path": "projects/xinggangfenzhen/星港分诊验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.961166253101737,
+        "text": "来源文档：星港分诊验收方案.md\n星港分诊验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 星港夜诊区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_df587934_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_f6ceb50a",
+        "path": "projects/xinggangfenzhen/星港分诊权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：星港分诊权限演练记录.html\n星港分诊授权演练记录，仅供授权员工查看。内部演练口令 CLINIC-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_f6ceb50a_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q041",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1235.79,
+    "aligned": true,
+    "top5_documents": [
+      "water-report"
+    ],
+    "all_documents": [
+      "water-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "WATER-W315"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_33dc32e7",
+        "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：澄溪水务验收报告.docx\n澄溪水务最终验收报告。水质场景实测阈值为 0.42 NTU。\n验收工单编号为 WATER-W315。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_33dc32e7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.46212121212121215,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9462481962481962,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46923076923076923,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9250919117647058,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q042",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1156.25,
+    "aligned": true,
+    "top5_documents": [
+      "water-incident"
+    ],
+    "all_documents": [
+      "water-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "采样泵气泡干扰"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_e69a9632",
+        "path": "projects/chengxishuiwu/澄溪水务故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：澄溪水务故障复盘.txt\n澄溪水务复盘记录，影响水质数据回传。根因是 采样泵气泡干扰。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_e69a9632_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8840579710144928,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9037532923617208,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8842436974789917,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_33dc32e7",
+        "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：澄溪水务验收报告.docx\n澄溪水务最终验收报告。水质场景实测阈值为 0.42 NTU。\n验收工单编号为 WATER-W315。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_33dc32e7_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q043",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1314.85,
+    "aligned": true,
+    "top5_documents": [
+      "water-ledger"
+    ],
+    "all_documents": [
+      "water-ledger"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "WT-714"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_ca3d9e9d",
+        "path": "projects/chengxishuiwu/澄溪水务运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：澄溪水务运营台账.xlsx\n项目资料 | 记录明细\n澄溪水务运营台账 | 澄溪水务本期运营台账。设备编号为 WT-714。\n澄溪水务运营台账 | 本期正式验证合计 24 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_ca3d9e9d_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.910650623885918,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.961166253101737,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q044",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 4.48,
+    "aligned": true,
+    "top5_documents": [
+      "water-plan",
+      "water-report"
+    ],
+    "all_documents": [
+      "water-plan",
+      "water-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 2,
+    "coverage": "complete",
+    "matched_documents": 2,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_33dc32e7",
+        "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：澄溪水务验收报告.docx\n路径：projects/chengxishuiwu/澄溪水务验收报告.docx\n入库时间：2026-11-20 22:43:56",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_d9ea047a",
+        "path": "projects/chengxishuiwu/澄溪水务验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：澄溪水务验收方案.md\n路径：projects/chengxishuiwu/澄溪水务验收方案.md\n入库时间：2026-11-20 22:43:58",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q045",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1259.55,
+    "aligned": true,
+    "top5_documents": [
+      "water-incident"
+    ],
+    "all_documents": [
+      "water-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "采样泵气泡干扰"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_e69a9632",
+        "path": "projects/chengxishuiwu/澄溪水务故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：澄溪水务故障复盘.txt\n澄溪水务复盘记录，影响水质数据回传。根因是 采样泵气泡干扰。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_e69a9632_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_d9ea047a",
+        "path": "projects/chengxishuiwu/澄溪水务验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9457932692307692,
+        "text": "来源文档：澄溪水务验收方案.md\n澄溪水务验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 澄溪二号泵站，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_d9ea047a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_adea1459",
+        "path": "projects/chengxishuiwu/澄溪水务交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9457932692307692,
+        "text": "来源文档：澄溪水务交接纪要.pptx\n澄溪水务夜班交接纪要。交接地址为 澄溪二号泵站，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_adea1459_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_33dc32e7",
+        "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：澄溪水务验收报告.docx\n澄溪水务最终验收报告。水质场景实测阈值为 0.42 NTU。\n验收工单编号为 WATER-W315。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_33dc32e7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_ca3d9e9d",
+        "path": "projects/chengxishuiwu/澄溪水务运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9462481962481962,
+        "text": "来源文档：澄溪水务运营台账.xlsx\n项目资料 | 记录明细\n澄溪水务运营台账 | 澄溪水务本期运营台账。设备编号为 WT-714。\n澄溪水务运营台账 | 本期正式验证合计 24 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_ca3d9e9d_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q046",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.93,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": false,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q047",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 814.75,
+    "aligned": true,
+    "top5_documents": [
+      "water-ledger",
+      "water-report"
+    ],
+    "all_documents": [
+      "water-ledger",
+      "water-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "0.42 NTU",
+      "24 次"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_33dc32e7",
+        "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：澄溪水务验收报告.docx\n澄溪水务最终验收报告。水质场景实测阈值为 0.42 NTU。\n验收工单编号为 WATER-W315。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_33dc32e7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_ca3d9e9d",
+        "path": "projects/chengxishuiwu/澄溪水务运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：澄溪水务运营台账.xlsx\n项目资料 | 记录明细\n澄溪水务运营台账 | 澄溪水务本期运营台账。设备编号为 WT-714。\n澄溪水务运营台账 | 本期正式验证合计 24 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_ca3d9e9d_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_d9ea047a",
+        "path": "projects/chengxishuiwu/澄溪水务验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：澄溪水务验收方案.md\n澄溪水务验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 澄溪二号泵站，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_d9ea047a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_adea1459",
+        "path": "projects/chengxishuiwu/澄溪水务交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9533577533577533,
+        "text": "来源文档：澄溪水务交接纪要.pptx\n澄溪水务夜班交接纪要。交接地址为 澄溪二号泵站，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_adea1459_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_0cd0d061",
+        "path": "projects/chengxishuiwu/澄溪水务权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：澄溪水务权限演练记录.html\n澄溪水务授权演练记录，仅供授权员工查看。内部演练口令 WATER-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_0cd0d061_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q048",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1331.99,
+    "aligned": true,
+    "top5_documents": [
+      "water-handover",
+      "water-incident"
+    ],
+    "all_documents": [
+      "water-handover",
+      "water-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "工务部",
+      "采样泵气泡干扰"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_e69a9632",
+        "path": "projects/chengxishuiwu/澄溪水务故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9919354838709679,
+        "text": "来源文档：澄溪水务故障复盘.txt\n澄溪水务复盘记录，影响水质数据回传。根因是 采样泵气泡干扰。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_e69a9632_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_adea1459",
+        "path": "projects/chengxishuiwu/澄溪水务交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9919354838709679,
+        "text": "来源文档：澄溪水务交接纪要.pptx\n澄溪水务夜班交接纪要。交接地址为 澄溪二号泵站，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_adea1459_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4552238805970149,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8840579710144928,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8842436974789917,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q049",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.64,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q050",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 772.63,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_ca3d9e9d",
+        "path": "projects/chengxishuiwu/澄溪水务运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.961166253101737,
+        "text": "来源文档：澄溪水务运营台账.xlsx\n项目资料 | 记录明细\n澄溪水务运营台账 | 澄溪水务本期运营台账。设备编号为 WT-714。\n澄溪水务运营台账 | 本期正式验证合计 24 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_ca3d9e9d_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_adea1459",
+        "path": "projects/chengxishuiwu/澄溪水务交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9462481962481962,
+        "text": "来源文档：澄溪水务交接纪要.pptx\n澄溪水务夜班交接纪要。交接地址为 澄溪二号泵站，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_adea1459_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_33dc32e7",
+        "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：澄溪水务验收报告.docx\n澄溪水务最终验收报告。水质场景实测阈值为 0.42 NTU。\n验收工单编号为 WATER-W315。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_33dc32e7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_d9ea047a",
+        "path": "projects/chengxishuiwu/澄溪水务验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：澄溪水务验收方案.md\n澄溪水务验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 澄溪二号泵站，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_d9ea047a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_e69a9632",
+        "path": "projects/chengxishuiwu/澄溪水务故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：澄溪水务故障复盘.txt\n澄溪水务复盘记录，影响水质数据回传。根因是 采样泵气泡干扰。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_e69a9632_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q051",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1253.73,
+    "aligned": true,
+    "top5_documents": [
+      "port-report"
+    ],
+    "all_documents": [
+      "port-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "PORT-L409"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9682539682539681,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4765625,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_33dc32e7",
+        "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46923076923076923,
+        "text": "来源文档：澄溪水务验收报告.docx\n澄溪水务最终验收报告。水质场景实测阈值为 0.42 NTU。\n验收工单编号为 WATER-W315。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_33dc32e7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9471593644679827,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q052",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1143.61,
+    "aligned": true,
+    "top5_documents": [
+      "port-incident"
+    ],
+    "all_documents": [
+      "port-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "车牌识别逆光"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_e69a9632",
+        "path": "projects/chengxishuiwu/澄溪水务故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4485294117647059,
+        "text": "来源文档：澄溪水务故障复盘.txt\n澄溪水务复盘记录，影响水质数据回传。根因是 采样泵气泡干扰。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_e69a9632_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8905583972719522,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8972528661042612,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8909381663113006,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q053",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1312.46,
+    "aligned": true,
+    "top5_documents": [
+      "port-ledger"
+    ],
+    "all_documents": [
+      "port-ledger"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "GT-818"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9242424242424243,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.961166253101737,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q054",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 4.12,
+    "aligned": true,
+    "top5_documents": [
+      "port-plan",
+      "port-report"
+    ],
+    "all_documents": [
+      "port-plan",
+      "port-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 2,
+    "coverage": "complete",
+    "matched_documents": 2,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：海棠闸口验收报告.docx\n路径：projects/haitangzhakou/海棠闸口验收报告.docx\n入库时间：2026-11-20 22:44:05",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_1d20faaa",
+        "path": "projects/haitangzhakou/海棠闸口验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：海棠闸口验收方案.md\n路径：projects/haitangzhakou/海棠闸口验收方案.md\n入库时间：2026-11-20 22:44:06",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q055",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1270.31,
+    "aligned": true,
+    "top5_documents": [
+      "port-incident"
+    ],
+    "all_documents": [
+      "port-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "车牌识别逆光"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_1d20faaa",
+        "path": "projects/haitangzhakou/海棠闸口验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：海棠闸口验收方案.md\n海棠闸口验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 海棠东闸口，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_1d20faaa_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_ae04a174",
+        "path": "projects/haitangzhakou/海棠闸口交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：海棠闸口交接纪要.pptx\n海棠闸口夜班交接纪要。交接地址为 海棠东闸口，交接时先核对现场记录。\n交接值班由医疗部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_ae04a174_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_77ce6109",
+        "path": "projects/haitangzhakou/海棠闸口权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9313519813519814,
+        "text": "来源文档：海棠闸口权限演练记录.html\n海棠闸口授权演练记录，仅供授权员工查看。内部演练口令 PORT-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_77ce6109_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q056",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.76,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": false,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q057",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 805.23,
+    "aligned": true,
+    "top5_documents": [
+      "port-ledger",
+      "port-report"
+    ],
+    "all_documents": [
+      "port-ledger",
+      "port-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "31 秒",
+      "15 次"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_1d20faaa",
+        "path": "projects/haitangzhakou/海棠闸口验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：海棠闸口验收方案.md\n海棠闸口验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 海棠东闸口，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_1d20faaa_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_ae04a174",
+        "path": "projects/haitangzhakou/海棠闸口交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9533577533577533,
+        "text": "来源文档：海棠闸口交接纪要.pptx\n海棠闸口夜班交接纪要。交接地址为 海棠东闸口，交接时先核对现场记录。\n交接值班由医疗部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_ae04a174_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_77ce6109",
+        "path": "projects/haitangzhakou/海棠闸口权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9386837121212122,
+        "text": "来源文档：海棠闸口权限演练记录.html\n海棠闸口授权演练记录，仅供授权员工查看。内部演练口令 PORT-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_77ce6109_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q058",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1328.15,
+    "aligned": true,
+    "top5_documents": [
+      "port-handover",
+      "port-incident"
+    ],
+    "all_documents": [
+      "port-handover",
+      "port-incident"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "医疗部",
+      "车牌识别逆光"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_ae04a174",
+        "path": "projects/haitangzhakou/海棠闸口交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9838709677419355,
+        "text": "来源文档：海棠闸口交接纪要.pptx\n海棠闸口夜班交接纪要。交接地址为 海棠东闸口，交接时先核对现场记录。\n交接值班由医疗部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_ae04a174_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46923076923076923,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46212121212121215,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9037532923617208,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q059",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.7,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "unresolved",
+    "evidence": []
+  },
+  {
+    "case": "Q060",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 751.97,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9760624679979518,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_ae04a174",
+        "path": "projects/haitangzhakou/海棠闸口交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.953125,
+        "text": "来源文档：海棠闸口交接纪要.pptx\n海棠闸口夜班交接纪要。交接地址为 海棠东闸口，交接时先核对现场记录。\n交接值班由医疗部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_ae04a174_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_1d20faaa",
+        "path": "projects/haitangzhakou/海棠闸口验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.961166253101737,
+        "text": "来源文档：海棠闸口验收方案.md\n海棠闸口验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 海棠东闸口，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_1d20faaa_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9462481962481962,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q061",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1213.7,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.9841269841269842,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_dac2f41b",
+        "path": "projects/dikongjianguanpingtai/低空监管平台运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9692307692307693,
+        "text": "来源文档：低空监管平台运营台账.xlsx\n项目资料 | 记录明细\n低空监管平台运营台账 | 低空监管平台本期运营台账。设备编号为 AL-209。\n低空监管平台运营台账 | 本期正式验证合计 18 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_dac2f41b_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_cf85e29f",
+        "path": "projects/dikongjianguanpingtai/低空监管平台交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9313519813519814,
+        "text": "来源文档：低空监管平台交接纪要.pptx\n低空监管平台夜班交接纪要。交接地址为 蓝湾调度中心，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_cf85e29f_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_62aa1875",
+        "path": "projects/dikongjianguanpingtai/低空监管平台故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9684979838709677,
+        "text": "来源文档：低空监管平台故障复盘.txt\n低空监管平台复盘记录，影响低空数据回传。根因是 GNSS 时钟漂移。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_62aa1875_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_e914c30e",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9462481962481962,
+        "text": "来源文档：低空监管平台验收方案.md\n低空监管平台验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 蓝湾调度中心，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_e914c30e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q062",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1230.27,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9765625000000001,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9682539682539681,
+        "text": "来源文档：曙光冷链验收报告.docx\n曙光冷链最终验收报告。冷链场景实测阈值为 4.8 摄氏度。\n验收工单编号为 COLD-K881。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_457f08a6_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_5ec2b5b7",
+        "path": "projects/shuguanglenglian/曙光冷链故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9765625000000001,
+        "text": "来源文档：曙光冷链故障复盘.txt\n曙光冷链复盘记录，影响冷链数据回传。根因是 探头接头松动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_5ec2b5b7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_979d1097",
+        "path": "projects/shuguanglenglian/曙光冷链交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9313519813519814,
+        "text": "来源文档：曙光冷链交接纪要.pptx\n曙光冷链夜班交接纪要。交接地址为 北港冷藏区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_979d1097_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_ec1823d1",
+        "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9471593644679827,
+        "text": "来源文档：曙光冷链验收方案.md\n曙光冷链验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 北港冷藏区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_ec1823d1_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q063",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1227.23,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：青禾配电验收报告.docx\n青禾配电最终验收报告。馈线场景实测阈值为 11 秒。\n验收工单编号为 GRID-P602。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_8af194cd_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9919354838709679,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_03f61d02",
+        "path": "projects/qinghepeidian/青禾配电交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：青禾配电交接纪要.pptx\n青禾配电夜班交接纪要。交接地址为 青禾东站，交接时先核对现场记录。\n交接值班由物流部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_03f61d02_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_96c547a5",
+        "path": "projects/qinghepeidian/青禾配电故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9384615384615385,
+        "text": "来源文档：青禾配电故障复盘.txt\n青禾配电复盘记录，影响馈线数据回传。根因是 断路器位置信号抖动。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_96c547a5_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_4230641e",
+        "path": "projects/qinghepeidian/青禾配电权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9540566959921799,
+        "text": "来源文档：青禾配电权限演练记录.html\n青禾配电授权演练记录，仅供授权员工查看。内部演练口令 GRID-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_4230641e_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q064",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1226.74,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9682539682539681,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9621212121212123,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_876d2c47",
+        "path": "projects/xinggangfenzhen/星港分诊故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9765625000000001,
+        "text": "来源文档：星港分诊故障复盘.txt\n星港分诊复盘记录，影响分诊数据回传。根因是 扫码设备未配对。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_876d2c47_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_be3d31a1",
+        "path": "projects/xinggangfenzhen/星港分诊交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9384615384615385,
+        "text": "来源文档：星港分诊交接纪要.pptx\n星港分诊夜班交接纪要。交接地址为 星港夜诊区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_be3d31a1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_df587934",
+        "path": "projects/xinggangfenzhen/星港分诊验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9471593644679827,
+        "text": "来源文档：星港分诊验收方案.md\n星港分诊验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 星港夜诊区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_df587934_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q065",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1244.28,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_33dc32e7",
+        "path": "projects/chengxishuiwu/澄溪水务验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9682539682539681,
+        "text": "来源文档：澄溪水务验收报告.docx\n澄溪水务最终验收报告。水质场景实测阈值为 0.42 NTU。\n验收工单编号为 WATER-W315。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_33dc32e7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_ca3d9e9d",
+        "path": "projects/chengxishuiwu/澄溪水务运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9621212121212123,
+        "text": "来源文档：澄溪水务运营台账.xlsx\n项目资料 | 记录明细\n澄溪水务运营台账 | 澄溪水务本期运营台账。设备编号为 WT-714。\n澄溪水务运营台账 | 本期正式验证合计 24 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_ca3d9e9d_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_e69a9632",
+        "path": "projects/chengxishuiwu/澄溪水务故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9765625000000001,
+        "text": "来源文档：澄溪水务故障复盘.txt\n澄溪水务复盘记录，影响水质数据回传。根因是 采样泵气泡干扰。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_e69a9632_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_adea1459",
+        "path": "projects/chengxishuiwu/澄溪水务交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9457932692307692,
+        "text": "来源文档：澄溪水务交接纪要.pptx\n澄溪水务夜班交接纪要。交接地址为 澄溪二号泵站，交接时先核对现场记录。\n交接值班由工务部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_adea1459_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_d9ea047a",
+        "path": "projects/chengxishuiwu/澄溪水务验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9540566959921799,
+        "text": "来源文档：澄溪水务验收方案.md\n澄溪水务验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 澄溪二号泵站，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_d9ea047a_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q066",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1241.04,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：海棠闸口验收报告.docx\n海棠闸口最终验收报告。闸口场景实测阈值为 31 秒。\n验收工单编号为 PORT-L409。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_b442df3a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9621212121212123,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_ae04a174",
+        "path": "projects/haitangzhakou/海棠闸口交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9606894841269841,
+        "text": "来源文档：海棠闸口交接纪要.pptx\n海棠闸口夜班交接纪要。交接地址为 海棠东闸口，交接时先核对现场记录。\n交接值班由医疗部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_ae04a174_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_342e5d30",
+        "path": "projects/haitangzhakou/海棠闸口故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9692307692307693,
+        "text": "来源文档：海棠闸口故障复盘.txt\n海棠闸口复盘记录，影响闸口数据回传。根因是 车牌识别逆光。\n\n应对动作是现场复核信号并补充监控，恢复后需要重新观察。",
+        "chunk_ids": [
+          "doc_342e5d30_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_1d20faaa",
+        "path": "projects/haitangzhakou/海棠闸口验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9471593644679827,
+        "text": "来源文档：海棠闸口验收方案.md\n海棠闸口验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 海棠东闸口，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_1d20faaa_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q067",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1234.54,
+    "aligned": true,
+    "top5_documents": [
+      "g-contacts"
+    ],
+    "all_documents": [
+      "g-contacts"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "HELP-780"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_080e2fe8",
+        "path": "learning/public/公共值班手册.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：公共值班手册.md\n公共值班服务台编号为 HELP-780。办公网值班时间为 08:30 至 19:00。",
+        "chunk_ids": [
+          "doc_080e2fe8_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_c4abccae",
+        "path": "projects/haitangzhakou/海棠闸口运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4841269841269841,
+        "text": "来源文档：海棠闸口运营台账.xlsx\n项目资料 | 记录明细\n海棠闸口运营台账 | 海棠闸口本期运营台账。设备编号为 GT-818。\n海棠闸口运营台账 | 本期正式验证合计 15 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_c4abccae_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4765625,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_ca3d9e9d",
+        "path": "projects/chengxishuiwu/澄溪水务运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4552238805970149,
+        "text": "来源文档：澄溪水务运营台账.xlsx\n项目资料 | 记录明细\n澄溪水务运营台账 | 澄溪水务本期运营台账。设备编号为 WT-714。\n澄溪水务运营台账 | 本期正式验证合计 24 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_ca3d9e9d_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_19f5f3bf",
+        "path": "learning/public/通用供应商入场指引.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.49193548387096775,
+        "text": "来源文档：通用供应商入场指引.html\n临时供应商窗口在西门，资料预审期限为两个工作日。供应商临时凭证 SUP-092。",
+        "chunk_ids": [
+          "doc_19f5f3bf_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q068",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1193.8,
+    "aligned": true,
+    "top5_documents": [
+      "g-format"
+    ],
+    "all_documents": [
+      "g-format"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "ARCH-42"
+    ],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_c15a1def",
+        "path": "learning/public/文档命名规范.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：文档命名规范.txt\n正式附件文件名使用 yyyyMMdd，加部门简称与版本号。归档文件编号使用 ARCH-42。",
+        "chunk_ids": [
+          "doc_c15a1def_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_a7d6bf50",
+        "path": "learning/public/通用采购流程.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4841269841269841,
+        "text": "来源文档：通用采购流程.docx\n采购需求先登记需求单，再向询价组移交。通用审批编号 PROC-067。",
+        "chunk_ids": [
+          "doc_a7d6bf50_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_baf7da57",
+        "path": "projects/shuguanglenglian/曙光冷链运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4765625,
+        "text": "来源文档：曙光冷链运营台账.xlsx\n项目资料 | 记录明细\n曙光冷链运营台账 | 曙光冷链本期运营台账。设备编号为 CL-311。\n曙光冷链运营台账 | 本期正式验证合计 12 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_baf7da57_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.49193548387096775,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_e5f24f35",
+        "path": "projects/qinghepeidian/青禾配电运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46212121212121215,
+        "text": "来源文档：青禾配电运营台账.xlsx\n项目资料 | 记录明细\n青禾配电运营台账 | 青禾配电本期运营台账。设备编号为 PD-473。\n青禾配电运营台账 | 本期正式验证合计 21 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_e5f24f35_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q069",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 1251.09,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_7e55dd64",
+        "path": "projects/xinggangfenzhen/星港分诊验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8905583972719522,
+        "text": "来源文档：星港分诊验收报告.docx\n星港分诊最终验收报告。分诊场景实测阈值为 23 秒。\n验收工单编号为 TRIAGE-F937。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_7e55dd64_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_19f5f3bf",
+        "path": "learning/public/通用供应商入场指引.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.49193548387096775,
+        "text": "来源文档：通用供应商入场指引.html\n临时供应商窗口在西门，资料预审期限为两个工作日。供应商临时凭证 SUP-092。",
+        "chunk_ids": [
+          "doc_19f5f3bf_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_19cc45d7",
+        "path": "projects/shuguanglenglian/曙光冷链权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4765625,
+        "text": "来源文档：曙光冷链权限演练记录.html\n曙光冷链授权演练记录，仅供授权员工查看。内部演练口令 COLD-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_19cc45d7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46212121212121215,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_f6ceb50a",
+        "path": "projects/xinggangfenzhen/星港分诊权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9621212121212123,
+        "text": "来源文档：星港分诊权限演练记录.html\n星港分诊授权演练记录，仅供授权员工查看。内部演练口令 CLINIC-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_f6ceb50a_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q070",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2658.32,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": true,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 12,
+    "coverage": "partial",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_77ce6109",
+        "path": "projects/haitangzhakou/海棠闸口权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9236111111111112,
+        "text": "来源文档：海棠闸口权限演练记录.html\n海棠闸口授权演练记录，仅供授权员工查看。内部演练口令 PORT-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_77ce6109_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_c8193137",
+        "path": "projects/dikongjianguanpingtai/低空监管平台权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.8634370015948963,
+        "text": "来源文档：低空监管平台权限演练记录.html\n低空监管平台授权演练记录，仅供授权员工查看。内部演练口令 AIR-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_c8193137_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_19cc45d7",
+        "path": "projects/shuguanglenglian/曙光冷链权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9276497695852534,
+        "text": "来源文档：曙光冷链权限演练记录.html\n曙光冷链授权演练记录，仅供授权员工查看。内部演练口令 COLD-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_19cc45d7_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_ec1823d1",
+        "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.38125000000000003,
+        "text": "来源文档：曙光冷链验收方案.md\n曙光冷链验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 北港冷藏区，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_ec1823d1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_4230641e",
+        "path": "projects/qinghepeidian/青禾配电权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9682539682539681,
+        "text": "来源文档：青禾配电权限演练记录.html\n青禾配电授权演练记录，仅供授权员工查看。内部演练口令 GRID-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_4230641e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 6,
+        "document_id": "doc_f6ceb50a",
+        "path": "projects/xinggangfenzhen/星港分诊权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9185914855072465,
+        "text": "来源文档：星港分诊权限演练记录.html\n星港分诊授权演练记录，仅供授权员工查看。内部演练口令 CLINIC-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_f6ceb50a_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 7,
+        "document_id": "doc_979d1097",
+        "path": "projects/shuguanglenglian/曙光冷链交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.3860759493670886,
+        "text": "来源文档：曙光冷链交接纪要.pptx\n曙光冷链夜班交接纪要。交接地址为 北港冷藏区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_979d1097_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 8,
+        "document_id": "doc_36f7d15e",
+        "path": "projects/xinggangfenzhen/星港分诊运营台账.xlsx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.46923076923076923,
+        "text": "来源文档：星港分诊运营台账.xlsx\n项目资料 | 记录明细\n星港分诊运营台账 | 星港分诊本期运营台账。设备编号为 CLN-502。\n星港分诊运营台账 | 本期正式验证合计 16 次，数据来源为现场台账。",
+        "chunk_ids": [
+          "doc_36f7d15e_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 9,
+        "document_id": "doc_0cd0d061",
+        "path": "projects/chengxishuiwu/澄溪水务权限演练记录.html",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.9244546498277842,
+        "text": "来源文档：澄溪水务权限演练记录.html\n澄溪水务授权演练记录，仅供授权员工查看。内部演练口令 WATER-RESTRICT-271。\n\n演练只在隔离环境验证访问授权。",
+        "chunk_ids": [
+          "doc_0cd0d061_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 10,
+        "document_id": "doc_1d20faaa",
+        "path": "projects/haitangzhakou/海棠闸口验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.3961038961038961,
+        "text": "来源文档：海棠闸口验收方案.md\n海棠闸口验收方案。现场应先做单点验证，再联调，最后组织签字。\n\n验收观察点设在 海棠东闸口，验收准备期须核对设备编号。",
+        "chunk_ids": [
+          "doc_1d20faaa_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 11,
+        "document_id": "doc_be3d31a1",
+        "path": "projects/xinggangfenzhen/星港分诊交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.4066666666666667,
+        "text": "来源文档：星港分诊交接纪要.pptx\n星港分诊夜班交接纪要。交接地址为 星港夜诊区，交接时先核对现场记录。\n交接值班由城运部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_be3d31a1_v1.0_0000"
+        ]
+      },
+      {
+        "rank": 12,
+        "document_id": "doc_ae04a174",
+        "path": "projects/haitangzhakou/海棠闸口交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.41216216216216217,
+        "text": "来源文档：海棠闸口交接纪要.pptx\n海棠闸口夜班交接纪要。交接地址为 海棠东闸口，交接时先核对现场记录。\n交接值班由医疗部负责，验收报告与台账分别登记。",
+        "chunk_ids": [
+          "doc_ae04a174_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q071",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 129.56,
+    "aligned": true,
+    "top5_documents": [
+      "air-report"
+    ],
+    "all_documents": [
+      "air-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "17 秒"
+    ],
+    "returned": 1,
+    "coverage": "unknown",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 17 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.1_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q072",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 126.86,
+    "aligned": true,
+    "top5_documents": [
+      "air-report@1.0"
+    ],
+    "all_documents": [
+      "air-report@1.0"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [
+      "29 秒"
+    ],
+    "returned": 1,
+    "coverage": "unknown",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.0",
+        "status": "expired",
+        "score": 1.0,
+        "text": "来源文档：低空监管平台验收报告.docx\n低空监管平台最终验收报告。低空场景实测阈值为 29 秒。\n验收工单编号为 UAV-A700。记录的是现场实测值，计划值以验收方案为准。",
+        "chunk_ids": [
+          "doc_f33041d6_v1.0_0000"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "Q073",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.63,
+    "aligned": true,
+    "top5_documents": [
+      "air-incident",
+      "air-plan",
+      "air-report",
+      "clinic-handover",
+      "cold-handover"
+    ],
+    "all_documents": [
+      "air-incident",
+      "air-plan",
+      "air-report",
+      "clinic-handover",
+      "cold-handover"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 5,
+    "coverage": "complete",
+    "matched_documents": 5,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_62aa1875",
+        "path": "projects/dikongjianguanpingtai/低空监管平台故障复盘.txt",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：低空监管平台故障复盘.txt\n路径：projects/dikongjianguanpingtai/低空监管平台故障复盘.txt\n入库时间：2026-11-20 22:43:27",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：低空监管平台验收报告.docx\n路径：projects/dikongjianguanpingtai/低空监管平台验收报告.docx\n入库时间：2026-11-20 22:43:24",
+        "chunk_ids": null
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_e914c30e",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：低空监管平台验收方案.md\n路径：projects/dikongjianguanpingtai/低空监管平台验收方案.md\n入库时间：2026-11-20 22:43:26",
+        "chunk_ids": null
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_979d1097",
+        "path": "projects/shuguanglenglian/曙光冷链交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：曙光冷链交接纪要.pptx\n路径：projects/shuguanglenglian/曙光冷链交接纪要.pptx\n入库时间：2026-11-20 22:43:37",
+        "chunk_ids": null
+      },
+      {
+        "rank": 5,
+        "document_id": "doc_be3d31a1",
+        "path": "projects/xinggangfenzhen/星港分诊交接纪要.pptx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：星港分诊交接纪要.pptx\n路径：projects/xinggangfenzhen/星港分诊交接纪要.pptx\n入库时间：2026-11-20 22:43:53",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q074",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 7.31,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": null,
+    "evidence": []
+  },
+  {
+    "case": "Q075",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 4.03,
+    "aligned": true,
+    "top5_documents": [
+      "air-plan",
+      "air-report",
+      "grid-plan",
+      "grid-report"
+    ],
+    "all_documents": [
+      "air-plan",
+      "air-report",
+      "grid-plan",
+      "grid-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 4,
+    "coverage": "complete",
+    "matched_documents": 4,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_f33041d6",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收报告.docx",
+        "version": "1.1",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：低空监管平台验收报告.docx\n路径：projects/dikongjianguanpingtai/低空监管平台验收报告.docx\n入库时间：2026-11-20 22:43:24",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_e914c30e",
+        "path": "projects/dikongjianguanpingtai/低空监管平台验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：低空监管平台验收方案.md\n路径：projects/dikongjianguanpingtai/低空监管平台验收方案.md\n入库时间：2026-11-20 22:43:26",
+        "chunk_ids": null
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_8af194cd",
+        "path": "projects/qinghepeidian/青禾配电验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：青禾配电验收报告.docx\n路径：projects/qinghepeidian/青禾配电验收报告.docx\n入库时间：2026-11-20 22:43:39",
+        "chunk_ids": null
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_3d1600ca",
+        "path": "projects/qinghepeidian/青禾配电验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：青禾配电验收方案.md\n路径：projects/qinghepeidian/青禾配电验收方案.md\n入库时间：2026-11-20 22:43:40",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q076",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 4.23,
+    "aligned": true,
+    "top5_documents": [
+      "cold-plan",
+      "cold-report",
+      "port-plan",
+      "port-report"
+    ],
+    "all_documents": [
+      "cold-plan",
+      "cold-report",
+      "port-plan",
+      "port-report"
+    ],
+    "first_document_relevant": true,
+    "false_evidence": null,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 4,
+    "coverage": "complete",
+    "matched_documents": 4,
+    "scope_issue": null,
+    "evidence": [
+      {
+        "rank": 1,
+        "document_id": "doc_b442df3a",
+        "path": "projects/haitangzhakou/海棠闸口验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：海棠闸口验收报告.docx\n路径：projects/haitangzhakou/海棠闸口验收报告.docx\n入库时间：2026-11-20 22:44:05",
+        "chunk_ids": null
+      },
+      {
+        "rank": 2,
+        "document_id": "doc_1d20faaa",
+        "path": "projects/haitangzhakou/海棠闸口验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：海棠闸口验收方案.md\n路径：projects/haitangzhakou/海棠闸口验收方案.md\n入库时间：2026-11-20 22:44:06",
+        "chunk_ids": null
+      },
+      {
+        "rank": 3,
+        "document_id": "doc_457f08a6",
+        "path": "projects/shuguanglenglian/曙光冷链验收报告.docx",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：曙光冷链验收报告.docx\n路径：projects/shuguanglenglian/曙光冷链验收报告.docx\n入库时间：2026-11-20 22:43:32",
+        "chunk_ids": null
+      },
+      {
+        "rank": 4,
+        "document_id": "doc_ec1823d1",
+        "path": "projects/shuguanglenglian/曙光冷链验收方案.md",
+        "version": "1.0",
+        "status": "active",
+        "score": 0.0,
+        "text": "文件：曙光冷链验收方案.md\n路径：projects/shuguanglenglian/曙光冷链验收方案.md\n入库时间：2026-11-20 22:43:33",
+        "chunk_ids": null
+      }
+    ]
+  },
+  {
+    "case": "Q077",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 2.28,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "conflict",
+    "evidence": []
+  },
+  {
+    "case": "Q078",
+    "profile": "web_evidence",
+    "ms_excluding_embedding": 0.09,
+    "aligned": true,
+    "top5_documents": [],
+    "all_documents": [],
+    "first_document_relevant": null,
+    "false_evidence": false,
+    "forbidden_returned": [],
+    "supported_facts": [],
+    "returned": 0,
+    "coverage": "not_found",
+    "matched_documents": null,
+    "scope_issue": "multiple",
+    "evidence": []
+  }
+]

@@ -1,0 +1,201 @@
+{
+  "indexed": 17,
+  "cards": 21,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "questions": [
+    {
+      "id": "C02",
+      "difficulty": "complex",
+      "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 8.61,
+      "elapsed": {
+        "query_understanding": 3.9121198654174805,
+        "retrieval_only": 1.290325403213501,
+        "rerank": 3.3559226989746094,
+        "assembly": 0.0,
+        "retrieval": 4.64624810218811,
+        "total": 8.55836796760559
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1,
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "sum"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "星云项目",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢项目",
+              "sources": [
+                2
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云项目：负责人 陈明 [1]，预算 135 万元 [1]。\n- 天枢项目：负责人 周红 [2]，预算 200 万元 [2]。\n\n**预算合计 335 万元** [1][2]。"
+    },
+    {
+      "id": "C05",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+      "seconds": 3.75,
+      "elapsed": {
+        "query_understanding": 2.1942522525787354,
+        "retrieval_only": 0.50685715675354,
+        "rerank": 1.0056219100952148,
+        "assembly": 0.0,
+        "retrieval": 1.5124790668487549,
+        "total": 3.7067313194274902
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1,
+          2,
+          3
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "max"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "星云",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢",
+              "sources": [
+                2
+              ]
+            },
+            {
+              "name": "北斗",
+              "sources": [
+                3
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 2,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云：预算 135 万元 [1]。\n- 天枢：预算 200 万元 [2]。\n- 北斗：预算 80 万元 [3]。\n\n**预算最高：天枢，200 万元** [1][2][3]。"
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}

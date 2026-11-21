@@ -21,25 +21,37 @@ import threading
 import time
 from collections import Counter
 from dataclasses import dataclass, field, replace
+from datetime import date
 from pathlib import Path
 
 from src import index_epoch
 from src.answer_evaluator import merge_usage
 from src.enumeration_processing import process_enumeration, render_records
 from src.conversation_context import prepare_context
+from src.console import console_print
 from src.chunker import clean_and_chunk
 from src.config import AppConfig, get_config
 from src.context import build_context, estimate_tokens
 from src.embedding import EmbeddingClient, get_embedding_client
+from src.evidence_support import assess_evidence
+from src.document_department import normalize_department, resolve_department
 from src.document_type import normalize_doc_type, resolve_doc_type
 from src.enumeration import (enumeration_route, catalog_time, document_representatives,
                              document_key, group_documents, expand_documents, coverage_notice)
 from src.llm import LLMClient, get_llm_client, new_usage, strip_think_tags
 from src.metadata import build_document_metadata, document_id_for, version_from_filename
+from src.permissions import classify_visibility, normalize_visibility
+from src.document_visibility import prune_user_grants, resolve_visibility
 from src.parser import ParsedDocument, SUPPORTED_EXTENSIONS, parse_file
+from src.project_directories import is_generated_info, managed_directory_names, without_storage_directory
+from src.project_comparison import ProjectComparison, parse_project_comparison, render_project_comparison
+from src.projects import resolve_project_filter
 from src.answer_language import resolve_answer_language
 from src.prompt import build_messages
 from src.query_understanding import understand_query
+from src.query_scope import (
+    conversation_project, extract_scope, is_scope_listing, project_reference, resolve_scope, unsupported_scope,
+)
 from src.reranker import rerank as rerank_items, rerank_local as rerank_documents_local
 from src.retriever import RetrievedItem, effective_filters, get_retriever
 from src.trace import make_node, now_str
@@ -63,6 +75,7 @@ class IngestSummary:
     elapsed_seconds: float = 0.0
     rebuilt: bool = False
     file_rows: list[dict] = field(default_factory=list)  # 每个文件的入库结果明细
+    file_errors: dict[str, str] = field(default_factory=dict)
     new_files: list[str] = field(default_factory=list)      # V3.1 新增入库
     updated_files: list[str] = field(default_factory=list)  # V3.1 内容有变化，重新入库
     skipped_files: list[str] = field(default_factory=list)  # V3.1 指纹未变，跳过
@@ -109,6 +122,9 @@ def ingest_files(
     owner: str | None = None,
     *,
     default_doc_type: str | None = None,
+    default_department: str | None = None,
+    default_project_id: int | None = None,
+    default_allowed_users: list[str] | None = None,
     doc_type_paths: dict[str, str] | None = None,
 ) -> IngestSummary:
     """把文件送进知识库。paths 为空时扫描整个知识目录。
@@ -121,7 +137,10 @@ def ingest_files(
     owner（V3.9）：本批文件的入库人（登录用户名），写入每张卡片的元数据。
     default_doc_type：非空上传默认类型；人工档案 > 文件声明 > 默认 > 保守推断。
     doc_type_paths：实际输出文件的绝对 str 路径 → 含选定根目录的原始上传相对路径。
-    未提供原始路径只检查非网页文件名，不从入库目标 domain/category 推断类型。
+    未提供原始路径只检查非网页文件名，不从入库目标 domain 推断类型。
+    default_department：非空上传默认归属部门（档案字段，与权限无关）；
+    人工档案 > 文件声明 > 默认，无任何推断。
+    default_allowed_users：受限名单（员工用户名）；与 allowed_groups 互补。
     """
     # 多标签页并发点入库会互相覆盖台账/向量数据，入库全程串行化（单用户无感知）
     with _ingest_lock:
@@ -130,6 +149,9 @@ def ingest_files(
                                   skip_unchanged=skip_unchanged,
                                   default_groups=default_groups, owner=owner,
                                   default_doc_type=default_doc_type,
+                                  default_department=default_department,
+                                  default_project_id=default_project_id,
+                                  default_allowed_users=default_allowed_users,
                                   doc_type_paths=doc_type_paths)
 
 
@@ -144,6 +166,9 @@ def _ingest_files_impl(
     owner: str | None = None,
     *,
     default_doc_type: str | None = None,
+    default_department: str | None = None,
+    default_project_id: int | None = None,
+    default_allowed_users: list[str] | None = None,
     doc_type_paths: dict[str, str] | None = None,
 ) -> IngestSummary:
     """把文件送进知识库。paths 为空时扫描整个知识目录。
@@ -155,6 +180,12 @@ def _ingest_files_impl(
     cfg = config or get_config()
     if default_doc_type is not None:
         default_doc_type = normalize_doc_type(default_doc_type)
+    if default_department is not None:
+        default_department = normalize_department(default_department)
+    if default_project_id is not None:
+        from src.projects import validate_project_id
+
+        validate_project_id(default_project_id)
     embedding = embedding_client or get_embedding_client()
     vector_store = store or get_vector_store()
     summary = IngestSummary(rebuilt=rebuild)
@@ -170,11 +201,12 @@ def _ingest_files_impl(
             SUPPORTED_EXTENSIONS  # 与 parser 白名单同一份，新增格式只改一处
             and not _skip_hidden(p, cfg.knowledge_dir)  # 跳过隐藏目录（.rag_converted 转换缓存等）
         )
+    files = [path for path in files if not is_generated_info(path)]
     summary.total_files = len(files)
     from src import index_state as istate
 
     if not files:
-        print(f"⚠️ 没有找到可入库的文件（知识目录：{cfg.knowledge_dir}）")
+        console_print(f"⚠️ 没有找到可入库的文件（知识目录：{cfg.knowledge_dir}）")
         if rebuild:
             # 重建 + 空目录 = 清空知识库：否则旧卡片永远留在检索里
             vector_store.clear()
@@ -186,13 +218,17 @@ def _ingest_files_impl(
         # 不能提前返回：删光目录里最后一个文件时，台账里它的向量仍需在下方
         # 「已删除文件同步清理」中清掉（此前在这里 return，残留向量永远参与检索）
     else:
-        print(f"① 找到 {len(files)} 个待入库文件")
+        console_print(f"① 找到 {len(files)} 个待入库文件")
 
     # ①.5 增量判断（V3.1）：内容指纹没变的文件跳过；台账里有但文件已删除的，向量同步清理
     previous_state = istate.load_state()
-    # 重建只继承类型输入，其他档案/版本保持原有重建语义。
+    # 重建继承类型、归属部门与项目关联，其他档案/版本保持原有重建语义。
     type_inputs = {rel: istate.doc_type_info_for(previous_state, rel)
                    for rel in previous_state}
+    department_inputs = {rel: istate.department_info_for(previous_state, rel)
+                         for rel in previous_state}
+    visibility_inputs = {rel: istate.visibility_info_for(previous_state, rel)
+                         for rel in previous_state}
     state = {} if rebuild else previous_state
     paths_to_process: list[Path] = []
     processed: list[tuple[Path, str, str]] = []  # (路径, 相对路径, 哈希)
@@ -205,9 +241,10 @@ def _ingest_files_impl(
             pass
         if not path.exists():
             summary.failed_files.append(f"{rel}（文件不存在）")
+            summary.file_errors[rel] = "file_missing"
             continue
         current_hash = istate.file_hash(path)
-        known = rel in state
+        known = "hash" in state.get(rel, {})
         unchanged = known and state[rel].get("hash") == current_hash
         if unchanged and (not explicit or skip_unchanged):
             summary.skipped_files.append(rel)
@@ -229,39 +266,54 @@ def _ingest_files_impl(
             istate.remove_entry(state, rel)
             summary.cleaned_files.append(rel)
     if summary.cleaned_files:
-        print(f"   🧹 已同步清理 {len(summary.cleaned_files)} 个已删除文件的向量数据")
+        console_print(f"   🧹 已同步清理 {len(summary.cleaned_files)} 个已删除文件的向量数据")
         istate.save_state(state)  # 清理结果立即落盘（该路径可能提前返回）
         # 删除了知识就必须清问答缓存：否则同问题命中缓存返回已删除知识的答案
         clear_qa_cache()
         from src.keyword_search import invalidate_cache
         invalidate_cache()
     if summary.skipped_files:
-        print(f"   ⏭️ {len(summary.skipped_files)} 个文件内容未变化，跳过（省时省钱）")
+        console_print(f"   ⏭️ {len(summary.skipped_files)} 个文件内容未变化，跳过（省时省钱）")
         for rel in summary.skipped_files:
-            print(f"      ⏭️ {rel}")
+            console_print(f"      ⏭️ {rel}")
     files = paths_to_process
     summary.total_files = len(files)
     if not files:
-        print("✅ 增量入库完成：没有需要处理的文件")
+        console_print("✅ 增量入库完成：没有需要处理的文件")
         return summary
 
+    # 旧版本台账可能只有指纹，部门可见范围只在 Qdrant 中。重跑前继承当前权限。
+    legacy_paths = {rel for _, rel, _ in processed
+                    if rel in previous_state and not visibility_inputs.get(rel)}
+    if legacy_paths:
+        legacy_ids = [document_id_for(rel) for rel in sorted(legacy_paths)]
+        for doc in vector_store.list_documents({"document_id": legacy_ids}):
+            if doc["path"] in legacy_paths and doc["status"] in ("active", "archive"):
+                acl = normalize_visibility(doc.get("allowed_groups"), doc.get("allowed_users"),
+                                           legacy_default=False)
+                visibility_inputs[doc["path"]] = {"value": acl}
+
     # ② 解析 + 生成统一 Metadata（目录推断 → Front Matter 覆盖 → 系统兜底）
-    print("② 解析文件 → 统一文本 + Metadata")
+    console_print("② 解析文件 → 统一文本 + Metadata")
     docs: list[ParsedDocument] = []
     detection_by_rel: dict[str, dict] = {}
     doc_types_by_rel: dict[str, dict] = {}
+    departments_by_rel: dict[str, dict] = {}
+    visibility_by_rel: dict[str, dict] = {}
     llm = get_llm_client() if cfg.auto_tag else None
+    registered_directories = managed_directory_names() if files else set()
     for path in files:
-        try:
-            parsed = parse_file(path)
-        except Exception as exc:
-            summary.failed_files.append(str(exc))
-            continue
-        # 相对路径决定 domain / category / topic；knowledge 目录外的文件按根目录规则处理
+        # 相对路径决定 domain / topic；knowledge 目录外的文件按根目录规则处理
         try:
             rel = path.resolve().relative_to(cfg.knowledge_dir.resolve()).as_posix()
         except ValueError:
             rel = path.name
+        try:
+            parsed = parse_file(path)
+        except Exception as exc:
+            summary.failed_files.append(str(exc))
+            summary.file_errors[rel] = "parse_failed"
+            continue
         parsed.metadata = build_document_metadata(
             relative_path=rel,
             source=path.name,
@@ -270,6 +322,7 @@ def _ingest_files_impl(
             created_at=parsed.metadata["created_at"],
             updated_at=parsed.metadata["updated_at"],
             front_matter=parsed.front_matter,
+            inference_path=without_storage_directory(rel, registered_directories),
         )
         doc_types_by_rel[rel] = resolve_doc_type(
             path.name, parsed.front_matter,
@@ -279,6 +332,16 @@ def _ingest_files_impl(
             is_web=(parsed.front_matter or {}).get("source_type") == "web",
         )
         parsed.metadata["doc_type"] = doc_types_by_rel[rel]["value"]
+        departments_by_rel[rel] = resolve_department(
+            istate.department_info_for(state, rel) or department_inputs.get(rel),
+            parsed.front_matter,
+            default_department=default_department,
+        )
+        parsed.metadata["department"] = departments_by_rel[rel]["value"]
+        project_link = istate.project_link_for(previous_state, rel)
+        if not project_link and default_project_id is not None:
+            project_link = {"project_id": default_project_id}
+        parsed.metadata.update(project_link)
         from src.document_version import detect_document_version, apply_confirmation
         declared = detect_document_version(path.name, parsed.version_regions, parsed.front_matter)
         detection_by_rel[rel] = declared
@@ -303,35 +366,50 @@ def _ingest_files_impl(
             parsed.metadata["topic"] = tagged["topic"]
             parsed.metadata["tags"] = tagged["tags"]
             if tagged["topic"] or tagged["tags"]:
-                print(f"   🤖 自动标签 [{rel}]: topic={parsed.metadata['topic']} tags={parsed.metadata['tags']}")
+                console_print(f"   🤖 自动标签 [{rel}]: "
+                              f"topic={parsed.metadata['topic']} tags={parsed.metadata['tags']}")
         # V3.4 档案编辑：台账里的覆盖设置优先级最高（高于 Front Matter 与目录推断）
         overrides = state.get(rel, {}).get("overrides", {})
         for key, value in overrides.items():
-            if key in ("title", "category", "topic", "tags", "version", "status",
-                       "allowed_groups", "classification") and value:
+            if key in ("title", "category", "topic", "tags", "version", "status") and value:
                 parsed.metadata[key] = value
         current_hash = next(h for _p, r, h in processed if r == rel)
         parsed.metadata["version_content_hash"] = current_hash
         parsed.metadata.update(apply_confirmation(
             declared, state.get(rel, {}).get("version_confirmation"),
             current_hash, str(parsed.metadata["version"])))
-        # V3.7 权限：上传表单的"可见部门"作为批级默认——只在 Front Matter 未显式
-        # 声明（即仍为默认全员）时生效，不覆盖档案的显式设置
-        if default_groups is not None and parsed.metadata.get("allowed_groups") == ["all"]:
-            groups = [str(g).strip() for g in default_groups if str(g).strip()]
-            parsed.metadata["allowed_groups"] = groups or ["all"]
+        previous_acl = istate.visibility_info_for(state, rel) or visibility_inputs.get(rel) or {}
+        acl, acl_info = resolve_visibility(
+            previous_acl, parsed.front_matter,
+            default_groups=default_groups, default_allowed_users=default_allowed_users,
+            legacy_overrides=overrides)
         from src.auth_db import normalize_department_groups
-        parsed.metadata['allowed_groups'] = normalize_department_groups(parsed.metadata['allowed_groups'])
+        acl['allowed_groups'] = normalize_department_groups(acl['allowed_groups'])
+        # 停用过的员工不因文件声明、旧默认值或重新启用而恢复授权。
+        if acl['allowed_users']:
+            from src.auth_db import document_user_revocations, list_users
+            revocations = document_user_revocations()
+            granted = acl_info.get('granted_revocations', {})
+            # 新的显式签授权记录当时撤权代次；旧文件声明/旧默认不能自动复活。
+            if default_allowed_users is not None and not previous_acl and 'manual' not in acl_info:
+                granted = {u: revocations.get(u) for u in acl['allowed_users']}
+                acl_info['granted_revocations'] = granted
+            active = {u['username'] for u in list_users() if u['status'] == 'active'}
+            prune_user_grants(acl, granted, revocations, active)
+        acl['classification'] = classify_visibility(acl['allowed_groups'], acl['allowed_users'])
+        acl_info['value'] = dict(acl)
+        visibility_by_rel[rel] = acl_info
+        parsed.metadata.update(acl)
         docs.append(parsed)
     summary.ok_files = len(docs)
-    print(f"   成功 {len(docs)} 个，失败 {len(summary.failed_files)} 个")
+    console_print(f"   成功 {len(docs)} 个，失败 {len(summary.failed_files)} 个")
     for failure in summary.failed_files:
-        print(f"   ❌ {failure}")
+        console_print(f"   ❌ {failure}")
     if not docs:
         return summary
 
     # ③ 清洗 + ④ 切片
-    print("③ 清洗文本，④ 切成知识卡片")
+    console_print("③ 清洗文本，④ 切成知识卡片")
     # V3.9：入库人写入文档元数据（切片继承 → 进卡片 payload），供审计与溯源
     for doc in docs:
         doc.metadata["owner"] = (owner or "").strip()
@@ -345,26 +423,31 @@ def _ingest_files_impl(
     for doc in cleaned_docs:
         meta = doc.metadata
         summary.file_rows.append({
+            **{key: meta.get(key) for key in ("document_id", "version", "title", "file_type", "topic", "tags", "owner")},
             "source": meta["source"],
             "path": meta["path"],
             "domain": meta["domain"],
-            "category": meta["category"],
             "doc_type": meta.get("doc_type", ""),
+            "department": meta.get("department", ""),
+            "project_id": meta.get("project_id"),
+            "classification": meta["classification"],
+            "allowed_groups": meta["allowed_groups"],
+            "allowed_users": meta["allowed_users"],
             "status": meta["status"],
             "chunks": chunks_by_file.get(meta["path"], 0),
             "document_version": meta["document_version"],
             "document_version_status": meta["document_version_status"],
             "document_version_source": meta["document_version_source"],
         })
-    print(f"   共切出 {len(chunks)} 张知识卡片")
+    console_print(f"   共切出 {len(chunks)} 张知识卡片")
     # 空文本文件（0 卡片，如无文字的扫描件/图片）：显式警告并跳过台账指纹——
     # 记了指纹会永久跳过，之后再开启 OCR 也不会重试；不记则开启后可重新入库
     zero_card_files = [d.metadata["source"] for d in cleaned_docs
                        if chunks_by_file.get(d.metadata["path"], 0) == 0]
     if zero_card_files:
-        print(f"   ⚠️ {len(zero_card_files)} 个文件未解析出文字（扫描件未开 OCR 或内容为空）："
-              f"{'、'.join(zero_card_files[:5])}{'…' if len(zero_card_files) > 5 else ''}；"
-              "这些文件本次不会入向量库，开启 OCR 后重新入库即可")
+        console_print(f"   ⚠️ {len(zero_card_files)} 个文件未解析出文字（扫描件未开 OCR 或内容为空）："
+                      f"{'、'.join(zero_card_files[:5])}{'…' if len(zero_card_files) > 5 else ''}；"
+                      "这些文件本次不会入向量库，开启 OCR 后重新入库即可")
     if not chunks:
         return summary
 
@@ -372,6 +455,8 @@ def _ingest_files_impl(
     # 解析失败的文件刻意不记——旧向量保持原状，下次入库自动重试；
     # 若记录了失败文件的新指纹，新内容会被增量判断永久跳过。
     versions_by_rel = {d.metadata["path"]: d.metadata.get("version", "1.0") for d in cleaned_docs}
+    project_links = {d.metadata["path"]: {"project_id": d.metadata["project_id"]}
+                     for d in cleaned_docs if "project_id" in d.metadata}
 
     def _record_ledger() -> None:
         for path, rel, file_hash_value in processed:
@@ -388,7 +473,10 @@ def _ingest_files_impl(
             istate.update_entry(state, rel, doc_id, chunk_count, file_hash_value,
                                 version=versions_by_rel[rel], version_info=version_info,
                                 version_detection=detection_by_rel[rel],
-                                doc_type_info=doc_types_by_rel[rel] if chunk_count else None)
+                                doc_type_info=doc_types_by_rel[rel] if chunk_count else None,
+                                department_info=departments_by_rel[rel] if chunk_count else None,
+                                project_link=project_links.get(rel) if chunk_count else None,
+                                visibility_info=visibility_by_rel[rel])
 
     if not chunks:
         # 全部文件都没有切出卡片（空文件等）：也记台账（0 卡片），
@@ -398,44 +486,56 @@ def _ingest_files_impl(
         return summary
 
     # ⑤ 向量化
-    print(f"⑤ 向量化（模型：{cfg.embedding_model}）")
+    console_print(f"⑤ 向量化（模型：{cfg.embedding_model}）")
     summary.vector_dimension = embedding.dimension()
-    print(f"   向量维度：{summary.vector_dimension}")
+    console_print(f"   向量维度：{summary.vector_dimension}")
     vectors = embedding.embed_texts([chunk.text for chunk in chunks])
 
     # ⑥ 存入向量库
-    if rebuild:
-        print("⑥ 重建模式：先清空向量库")
-        vector_store.clear()
-    vector_store.ensure_collection(summary.vector_dimension)
-    if not rebuild:
-        # 仅对台账未知的文档清残留；强制重跑已知文档不能清掉其版本历史。
-        for doc in cleaned_docs:
-            if doc.metadata["path"] in summary.new_files and doc.metadata["path"] not in state:
-                vector_store.delete_documents([doc.metadata["document_id"]])
-        # 已知文档先过期，再写回当前卡片；同版本点 ID 不变，历史版本保留，
-        # 切片数减少或人工更改版本时，也不会残留旧的 active 卡片。
-        for doc in cleaned_docs:
-            if doc.metadata["path"] in state:
-                vector_store.expire_document(doc.metadata["document_id"])
-    print("⑥ 存入 Qdrant 向量库")
-    stored = vector_store.upsert_chunks(chunks, vectors)
-    # 台账落盘放在向量写入成功之后：中途任何一步失败（Ollama 掉线、Qdrant 异常）
-    # 都不落盘，下次入库自动重试，不会出现「指纹已记录但内容没进库」的死锁
-    _record_ledger()
-    istate.save_state(state)
+    from src.auth_db import document_acl_write, document_user_revocations, list_users
+
+    personal = {rel: info for rel, info in visibility_by_rel.items() if info['value']['allowed_users']}
+    with document_acl_write():
+        if personal:
+            # 向量化期间可能发生停用，发布前重新验证授权代次和员工状态。
+            revocations = document_user_revocations()
+            active = {u['username'] for u in list_users() if u['status'] == 'active'}
+            for info in personal.values():
+                prune_user_grants(info['value'], info.get('granted_revocations', {}), revocations, active)
+            for chunk in chunks:
+                if info := personal.get(chunk.metadata['path']):
+                    chunk.metadata.update(info['value'])
+            for row in summary.file_rows:
+                if info := personal.get(row['path']):
+                    row.update(info['value'])
+        if rebuild:
+            console_print("⑥ 重建模式：先清空向量库")
+            vector_store.clear()
+        vector_store.ensure_collection(summary.vector_dimension)
+        if not rebuild:
+            for doc in cleaned_docs:
+                rel = doc.metadata["path"]
+                if rel in state:
+                    vector_store.expire_document(doc.metadata["document_id"])
+                elif rel in summary.new_files:
+                    vector_store.delete_documents([doc.metadata["document_id"]])
+        console_print("⑥ 存入 Qdrant 向量库")
+        stored = vector_store.upsert_chunks(chunks, vectors)
+        # 只有向量写入成功才提交指纹，失败后仍可重试。
+        _record_ledger()
+        istate.save_state(state, strict=True)
     # 入库后清空 BM25 缓存和 Q→A 缓存
     from src.keyword_search import invalidate_cache
     invalidate_cache()
     clear_qa_cache()
-    print(f"   已写入 {stored} 张卡片")
+    console_print(f"   已写入 {stored} 张卡片")
 
     summary.elapsed_seconds = time.time() - start
-    print(f"✅ 入库完成，总耗时 {summary.elapsed_seconds:.1f} 秒")
-    print("\n入库明细：")
+    console_print(f"✅ 入库完成，总耗时 {summary.elapsed_seconds:.1f} 秒")
+    console_print("\n入库明细：")
     for row in summary.file_rows:
-        print(f"   {row['path']:<40} domain={row['domain']:<10} category={row['category']:<12} "
-              f"status={row['status']:<8} 卡片数={row['chunks']}")
+        console_print(f"   {row['path']:<40} domain={row['domain']:<10} "
+                      f"status={row['status']:<8} 卡片数={row['chunks']}")
     return summary
 
 
@@ -614,17 +714,23 @@ def clear_qa_cache(username: str | None = None) -> None:
 
 # V3.8：缓存内容对应的索引纪元。知识库被任何进程改过（纪元变了）→ 整个问答缓存作废。
 # 此前只靠本进程内的 clear_qa_cache()：MCP 是独立进程，前台入库新版本后它仍返回旧答案。
-_qa_cache_epoch = ""
+_qa_cache_epoch = None
 
 
-def _sync_qa_cache_epoch() -> str:
+def _sync_qa_cache_epoch(epoch: tuple[str, str | None]) -> None:
     global _qa_cache_epoch
-    epoch = index_epoch.current()
     if epoch != _qa_cache_epoch:
         _qa_cache.clear()
         _qa_cache_owner.clear()
         _qa_cache_epoch = epoch
-    return epoch
+
+
+def _remember_answer(key: str, result: QAResult, username: str | None) -> None:
+    for oldest in list(_qa_cache)[:max(0, len(_qa_cache) - _QA_CACHE_MAX + 1)]:
+        _qa_cache.pop(oldest, None)
+        _qa_cache_owner.pop(oldest, None)
+    _qa_cache[key] = result
+    _qa_cache_owner[key] = username or ""
 
 
 # ---------------------------------------------------------------- 问答
@@ -650,6 +756,7 @@ def _catalog_evidence(question, filters, cfg):
     elapsed = time.time() - start
     result = QAResult(question=question, answer=answer, retrieved=items, context=context,
                       sources=[{**it.metadata, "doc_type": it.metadata.get("doc_type") or "",
+                                "department": it.metadata.get("department") or "",
                                 "rank": it.rank, "score": 0.0,
                                 "text": it.text, "channels": it.channels} for it in items],
                       filters=effective, enumeration=True, evidence_meta=meta,
@@ -658,6 +765,89 @@ def _catalog_evidence(question, filters, cfg):
                       trace=[make_node("📁", "目录统计", time_str=now_str(), elapsed=elapsed,
                                        summary=notice, items=[("实际过滤条件", str(effective)),
                                                               ("日期条件", f"{date_field}: {dates}")])])
+    return result, meta
+
+
+def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison, filters: dict | None,
+                                 top_k: int, cfg: AppConfig, use_hybrid: bool, use_rerank: bool,
+                                 user_groups: list[str] | None, username: str | None, on_progress=None):
+    from src.auth_db import retrieval_acl_revision
+
+    base = filters or {}
+    result.filters = effective_filters(base)
+    issue = ""
+    projects = []
+    revision = (index_epoch.current(), retrieval_acl_revision())
+    if not comparison.valid_count:
+        issue = "comparison_count"
+    else:
+        try:
+            for name in comparison.names:
+                [project_id] = resolve_project_filter(name, None, allow_name_variants=True)
+                projects.append((name, project_id))
+        except ValueError:
+            issue = "unresolved"
+        if not issue:
+            ids = [project_id for _, project_id in projects]
+            selected = base.get("project_id")
+            if len(set(ids)) != len(ids):
+                issue = "comparison_count"
+            elif selected not in (None, "all"):
+                selected = selected if isinstance(selected, (list, tuple)) else [selected]
+                if not set(ids).issubset(selected):
+                    issue = "conflict"
+    elapsed = {"retrieval_only": 0.0, "rerank": 0.0, "assembly": 0.0}
+    meta = {"route": "project_comparison", "coverage": "not_found", "enumeration": False}
+    if issue:
+        result.answer = {
+            "comparison_count": "请明确列出 2 至 4 个不同的项目，并确认项目数量一致。",
+            "unresolved": "无法确认所有要比较的项目，请核对项目名称。",
+            "conflict": "至少一个要比较的项目不在已选筛选范围内，请调整项目筛选后重试。",
+        }[issue]
+        meta.update(scope_issue=issue, scope_notice=result.answer)
+    else:
+        result.filters = effective_filters({**base, "project_id": ids})
+        grouped = []
+        for name, project_id in projects:
+            if on_progress:
+                on_progress(f"正在检索项目「{name}」…")
+            # Each branch uses the shared ACL-aware retrieval and context assembly with its own project ID.
+            # The operation and fields were parsed once from the original question.
+            branch, branch_meta = query_evidence(
+                comparison.search_query, top_k=top_k,
+                filters={**base, "project_id": [project_id]},
+                use_query_understanding=False, use_hybrid=use_hybrid,
+                use_rerank=use_rerank, use_llm=False, config=cfg,
+                user_groups=user_groups, username=username,
+            )
+            offset = len(result.sources)
+            sources = [dict(source, rank=offset + rank) for rank, source in enumerate(branch.sources, 1)]
+            result.sources.extend(sources)
+            result.retrieved.extend(replace(item, rank=offset + rank) for rank, item in enumerate(branch.retrieved, 1))
+            grouped.append((name, sources))
+            for key in elapsed:
+                elapsed[key] += branch.elapsed.get(key, 0.0)
+            result.trace.append(make_node(
+                "🔀", "项目子查询", time_str=now_str(), elapsed=branch.elapsed.get("total", 0.0),
+                summary=f"项目「{name}」采用 {len(sources)} 条证据。",
+                items=[("检索字段", comparison.search_query), ("证据覆盖", branch_meta["coverage"])],
+            ))
+        if (index_epoch.current(), retrieval_acl_revision()) != revision:
+            result.sources.clear()
+            result.retrieved.clear()
+            result.answer = "检索期间资料或权限发生变化，请重新查询。"
+            meta.update(scope_issue="index_changed", scope_notice=result.answer)
+        else:
+            result.answer, missing = render_project_comparison(comparison, grouped)
+            result.context = "\n\n".join(f"[{s['rank']}] {s['source']}\n{s['text']}" for s in result.sources)
+            meta.update(coverage=("partial" if missing else "unknown") if result.sources else "not_found",
+                        comparison={"operations": list(comparison.operations), "missing": missing,
+                                    "projects": [{"name": name, "sources": [s["rank"] for s in sources]}
+                                                 for name, sources in grouped]})
+    result.elapsed.update(elapsed)
+    result.elapsed["retrieval"] = sum(elapsed.values())
+    result.elapsed["total"] = result.elapsed["retrieval"] + result.elapsed.get("query_understanding", 0.0)
+    result.evidence_meta = meta
     return result, meta
 
 
@@ -674,6 +864,8 @@ def query_evidence(
     config: AppConfig | None = None,
     user_groups: list[str] | None = None,
     conversation_context: str = "",
+    username: str | None = None,
+    project_context: dict | None = None,
 ) -> tuple[QAResult, dict]:
     """Evidence 统一查询入口（V3.9）：检索半程（意图→检索→融合→筛选→组装）。
 
@@ -692,13 +884,12 @@ def query_evidence(
     cfg = config or get_config()
     top_k = top_k or cfg.top_k
 
-    from src.permissions import scope_filters
-    filters = scope_filters(filters, user_groups)
+    from src.permissions import scope_filters, classify_visibility
+    filters = scope_filters(filters, user_groups, username)
 
     if enumeration_route(question, True) == "catalog":
         return _catalog_evidence(question, filters, cfg)
 
-    retriever = get_retriever()
     trace: list = []
     result = QAResult(question=question, answer=None, retrieved=[], context="",
                       sources=[], filters=effective_filters(filters), trace=trace)
@@ -736,11 +927,7 @@ def query_evidence(
         _p("🧠 Query 理解中…")
         qu_start = now_str()
         llm = get_llm_client()
-        try:
-            catalog = get_vector_store().categories(effective_filters(filters))
-        except Exception:
-            catalog = []
-        qu = understand_query(question, llm=llm, config=cfg, categories=catalog, history=history,
+        qu = understand_query(question, llm=llm, config=cfg, history=history,
                               conversation_context=conversation_context)
         record_stage_usage(result, "query_understanding", qu.usage)
         result.elapsed["query_understanding"] = qu.elapsed  # 生成半程的 total 依赖此项
@@ -762,7 +949,8 @@ def query_evidence(
             f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}\n"
             f"sub_queries（复合问题拆分，逐子查询检索）: {('；'.join(qu.sub_queries)) if qu.sub_queries else '（未输出，单信息需求）'}\n"
             f"time_range（解析的时间范围）: {qu.time_range or '（未输出）'}\n"
-            f"filters（推断的过滤条件）: {qu.filters or '（未输出）'}")
+            f"filters（推断的过滤条件）: {qu.filters or '（未输出）'}\n"
+            f"metadata_scope（明确指定的范围）: {getattr(qu, 'metadata_scope', {}) or '（未输出）'}")
         if qu.ok and qu.error:
             fields_dump += f"\n校验提示: {qu.error}"
         request_dump = (f"模型: {cfg.llm_model or '-'}　|　温度: {cfg.llm_temperature}　|　"
@@ -775,7 +963,7 @@ def query_evidence(
             items=[
                 ("① 调用参数（发给 LLM 的完整请求）", request_dump),
                 ("② System Prompt（任务说明书全文）", qu.system_prompt),
-                ("③ User Prompt（时间+领域枚举+分类+历史+原始问题）", qu.user_prompt),
+                ("③ User Prompt（时间+领域枚举+历史+原始问题）", qu.user_prompt),
                 ("④ LLM 原始输出（返回的 JSON 全文）", qu.raw_output or qu.error),
                 ("⑤ 返回字段逐项解析（未输出 = 按规范省略）", fields_dump),
             ],
@@ -787,6 +975,63 @@ def query_evidence(
             summary="原始问题直接进入向量化，未做改写与条件推断",
             items=[("输入 / 输出", question)],
         ))
+
+    scope_issue = unsupported_scope(question)
+    comparison = parse_project_comparison(question) if scope_issue != "negated" else None
+    if comparison:
+        return _project_comparison_evidence(result, comparison, filters, top_k, cfg, use_hybrid, use_rerank,
+                                            user_groups, username, on_progress)
+    spoken_scope = {} if scope_issue else extract_scope(
+        question, getattr(qu, "metadata_scope", None) if qu and qu.ok else None)
+    if spoken_scope:
+        if qu_filters.get("source") in spoken_scope.values():
+            qu_filters.pop("source")
+        filters, scope_issue = resolve_scope(question, spoken_scope, filters)
+    reference = project_reference(question) if "project" not in spoken_scope else ""
+    if reference and not scope_issue:
+        selected = (filters or {}).get("project_id")
+        unique = type(selected) is int or isinstance(selected, (list, tuple)) and len(selected) == 1
+        if not unique:
+            context_project = project_context if project_context is not None else (
+                conversation_project(question, history or []) if history else {})
+            if project_id := context_project.get("project_id"):
+                filters, scope_issue = resolve_scope(question, {"project": project_id}, filters)
+                if not scope_issue:
+                    spoken_scope["project"] = context_project["name"]
+                    if not (qu and qu.ok):
+                        search_query = f"{context_project['name']} {search_query}"
+                    if qu_filters.get("source") == context_project["name"]:
+                        qu_filters.pop("source")
+            else:
+                scope_issue = context_project.get("issue", "project_reference")
+    scope_meta = {"metadata_scope": spoken_scope} if spoken_scope else {}
+    if scope_issue:
+        messages = {
+            "negated": "暂不支持用问句排除指定的项目、业务方向、归属部门或文档类型。请改为指定要查的范围。",
+            "multiple": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。",
+            "unresolved": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。",
+            "empty": "指定范围内没有匹配的项目。",
+            "conflict": "问题中指定的范围与已选筛选条件没有交集，请调整后重试。",
+            "project_reference": "请先选择项目，或在问题里写明要查询的项目名称。",
+            "project_reference_ambiguous": "这段对话里最近提到了多个项目，请写明这次要查哪一个。",
+        }
+        result.answer = messages[scope_issue]
+        result.filters = effective_filters(filters)
+        meta = {**scope_meta, "scope_issue": scope_issue, "scope_notice": result.answer,
+                "coverage": "not_found"}
+        result.evidence_meta = meta
+        return result, meta
+
+    listing_scope = {**spoken_scope, "project": reference} if reference else spoken_scope
+    if is_scope_listing(question, listing_scope):
+        catalog_result, meta = _catalog_evidence(question, filters, cfg)
+        meta.update(scope_meta)
+        catalog_result.trace[:0] = trace
+        catalog_result.usage = result.usage
+        elapsed = result.elapsed.get("query_understanding", 0.0)
+        catalog_result.elapsed["query_understanding"] = elapsed
+        catalog_result.elapsed["total"] += elapsed
+        return catalog_result, meta
 
     route = enumeration_route(question, enumeration_mode,
                               source=(filters or {}).get("source") or qu_filters.get("source"),
@@ -806,16 +1051,19 @@ def query_evidence(
         use_rerank_now = False
         enum_ctx_cfg = replace(cfg, context_max_tokens=ENUM_CTX_TOKENS)
     else:
-        use_rerank_now = use_rerank and use_llm
+        use_rerank_now = use_rerank and (use_llm or cfg.rerank_backend == "local_onnx")
         recall_k = max(recall_k, cfg.rerank_recall_k) if use_rerank_now else recall_k
         ctx_max_per_doc = None  # 非枚举：组装时回落到 .env 的 CONTEXT_MAX_PER_DOC
         enum_ctx_cfg = cfg
-    merged_filters = {**qu_filters, **(filters or {})}
     if qu and qu.ok and qu.time_range:
-        merged_filters["updated_at"] = qu.time_range  # V3.2 时间感知：按文档时间过滤
+        filters = dict(filters or {})
+        filters.setdefault("updated_at", qu.time_range)
+    merged_filters = {**qu_filters, **(filters or {})}
     result.filters = effective_filters(merged_filters)
     _p("🔍 数据检索中…")
     t0 = time.time()
+    retriever = get_retriever()
+    retrieval_diagnostics: dict = {}
 
     # 节点 ②.5：查询拆分检索（V3.4 Sub-Query）——复合问题（一个问题多个信息需求）
     # 由 Query 理解拆成多个子查询，逐个独立检索后合并去重。
@@ -831,6 +1079,7 @@ def query_evidence(
             sub_items = retriever.retrieve(
                 sq, top_k=recall_k, filters=merged_filters, trace=None,
                 keyword_query=None, use_hybrid=use_hybrid,
+                diagnostics=retrieval_diagnostics,
             )
             per_sq_results.append(sub_items)
             top_srcs, seen = [], set()
@@ -870,11 +1119,12 @@ def query_evidence(
             search_query, top_k=recall_k, filters=merged_filters, trace=trace,
             keyword_query=(qu.keyword_query if qu and qu.ok else None),
             use_hybrid=use_hybrid,
+            diagnostics=retrieval_diagnostics,
         )
 
     # 渐进式放宽（检索容错）：LLM 推断的过滤条件猜错时可能把正确答案挡在门外——
     # 如果「带推断条件」检索为 0 条，自动去掉推断条件（保留手动设置）重试一次。
-    # filters 里是手动设置与权限域（V3.7 起登录用户必带），重试时原样保留，不会越权。
+    # 重试保留权限、手动设置和已确认的范围（含日期）。
     if not result.retrieved and qu_filters and route != "document":
         relax_start = now_str()
         t_relax = time.time()
@@ -883,6 +1133,7 @@ def query_evidence(
             search_query, top_k=recall_k, filters=manual_filters, trace=None,
             keyword_query=(qu.keyword_query if qu and qu.ok else None),
             use_hybrid=use_hybrid,
+            diagnostics=retrieval_diagnostics,
         )
         result.filters = effective_filters(manual_filters)
         trace.append(make_node(
@@ -892,7 +1143,7 @@ def query_evidence(
                     "自动去掉 LLM 推断的条件（保留手动设置）重试了一次；"
                     "这是检索系统的常见容错策略：宁可范围大一点，也不能漏掉答案",
             items=[
-                ("首检条件（0 条召回）", str(effective_filters({**qu_filters, **(filters or {})}))),
+                ("首检条件（0 条召回）", str(effective_filters(merged_filters))),
                 ("放宽后条件", str(result.filters)),
                 ("重试结果", f"召回 {len(result.retrieved)} 条"),
             ],
@@ -953,8 +1204,11 @@ def query_evidence(
         _p("🏆 Rerank 精排中…")
         rr_start = now_str()
         t_rr = time.time()
-        outcome = rerank_items(question, result.retrieved, top_k=top_k,
-                               llm=get_llm_client(), config=cfg)
+        if use_llm:
+            outcome = rerank_items(question, result.retrieved, top_k=top_k,
+                                   llm=get_llm_client(), config=cfg)
+        else:
+            outcome = rerank_documents_local(question, result.retrieved, top_k, cfg)
         record_stage_usage(result, "rerank", outcome.usage)
         rr_elapsed = time.time() - t_rr
         result.elapsed["rerank"] = rr_elapsed
@@ -1043,6 +1297,25 @@ def query_evidence(
     context, used, dropped, merge_notes = build_context(
         result.retrieved, enum_ctx_cfg, max_items=ctx_max_items, max_per_doc=ctx_max_per_doc
     )
+    support = assess_evidence(
+        question, [item.text for item in used],
+        tuple(spoken_scope[key] for key in ("project", "business_direction") if key in spoken_scope),
+    ) if used else {}
+    if support:
+        trace.append(make_node(
+            "🔎", "证据支持检查", time_str=now_str(),
+            summary="逐项检查问题点名的编号或明确事实字段是否出现在采用的资料中。",
+            items=[("检查结果", str(support))],
+        ))
+        scope_meta["evidence_support"] = support
+        if support["status"] == "unsupported":
+            scope_meta["support_notice"] = "找到了候选资料，但没有足够证据支持这个问题。"
+            result.answer = scope_meta["support_notice"]
+            used = []
+            context = "（没有可支持该问题的证据）"
+        elif support["status"] == "partial":
+            missing = "、".join(support["missing"])
+            context = f"【证据范围】没有找到支持以下信息的依据：{missing}。回答时请标明缺失。\n\n{context}"
     result.retrieved = used
     result.context = context
     if "updated_at" in result.filters:  # 时间过滤已生效，告知大模型无需再纠结时间
@@ -1061,12 +1334,16 @@ def query_evidence(
             "document_id": item.metadata.get("document_id"),
             "path": item.metadata.get("path"),
             "chunk_id": item.metadata.get("chunk_id"),
+            "chunk_ids": item.metadata.get("chunk_ids") or [],
             "section": item.metadata.get("section"),
             "section_path": item.metadata.get("section_path"),
             "page": item.metadata.get("page"),
             "domain": item.metadata.get("domain"),
-            "category": item.metadata.get("category"),
             "doc_type": item.metadata.get("doc_type") or "",
+            "department": item.metadata.get("department") or "",
+            "project_id": item.metadata.get("project_id"),
+            "classification": classify_visibility(
+                item.metadata.get("allowed_groups"), item.metadata.get("allowed_users")),
             "topic": item.metadata.get("topic") or [],
             "version": item.metadata.get("version"),
             "status": item.metadata.get("status"),
@@ -1117,12 +1394,14 @@ def query_evidence(
     else:
         coverage = "unknown"
     result.enumeration = enumeration_mode
-    if enum_truncated and result.retrieved:
+    if (enum_truncated or retrieval_diagnostics.get("bm25_truncated")
+            or support.get("status") == "partial") and result.retrieved:
         coverage = "partial"
     enum_stats["processed_documents"] = len(group_documents(used))
     # Query 理解的意图概括随证据元数据透出：分批提取与语义复审共用同一次类别理解，
     # 避免每一级各自重新解读问题（"建模方法"被当成任何名称含"建模"的东西）。
-    evidence_meta = {**enum_stats, "coverage": coverage, "dropped": len(dropped or []),
+    evidence_meta = {**enum_stats, **scope_meta, **retrieval_diagnostics,
+                     "coverage": coverage, "dropped": len(dropped or []),
                      "enumeration": enumeration_mode,
                      "intent": (qu.intent or "") if (use_query_understanding and use_llm and qu) else "",
                      "ctx_max_items": ctx_max_items, "recall_k": recall_k}
@@ -1172,21 +1451,34 @@ def answer_stream(
     # 此后 merged_filters / 渐进式放宽的 manual_filters / 两级缓存键全部自动带上，
     # 调用方在界面上改任何过滤条件都绕不开它）。None = 不限制（个人模式/离线评测）。
     from src.permissions import scope_filters
-    filters = scope_filters(filters, user_groups)
+    from src.auth_db import retrieval_acl_revision
+    filters = scope_filters(filters, user_groups, username)
+    epoch_at_start = (index_epoch.current(), retrieval_acl_revision())
 
     archive_history = history or []
     prepared = None
     memory_text = ""
+    project_context = None
     if session_id:
         # No global session-memory store: only this caller's archive/state is read.
+        state = conversation_state if conversation_state is not None else {}
+        saved = (state.get("project_reference") if state.get("session_id") == session_id
+                 and state.get("owner") == (username or "") else None)
         summary_llm = (get_llm_client() if use_llm and len(archive_history) > cfg.chat_recent_turns * 2
                        and enumeration_route(question, True) != "catalog"
                        and sum(estimate_tokens(m.get("content", "")) for m in archive_history)
                            >= cfg.chat_summary_trigger_tokens else None)
         prepared = prepare_context(question, archive_history,
-                                   conversation_state if conversation_state is not None else {},
-                                   session_id, username or "", filters or {}, index_epoch.current(), cfg, summary_llm)
+                                   state,
+                                   session_id, username or "", filters or {},
+                                   json.dumps(epoch_at_start) if epoch_at_start[1] is not None
+                                   else os.urandom(16).hex(), cfg, summary_llm)
         history, memory_text = prepared.history, prepared.memory or "（当前单会话无旧摘要，近期对话已按预算提供。）"
+        project_context = conversation_project(question, archive_history, saved if isinstance(saved, dict) else None)
+        if project_context:
+            state["project_reference"] = project_context
+        else:
+            state.pop("project_reference", None)
 
     def _attach_conversation(result):
         if prepared is not None:
@@ -1218,11 +1510,13 @@ def answer_stream(
         [username or "", session_id or "stateless", memory_text,
          cfg.chat_context_max_tokens, cfg.chat_recent_turns, cfg.chat_summary_tokens,
          cfg.chat_summary_trigger_tokens, cfg.chat_recall_messages], ensure_ascii=False).encode()).hexdigest()
-    cache_allowed = bool(session_id) or not archive_history
-    epoch_at_start = _sync_qa_cache_epoch()  # 知识库已变 → 旧答案作废
+    cache_key += f"|date={date.today()}|revision={epoch_at_start!r}"
+    cache_allowed = (epoch_at_start[1] is not None and (bool(session_id) or not archive_history)
+                     and not project_reference(question))
+    _sync_qa_cache_epoch(epoch_at_start)
     # .get 取一次：判断与读取分两步时，并发清空会让第二步抛 KeyError
     cached_entry = _qa_cache.get(cache_key) if use_llm and cache_allowed else None
-    if cached_entry is not None:
+    if cached_entry is not None and epoch_at_start == (index_epoch.current(), retrieval_acl_revision()):
         import copy
         cached = copy.deepcopy(cached_entry)
         cached.cache_hit = True
@@ -1302,12 +1596,21 @@ def answer_stream(
         question=question, top_k=top_k, filters=filters,
         use_query_understanding=use_query_understanding, use_hybrid=use_hybrid,
         use_rerank=use_rerank, history=history, use_llm=use_llm,
-        on_progress=_p, config=cfg, conversation_context=memory_text)
+        on_progress=_p, config=cfg, conversation_context=memory_text,
+        user_groups=user_groups, username=username, project_context=project_context)
     _attach_conversation(result)
     result.evidence_meta = evidence_meta   # V3.9：MCP 证据模式透出 coverage
     result.trace[:0] = trace   # 早期节点（就绪/提问/会话记忆）并入时间线头部
     trace = result.trace
     context = result.context  # 生成半程需要的组装资料（Evidence 已含四道检查）
+    if result.answer is not None:
+        return result, iter(())
+    if evidence_meta.get("metadata_scope") and not result.retrieved:
+        result.answer = "指定范围内没有找到你有权查看的匹配文档。"
+        return result, iter(())
+    if use_llm and not result.retrieved:
+        result.answer = "知识库中没有找到可用于回答这个问题的资料。"
+        return result, iter(())
     if not use_llm:
         if result.enumeration:
             evidence_meta["stage2"] = {"status": "not_run", "reason": "evidence_only"}
@@ -1318,7 +1621,8 @@ def answer_stream(
         _p("📋 分批提取与补查中…")
         locked_filters = dict(result.filters)
         def _supplement(query, deadline):
-            return get_retriever().retrieve(query, top_k=ENUM_RECALL_K, filters=locked_filters,
+            return get_retriever().retrieve(query, top_k=ENUM_RECALL_K,
+                                            filters={"status": "all", **locked_filters},
                                             use_hybrid=use_hybrid, deadline=deadline)
         def _rank_documents(reps, bounded_llm):
             ranked = rerank_items(question, reps, top_k=len(reps), llm=bounded_llm, config=cfg)
@@ -1363,15 +1667,12 @@ def answer_stream(
             result.elapsed["llm"] = 0.0  # 提取/规划的模型用量与耗时单列在 enumeration。
             result.elapsed["total"] = sum(result.elapsed.get(k, 0.0) for k in
                                           ("query_understanding", "retrieval_only", "rerank", "assembly", "enumeration", "conversation"))
-            if index_epoch.current() != epoch_at_start:
+            if (index_epoch.current(), retrieval_acl_revision()) != epoch_at_start:
                 evidence_meta["coverage"] = "partial"
                 evidence_meta["stage2"]["index_changed"] = True
                 result.answer += "\n\n处理期间知识库发生变化，本次结果可能不一致，请重新查询。"
-            elif not limited and cache_allowed:
-                while len(_qa_cache) >= _QA_CACHE_MAX:
-                    _qa_cache.pop(next(iter(_qa_cache)), None)
-                _qa_cache[cache_key] = result
-                _qa_cache_owner[cache_key] = username or ""
+            elif not limited and cache_allowed and not evidence_meta.get("metadata_scope"):
+                _remember_answer(cache_key, result, username)
             return result, iter(())
         # 提取未成功时保留首轮检索证据，回退普通生成并提示不完整。
         evidence_meta["coverage"] = "partial"
@@ -1452,15 +1753,10 @@ def answer_stream(
             # 只缓存「完整且非空」的回答：LLM 失败（异常）或用户中断（半截答案）不缓存，
             # 否则之后同样的问题永远命中这份坏结果
             # V3.8：生成期间知识库被改过（纪元变了）→ 这份答案基于旧数据，不能缓存
-            if completed and result.answer and cache_allowed and index_epoch.current() == epoch_at_start:
-                # list() 快照 + pop(默认值)：并发 clear 时不抛 StopIteration/KeyError
-                while len(_qa_cache) >= _QA_CACHE_MAX:
-                    for oldest in list(_qa_cache)[: len(_qa_cache) - _QA_CACHE_MAX + 1]:
-                        _qa_cache.pop(oldest, None)
-                    if not _qa_cache:
-                        break
-                _qa_cache[cache_key] = result
-                _qa_cache_owner[cache_key] = username or ""
+            # 自然语言范围依赖实时项目关系及方向名称，主数据变更不经过索引纪元。
+            if (completed and result.answer and cache_allowed and not evidence_meta.get("metadata_scope")
+                    and (index_epoch.current(), retrieval_acl_revision()) == epoch_at_start):
+                _remember_answer(cache_key, result, username)
 
     return result, _generate()
 
