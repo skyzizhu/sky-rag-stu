@@ -1391,6 +1391,7 @@ def query_evidence(
     # 不拆分时走原始单查询检索；两种路径产出统一为 result.retrieved 供精排。
     sub_q_lists = [s for s in ((qu.sub_queries if (qu and qu.ok) else []) or []) if s and s.strip()][:4]
     _sub_top_keys: list[str] = []  # 每个子查询的 Top-1 证据（拆分分支填充，精排后前置）
+    mention_keys: list[str] = []  # 项目提及补全卡（方案 A，组装保底前置）
     if len(sub_q_lists) < 2:
         # 确定性拆分兜底（V3.4 的离线补充）：LLM 未拆分时，「A、B、C…的 X 分别…」
         # 高置信并列句按固定规则拆出子查询——实测该句式 LLM 拆分存在波动，不拆时
@@ -1584,6 +1585,24 @@ def query_evidence(
             ],
         ))
 
+    # 项目语义补全（方案 A：挂接 OR 正文提及）：问句推断的项目过滤召回的是
+    # 「挂了 project_id 的文档」，而全公司台账这类跨项目表格不挂单个项目——
+    # 尽管正文写着「凤凰项目 | M1 | 2026-04-30」（BM25/向量都能 top1 命中），
+    # 仍被元数据过滤挡在候选外。补一路 BM25 召回「正文确实提及项目名、但未
+    # 挂接该项目」的卡片（严格字符串包含验证，最多 5 张），标记「项目提及」
+    # 通道并入候选——项目相关性语义完整 = 挂接 ∪ 正文提及。仅对推断型项目
+    # 过滤生效（scope_injected_keys），手动 UI 项目筛选行为不变。
+    mention_keys = _append_project_mention_cards(
+        result, question, filters or {}, scope_injected_keys, spoken_scope, recall_k)
+    if mention_keys:
+        enum_stats["project_mention"] = len(mention_keys)
+        trace.append(make_node(
+            "🔗", "项目语义补全", time_str=now_str(),
+            summary=(f"项目过滤只覆盖挂接文档；正文提及该项目的跨项目文档（如台账）"
+                     f"以 BM25 补入 {len(mention_keys)} 张（已验证正文包含项目名）。"),
+            items=[("提及通道", "挂接 ∪ 正文提及")],
+        ))
+
     # 文档定位/跨文档精排与普通问答的卡片精排分开，避免 Top K 截掉列举条目。
     if enumeration_mode and result.retrieved:
         if len(sub_q_lists) >= 2:
@@ -1727,22 +1746,26 @@ def query_evidence(
     # 子查询证据保底：精排重排后，把每个子查询的 Top-1 证据提到候选池最前。
     # 精排按原始整题打分，弱势子问题的最佳证据可能被其他主题的高分卡压到
     # 名额之外；前置后组装层按顺序选取，各子需求的关键证据必进上下文。
-    if _sub_top_keys and result.retrieved:
+    # 项目提及卡（方案 A）同样前置——多事实主导文档扩展会把它们挤出 token 预算
+    # （实测：凤凰里程碑在台账提及卡里，被凤凰可研/经营计划的全卡扩展淹没）。
+    guarantee_keys = _sub_top_keys + [k for k in mention_keys if k not in _sub_top_keys]
+    if guarantee_keys and result.retrieved:
         by_key: dict[str, object] = {}
         for it in result.retrieved:
             by_key.setdefault(it.metadata.get("chunk_id") or it.text[:40], it)
-        front = [by_key[key] for key in _sub_top_keys if key in by_key]
+        front = [by_key[key] for key in guarantee_keys if key in by_key]
         front_ids = {id(it) for it in front}
         ordered = front + [it for it in result.retrieved if id(it) not in front_ids]
-        if len(front) == len(_sub_top_keys) and ordered is not result.retrieved \
+        if len(front) == len(guarantee_keys) and ordered is not result.retrieved \
                 and [id(x) for x in ordered[:len(front)]] != [id(x) for x in result.retrieved[:len(front)]]:
             result.retrieved = ordered
             for i, it in enumerate(ordered, start=1):
                 it.rank = i
             trace.append(make_node(
                 "📌", "子查询证据保底", time_str=now_str(),
-                summary=f"已把 {len(front)} 个子查询各自的 Top-1 证据提到候选池最前——"
-                        "精排按整题打分时弱势子问题的关键证据可能被挤出最终名额。",
+                summary=f"已把 {len(front)} 张关键证据（子查询 Top-1 / 项目提及卡）"
+                        "提到候选池最前——精排按整题打分或多事实扩展时，弱势子问题"
+                        "与跨项目提及的证据可能被挤出最终名额。",
                 items=[("保底证据", "\n".join(
                     f"{it.metadata.get('source')} | {it.metadata.get('section') or '-'}" for it in front))],
             ))
@@ -1961,6 +1984,50 @@ def _enumeration_sum_note(question: str, records) -> str | None:
         total_text = f"{total.normalize():f} 元"
     return ("**合计**：" + " + ".join(parts) + f" = **{total_text}**"
             f"（由以上 {len(values)} 条已验证记录逐项求和）")
+
+
+def _append_project_mention_cards(result, question: str, filters: dict,
+                                  scope_injected_keys: set[str],
+                                  spoken_scope: dict, recall_k: int) -> list[str]:
+    """项目语义补全（方案 A）：把「正文提及项目名但未挂接」的卡片并入候选。
+
+    仅当：① 本次项目过滤来自问句推断（scope_injected_keys 含 project_id）；
+    ② 能取到项目名（spoken_scope['project']）。补充路用 BM25（查询=项目名），
+    过滤条件沿用权限/status 但不带 project_id；命中卡片再做严格字符串包含
+    验证（正文真的写着该项目名）且未挂接任何项目（挂他项目的提及属于另一
+    项目的文档，不并入）。返回补入卡片的 chunk_id 列表——调用方把它们纳入
+    最终组装的保底前置（多事实扩展可能把弱势证据挤出 token 预算）。
+    """
+    project_name = str(spoken_scope.get("project") or "").strip()
+    if (not project_name or len(project_name) < 2
+            or "project_id" not in scope_injected_keys
+            or not (filters or {}).get("project_id")):
+        return []
+    base_filters = {k: v for k, v in filters.items() if k != "project_id"}
+    try:
+        from src.keyword_search import bm25_search
+        hits = bm25_search(project_name, top_k=max(10, recall_k), filters=base_filters or None)
+    except Exception:
+        return []
+    seen = {item.metadata.get("chunk_id") for item in result.retrieved}
+    added_keys: list[str] = []
+    for hit in hits:
+        payload = hit.get("payload") or {}
+        text = str(payload.get("text") or "")
+        card_pid = payload.get("project_id")
+        if (payload.get("chunk_id") in seen
+                or project_name not in text
+                or (card_pid is not None and str(card_pid).strip() not in ("", "None"))):
+            continue  # 已在候选 / 正文未写项目名 / 已挂接（含挂到其他项目）
+        seen.add(payload.get("chunk_id"))
+        result.retrieved.append(RetrievedItem(
+            rank=len(result.retrieved) + 1, score=float(hit.get("score") or 0.0),
+            text=text, metadata={k: v for k, v in payload.items() if k != "text"},
+            channels="项目提及"))
+        added_keys.append(payload.get("chunk_id"))
+        if len(added_keys) >= 5:
+            break
+    return added_keys
 
 
 def _prepend_scope_fallback_notice(result) -> None:

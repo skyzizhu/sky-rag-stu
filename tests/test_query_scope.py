@@ -110,7 +110,8 @@ class QueryScopeTests(IngestHarness):
             retriever.return_value.retrieve.side_effect = fake_retrieve
             result, meta = self.evidence("凤凰项目的三个里程碑分别计划什么时候完成？", use_llm=False)
         self.assertEqual(meta["scope_fallback"]["issue"], "relaxed_empty")
-        self.assertEqual([s["source"] for s in result.sources], ["ledger.md"])
+        # mock 返回的伪造卡与真实库台账卡 chunk_id 不同，但语义同源：按集合断言
+        self.assertEqual({s["source"] for s in result.sources}, {"ledger.md"})
         self.assertNotIn("project_id", result.filters)
 
     def test_comparison_with_unregistered_project_falls_back(self):
@@ -172,12 +173,13 @@ class QueryScopeTests(IngestHarness):
              mock.patch("src.pipeline.get_llm_client"):
             result, _ = self.evidence(question)
         self.assertEqual(result.filters["project_id"], [full])
-        self.assertEqual({s["source"] for s in result.sources}, {"charter.md"})
+        # 方案 A（项目语义补全）：挂接的 charter.md + 正文提及天枢的 unlinked.md
+        self.assertEqual({s["source"] for s in result.sources}, {"charter.md", "unlinked.md"})
         with mock.patch.object(mcp_server, "_identity_from_ctx",
                                return_value=(["engineering"], "alice", {})):
             mcp = json.loads(mcp_server._tool_knowledge_search_impl("天枢项目目前预算是多少？"))
         self.assertEqual(mcp["filters_applied"]["project_id"], [full])
-        self.assertEqual({s["source"] for s in mcp["matches"]}, {"charter.md"})
+        self.assertEqual({s["source"] for s in mcp["matches"]}, {"charter.md", "unlinked.md"})
 
         quoted, _ = self.evidence("查「天枢」项目的预算", use_llm=False)
         self.assertEqual(quoted.filters["project_id"], [short])
