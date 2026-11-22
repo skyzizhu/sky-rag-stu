@@ -1,0 +1,331 @@
+[
+  {
+    "id": "C07",
+    "difficulty": "complex",
+    "dimension": "确定性求和",
+    "question": "2026 年三大重点投入项目分别是哪些？预算合计是多少万元？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **6 条带原文证据的记录**；这不是全库确定总数。\n\n部分同名记录尚不能确认是同一实体，已分别保留，当前记录数不等于去重后的实体总数。\n\n1. **凤凰项目**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n2. **星云二期**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n3. **昆仑二期**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n4. **凤凰项目**：凤凰项目 | 沈青 | 260 | 进行中 | 2026-01~2026-09 [2]\n\n5. **星云二期**：星云二期 | 陈明 | 180 | 筹备中 | 2026-03 启动 [2]\n\n6. **昆仑二期**：昆仑二期 | 林岚 | 150 | 筹备中 | 2026-04 启动 [2]\n\n处理范围：10 份文档、34 张卡片、9 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。\n\n**合计**：260万元 + 260万元 + 260万元 = **780 万元**（由以上 3 条已验证记录逐项求和）",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "项目台账（第 9~12 行）",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海表格/星海2026项目总台账.xlsx",
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 10,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查询2026年三大重点投入项目的名单，并统计这些项目的预算合计金额",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 3.48,
+      "retrieval_only": 1.92,
+      "rerank": 3.5,
+      "assembly": 0.02,
+      "retrieval": 5.44,
+      "total": 86.98,
+      "enumeration": 78.06,
+      "llm": 0.0
+    },
+    "wall_seconds": 88.09,
+    "usage": {
+      "query_understanding": {
+        "input": 1100,
+        "input_cached": 896,
+        "output": 227,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 964,
+        "input_cached": 128,
+        "output": 2048,
+        "finish_reason": "length"
+      },
+      "enumeration_2": {
+        "input": 648,
+        "input_cached": 512,
+        "output": 580,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 687,
+        "input_cached": 128,
+        "output": 171,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 1222,
+        "input_cached": 128,
+        "output": 2048,
+        "finish_reason": "length"
+      },
+      "enumeration_5": {
+        "input": 770,
+        "input_cached": 512,
+        "output": 2048,
+        "finish_reason": "length"
+      },
+      "enumeration_6": {
+        "input": 567,
+        "input_cached": 384,
+        "output": 394,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 575,
+        "input_cached": 128,
+        "output": 183,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 824,
+        "input_cached": 128,
+        "output": 1982,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 1392,
+        "input_cached": 128,
+        "output": 209,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 913,
+        "input_cached": 128,
+        "output": 61,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 1087,
+        "input_cached": 128,
+        "output": 161,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 983,
+        "input_cached": 128,
+        "output": 53,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 795,
+        "input_cached": 384,
+        "output": 238,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 12527,
+      "input_cached": 3840,
+      "output": 10403,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": 1,
+      "must_miss": [
+        "590万"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C12",
+    "difficulty": "complex",
+    "dimension": "权限拒答",
+    "question": "2026 年台账里凤凰项目的预算执行情况怎么样？已经花了多少钱？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "> ℹ️ 「2026 年台账里凤凰」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n知识库中没有关于凤凰项目预算执行情况或已支出金额的记录。\n\n资料只能确认：凤凰项目预算为 260 万元，状态为“进行中”，周期为 2026-01~2026-09 [3]；该项目被列为 2026 年三大重点投入项目之一，是 X-4000 软件平台 [9]。此外，里程碑包括 M1 核心接入（2026-04-30）、M2 告警联动（2026-06-30）、M3 看板与GA（2026-09-15）[4]。\n\n至于“已经花了多少钱”，台账和经营计划里都没有实际支出或预算执行率数据，因此无法回答。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9761,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "项目台账（第 1~4 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9685,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "项目台账（第 5~8 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 1.0,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "项目台账（第 9~12 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9458,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "里程碑（第 1~4 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9038,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "里程碑（第 5~5 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "一、总体目标",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "二、三大战略",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.8978,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "三、部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.9462,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "五、主要风险",
+        "channels": "文档展开",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海表格/星海2026项目总台账.xlsx",
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询凤凰项目2026年台账中的预算执行情况及已花费金额",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.31,
+      "retrieval_only": 0.5,
+      "rerank": 1.65,
+      "assembly": 0.0,
+      "retrieval": 2.15,
+      "total": 8.14,
+      "llm": 2.68
+    },
+    "wall_seconds": 8.24,
+    "usage": {
+      "query_understanding": {
+        "input": 1101,
+        "input_cached": 896,
+        "output": 398,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1643,
+        "input_cached": 1408,
+        "output": 304,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2744,
+      "input_cached": 2304,
+      "output": 702,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true,
+        "refuse": true
+      },
+      "passed": true,
+      "best_rank": null,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  }
+]

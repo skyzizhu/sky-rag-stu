@@ -98,7 +98,10 @@ def grade(q: dict, result) -> dict:
 
     # —— 答案禁止出现 ——
     not_ok, not_violations = True, []
+    question_text = norm(q.get("question", ""))
     for bad in exp.get("must_not", []):
+        if exp.get("refuse") and norm(bad) in question_text:
+            continue  # 拒答题：must_not 防的是编造数据；拒答句复述问题词（如"执行率"）不算编造
         if norm(bad) in answer:
             not_ok = False
             not_violations.append(bad)

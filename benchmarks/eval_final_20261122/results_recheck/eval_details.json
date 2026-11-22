@@ -1,0 +1,386 @@
+[
+  {
+    "id": "C02",
+    "difficulty": "complex",
+    "dimension": "比较通道",
+    "question": "昆仑、凤凰、星云二期三个项目里预算最高的是哪个？是多少万元？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "> ℹ️ 问题在同一筛选字段出现了多个值，本次未按该条件过滤，以下为全库语义检索结果。\n\n预算最高的是**昆仑项目**，预算为 **300 万元** [1]。\n\n三个项目对比：\n- 昆仑项目：300 万元 [1]\n- 凤凰项目：260 万元 [3][6]\n- 星云二期：180 万元 [3][6]",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9685,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "项目台账（第 1~4 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.4841,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "项目台账（第 5~8 行）",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9841,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "项目台账（第 9~12 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9327,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "里程碑（第 1~4 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9113,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "里程碑（第 5~5 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 1.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.9314,
+        "source": "星海项目台账_2025.xlsx",
+        "path": "reference/星海表格/星海项目台账_2025.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9472,
+        "source": "2025年度部门预算表.xlsx",
+        "path": "reference/星海表格/2025年度部门预算表.xlsx",
+        "section": "部门预算（第 1~4 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.9038,
+        "source": "2024年度部门预算表.xlsx",
+        "path": "reference/星海表格/2024年度部门预算表.xlsx",
+        "section": "部门预算（第 1~4 行）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.9385,
+        "source": "昆仑项目启动新闻.html",
+        "path": "reference/星海简介/昆仑项目启动新闻.html",
+        "section": "昆仑项目在成都正式启动",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.4621,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星云项目团队致谢",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.4766,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "生态合作",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.9113,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "一、立项管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海项目管理手册_v1.0.docx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海简介/昆仑项目启动新闻.html",
+      "reference/星海表格/2024年度部门预算表.xlsx",
+      "reference/星海表格/2025年度部门预算表.xlsx",
+      "reference/星海表格/星海2026项目总台账.xlsx",
+      "reference/星海表格/星海项目台账_2025.xlsx",
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 9,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "比较昆仑、凤凰、星云二期三个项目的预算，找出预算最高的项目及金额（万元）",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 6.57,
+      "retrieval_only": 1.67,
+      "rerank": 3.93,
+      "assembly": 0.0,
+      "retrieval": 5.6,
+      "total": 13.09,
+      "llm": 0.92
+    },
+    "wall_seconds": 14.21,
+    "usage": {
+      "query_understanding": {
+        "input": 1102,
+        "input_cached": 896,
+        "output": 841,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2243,
+        "input_cached": 2048,
+        "output": 123,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3345,
+      "input_cached": 2944,
+      "output": 964,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C13",
+    "difficulty": "complex",
+    "dimension": "拒答陷阱",
+    "question": "凤凰项目的最终验收报告编号是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "知识库中没有相关内容。资料只提到凤凰项目的验收标准（试运行 60 天零 P1 级故障方可申请验收，Phase 3 交付物需在 2026-09-15 前完成验收）[12]，但没有提到任何验收报告及其编号。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 4.5137,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "生态合作",
+        "channels": "项目提及",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 4.1216,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "项目提及",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9685,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9841,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9534,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9685,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9242,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.8971,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.442,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4357,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 11,
+        "score": 0.9104,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 12,
+        "score": 0.9692,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "metadata_scope": {
+        "project": "凤凰"
+      },
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询凤凰项目最终验收报告的编号",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 6.91,
+      "retrieval_only": 0.82,
+      "rerank": 0.98,
+      "assembly": 0.01,
+      "retrieval": 1.8,
+      "total": 9.57,
+      "llm": 0.86
+    },
+    "wall_seconds": 9.68,
+    "usage": {
+      "query_understanding": {
+        "input": 1092,
+        "input_cached": 896,
+        "output": 912,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1647,
+        "input_cached": 1408,
+        "output": 88,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2739,
+      "input_cached": 2304,
+      "output": 1000,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true,
+        "refuse": true
+      },
+      "passed": true,
+      "best_rank": null,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  }
+]

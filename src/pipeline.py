@@ -1962,13 +1962,21 @@ def _enumeration_sum_note(question: str, records) -> str | None:
         return None
     parts: list[str] = []
     values: list[Decimal] = []
+    seen_names: set[str] = set()
     for record in records:
+        # 同名重复条目（补查轮为同一项目追加的待核实记录）只计一次——
+        # 重复计值会把合计翻倍；名称相同的记录金额取首次出现。
+        name_key = str(record.get("name") or "").strip()
+        if name_key and name_key in seen_names:
+            continue
         quote = ""
         if record.get("evidence"):
             quote = str(record["evidence"][0].get("quote") or "")
         match = _SUM_MONEY.search(quote) or _SUM_MONEY.search(str(record.get("name") or ""))
         if not match:
             return None
+        if name_key:
+            seen_names.add(name_key)
         try:
             value = Decimal(match.group(1).replace(",", ""))
         except InvalidOperation:
@@ -1977,6 +1985,8 @@ def _enumeration_sum_note(question: str, records) -> str | None:
         values.append(value * (Decimal(100_000_000) if unit == "亿"
                                else Decimal(10_000) if unit == "万" else Decimal(1)))
         parts.append(match.group(0).replace(" ", ""))
+    if len(values) < 2:
+        return None
     total = sum(values, Decimal(0))
     if total >= 10_000:
         total_text = f"{(total / 10_000).normalize():f} 万元"
