@@ -89,16 +89,17 @@ def _split_by_sections(text: str) -> list[tuple[str | None, str | None, str]]:
     章节路径形如「RAG > Metadata > Metadata Filter」，章节名是最后一级标题。
     兼容入口：不带标题行、不做短小节合并的原始三段式；切片主流程用 _split_by_sections_raw。
     """
-    return [(leaf, path, body) for leaf, path, _line, body in _split_by_sections_raw(text)]
+    return [(leaf, path, body) for leaf, path, _line, body, _leaves in _split_by_sections_raw(text)]
 
 
-def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str, str]]:
+def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str, str, list[str]]]:
     """按 Markdown 标题切章节（原始版）。
 
-    返回 [(章节名, 章节路径, 标题行原文, 章节正文), ...]——标题行原文供
-    短小节合并时回注（合并后正文里不能丢掉各子块的小标题）。
+    返回 [(章节名, 章节路径, 标题行原文, 章节正文, 覆盖章节名列表), ...]——标题行原文供
+    短小节合并时回注（合并后正文里不能丢掉各子块的小标题）；覆盖章节名列表供
+    合并组记录本单元实际覆盖了哪些章节（单节时为单元素或空列表）。
     """
-    sections: list[tuple[str | None, str | None, str, str]] = []
+    sections: list[tuple[str | None, str | None, str, str, list[str]]] = []
     heading_stack: dict[int, str] = {}
     current_leaf: str | None = None
     current_path: str | None = None
@@ -108,7 +109,8 @@ def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str,
     def flush() -> None:
         body = "\n".join(buffer).strip()
         if body:
-            sections.append((current_leaf, current_path, current_heading_line or "", body))
+            sections.append((current_leaf, current_path, current_heading_line or "", body,
+                             [current_leaf] if current_leaf else []))
 
     in_code = False  # ``` 围栏内不识别标题（与 parser._read_markdown 同款规则）：
     # 代码块里的 "# 注释" 不是章节——否则代码块被拦腰切开，且注释会进
@@ -135,8 +137,14 @@ def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str,
     return sections
 
 
-def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str]],
-                          max_tokens: int) -> list[tuple[str | None, str | None, str, str]]:
+def _heading_level(heading_line: str) -> int:
+    """标题行的层级（前导 '#' 个数）；空串/非标题（无标题的文档开头段）返回 0。"""
+    stripped = heading_line.lstrip()
+    return len(stripped) - len(stripped.lstrip("#")) if stripped.startswith("#") else 0
+
+
+def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str, list[str]]],
+                          max_tokens: int) -> list[tuple[str | None, str | None, str, str, list[str]]]:
     """相邻短小节合并（2026-11-08）：合计不超过单卡容量就合成一个切片单元。
 
     病灶（实测）：网页清洗器把每个视觉块当独立小节——Xtools 价格区 5 个碎块
@@ -144,26 +152,42 @@ def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str]
     规则：连续的小节从头累加，加上下一节会超容量就封组开新组；
     组内章节名/路径取第一节，各子节标题行原文回注正文（合并后小标题不能丢）。
     单节自己就超容量的不参与合并（保持独立，交给打包阶段硬切）。
+    2026-11-21（R3-a）：组首是无标题的文档开头段时，章节名/路径取组内第一个
+    带标题的小节（结构化文档如 docx 手册的标题块常在首章之前，取 None 会让
+    合并卡丢失章节定位）；同时返回值第 5 位携带本单元覆盖的全部章节名，
+    供卡片元数据 sections 记录合并范围。
+    2026-11-21（R3-b）：H1 视为章边界——相邻两节都是 H1 时不跨章合并，
+    每章独立成卡（章内 H2+ 小节仍并入所属章）。H2+ 兄弟小节维持原合并行为
+    （网页碎块的既有修复不受影响）。
     """
     if max_tokens <= 0 or not sections:
         return sections
-    merged: list[tuple[str | None, str | None, str, str]] = []
-    group: list[tuple[str | None, str | None, str, str]] = []
+    merged: list[tuple[str | None, str | None, str, str, list[str]]] = []
+    group: list[tuple[str | None, str | None, str, str, list[str]]] = []
     group_size = 0
 
     def flush_group() -> None:
         if not group:
             return
         if len(group) == 1:  # 没有发生合并：保持原样（正文不含标题行，行为不变）
-            leaf, path, _line, body = group[0]
-            merged.append((leaf, path, _line, body))
+            leaf, path, _line, body, leaves = group[0]
+            merged.append((leaf, path, _line, body, leaves))
             return
-        leaf, path = group[0][0], group[0][1]
-        body = "\n\n".join(f"{line}\n{sec_body}" for _leaf, _path, line, sec_body in group)
-        merged.append((leaf, path, group[0][2], body))
+        named = next(((sec[0], sec[1]) for sec in group if sec[0]), (None, None))
+        body = "\n\n".join(f"{line}\n{sec_body}"
+                           for _leaf, _path, line, sec_body, _leaves in group)
+        leaves = [leaf for leaf in (_sec[0] for _sec in group) if leaf]
+        merged.append((named[0], named[1], group[0][2], body, leaves))
 
     for section in sections:
         section_size = est_tokens(section[2]) + est_tokens(section[3])
+        # R3-b 章边界：新一节是 H1 且组内已含另一章（任意成员是 H1）→ 封组，
+        # 不让「一、」「二、」这样的同级章被并成一张卡丢失定位。组内尚无 H1
+        # （纯开头段/H2 碎节）时，首个 H1 仍可收编它们并入首章。
+        if (group and _heading_level(section[2]) == 1
+                and any(_heading_level(sec[2]) == 1 for sec in group)):
+            flush_group()
+            group, group_size = [], 0
         if group and group_size + section_size > max_tokens:
             flush_group()
             group, group_size = [], 0
@@ -319,20 +343,29 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
     chunks: list[Chunk] = []
     for page_start, page_text in _split_by_pages(doc.text):
         sections = _merge_short_sections(_split_by_sections_raw(page_text), max_tokens=size)
-        for section_leaf, section_path, _heading_line, section_text in sections:
+        for section_leaf, section_path, _heading_line, section_text, section_leaves in sections:
             paragraphs = _bind_title_paragraphs(_split_paragraphs(section_text), size)
             for piece in _pack_with_overlap(paragraphs, size, overlap):
                 piece = piece.strip()
                 if not piece:
                     continue
                 if source_name:
-                    piece = f"来源文档：{source_name}\n{piece}"
+                    # R2-c 上下文前缀（Anthropic Contextual Retrieval 的确定性版）：
+                    # 卡片正文自带章节路径——向量/BM25 都能借章节语境锚定语义
+                    # （「500 元」带上「差旅住宿标准」的章节语境，跨卡事实不再裸奔），
+                    # 相邻拼接去前缀的正则按行匹配「来源文档：」开头，仍然兼容。
+                    header = f"来源文档：{source_name}"
+                    if section_path:
+                        header += f"｜章节：{section_path}"
+                    piece = f"{header}\n{piece}"
                 page = str(page_start) if page_start else None
                 metadata = dict(doc.metadata)
                 version = str(doc.metadata.get("version") or "1.0")  # 版本进编号，新旧版本共存
                 metadata["chunk_id"] = f"{document_id}_v{version}_{len(chunks):04d}"
                 metadata["section"] = section_leaf
                 metadata["section_path"] = section_path
+                if len(section_leaves) > 1:  # 合并组：记录本卡覆盖的全部章节（R3-a）
+                    metadata["sections"] = section_leaves
                 metadata["page"] = page
                 point_id = str(uuid.uuid5(_CHUNK_NAMESPACE, f"{document_id}::{version}::{len(chunks)}"))
                 chunks.append(Chunk(chunk_id=metadata["chunk_id"], point_id=point_id,

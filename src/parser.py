@@ -672,12 +672,19 @@ def _read_pdf(path: Path) -> tuple[str, str, dict]:
     return "\n".join(pages), "", {"_version_regions": regions}
 
 
+XLSX_ROW_GROUP = 4  # 行组切分的数据行数（R6-M07/C03；调大=更大卡，调小=更碎）
+
+
 def _read_xlsx(path: Path) -> tuple[str, str, dict]:
-    """Excel：每个工作表转成「Sheet 标题 + 按行拼接的表格文本」。
+    """Excel：每个工作表转成「Sheet 标题 + 行组分块的表格文本」。
 
     - data_only=True：公式单元格取最近一次计算值（拿不到计算值的公式留空，不造假）
     - 合并单元格的值存在左上角单元格，其余为空——按原样输出即可读
     - 单表超过 5000 行截断：表格知识入库的意义在内容而非全量数据，防巨型表拖垮切片
+    - 行组切分（2026-11-21，R6-M07/C03）：整 Sheet 合一张大卡时，12 行台账的
+      语义被多字段稀释——列举/排名类提问竞争不过章节文档的专章卡，分批提取
+      还会漏行。改为每 XLSX_ROW_GROUP 数据行一组：组标题用 H1（chunker 唯一
+      不合并的章边界），每组重复表头使列名自足；小表（≤组行数）不切仍为单卡。
     """
     if _sniff_binary_kind(path) == "ole":
         # 假 .xlsx：文件头是 OLE2 → 实为 xls 老格式，交给 LibreOffice 转换
@@ -690,18 +697,37 @@ def _read_xlsx(path: Path) -> tuple[str, str, dict]:
     try:
         sheet_images: list[tuple[str, bytes]] = []
         for sheet in workbook.worksheets:
-            parts.append(f"## Sheet：{sheet.title}")
-            rows_written = 0
+            header_line: str | None = None
+            data_lines: list[str] = []
+
             for row in sheet.iter_rows(values_only=True):
                 cells = ["" if value is None else str(value).strip().replace("|", "\\|")
                          for value in row]
                 if not any(cells):
                     continue
-                parts.append(_squeeze_cjk_spaces(" | ".join(cells)).rstrip(" |"))
-                rows_written += 1
-                if rows_written >= 5000:
+                line = _squeeze_cjk_spaces(" | ".join(cells)).rstrip(" |")
+                if header_line is None:
+                    header_line = line
+                else:
+                    data_lines.append(line)
+                if len(data_lines) >= 5000:
                     parts.append(f"（Sheet「{sheet.title}」超过 5000 行，后续行未收录）")
                     break
+
+            if header_line is None:
+                continue  # 空表
+            parts.append(f"## Sheet：{sheet.title}")
+            if len(data_lines) <= XLSX_ROW_GROUP:
+                # 小表不切：沿用「Sheet 标题 + 表头 + 全部行」的单块结构
+                parts.append(header_line)
+                parts.extend(data_lines)
+            else:
+                for start in range(0, len(data_lines), XLSX_ROW_GROUP):
+                    group = data_lines[start:start + XLSX_ROW_GROUP]
+                    parts.append(f"# {sheet.title}（第 {start + 1}~{start + len(group)} 行）")
+                    parts.append(header_line)
+                    parts.extend(group)
+                    parts.append("")
             for image in getattr(sheet, "_images", []):
                 try:
                     blob = image._data()

@@ -76,6 +76,57 @@ $29.99 / 年，800 AI 积分/月，包含全部功能，免广告体验。
         self.assertEqual(len(merged), 1)
         self.assertEqual(merged[0][3], "正文内容。")  # 未合并 → 不回注标题行
 
+    def test_merged_group_prefers_first_named_section(self):
+        """R3-a：组首是无标题的文档开头段时，章节名取组内第一个带标题小节。
+
+        病灶：docx 手册的标题块（无标题样式）常在首章之前，整篇小手册合并成
+        一卡时 section=None，丢失章节定位。（用 H2 小节验证——H1 章边界见 R3-b 用例。）
+        """
+        md = ("星海新员工手册\n版本：V2.0\n\n"
+              "## 一、总则\n\n短内容甲。\n\n## 二、流程\n\n短内容乙。")
+        merged = _merge_short_sections(_split_by_sections_raw(md), max_tokens=640)
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0][0], "一、总则")          # 回退到首个带标题小节
+        self.assertIn("一、总则", merged[0][1])
+        self.assertEqual(merged[0][4], ["一、总则", "二、流程"])  # 覆盖章节列表
+        # 各子节标题行仍回注正文（旧行为不变）
+        for title in ("## 一、总则", "## 二、流程"):
+            self.assertIn(title, merged[0][3])
+
+    def test_merged_group_sections_metadata_in_chunk(self):
+        """R3-a：合并组卡片元数据带 sections 列表；单节卡片不带。"""
+        doc = ParsedDocument(metadata={"source": "manual.docx", "document_id": "doc_test"},
+                             text="手册标题行\n\n## 甲\n\n短内容。\n\n## 乙\n\n短内容。")
+        chunks = chunk_document(doc, get_config())
+        self.assertEqual(len(chunks), 1)
+        self.assertEqual(chunks[0].metadata["section"], "甲")
+        self.assertEqual(chunks[0].metadata["sections"], ["甲", "乙"])
+        single = chunk_document(ParsedDocument(
+            metadata={"source": "note.md", "document_id": "doc_one"}, text="# 唯一\n\n正文。"),
+            get_config())
+        self.assertNotIn("sections", single[0].metadata)
+
+    def test_h1_chapters_are_not_merged(self):
+        """R3-b：相邻两节都是 H1（章）→ 不跨章合并，每章独立成卡。"""
+        md = "# 一、总则\n\n短甲。\n\n# 二、流程\n\n短乙。\n\n# 三、附则\n\n短丙。"
+        merged = _merge_short_sections(_split_by_sections_raw(md), max_tokens=640)
+        self.assertEqual([m[0] for m in merged], ["一、总则", "二、流程", "三、附则"])
+
+    def test_h2_subsections_merge_into_chapter(self):
+        """R3-b：章内 H2 小节并入所属 H1 章；开头段（无标题）也并入首章。"""
+        md = ("标题块\n\n# 一、总则\n\n章首。\n\n## 1.1 适用范围\n\n小节内容。\n\n# 二、流程\n\n短乙。")
+        merged = _merge_short_sections(_split_by_sections_raw(md), max_tokens=640)
+        self.assertEqual([m[0] for m in merged], ["一、总则", "二、流程"])
+        self.assertIn("1.1 适用范围", merged[0][3])   # H2 并入首章
+        self.assertEqual(merged[0][4], ["一、总则", "1.1 适用范围"])
+
+    def test_chunk_text_carries_section_context_prefix(self):
+        """R2-c：卡片正文首行 = 来源文档 + 章节路径（确定性上下文前缀）。"""
+        doc = ParsedDocument(metadata={"source": "manual.docx", "document_id": "doc_ctx"},
+                             text="# 一、总则\n\n制度内容若干。")
+        chunks = chunk_document(doc, get_config())
+        self.assertTrue(chunks[0].text.startswith("来源文档：manual.docx｜章节：一、总则\n"))
+
 
 class TitleBindingTests(unittest.TestCase):
     """规则②：标题段（短+冒号结尾）与下一段合成打包单元。"""
