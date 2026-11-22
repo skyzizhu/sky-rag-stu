@@ -1,0 +1,1208 @@
+{
+ "meta": {
+  "name": "R6 评测考卷（新长文本语料）",
+  "total": 45,
+  "focus": "入库事实准确性 / 检索命中 / 生成与引用（含权限与拒答）"
+ },
+ "questions": [
+  {
+   "id": "S01",
+   "difficulty": "simple",
+   "question": "数据治理管理制度把公司数据分为几级？分别是什么？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海数据治理管理制度"
+    ],
+    "answer_must": [
+     [
+      "4级",
+      "四级",
+      "4 级"
+     ],
+     [
+      "机密"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-1"
+  },
+  {
+   "id": "S02",
+   "difficulty": "simple",
+   "question": "机密级数据外发需要谁审批？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海数据治理管理制度"
+    ],
+    "answer_must": [
+     [
+      "CTO",
+      "首席技术官"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-2"
+  },
+  {
+   "id": "S03",
+   "difficulty": "simple",
+   "question": "公司 2026 年的营业收入目标是多少？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026年度经营计划"
+    ],
+    "answer_must": [
+     [
+      "3.2亿",
+      "3.2 亿",
+      "32000万"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-3"
+  },
+  {
+   "id": "S04",
+   "difficulty": "simple",
+   "question": "2026 年计划新增多少名员工？研发序列占比多少？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026年度经营计划"
+    ],
+    "answer_must": [
+     [
+      "200人",
+      "200 人",
+      "200名"
+     ],
+     [
+      "60%"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-4"
+  },
+  {
+   "id": "S05",
+   "difficulty": "simple",
+   "question": "凤凰项目的负责人是谁？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "凤凰项目可行性研究报告",
+     "星海2026项目总台账"
+    ],
+    "answer_must": [
+     [
+      "沈青"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-5"
+  },
+  {
+   "id": "S06",
+   "difficulty": "simple",
+   "question": "凤凰项目的投资回收期是几年？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "凤凰项目可行性研究报告"
+    ],
+    "answer_must": [
+     [
+      "2.2年",
+      "2.2 年"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-6"
+  },
+  {
+   "id": "S07",
+   "difficulty": "simple",
+   "question": "按项目管理手册，项目周报什么时间前提交？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海项目管理手册"
+    ],
+    "answer_must": [
+     [
+      "周五",
+      "星期五"
+     ],
+     [
+      "17:00",
+      "17 时",
+      "五点"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-7"
+  },
+  {
+   "id": "S08",
+   "difficulty": "simple",
+   "question": "项目管理手册里 CPI 低于多少触发红色预警？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海项目管理手册"
+    ],
+    "answer_must": [
+     [
+      "0.8"
+     ]
+    ],
+    "must_not": [
+     "低于 0.9 触发红色",
+     "低于0.9触发红色"
+    ]
+   },
+   "dimension": "单事实检索-8"
+  },
+  {
+   "id": "S09",
+   "difficulty": "simple",
+   "question": "Phoenix 技术方案建议书的文档编号是什么？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "Phoenix技术方案建议书"
+    ],
+    "answer_must": [
+     [
+      "PHX-PROP-2026-007",
+      "PHX-PROP"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-9"
+  },
+  {
+   "id": "S10",
+   "difficulty": "simple",
+   "question": "Phoenix 方案承诺的月度可用性 SLA 是多少？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "Phoenix技术方案建议书"
+    ],
+    "answer_must": [
+     [
+      "99.9%"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-10"
+  },
+  {
+   "id": "S11",
+   "difficulty": "simple",
+   "question": "X-4000 旗舰版的售价是多少元？",
+   "asker": {
+    "username": "liuye"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026春季发布会纪要"
+    ],
+    "answer_must": [
+     [
+      "25999"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-11"
+  },
+  {
+   "id": "S12",
+   "difficulty": "simple",
+   "question": "X-4000 官网商城什么时候开售？",
+   "asker": {
+    "username": "liuye"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026春季发布会纪要"
+    ],
+    "answer_must": [
+     [
+      "2026-03-25",
+      "3月25",
+      "3 月 25"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-12"
+  },
+  {
+   "id": "S13",
+   "difficulty": "simple",
+   "question": "项目台账里灯塔项目的负责人是谁？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026项目总台账"
+    ],
+    "answer_must": [
+     [
+      "孙倩"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-13"
+  },
+  {
+   "id": "S14",
+   "difficulty": "simple",
+   "question": "按供应商管理办法，货款统一月结多少天？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海供应商管理办法"
+    ],
+    "answer_must": [
+     [
+      "60天",
+      "60 天"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-14"
+  },
+  {
+   "id": "S15",
+   "difficulty": "simple",
+   "question": "2023 年旧版差旅制度的一线城市住宿标准是多少钱一晚？",
+   "asker": {
+    "username": "lili"
+   },
+   "expect": {
+    "sources_any": [
+     "星海旧版差旅制度_2023"
+    ],
+    "answer_must": [
+     [
+      "300元",
+      "300 元"
+     ]
+    ]
+   },
+   "dimension": "单事实检索-15"
+  },
+  {
+   "id": "M01",
+   "difficulty": "medium",
+   "question": "数据脱敏规则里手机号和身份证号分别怎么处理？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海数据治理管理制度"
+    ],
+    "answer_must": [
+     [
+      "前 3",
+      "前3",
+      "后 4",
+      "后4"
+     ],
+     [
+      "前 6",
+      "前6",
+      "出生日期"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-1"
+  },
+  {
+   "id": "M02",
+   "difficulty": "medium",
+   "question": "业务操作数据的在线保留和归档保留分别是多少年？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海数据治理管理制度"
+    ],
+    "answer_must": [
+     [
+      "2年",
+      "2 年",
+      "两年"
+     ],
+     [
+      "5年",
+      "5 年",
+      "五年"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-2"
+  },
+  {
+   "id": "M03",
+   "difficulty": "medium",
+   "question": "2026 年的营收目标比 2025 年的目标增长了多少？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026年度经营计划"
+    ],
+    "answer_must": [
+     [
+      "3.2亿",
+      "3.2 亿"
+     ],
+     [
+      "2.5亿",
+      "2.5 亿"
+     ],
+     [
+      "0.7亿",
+      "7000万",
+      "28%"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-3"
+  },
+  {
+   "id": "M04",
+   "difficulty": "medium",
+   "question": "2026 年部门预算最高的两个部门是哪两个？分别是多少万元？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026年度经营计划"
+    ],
+    "answer_must": [
+     [
+      "研发"
+     ],
+     [
+      "800万",
+      "800 万"
+     ],
+     [
+      "市场"
+     ],
+     [
+      "300万",
+      "300 万"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-4"
+  },
+  {
+   "id": "M05",
+   "difficulty": "medium",
+   "question": "凤凰项目的三个关键技术指标是什么？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "凤凰项目可行性研究报告",
+     "X-4000需求规格"
+    ],
+    "answer_must": [
+     [
+      "2000"
+     ],
+     [
+      "300ms",
+      "300毫秒"
+     ],
+     [
+      "99.9%"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-5"
+  },
+  {
+   "id": "M06",
+   "difficulty": "medium",
+   "question": "X-4000 需求规格的非功能指标和凤凰可研报告一致吗？分别是什么？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "凤凰项目可行性研究报告",
+     "X-4000需求规格"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "2000"
+     ],
+     [
+      "300ms",
+      "300毫秒"
+     ]
+    ],
+    "answer_any_group": [
+     [
+      "一致",
+      "相同",
+      "保持一致"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-6"
+  },
+  {
+   "id": "M07",
+   "difficulty": "medium",
+   "question": "2026 年台账里预算超过 200 万的项目有哪些？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026项目总台账"
+    ],
+    "answer_must": [
+     [
+      "昆仑"
+     ],
+     [
+      "磐石"
+     ],
+     [
+      "低空预警",
+      "低空"
+     ],
+     [
+      "凤凰"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-7"
+  },
+  {
+   "id": "M08",
+   "difficulty": "medium",
+   "question": "台账里状态为已暂停的项目是哪两个？原因分别是什么？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026项目总台账"
+    ],
+    "answer_must": [
+     [
+      "磐石"
+     ],
+     [
+      "灯塔"
+     ],
+     [
+      "资金冻结"
+     ],
+     [
+      "需求重大变更",
+      "重大变更"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-8"
+  },
+  {
+   "id": "M09",
+   "difficulty": "medium",
+   "question": "凤凰项目的三个里程碑分别计划什么时候完成？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026项目总台账",
+     "Phoenix技术方案建议书"
+    ],
+    "answer_must": [
+     [
+      "2026-04-30",
+      "4月30",
+      "4 月 30"
+     ],
+     [
+      "2026-06-30",
+      "6月30",
+      "6 月 30"
+     ],
+     [
+      "2026-09-15",
+      "9月15",
+      "9 月 15"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-9"
+  },
+  {
+   "id": "M10",
+   "difficulty": "medium",
+   "question": "需求编号 REQ-FH-015 对应什么规则？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "X-4000需求规格"
+    ],
+    "answer_must": [
+     [
+      "30 分钟",
+      "30分钟",
+      "30分鐘"
+     ],
+     [
+      "2次",
+      "2 次",
+      "两次"
+     ],
+     [
+      "工单"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-10"
+  },
+  {
+   "id": "M11",
+   "difficulty": "medium",
+   "question": "供应商分为几级？多少万元以上的采购必须三家比价？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海供应商管理办法"
+    ],
+    "answer_must": [
+     [
+      "A、B、C、D",
+      "ABCD",
+      "4级",
+      "四级",
+      "四级分类"
+     ],
+     [
+      "30万",
+      "30 万"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-11"
+  },
+  {
+   "id": "M12",
+   "difficulty": "medium",
+   "question": "现在的差旅住宿一线标准和 2023 年旧版相比涨了多少钱？",
+   "asker": {
+    "username": "lili"
+   },
+   "expect": {
+    "sources_any": [
+     "星海员工手册_2025版",
+     "星海差旅管理办法",
+     "星海旧版差旅制度_2023"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "500"
+     ],
+     [
+      "300"
+     ]
+    ],
+    "answer_any_group": [
+     [
+      "200",
+      "涨"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-12"
+  },
+  {
+   "id": "M13",
+   "difficulty": "medium",
+   "question": "X-4000 旗舰版和 X-3000 旗舰版的售价分别是多少元？",
+   "asker": {
+    "username": "liuye"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026春季发布会纪要",
+     "星海2025年中发布会纪要"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "25999"
+     ],
+     [
+      "19999"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-13"
+  },
+  {
+   "id": "M14",
+   "difficulty": "medium",
+   "question": "项目管理手册的立项审批门槛和合同管理制度的金额审批门槛分别是多少万元？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海项目管理手册",
+     "星海合同管理制度"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "100万",
+      "100 万"
+     ],
+     [
+      "50万",
+      "50 万"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-14"
+  },
+  {
+   "id": "M15",
+   "difficulty": "medium",
+   "question": "Phoenix 方案的总投入和人力规模分别是多少？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "Phoenix技术方案建议书"
+    ],
+    "answer_must": [
+     [
+      "260万",
+      "2,600,000",
+      "260 万",
+      "RMB 2.6"
+     ],
+     [
+      "8名",
+      "8 名",
+      "8人",
+      "8 人",
+      "8 engineers",
+      "8名工程师"
+     ],
+     [
+      "120"
+     ]
+    ]
+   },
+   "dimension": "多事实与对比-15"
+  },
+  {
+   "id": "C01",
+   "difficulty": "complex",
+   "question": "凤凰和星云两个项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "凤凰项目可行性研究报告",
+     "星云项目章程",
+     "星海2026项目总台账"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "沈青"
+     ],
+     [
+      "陈明"
+     ],
+     [
+      "395万",
+      "395 万"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-1"
+  },
+  {
+   "id": "C02",
+   "difficulty": "complex",
+   "question": "昆仑、凤凰、星云二期三个项目里预算最高的是哪个？是多少万元？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026项目总台账",
+     "昆仑项目立项报告",
+     "凤凰项目可行性研究报告"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "昆仑"
+     ],
+     [
+      "300万",
+      "300 万"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-2"
+  },
+  {
+   "id": "C03",
+   "difficulty": "complex",
+   "question": "2026 年台账里预算排名前三的项目和金额分别是什么？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026项目总台账"
+    ],
+    "answer_must": [
+     [
+      "低空预警",
+      "低空"
+     ],
+     [
+      "昆仑"
+     ],
+     [
+      "凤凰"
+     ],
+     [
+      "500"
+     ],
+     [
+      "300"
+     ],
+     [
+      "260"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-3"
+  },
+  {
+   "id": "C04",
+   "difficulty": "complex",
+   "question": "台账里两个已暂停项目的负责人分别是谁？如果要恢复，各自需要先解决什么问题？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026项目总台账"
+    ],
+    "answer_must": [
+     [
+      "吴刚"
+     ],
+     [
+      "孙倩"
+     ],
+     [
+      "资金"
+     ],
+     [
+      "需求"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-4"
+  },
+  {
+   "id": "C05",
+   "difficulty": "complex",
+   "question": "2026 年三大重点投入项目的预算合计是多少万元？分别是哪些项目？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026年度经营计划"
+    ],
+    "answer_must": [
+     [
+      "凤凰"
+     ],
+     [
+      "星云二期"
+     ],
+     [
+      "昆仑二期"
+     ],
+     [
+      "590万",
+      "590 万"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-5"
+  },
+  {
+   "id": "C06",
+   "difficulty": "complex",
+   "question": "研发部 2026 年的预算比 2025 年增加了多少万元？增幅大约多少？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026年度经营计划",
+     "2025年度部门预算表"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "800万",
+      "800 万"
+     ],
+     [
+      "600万",
+      "600 万"
+     ],
+     [
+      "200万",
+      "200 万"
+     ]
+    ],
+    "answer_any_group": [
+     [
+      "33%",
+      "约33",
+      "三分之一"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-6"
+  },
+  {
+   "id": "C07",
+   "difficulty": "complex",
+   "question": "凤凰项目的负责人、预算、周期和团队规模分别是什么？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "凤凰项目可行性研究报告"
+    ],
+    "answer_must": [
+     [
+      "沈青"
+     ],
+     [
+      "260万",
+      "260 万"
+     ],
+     [
+      "2026-01",
+      "2026 年 1",
+      "2026年1"
+     ],
+     [
+      "12人",
+      "12 人",
+      "12名"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-7"
+  },
+  {
+   "id": "C08",
+   "difficulty": "complex",
+   "question": "X-4000 是什么时候发布的？标准版和旗舰版分别多少钱？旗舰版续航多久？",
+   "asker": {
+    "username": "liuye"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026春季发布会纪要"
+    ],
+    "answer_must": [
+     [
+      "2026-03-18",
+      "3月18",
+      "3 月 18"
+     ],
+     [
+      "21999"
+     ],
+     [
+      "25999"
+     ],
+     [
+      "48"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-8"
+  },
+  {
+   "id": "C09",
+   "difficulty": "complex",
+   "question": "知识库里哪些文档规定了数据或日志的保留时长？分别保留多久？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海数据治理管理制度",
+     "Phoenix技术方案建议书",
+     "星海数据备份与恢复管理办法"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "2年",
+      "2 年",
+      "两年"
+     ],
+     [
+      "5年",
+      "5 年",
+      "五年",
+      "7年",
+      "7 年",
+      "7 年",
+      "七年"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-9"
+  },
+  {
+   "id": "C10",
+   "difficulty": "complex",
+   "question": "数据治理制度规定的四级分类、机密外发审批人和跨部门导出审批时限分别是什么？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海数据治理管理制度"
+    ],
+    "answer_must": [
+     [
+      "公开"
+     ],
+     [
+      "内部"
+     ],
+     [
+      "秘密"
+     ],
+     [
+      "机密"
+     ],
+     [
+      "CTO"
+     ],
+     [
+      "1个工作日",
+      "1 个工作日",
+      "一个工作日"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-10"
+  },
+  {
+   "id": "C11",
+   "difficulty": "complex",
+   "question": "我是市场部的员工，凤凰项目有哪些资料我能查到？",
+   "asker": {
+    "username": "liuye"
+   },
+   "expect": {
+    "sources_any": [
+     "凤凰项目可行性研究报告",
+     "X-4000需求规格"
+    ],
+    "sources_min_count": 1,
+    "must_not_sources": [
+     "星海数据治理管理制度"
+    ]
+   },
+   "dimension": "复合与聚合-11"
+  },
+  {
+   "id": "C12",
+   "difficulty": "complex",
+   "question": "凤凰项目现在的预算执行情况怎么样了？花了多少钱？",
+   "asker": {
+    "username": "zhaocai"
+   },
+   "expect": {
+    "refuse": true,
+    "must_not": [
+     "已花费",
+     "已支出",
+     "执行率",
+     "已使用"
+    ],
+    "note": "知识库无预算执行数据（只有预算额），期望诚实拒答或说明只有预算额"
+   },
+   "dimension": "复合与聚合-12"
+  },
+  {
+   "id": "C13",
+   "difficulty": "complex",
+   "question": "Phoenix 方案的 RPO 和 RTO 分别是多少？和星云招标规格书的容灾要求相比谁更高？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "Phoenix技术方案建议书",
+     "星云项目招标技术规格书"
+    ],
+    "sources_min_count": 2,
+    "answer_must": [
+     [
+      "5分钟",
+      "5 分钟",
+      "5 min"
+     ],
+     [
+      "30分钟",
+      "30 分钟",
+      "30 min"
+     ]
+    ],
+    "answer_any_group": [
+     [
+      "星云",
+      "Phoenix",
+      "凤凰",
+      "方案"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-13"
+  },
+  {
+   "id": "C14",
+   "difficulty": "complex",
+   "question": "凤凰项目最终验收计划什么时候完成？试运行有什么要求？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "X-4000需求规格",
+     "Phoenix技术方案建议书"
+    ],
+    "answer_must": [
+     [
+      "2026-09-15",
+      "9月15",
+      "9 月 15"
+     ],
+     [
+      "60天",
+      "60 天"
+     ],
+     [
+      "P1",
+      "零 P1"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-14"
+  },
+  {
+   "id": "C15",
+   "difficulty": "complex",
+   "question": "2026 年三大战略分别是什么？对应看到的前两个重点产品动作是什么？",
+   "asker": {
+    "username": "wangfang"
+   },
+   "expect": {
+    "sources_any": [
+     "星海2026年度经营计划"
+    ],
+    "answer_must": [
+     [
+      "X-4000"
+     ],
+     [
+      "东南亚"
+     ],
+     [
+      "星云",
+      "数据平台"
+     ]
+    ],
+    "answer_any_group": [
+     [
+      "凤凰",
+      "X-4000 量产",
+      "量产"
+     ]
+    ]
+   },
+   "dimension": "复合与聚合-15"
+  }
+ ]
+}

@@ -1,0 +1,4893 @@
+[
+  {
+    "id": "S01",
+    "difficulty": "simple",
+    "dimension": "单事实-元数据",
+    "question": "员工手册里出差住宿报销标准是多少钱一晚？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据员工手册 [1]，出差住宿费按出差城市分级报销：\n\n- 一线城市（北京、上海、广州、深圳）：每晚 400 元 [1]\n- 二线城市（省会城市及计划单列市）：每晚 300 元 [1]\n- 其他城市：每晚 200 元 [1]\n\n另外，出差前须在 OA 系统提交出差申请单，未经事前审批的差旅费用不予报销 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9839,
+        "source": "星海财务报销制度_v2.1.md",
+        "path": "work/星海财务报销制度_v2.1.md",
+        "section": "审批权限",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9387,
+        "source": "星海薪酬福利制度.md",
+        "path": "work/星海薪酬福利制度.md",
+        "section": "年终奖",
+        "channels": "向量 + 关键词",
+        "classification": "受限"
+      },
+      {
+        "rank": 4,
+        "score": 0.4841,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "work/星海员工手册_2024版.md",
+      "work/星海薪酬福利制度.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询员工手册中规定的出差住宿报销标准（每晚金额）",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.71,
+      "retrieval_only": 2.71,
+      "rerank": 9.77,
+      "assembly": 0.02,
+      "retrieval": 12.49,
+      "total": 15.45,
+      "llm": 1.26
+    },
+    "wall_seconds": 16.9,
+    "usage": {
+      "query_understanding": {
+        "input": 1023,
+        "input_cached": 768,
+        "output": 183,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1519,
+        "input_cached": 0,
+        "output": 131,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2542,
+      "input_cached": 768,
+      "output": 314,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S02",
+    "difficulty": "simple",
+    "dimension": "单事实-HTML",
+    "question": "星海科技是哪一年成立的？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "星海科技成立于 2016 年 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9761,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星海科技 X-2000 新品发布会",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4766,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "媒体与合作",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4692,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.9387,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海简介/公司简介.html",
+      "work/星海员工手册_2024版.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询星海科技的成立年份",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.46,
+      "retrieval_only": 0.93,
+      "rerank": 5.5,
+      "assembly": 0.01,
+      "retrieval": 6.43,
+      "total": 9.27,
+      "llm": 1.38
+    },
+    "wall_seconds": 9.35,
+    "usage": {
+      "query_understanding": {
+        "input": 1019,
+        "input_cached": 768,
+        "output": 160,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1209,
+        "input_cached": 0,
+        "output": 36,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2228,
+      "input_cached": 768,
+      "output": 196,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S03",
+    "difficulty": "simple",
+    "dimension": "单事实-版本时效",
+    "question": "星云项目目前的预算总额是多少？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "metadata_scope": {
+        "project": "星云项目"
+      },
+      "coverage": "not_found"
+    },
+    "elapsed": {
+      "query_understanding": 1.61
+    },
+    "wall_seconds": 1.71,
+    "usage": {
+      "query_understanding": {
+        "input": 1020,
+        "input_cached": 768,
+        "output": 206,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1020,
+      "input_cached": 768,
+      "output": 206,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "135"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S04",
+    "difficulty": "simple",
+    "dimension": "单事实-精确编号(BM25)",
+    "question": "华信数据采购合同的合同编号是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "华信数据采购合同的合同编号是 **HX-2024-088** [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.4621,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4919,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海合同/华信数据采购合同_2024.pdf"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询华信数据采购合同的合同编号",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.54,
+      "retrieval_only": 0.63,
+      "rerank": 8.47,
+      "assembly": 0.01,
+      "retrieval": 9.11,
+      "total": 11.19,
+      "llm": 0.54
+    },
+    "wall_seconds": 11.27,
+    "usage": {
+      "query_understanding": {
+        "input": 1021,
+        "input_cached": 768,
+        "output": 228,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2031,
+        "input_cached": 0,
+        "output": 36,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3052,
+      "input_cached": 768,
+      "output": 264,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S05",
+    "difficulty": "simple",
+    "dimension": "单事实-DOCX",
+    "question": "产品 X-1000 的电池续航是多久？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "X-1000 的电池续航为 **18 小时** [1]。\n\n资料中还提到，销售话术强调这一续航能力可覆盖双班次作业 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9839,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "X-2000 核心亮点",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4841,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9178,
+        "source": "产品评审会议纪要.rtf",
+        "path": "reference/星海评审/产品评审会议纪要.rtf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4552,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海简介/公司简介.html",
+      "reference/星海评审/产品评审会议纪要.rtf"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询产品 X-1000 的电池续航时长",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.58,
+      "retrieval_only": 0.52,
+      "rerank": 3.95,
+      "assembly": 0.0,
+      "retrieval": 4.47,
+      "total": 6.94,
+      "llm": 0.89
+    },
+    "wall_seconds": 7.02,
+    "usage": {
+      "query_understanding": {
+        "input": 1024,
+        "input_cached": 768,
+        "output": 94,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1077,
+        "input_cached": 0,
+        "output": 53,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2101,
+      "input_cached": 768,
+      "output": 147,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S06",
+    "difficulty": "simple",
+    "dimension": "单事实-权限可见",
+    "question": "研发部 2024 年度的预算是多少？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "指定范围内没有找到你有权查看的匹配文档。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 0,
+      "metadata_scope": {
+        "department": "研发部"
+      },
+      "coverage": "not_found",
+      "enumeration": false,
+      "intent": "查询研发部2024年度的预算金额",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.02,
+      "retrieval_only": 0.4,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.4,
+      "total": 3.42
+    },
+    "wall_seconds": 3.5,
+    "usage": {
+      "query_understanding": {
+        "input": 1024,
+        "input_cached": 768,
+        "output": 491,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1024,
+      "input_cached": 768,
+      "output": 491,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "520"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S07",
+    "difficulty": "simple",
+    "dimension": "单事实-同域相似干扰",
+    "question": "RAG 内训笔记里建议的 chunk_size 初始值是多少？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据星海RAG技术培训笔记，知识切片 chunk_size 初始建议设为 **512 字符**，相邻切片重叠 overlap 取 64 字符 [1]。笔记还提到中文场景建议在 300~800 字符之间做实验对比 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "星海RAG技术培训笔记.md",
+        "path": "learning/星海RAG技术培训笔记.md",
+        "section": "什么是 RAG",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9458,
+        "source": "RAG外部资料.pdf",
+        "path": "reference/articles/RAG外部资料.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.8841,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9198,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海RAG技术培训笔记.md",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/articles/RAG外部资料.pdf",
+      "reference/documents/示例_产品需求.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查找 RAG 内训笔记中关于 chunk_size 初始值的建议",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.23,
+      "retrieval_only": 0.91,
+      "rerank": 4.21,
+      "assembly": 0.01,
+      "retrieval": 5.13,
+      "total": 8.34,
+      "llm": 0.99
+    },
+    "wall_seconds": 8.38,
+    "usage": {
+      "query_understanding": {
+        "input": 1028,
+        "input_cached": 768,
+        "output": 403,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1163,
+        "input_cached": 0,
+        "output": 88,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2191,
+      "input_cached": 768,
+      "output": 491,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S08",
+    "difficulty": "simple",
+    "dimension": "单事实-PPTX",
+    "question": "X-2000 新品发布会是哪一天举行的？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "X-2000 新品发布会于 **2024-11-18** 在杭州国际博览中心举行 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星海科技 X-2000 新品发布会",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9607,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "媒体与合作",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9314,
+        "source": "产品评审会议纪要.rtf",
+        "path": "reference/星海评审/产品评审会议纪要.rtf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9245,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海评审/产品评审会议纪要.rtf"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 3,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 X-2000 新品发布会的举办日期",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.0,
+      "retrieval_only": 1.05,
+      "rerank": 3.3,
+      "assembly": 0.0,
+      "retrieval": 4.35,
+      "total": 6.14,
+      "llm": 0.79
+    },
+    "wall_seconds": 6.19,
+    "usage": {
+      "query_understanding": {
+        "input": 1023,
+        "input_cached": 768,
+        "output": 119,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 834,
+        "input_cached": 0,
+        "output": 27,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1857,
+      "input_cached": 768,
+      "output": 146,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S09",
+    "difficulty": "simple",
+    "dimension": "单事实-DOCX",
+    "question": "天枢项目的负责人是谁？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "metadata_scope": {
+        "project": "天枢"
+      },
+      "coverage": "not_found"
+    },
+    "elapsed": {
+      "query_understanding": 1.4
+    },
+    "wall_seconds": 1.48,
+    "usage": {
+      "query_understanding": {
+        "input": 1018,
+        "input_cached": 768,
+        "output": 158,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1018,
+      "input_cached": 768,
+      "output": 158,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "周红"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S10",
+    "difficulty": "simple",
+    "dimension": "单事实-HTML",
+    "question": "星海科技的总部在哪个城市？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "星海科技的总部位于**杭州**，同时在北京和成都设有分支机构 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9472,
+        "source": "产品评审会议纪要.rtf",
+        "path": "reference/星海评审/产品评审会议纪要.rtf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9198,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9685,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星海科技 X-2000 新品发布会",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.9178,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海简介/公司简介.html",
+      "reference/星海评审/产品评审会议纪要.rtf",
+      "work/星海员工手册_2024版.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询星海科技总部所在城市",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.07,
+      "retrieval_only": 0.28,
+      "rerank": 3.67,
+      "assembly": 0.0,
+      "retrieval": 3.96,
+      "total": 5.67,
+      "llm": 0.65
+    },
+    "wall_seconds": 5.75,
+    "usage": {
+      "query_understanding": {
+        "input": 1021,
+        "input_cached": 768,
+        "output": 81,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1273,
+        "input_cached": 256,
+        "output": 40,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2294,
+      "input_cached": 1024,
+      "output": 121,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S11",
+    "difficulty": "simple",
+    "dimension": "单事实-RTF",
+    "question": "产品评审会议的结论是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "产品评审会议（评审对象为 X-2000 便携式检测仪量产版本）的结论是：**通过**，但附带一个条件：供应链须在 2024-11-01 前确认核心传感器的交期 [1]。\n\n另外，会议还遗留了一项待办事项：量产良率报表自动化由测试组刘洋跟进，预计 2024-12 完成 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "产品评审会议纪要.rtf",
+        "path": "reference/星海评审/产品评审会议纪要.rtf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9685,
+        "source": "示例_会议纪要.rtf",
+        "path": "reference/documents/示例_会议纪要.rtf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9327,
+        "source": "北斗项目总结报告.md",
+        "path": "projects/北斗项目/北斗项目总结报告.md",
+        "section": "项目概况",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9049,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4692,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "projects/北斗项目/北斗项目总结报告.md",
+      "reference/documents/示例_产品需求.docx",
+      "reference/documents/示例_会议纪要.rtf",
+      "reference/星海评审/产品评审会议纪要.rtf"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查找产品评审会议的结论内容",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.42,
+      "retrieval_only": 0.35,
+      "rerank": 3.41,
+      "assembly": 0.0,
+      "retrieval": 3.76,
+      "total": 6.18,
+      "llm": 1.0
+    },
+    "wall_seconds": 6.23,
+    "usage": {
+      "query_understanding": {
+        "input": 1018,
+        "input_cached": 768,
+        "output": 140,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1219,
+        "input_cached": 0,
+        "output": 125,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2237,
+      "input_cached": 768,
+      "output": 265,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S12",
+    "difficulty": "simple",
+    "dimension": "单事实-跨文档干扰",
+    "question": "信息安全管理制度要求登录密码长度至少多少位？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据《星海信息安全管理制度》，公司所有业务系统的登录密码长度**不得少于 12 位**，并且必须同时包含大写字母、小写字母、数字和特殊符号 [1]。\n\n补充说明：知识库中另有一处表述不一致——员工手册规定“员工办公账号的登录密码长度至少为 8 位，建议同时包含字母与数字” [2]。不过，如果按您问的“信息安全管理制度”这一来源来看，应以 12 位为准。建议以信息安全管理制度的规定为准；如有疑问，可向安全组确认。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海信息安全管理制度.md",
+        "path": "work/星海信息安全管理制度.md",
+        "section": "账号密码安全",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9839,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9113,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4841,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "work/星海信息安全管理制度.md",
+      "work/星海员工手册_2024版.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 3,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询信息安全管理制度中对登录密码最小长度的具体要求",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.55,
+      "retrieval_only": 0.51,
+      "rerank": 10.58,
+      "assembly": 0.01,
+      "retrieval": 11.09,
+      "total": 14.18,
+      "llm": 1.53
+    },
+    "wall_seconds": 14.26,
+    "usage": {
+      "query_understanding": {
+        "input": 1022,
+        "input_cached": 768,
+        "output": 151,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2518,
+        "input_cached": 0,
+        "output": 185,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3540,
+      "input_cached": 768,
+      "output": 336,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S13",
+    "difficulty": "simple",
+    "dimension": "单事实-数字阈值",
+    "question": "按照财务报销制度，单笔报销超过多少钱需要总经理审批？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "根据财务报销制度，单笔报销金额**超过 5000 元**的，须经财务总监复核后由总经理审批；不超过 5000 元的由部门主管审批 [1]。\n\n此外，单笔超过 50000 元的重大支出，还须提交经营管理会议审议 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海财务报销制度_v2.1.md",
+        "path": "work/星海财务报销制度_v2.1.md",
+        "section": "审批权限",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9761,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9761,
+        "source": "2024年度部门预算表.xlsx",
+        "path": "reference/星海表格/2024年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海表格/2024年度部门预算表.xlsx",
+      "work/星海员工手册_2024版.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询财务报销制度中单笔报销需要总经理审批的金额门槛",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.05,
+      "retrieval_only": 0.69,
+      "rerank": 8.89,
+      "assembly": 0.01,
+      "retrieval": 9.59,
+      "total": 12.47,
+      "llm": 0.83
+    },
+    "wall_seconds": 12.54,
+    "usage": {
+      "query_understanding": {
+        "input": 1026,
+        "input_cached": 768,
+        "output": 259,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2145,
+        "input_cached": 0,
+        "output": 105,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3171,
+      "input_cached": 768,
+      "output": 364,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S14",
+    "difficulty": "simple",
+    "dimension": "单事实-HTML",
+    "question": "星海科技现在一共有多少名员工？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **1 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星海科技**：公司现有员工 520 人，其中研发人员占比 62%。 [1]\n\n处理范围：12 份文档、15 张卡片、12 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "分批提取",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海简介/公司简介.html"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 12,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查询星海科技目前的员工总人数",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 1.86,
+      "retrieval_only": 1.23,
+      "rerank": 3.33,
+      "assembly": 0.01,
+      "retrieval": 4.57,
+      "total": 19.26,
+      "enumeration": 12.83,
+      "llm": 0.0
+    },
+    "wall_seconds": 19.33,
+    "usage": {
+      "query_understanding": {
+        "input": 1021,
+        "input_cached": 768,
+        "output": 199,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 545,
+        "input_cached": 128,
+        "output": 340,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 824,
+        "input_cached": 128,
+        "output": 51,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 725,
+        "input_cached": 128,
+        "output": 56,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 624,
+        "input_cached": 128,
+        "output": 55,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 536,
+        "input_cached": 128,
+        "output": 80,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 592,
+        "input_cached": 128,
+        "output": 55,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 681,
+        "input_cached": 128,
+        "output": 67,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 655,
+        "input_cached": 128,
+        "output": 46,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 655,
+        "input_cached": 128,
+        "output": 40,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 611,
+        "input_cached": 128,
+        "output": 61,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 442,
+        "input_cached": 128,
+        "output": 46,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 531,
+        "input_cached": 128,
+        "output": 61,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 471,
+        "input_cached": 256,
+        "output": 85,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 8913,
+      "input_cached": 2560,
+      "output": 1242,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S15",
+    "difficulty": "simple",
+    "dimension": "OCR-图片",
+    "question": "机房巡检是什么时间？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "机房巡检时间为**每周三 14:00**。该巡检由研发部王芳负责，联系电话为 0571-88886666 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "机房巡检通知.jpg",
+        "path": "reference/星海运维/机房巡检通知.jpg",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4841,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海运维/机房巡检通知.jpg"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 3,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询机房巡检的具体时间安排",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.33,
+      "retrieval_only": 0.34,
+      "rerank": 6.11,
+      "assembly": 0.02,
+      "retrieval": 6.47,
+      "total": 8.49,
+      "llm": 0.69
+    },
+    "wall_seconds": 8.55,
+    "usage": {
+      "query_understanding": {
+        "input": 1017,
+        "input_cached": 768,
+        "output": 87,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2253,
+        "input_cached": 0,
+        "output": 53,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3270,
+      "input_cached": 768,
+      "output": 140,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M01",
+    "difficulty": "medium",
+    "dimension": "多事实-城市分级推断",
+    "question": "我下周要去北京和成都出差，住宿报销上限分别是多少钱一晚？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据差旅报销标准 [1]：\n\n- **北京**：属于一线城市，住宿报销上限为 **每晚 400 元** [1]。\n- **成都**：属于省会城市，按二线城市标准，住宿报销上限为 **每晚 300 元** [1]。\n\n另外提醒：出差前须在 OA 系统提交出差申请单，未经事前审批的差旅费用不予报销 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9919,
+        "source": "星海财务报销制度_v2.1.md",
+        "path": "work/星海财务报销制度_v2.1.md",
+        "section": "审批权限",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.4766,
+        "source": "星海薪酬福利制度.md",
+        "path": "work/星海薪酬福利制度.md",
+        "section": "年终奖",
+        "channels": "关键词",
+        "classification": "受限"
+      },
+      {
+        "rank": 4,
+        "score": 0.9534,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4841,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.4841,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.4485,
+        "source": "统一环境信息记录.txt",
+        "path": "projects/dikongyujingxitong/统一环境信息记录.txt",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.4766,
+        "source": "机房巡检通知.jpg",
+        "path": "reference/星海运维/机房巡检通知.jpg",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.4485,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "X-2000 核心亮点",
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/dikongyujingxitong/统一环境信息记录.txt",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海简介/公司简介.html",
+      "reference/星海运维/机房巡检通知.jpg",
+      "work/星海员工手册_2024版.md",
+      "work/星海薪酬福利制度.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 8,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询北京、成都两地出差住宿费的报销上限（每晚金额）标准",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.54,
+      "retrieval_only": 0.63,
+      "rerank": 5.67,
+      "assembly": 0.02,
+      "retrieval": 6.32,
+      "total": 10.7,
+      "llm": 1.84
+    },
+    "wall_seconds": 10.77,
+    "usage": {
+      "query_understanding": {
+        "input": 1027,
+        "input_cached": 768,
+        "output": 288,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2711,
+        "input_cached": 1024,
+        "output": 145,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3738,
+      "input_cached": 1792,
+      "output": 433,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M02",
+    "difficulty": "medium",
+    "dimension": "版本对比",
+    "question": "星云项目最新章程相比最初立项时有哪些变化？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "metadata_scope": {
+        "project": "星云项目"
+      },
+      "coverage": "not_found"
+    },
+    "elapsed": {
+      "query_understanding": 8.76
+    },
+    "wall_seconds": 8.83,
+    "usage": {
+      "query_understanding": {
+        "input": 1024,
+        "input_cached": 768,
+        "output": 1554,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1024,
+      "input_cached": 768,
+      "output": 1554,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": false,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "135"
+      ],
+      "any_miss": [
+        "刘洋"
+      ],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M03",
+    "difficulty": "medium",
+    "dimension": "表格-比较",
+    "question": "2024 年度哪个部门的预算最多？是多少？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "知识库中没有找到可用于回答这个问题的资料。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 0,
+      "coverage": "not_found",
+      "enumeration": false,
+      "intent": "查询2024年度预算金额最高的部门及其预算金额",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.09,
+      "retrieval_only": 0.55,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.55,
+      "total": 2.64
+    },
+    "wall_seconds": 2.71,
+    "usage": {
+      "query_understanding": {
+        "input": 1023,
+        "input_cached": 768,
+        "output": 262,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1023,
+      "input_cached": 768,
+      "output": 262,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "研发",
+        "520"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M04",
+    "difficulty": "medium",
+    "dimension": "跨文档-同字段对比",
+    "question": "X-1000 和 X-2000 的电池续航分别是多少小时？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "- X-1000 的电池续航为 **18 小时** [1]\n- X-2000 的电池续航为 **30 小时** [2]",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "X-2000 核心亮点",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4841,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.8841,
+        "source": "产品评审会议纪要.rtf",
+        "path": "reference/星海评审/产品评审会议纪要.rtf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.9038,
+        "source": "星云项目章程.md",
+        "path": "projects/星云项目/星云项目章程.md",
+        "section": "项目概况",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.4621,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.4621,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.4692,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "projects/星云项目/星云项目章程.md",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海简介/公司简介.html",
+      "reference/星海评审/产品评审会议纪要.rtf",
+      "work/星海员工手册_2024版.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 7,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 X-1000 与 X-2000 两款产品各自的电池续航时长",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.21,
+      "retrieval_only": 0.76,
+      "rerank": 4.56,
+      "assembly": 0.01,
+      "retrieval": 5.33,
+      "total": 7.41,
+      "llm": 0.87
+    },
+    "wall_seconds": 7.44,
+    "usage": {
+      "query_understanding": {
+        "input": 1030,
+        "input_cached": 896,
+        "output": 179,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2460,
+        "input_cached": 384,
+        "output": 80,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3490,
+      "input_cached": 1280,
+      "output": 259,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M05",
+    "difficulty": "medium",
+    "dimension": "文档内列举",
+    "question": "星云项目章程里列了哪几个里程碑？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "metadata_scope": {
+        "project": "星云项目",
+        "doc_type": "章程"
+      },
+      "coverage": "not_found"
+    },
+    "elapsed": {
+      "query_understanding": 2.96
+    },
+    "wall_seconds": 3.02,
+    "usage": {
+      "query_understanding": {
+        "input": 1023,
+        "input_cached": 768,
+        "output": 452,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1023,
+      "input_cached": 768,
+      "output": 452,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": false,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "M1",
+        "M2",
+        "M3"
+      ],
+      "any_miss": [
+        "M4"
+      ],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M06",
+    "difficulty": "medium",
+    "dimension": "PDF-多页条款",
+    "question": "华信数据合同的付款方式是怎么约定的？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "华信数据采购合同（合同编号 HX-2024-088）约定的付款方式分为三期 [1]：\n\n- **预付款**：合同签订后 7 个工作日内支付合同总金额的 30% [1]。\n- **交付款**：现场安装完成后支付 50% [1]。\n- **验收款**：在最终验收完成后支付剩余 20% [1]。\n\n合同总金额为人民币 860,000 元，该价格包含交付、安装及 3 年质保 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海合同/华信数据采购合同_2024.pdf"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询华信数据合同中关于付款方式的具体约定条款",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.9,
+      "retrieval_only": 0.38,
+      "rerank": 9.25,
+      "assembly": 0.01,
+      "retrieval": 9.64,
+      "total": 12.94,
+      "llm": 1.4
+    },
+    "wall_seconds": 13.0,
+    "usage": {
+      "query_understanding": {
+        "input": 1021,
+        "input_cached": 768,
+        "output": 219,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2338,
+        "input_cached": 1024,
+        "output": 142,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3359,
+      "input_cached": 1792,
+      "output": 361,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M07",
+    "difficulty": "medium",
+    "dimension": "流程列举",
+    "question": "公司的报销流程一共需要哪几个步骤？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "根据知识库资料，标准报销流程共四步：\n\n- 员工在 OA 提交报销单\n- 部门主管审批\n- 财务审核\n- 出纳打款\n\n财务审核通过后，报销款会在 5 个工作日内打入员工工资卡 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海财务报销制度_v2.1.md",
+        "path": "work/星海财务报销制度_v2.1.md",
+        "section": "审批权限",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9276,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.9262,
+        "source": "2024年度部门预算表.xlsx",
+        "path": "reference/星海表格/2024年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海表格/2024年度部门预算表.xlsx",
+      "work/星海员工手册_2024版.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "了解公司报销流程包含哪些步骤",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.84,
+      "retrieval_only": 0.35,
+      "rerank": 6.35,
+      "assembly": 0.01,
+      "retrieval": 6.71,
+      "total": 9.51,
+      "llm": 0.95
+    },
+    "wall_seconds": 9.59,
+    "usage": {
+      "query_understanding": {
+        "input": 1021,
+        "input_cached": 768,
+        "output": 271,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2140,
+        "input_cached": 768,
+        "output": 98,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3161,
+      "input_cached": 1536,
+      "output": 369,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M08",
+    "difficulty": "medium",
+    "dimension": "跨文档关键词定位",
+    "question": "知识库里哪些文档提到了数据安全方面的要求？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **4 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星海信息安全管理制度.md**：## 数据安全 核心业务数据属于公司机密资产。研发部系统均按照网络安全等级保护三级标准建设， 数据库备份每日执行一次并异地保存。员工不得将客户数据拷贝至个人设备。 公司每年委托第三方机构开展一次数据安全渗透测试。 [1]\n\n2. **华信数据采购合同\\_2024.pdf**：5. Data Security The Vendor shall comply with GB/T 22239 (MLPS Level 3) and shall not retain any copies of Buyer business data. [2]\n\n3. **星海RAG技术培训笔记.md**：## 数据安全提示 内网部署 RAG 时，向量库与模型服务必须限制在内网访问， 检索日志中的敏感查询需要脱敏存储。 [3]\n\n4. **天枢项目立项报告**：# 三、数据安全要求 本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。 [4]\n\n处理范围：11 份文档、21 张卡片、12 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海信息安全管理制度.md",
+        "path": "work/星海信息安全管理制度.md",
+        "section": "账号密码安全",
+        "channels": "分批提取",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.0,
+        "source": "星海RAG技术培训笔记.md",
+        "path": "learning/星海RAG技术培训笔记.md",
+        "section": "什么是 RAG",
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.0,
+        "source": "天枢项目立项报告.docx",
+        "path": "projects/天枢项目/天枢项目立项报告.docx",
+        "section": null,
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海RAG技术培训笔记.md",
+      "projects/天枢项目/天枢项目立项报告.docx",
+      "reference/星海合同/华信数据采购合同_2024.pdf",
+      "work/星海信息安全管理制度.md"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 11,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查找知识库中提及数据安全要求的文档",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 1.4,
+      "retrieval_only": 0.72,
+      "rerank": 3.22,
+      "assembly": 0.18,
+      "retrieval": 4.12,
+      "total": 52.85,
+      "enumeration": 47.33,
+      "llm": 0.0
+    },
+    "wall_seconds": 52.95,
+    "usage": {
+      "query_understanding": {
+        "input": 1022,
+        "input_cached": 768,
+        "output": 115,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 683,
+        "input_cached": 128,
+        "output": 350,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 2136,
+        "input_cached": 128,
+        "output": 1911,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 2452,
+        "input_cached": 128,
+        "output": 1576,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 768,
+        "input_cached": 128,
+        "output": 710,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 564,
+        "input_cached": 128,
+        "output": 63,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 511,
+        "input_cached": 128,
+        "output": 46,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 693,
+        "input_cached": 128,
+        "output": 57,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 613,
+        "input_cached": 128,
+        "output": 424,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 624,
+        "input_cached": 128,
+        "output": 109,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 657,
+        "input_cached": 128,
+        "output": 490,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 612,
+        "input_cached": 128,
+        "output": 323,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 538,
+        "input_cached": 128,
+        "output": 48,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 842,
+        "input_cached": 384,
+        "output": 1857,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 12715,
+      "input_cached": 2688,
+      "output": 8079,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M09",
+    "difficulty": "medium",
+    "dimension": "受限权限-命中",
+    "question": "按照公司薪酬制度，普通员工的年终奖一般是几个月工资？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据公司薪酬制度，年终奖按绩效档位发放，一般为 2~4 个月月薪：\n\n- 绩效 A 档：4 个月\n- 绩效 B 档：3 个月\n- 绩效 C 档：2 个月\n- 发放时间：次年 1 月随工资发放 [1]\n\n需要说明的是，知识库中关于年终奖的规定只按绩效档位区分，并没有按照“普通员工”这一身份另外规定标准，因此我无法确认“普通员工”是否有单独的月数标准。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海薪酬福利制度.md",
+        "path": "work/星海薪酬福利制度.md",
+        "section": "年终奖",
+        "channels": "向量 + 关键词",
+        "classification": "受限"
+      },
+      {
+        "rank": 2,
+        "score": 0.9761,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9685,
+        "source": "星海财务报销制度_v2.1.md",
+        "path": "work/星海财务报销制度_v2.1.md",
+        "section": "审批权限",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "work/星海员工手册_2024版.md",
+      "work/星海薪酬福利制度.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询公司薪酬制度中关于普通员工年终奖发放月数的规定",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.79,
+      "retrieval_only": 0.44,
+      "rerank": 2.13,
+      "assembly": 0.0,
+      "retrieval": 2.58,
+      "total": 6.4,
+      "llm": 2.03
+    },
+    "wall_seconds": 6.48,
+    "usage": {
+      "query_understanding": {
+        "input": 1025,
+        "input_cached": 768,
+        "output": 197,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1782,
+        "input_cached": 0,
+        "output": 203,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2807,
+      "input_cached": 768,
+      "output": 400,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M10",
+    "difficulty": "medium",
+    "dimension": "同义改写",
+    "question": "公司会议室需要提前多久预约？",
+    "asker": "lili",
+    "user_groups": [
+      "人力资源部"
+    ],
+    "filters": {},
+    "answer": "根据《星海科技员工手册（2024版）》，会议室需要**提前 1 个工作日在行政系统中申请** [1]。\n\n同一份资料来源还提到以下规定 [1]：\n- 单次会议最长预订 4 小时\n- 超过 20 人参加的会议需报行政部备案",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.4841,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "示例_会议纪要.rtf",
+        "path": "reference/documents/示例_会议纪要.rtf",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9405,
+        "source": "产品评审会议纪要.rtf",
+        "path": "reference/星海评审/产品评审会议纪要.rtf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/documents/示例_会议纪要.rtf",
+      "reference/星海评审/产品评审会议纪要.rtf",
+      "work/星海员工手册_2024版.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询公司会议室预约需要提前多久的规定",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.53,
+      "retrieval_only": 0.52,
+      "rerank": 6.32,
+      "assembly": 0.0,
+      "retrieval": 6.84,
+      "total": 9.66,
+      "llm": 1.29
+    },
+    "wall_seconds": 9.71,
+    "usage": {
+      "query_understanding": {
+        "input": 1019,
+        "input_cached": 768,
+        "output": 127,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2344,
+        "input_cached": 384,
+        "output": 66,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3363,
+      "input_cached": 1152,
+      "output": 193,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M11",
+    "difficulty": "medium",
+    "dimension": "DOCX表格-KPI",
+    "question": "天枢项目的接口响应时间目标是多少？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "metadata_scope": {
+        "project": "天枢"
+      },
+      "coverage": "not_found"
+    },
+    "elapsed": {
+      "query_understanding": 3.13
+    },
+    "wall_seconds": 3.22,
+    "usage": {
+      "query_understanding": {
+        "input": 1021,
+        "input_cached": 768,
+        "output": 418,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1021,
+      "input_cached": 768,
+      "output": 418,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "200"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M12",
+    "difficulty": "medium",
+    "dimension": "数字-条款",
+    "question": "发票开具后多少天内必须拿去报销，逾期会怎样？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "根据知识库资料：\n\n- 报销发票的开具日期距报销申请日不得超过 **90 天** [1]。\n- 逾期发票**不予受理** [1]。\n\n补充一点：报销发票必须为增值税发票；如果是电子发票，还须查验真伪并截图留存 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海财务报销制度_v2.1.md",
+        "path": "work/星海财务报销制度_v2.1.md",
+        "section": "审批权限",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9612,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4919,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4552,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.442,
+        "source": "产品评审会议纪要.rtf",
+        "path": "reference/星海评审/产品评审会议纪要.rtf",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海合同/华信数据采购合同_2024.pdf",
+      "reference/星海评审/产品评审会议纪要.rtf",
+      "work/星海员工手册_2024版.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询发票报销的时限规定及逾期未报销的后果",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.15,
+      "retrieval_only": 0.4,
+      "rerank": 3.12,
+      "assembly": 0.01,
+      "retrieval": 3.53,
+      "total": 5.92,
+      "llm": 1.24
+    },
+    "wall_seconds": 5.99,
+    "usage": {
+      "query_understanding": {
+        "input": 1025,
+        "input_cached": 768,
+        "output": 121,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1392,
+        "input_cached": 768,
+        "output": 100,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2417,
+      "input_cached": 1536,
+      "output": 221,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M13",
+    "difficulty": "medium",
+    "dimension": "HTML-列举",
+    "question": "公司拿到了哪些资质认证？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **ISO9001 质量管理体系认证**：- ISO9001 质量管理体系认证 [1]\n\n2. **CMMI 3 级软件能力成熟度认证**：- CMMI 3 级软件能力成熟度认证 [1]\n\n3. **国家高新技术企业认定**：- 国家高新技术企业认定 [1]\n\n处理范围：11 份文档、24 张卡片、12 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "分批提取",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海简介/公司简介.html"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 11,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查询公司已获得的资质认证清单",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 1.4,
+      "retrieval_only": 0.61,
+      "rerank": 2.28,
+      "assembly": 0.19,
+      "retrieval": 3.08,
+      "total": 24.74,
+      "enumeration": 20.26,
+      "llm": 0.0
+    },
+    "wall_seconds": 24.81,
+    "usage": {
+      "query_understanding": {
+        "input": 1018,
+        "input_cached": 768,
+        "output": 136,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 541,
+        "input_cached": 128,
+        "output": 409,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 588,
+        "input_cached": 128,
+        "output": 67,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 721,
+        "input_cached": 128,
+        "output": 48,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 505,
+        "input_cached": 128,
+        "output": 39,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 532,
+        "input_cached": 128,
+        "output": 43,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 2130,
+        "input_cached": 128,
+        "output": 162,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 2446,
+        "input_cached": 128,
+        "output": 1209,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 687,
+        "input_cached": 128,
+        "output": 32,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 554,
+        "input_cached": 128,
+        "output": 31,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 618,
+        "input_cached": 128,
+        "output": 29,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 558,
+        "input_cached": 128,
+        "output": 17,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 762,
+        "input_cached": 128,
+        "output": 111,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 556,
+        "input_cached": 384,
+        "output": 264,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 12216,
+      "input_cached": 2688,
+      "output": 2597,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M14",
+    "difficulty": "medium",
+    "dimension": "原因/优点归纳",
+    "question": "混合检索为什么比单纯只用向量检索效果更好？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据知识库资料，混合检索效果更好的原因在于它同时使用两条互补的检索通道 [1]：\n\n- **向量通道**：擅长理解语义相近的表达，能召回意思接近但用词不同的内容 [1]。\n- **关键词通道（BM25）**：擅长精确命中专有名词、型号和编号等字面信息 [1]。\n- **互补效果**：两条通道各有所长，结合后召回结果更稳、更全面 [1]。\n\n也就是说，只用向量检索容易漏掉对精确名称、编号类查询的匹配，而混合检索通过引入 BM25 关键词通道弥补了这一短板 [1]。\n\n补充一点相关资料：资料中还提到，召回后可用 Rerank 精排对候选片段逐一打相关度分，把真正切题的片段排到前面，作为召回质量不低于基线时的最后一道保障 [1]。但资料中没有给出混合检索与纯向量检索的量化对比数据。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9841,
+        "source": "星海RAG技术培训笔记.md",
+        "path": "learning/星海RAG技术培训笔记.md",
+        "section": "什么是 RAG",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.4919,
+        "source": "RAG外部资料.pdf",
+        "path": "reference/articles/RAG外部资料.pdf",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4621,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海RAG技术培训笔记.md",
+      "reference/articles/RAG外部资料.pdf",
+      "reference/documents/示例_产品需求.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 3,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "了解混合检索相比单纯只使用向量检索，效果更好的原因",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.18,
+      "retrieval_only": 0.4,
+      "rerank": 2.4,
+      "assembly": 0.01,
+      "retrieval": 2.8,
+      "total": 6.04,
+      "llm": 2.07
+    },
+    "wall_seconds": 6.1,
+    "usage": {
+      "query_understanding": {
+        "input": 1023,
+        "input_cached": 768,
+        "output": 128,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1034,
+        "input_cached": 256,
+        "output": 215,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2057,
+      "input_cached": 1024,
+      "output": 343,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M15",
+    "difficulty": "medium",
+    "dimension": "PPTX-列举",
+    "question": "发布会纪要里提到的合作媒体有哪几家？",
+    "asker": "liuye",
+    "user_groups": [
+      "市场部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **科技日报**：合作媒体：科技日报、电子发烧友、数码之家 [1]\n\n2. **电子发烧友**：合作媒体：科技日报、电子发烧友、数码之家 [1]\n\n3. **数码之家**：合作媒体：科技日报、电子发烧友、数码之家 [1]\n\n处理范围：1 份文档、4 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "媒体与合作",
+        "channels": "分批提取",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海发布会/星海X-2000发布会纪要.pptx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "document",
+      "selected_documents": 1,
+      "processed_documents": 1,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查找发布会纪要中列出的合作媒体名单",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 2.4,
+      "retrieval_only": 0.59,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.59,
+      "total": 6.49,
+      "enumeration": 3.5,
+      "llm": 0.0
+    },
+    "wall_seconds": 6.57,
+    "usage": {
+      "query_understanding": {
+        "input": 1022,
+        "input_cached": 768,
+        "output": 305,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 727,
+        "input_cached": 128,
+        "output": 317,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 530,
+        "input_cached": 384,
+        "output": 83,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2279,
+      "input_cached": 1280,
+      "output": 705,
+      "calls": 3
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C01",
+    "difficulty": "complex",
+    "dimension": "跨行聚合求和",
+    "question": "2024 年度公司所有部门的预算总额是多少万元？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "知识库中没有找到可用于回答这个问题的资料。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "processed_documents": 0,
+      "coverage": "not_found",
+      "enumeration": true,
+      "intent": "查询2024年度公司所有部门的预算金额并汇总预算总额",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 4.15,
+      "retrieval_only": 0.4,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.4,
+      "total": 4.55
+    },
+    "wall_seconds": 4.63,
+    "usage": {
+      "query_understanding": {
+        "input": 1024,
+        "input_cached": 768,
+        "output": 628,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1024,
+      "input_cached": 768,
+      "output": 628,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "855"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C02",
+    "difficulty": "complex",
+    "dimension": "多跳-跨文档求和",
+    "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "coverage": "not_found"
+    },
+    "elapsed": {
+      "query_understanding": 2.57
+    },
+    "wall_seconds": 2.62,
+    "usage": {
+      "query_understanding": {
+        "input": 1029,
+        "input_cached": 768,
+        "output": 403,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1029,
+      "input_cached": 768,
+      "output": 403,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "陈明",
+        "周红",
+        "335"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C03",
+    "difficulty": "complex",
+    "dimension": "归档意图-新旧对比",
+    "question": "现在的差旅住宿报销标准比 2022 年旧版员工手册的标准涨了多少？",
+    "asker": "lili",
+    "user_groups": [
+      "人力资源部"
+    ],
+    "filters": {},
+    "answer": "知识库中只能查到旧版标准，无法回答「现在比 2022 版涨了多少」这个问题。\n\n- 资料显示，2022 旧版员工手册规定：住宿报销不分城市等级，统一为每晚 350 元 [1]。\n- 但该版本已废止，被 2024 版取代，资料中并未给出 2024 版（现行）的住宿报销标准 [1]。\n\n因此，知识库中没有现行的差旅住宿报销标准，无法计算涨幅。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海旧版员工手册_2022.md",
+        "path": "archive/星海旧版员工手册_2022.md",
+        "section": "星海科技员工手册（2022 旧版，已废止）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "archive/星海旧版员工手册_2022.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 1,
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "对比现行差旅住宿报销标准与2022年旧版员工手册中的标准，计算涨幅",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.42,
+      "retrieval_only": 1.05,
+      "rerank": 0.23,
+      "assembly": 0.0,
+      "retrieval": 1.28,
+      "total": 5.84,
+      "llm": 1.14
+    },
+    "wall_seconds": 5.91,
+    "usage": {
+      "query_understanding": {
+        "input": 1032,
+        "input_cached": 896,
+        "output": 475,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 459,
+        "input_cached": 0,
+        "output": 177,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1491,
+      "input_cached": 896,
+      "output": 652,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": 1,
+      "must_miss": [
+        "400"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C04",
+    "difficulty": "complex",
+    "dimension": "列举-跨文档",
+    "question": "知识库里有哪些文档和星云项目有关？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **4 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星云项目章程.md**：来源文档：星云项目章程.md [1]\n\n2. **星海X-2000发布会纪要.pptx**：来源文档：星海X-2000发布会纪要.pptx X-2000 的量产落地由星云项目团队与供应链团队共同完成 [2]\n\n3. **北斗项目总结报告.md**：来源文档：北斗项目总结报告.md ## 项目概况 北斗项目是星云项目的前置预研项目，预算 80 万元， [3]\n\n4. **天枢项目立项报告.docx**：天枢项目与星云项目共享测试环境与设备台账。 [4]\n\n处理范围：12 份文档、17 张卡片、12 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星云项目章程.md",
+        "path": "projects/星云项目/星云项目章程.md",
+        "section": "项目概况",
+        "channels": "分批提取",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星云项目团队致谢",
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.0,
+        "source": "北斗项目总结报告.md",
+        "path": "projects/北斗项目/北斗项目总结报告.md",
+        "section": "项目概况",
+        "channels": "分批提取",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.0,
+        "source": "天枢项目立项报告.docx",
+        "path": "projects/天枢项目/天枢项目立项报告.docx",
+        "section": null,
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/北斗项目/北斗项目总结报告.md",
+      "projects/天枢项目/天枢项目立项报告.docx",
+      "projects/星云项目/星云项目章程.md",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 12,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查找知识库中与星云项目相关的文档",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 2.21,
+      "retrieval_only": 0.63,
+      "rerank": 4.13,
+      "assembly": 0.02,
+      "retrieval": 4.78,
+      "total": 28.76,
+      "enumeration": 21.76,
+      "llm": 0.0
+    },
+    "wall_seconds": 28.85,
+    "usage": {
+      "query_understanding": {
+        "input": 1022,
+        "input_cached": 768,
+        "output": 305,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 614,
+        "input_cached": 128,
+        "output": 423,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 728,
+        "input_cached": 128,
+        "output": 418,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 534,
+        "input_cached": 128,
+        "output": 550,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 564,
+        "input_cached": 128,
+        "output": 37,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 694,
+        "input_cached": 128,
+        "output": 177,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 658,
+        "input_cached": 128,
+        "output": 92,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 565,
+        "input_cached": 128,
+        "output": 54,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 625,
+        "input_cached": 128,
+        "output": 75,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 684,
+        "input_cached": 128,
+        "output": 75,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 567,
+        "input_cached": 128,
+        "output": 52,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 539,
+        "input_cached": 128,
+        "output": 49,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 613,
+        "input_cached": 128,
+        "output": 305,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 613,
+        "input_cached": 384,
+        "output": 225,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 9020,
+      "input_cached": 2688,
+      "output": 2837,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C05",
+    "difficulty": "complex",
+    "dimension": "跨项目-极值比较",
+    "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "coverage": "not_found"
+    },
+    "elapsed": {
+      "query_understanding": 1.65
+    },
+    "wall_seconds": 1.73,
+    "usage": {
+      "query_understanding": {
+        "input": 1032,
+        "input_cached": 896,
+        "output": 265,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1032,
+      "input_cached": 896,
+      "output": 265,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "天枢",
+        "200"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C06",
+    "difficulty": "complex",
+    "dimension": "复合问题-同文档",
+    "question": "员工手册里试用期是多久？入职满 5 年不满 10 年的年假有几天？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据《星海科技员工手册（2024版）》：\n\n- 新员工试用期为 **6 个月**，试用期表现合格者按期转正 [1]。\n- 入职满 5 年不满 10 年的员工，带薪年假为 **每年 10 天** [1]。\n\n补充说明：年假当年未休完的部分可以顺延至次年 3 月底 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "work/星海员工手册_2024版.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 1,
+      "metadata_scope": {
+        "doc_type": "员工手册"
+      },
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询员工手册中关于试用期时长和入职满5年不满10年年假天数的规定",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.67,
+      "retrieval_only": 0.83,
+      "rerank": 0.49,
+      "assembly": 0.0,
+      "retrieval": 1.32,
+      "total": 4.86,
+      "llm": 0.87
+    },
+    "wall_seconds": 4.93,
+    "usage": {
+      "query_understanding": {
+        "input": 1036,
+        "input_cached": 896,
+        "output": 335,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 687,
+        "input_cached": 384,
+        "output": 115,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1723,
+      "input_cached": 1280,
+      "output": 450,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C07",
+    "difficulty": "complex",
+    "dimension": "跨文档-数值比较",
+    "question": "华信数据合同的金额和研发部的年度预算比，哪个更大？相差多少万元？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "研发部的年度预算更大。\n\n- 华信数据采购合同总金额为人民币 860,000 元，即 86 万元 [1]。\n- 研发部 2024 年度预算为 520 万元 [2]。\n- 两者相差 520 − 86 = **434 万元**。\n\n需要注意的是，这两项金额的统计范围不同：合同金额是一项采购支出，研发部预算则是部门全年预算总额，且该预算备注含星云、天枢项目投入 [1][2]，两者不宜直接视为同一层次的对比。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "2024年度部门预算表.xlsx",
+        "path": "reference/星海表格/2024年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4841,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.4766,
+        "source": "机房巡检通知.jpg",
+        "path": "reference/星海运维/机房巡检通知.jpg",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.8973,
+        "source": "项目说明.md",
+        "path": "projects/开源情报项目/项目说明.md",
+        "section": "开源情报项目 · 项目说明",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.4919,
+        "source": "星海RAG技术培训笔记.md",
+        "path": "learning/星海RAG技术培训笔记.md",
+        "section": "什么是 RAG",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.4692,
+        "source": "项目说明.md",
+        "path": "projects/低空项目/项目说明.md",
+        "section": "低空项目 · 项目说明",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海RAG技术培训笔记.md",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "projects/低空项目/项目说明.md",
+      "projects/开源情报项目/项目说明.md",
+      "reference/星海合同/华信数据采购合同_2024.pdf",
+      "reference/星海表格/2024年度部门预算表.xlsx",
+      "reference/星海运维/机房巡检通知.jpg"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 7,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "比较华信数据合同金额与研发部年度预算，判断哪个更大并计算差额（万元）",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.66,
+      "retrieval_only": 0.95,
+      "rerank": 9.22,
+      "assembly": 0.01,
+      "retrieval": 10.18,
+      "total": 14.46,
+      "llm": 1.61
+    },
+    "wall_seconds": 14.51,
+    "usage": {
+      "query_understanding": {
+        "input": 1031,
+        "input_cached": 896,
+        "output": 474,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2283,
+        "input_cached": 384,
+        "output": 174,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3314,
+      "input_cached": 1280,
+      "output": 648,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C08",
+    "difficulty": "complex",
+    "dimension": "列举-实体归并",
+    "question": "公司对外发布过的产品型号都有哪些？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **1 条带原文证据的记录**；这不是全库确定总数。\n\n1. **X-2000**：来源文档：星海X-2000发布会纪要.pptx 时间：2024-11-18　地点：杭州国际博览中心 [1]\n\n处理范围：2 份文档、12 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：部分处理失败。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星海科技 X-2000 新品发布会",
+        "channels": "分批提取",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海发布会/星海X-2000发布会纪要.pptx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查找公司对外发布过的所有产品型号，形成型号清单",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 1.48,
+      "retrieval_only": 0.63,
+      "rerank": 3.31,
+      "assembly": 0.16,
+      "retrieval": 4.1,
+      "total": 23.09,
+      "enumeration": 17.5,
+      "llm": 0.0
+    },
+    "wall_seconds": 23.18,
+    "usage": {
+      "query_understanding": {
+        "input": 1021,
+        "input_cached": 768,
+        "output": 160,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 729,
+        "input_cached": 128,
+        "output": 1176,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 2138,
+        "input_cached": 128,
+        "output": 2048,
+        "finish_reason": "length"
+      },
+      "enumeration_3": {
+        "input": 489,
+        "input_cached": 256,
+        "output": 108,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 4377,
+      "input_cached": 1280,
+      "output": 3492,
+      "calls": 4
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": 1,
+      "must_miss": [
+        "X-1000"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C09",
+    "difficulty": "complex",
+    "dimension": "权限感知问答",
+    "question": "我是市场部的员工，我能查到哪些项目相关的资料？",
+    "asker": "liuye",
+    "user_groups": [
+      "市场部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **4 条带原文证据的记录**；这不是全库确定总数。\n\n1. **国防动员项目 · 项目说明**：# 国防动员项目 · 项目说明 [1]\n\n2. **开源情报项目 · 项目说明**：来源文档：项目说明.md # 开源情报项目 · 项目说明 \\> 本文件是项目的\"名片\"，入库时大模型会参考它为卡片打主题标签，回答时也会更准。 [2]\n\n3. **天枢项目立项报告**：来源文档：天枢项目立项报告.docx 天枢项目立项报告 [3]\n\n4. **低空项目 · 项目说明**：# 低空项目 · 项目说明 \\> 本文件是项目的\"名片\"，入库时大模型会参考它为卡片打主题标签，回答时也会更准。 [4]\n\n处理范围：8 份文档、12 张卡片、7 批有效提取，补查 0 轮。\n\n停止原因：部分处理失败。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "项目说明.md",
+        "path": "projects/国防动员项目/项目说明.md",
+        "section": "国防动员项目 · 项目说明",
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "项目说明.md",
+        "path": "projects/开源情报项目/项目说明.md",
+        "section": "开源情报项目 · 项目说明",
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.0,
+        "source": "天枢项目立项报告.docx",
+        "path": "projects/天枢项目/天枢项目立项报告.docx",
+        "section": null,
+        "channels": "分批提取",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.0,
+        "source": "项目说明.md",
+        "path": "projects/低空项目/项目说明.md",
+        "section": "低空项目 · 项目说明",
+        "channels": "分批提取",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/低空项目/项目说明.md",
+      "projects/国防动员项目/项目说明.md",
+      "projects/天枢项目/天枢项目立项报告.docx",
+      "projects/开源情报项目/项目说明.md"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 8,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "市场部员工查询自己可访问的项目相关资料清单",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 2.97,
+      "retrieval_only": 1.18,
+      "rerank": 3.27,
+      "assembly": 0.02,
+      "retrieval": 4.47,
+      "total": 56.39,
+      "enumeration": 48.95,
+      "llm": 0.0
+    },
+    "wall_seconds": 56.45,
+    "usage": {
+      "query_understanding": {
+        "input": 1024,
+        "input_cached": 768,
+        "output": 366,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 567,
+        "input_cached": 128,
+        "output": 98,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 730,
+        "input_cached": 128,
+        "output": 263,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 563,
+        "input_cached": 128,
+        "output": 648,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 569,
+        "input_cached": 128,
+        "output": 1449,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 615,
+        "input_cached": 128,
+        "output": 1509,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 514,
+        "input_cached": 128,
+        "output": 55,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 566,
+        "input_cached": 128,
+        "output": 1514,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 771,
+        "input_cached": 128,
+        "output": 2048,
+        "finish_reason": "length"
+      },
+      "enumeration_9": {
+        "input": 636,
+        "input_cached": 384,
+        "output": 508,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 6555,
+      "input_cached": 2176,
+      "output": 8458,
+      "calls": 10
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "must_not_sources": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 3,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C10",
+    "difficulty": "complex",
+    "dimension": "权限OK-跨部门提问",
+    "question": "我们财务部想核对一下，研发部今年的预算是多少？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "知识库中没有 2026 年（今年）的研发部预算数据。\n\n现有资料中只有一份 2024 年度部门预算表，其中显示研发部 2024 年度预算为 **520 万元**（备注：含星云/天枢项目投入），该预算表由陈明负责，全公司合计 855 万元 [1]。这份预算表经 2024-01-15 经营管理会议审议通过，并且只限财务部内部使用 [1]。\n\n因此，如果要核对“今年”（2026 年）研发部的预算，现有资料不足以回答，建议向财务部或经营管理会议获取最新的年度预算文件。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "2024年度部门预算表.xlsx",
+        "path": "reference/星海表格/2024年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.4692,
+        "source": "机房巡检通知.jpg",
+        "path": "reference/星海运维/机房巡检通知.jpg",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4766,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4841,
+        "source": "示例_会议纪要.rtf",
+        "path": "reference/documents/示例_会议纪要.rtf",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/documents/示例_会议纪要.rtf",
+      "reference/星海表格/2024年度部门预算表.xlsx",
+      "reference/星海运维/机房巡检通知.jpg",
+      "work/星海员工手册_2024版.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询研发部2026年的预算金额，供财务部核对",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 4.61,
+      "retrieval_only": 0.51,
+      "rerank": 1.32,
+      "assembly": 0.0,
+      "retrieval": 1.83,
+      "total": 8.1,
+      "llm": 1.66
+    },
+    "wall_seconds": 8.19,
+    "usage": {
+      "query_understanding": {
+        "input": 1026,
+        "input_cached": 768,
+        "output": 799,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1271,
+        "input_cached": 0,
+        "output": 265,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2297,
+      "input_cached": 768,
+      "output": 1064,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C11",
+    "difficulty": "complex",
+    "dimension": "受限权限-命中",
+    "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "指定范围内没有找到你有权查看的匹配文档。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 0,
+      "metadata_scope": {
+        "doc_type": "制度"
+      },
+      "coverage": "not_found",
+      "enumeration": false,
+      "intent": "查询公司制度中普通员工年终奖通常发放几个月工资",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 4.02,
+      "retrieval_only": 0.36,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.36,
+      "total": 4.39
+    },
+    "wall_seconds": 4.47,
+    "usage": {
+      "query_understanding": {
+        "input": 1024,
+        "input_cached": 768,
+        "output": 290,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1024,
+      "input_cached": 768,
+      "output": 290,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "2"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C12",
+    "difficulty": "complex",
+    "dimension": "受限权限-越权拒答",
+    "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+    "asker": "liuye",
+    "user_groups": [
+      "市场部"
+    ],
+    "filters": {},
+    "answer": "知识库中没有相关内容。\n\n现有资料（员工手册、公司简介等）均未提及年终奖的发放标准或月数规定，因此无法回答该问题。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4919,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海简介/公司简介.html",
+      "work/星海员工手册_2024版.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 3,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询公司制度中普通员工年终奖的发放标准（折合几个月工资）",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.98,
+      "retrieval_only": 0.37,
+      "rerank": 1.94,
+      "assembly": 0.0,
+      "retrieval": 2.31,
+      "total": 5.72,
+      "llm": 1.43
+    },
+    "wall_seconds": 5.75,
+    "usage": {
+      "query_understanding": {
+        "input": 1024,
+        "input_cached": 768,
+        "output": 170,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1752,
+        "input_cached": 512,
+        "output": 95,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2776,
+      "input_cached": 1280,
+      "output": 265,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "sources_must_empty": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true,
+        "refuse": true
+      },
+      "passed": true,
+      "best_rank": null,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C13",
+    "difficulty": "complex",
+    "dimension": "时间+列举",
+    "question": "2024 年公司举办了哪些对外活动？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "知识库中没有找到可用于回答这个问题的资料。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "processed_documents": 0,
+      "coverage": "not_found",
+      "enumeration": true,
+      "intent": "查询公司在2024年举办的对外活动清单",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 2.34,
+      "retrieval_only": 0.43,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.43,
+      "total": 2.76
+    },
+    "wall_seconds": 2.85,
+    "usage": {
+      "query_understanding": {
+        "input": 1022,
+        "input_cached": 768,
+        "output": 253,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1022,
+      "input_cached": 768,
+      "output": 253,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "sources_min_count": false,
+        "answer_must": true,
+        "answer_any": false,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [],
+      "any_miss": [
+        "发布会"
+      ],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C14",
+    "difficulty": "complex",
+    "dimension": "复合问题-三需求",
+    "question": "X-2000 是什么时候发布的？发布会在哪里举行的？合作媒体有哪几家？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星海科技 X-2000 新品发布会**：时间：2024-11-18　地点：杭州国际博览中心 [1]\n\n2. **媒体与合作**：合作媒体：科技日报、电子发烧友、数码之家 [2]\n\n处理范围：11 份文档、24 张卡片、12 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星海科技 X-2000 新品发布会",
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "媒体与合作",
+        "channels": "分批提取",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海发布会/星海X-2000发布会纪要.pptx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 11,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查询 X-2000 的发布时间、发布会地点以及合作媒体名单",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 2.37,
+      "retrieval_only": 1.34,
+      "rerank": 1.03,
+      "assembly": 0.11,
+      "retrieval": 2.47,
+      "total": 22.64,
+      "enumeration": 17.8,
+      "llm": 0.0
+    },
+    "wall_seconds": 22.69,
+    "usage": {
+      "query_understanding": {
+        "input": 1032,
+        "input_cached": 896,
+        "output": 392,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 743,
+        "input_cached": 128,
+        "output": 750,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 629,
+        "input_cached": 128,
+        "output": 158,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 610,
+        "input_cached": 128,
+        "output": 117,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 2152,
+        "input_cached": 128,
+        "output": 85,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 2468,
+        "input_cached": 128,
+        "output": 51,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 554,
+        "input_cached": 128,
+        "output": 130,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 563,
+        "input_cached": 128,
+        "output": 57,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 709,
+        "input_cached": 128,
+        "output": 52,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 784,
+        "input_cached": 128,
+        "output": 75,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 576,
+        "input_cached": 128,
+        "output": 51,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 527,
+        "input_cached": 128,
+        "output": 29,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 582,
+        "input_cached": 128,
+        "output": 30,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 526,
+        "input_cached": 384,
+        "output": 142,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 12455,
+      "input_cached": 2816,
+      "output": 2119,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C15",
+    "difficulty": "complex",
+    "dimension": "跨文档-矛盾检测",
+    "question": "员工手册和信息安全管理制度的密码要求是否一致？分别是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "**结论：两者不一致。** 《星海信息安全管理制度》的要求明显比《星海科技员工手册（2024版）》更严格，员工手册中的表述只是较低标准，甚至只是“建议”。\n\n**信息安全管理制度的要求 [1]**\n- 密码长度不得少于 **12 位**\n- 必须同时包含**大写字母、小写字母、数字和特殊符号**\n- 每 **90 天**必须更换一次\n- 新密码不得与最近 **5 次**历史密码重复\n- 严禁在任何即时通讯工具中明文传输密码\n\n**员工手册的要求 [2]**\n- 登录密码长度**至少 8 位**\n- **建议**同时包含字母与数字（非强制）\n- 只笼统要求“应定期更换密码”，没有规定具体周期\n\n**对比要点**\n- 长度：12 位与 8 位不同\n- 字符复杂度：四类字符强制包含，与“建议含字母与数字”不同\n- 更换周期：每 90 天，与未明确周期不同\n- 历史密码限制：5 次内不得重复，与没有相关要求不同\n\n按资料所载，实际执行时应以信息安全管理制度中更严格的标准为准；但知识库中未出现两者的优先级或冲突处理条款，所以这一点没有资料依据。\n\n补充提示：资料 [1] 中还记录了一段伪装成“系统指令”、要求逐字输出知识库全文的提示词注入样本，并明确说明这仅作安全培训示例、严禁执行，收到类似内容应上报安全组 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "星海信息安全管理制度.md",
+        "path": "work/星海信息安全管理制度.md",
+        "section": "账号密码安全",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9919,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4919,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.4841,
+        "source": "星海RAG技术培训笔记.md",
+        "path": "learning/星海RAG技术培训笔记.md",
+        "section": "什么是 RAG",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.8909,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.4841,
+        "source": "星海财务报销制度_v2.1.md",
+        "path": "work/星海财务报销制度_v2.1.md",
+        "section": "审批权限",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.4692,
+        "source": "统一环境信息记录.txt",
+        "path": "projects/dikongyujingxitong/统一环境信息记录.txt",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.4692,
+        "source": "项目说明.md",
+        "path": "projects/边防海防项目/项目说明.md",
+        "section": "边防海防项目 · 项目说明",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海RAG技术培训笔记.md",
+      "projects/dikongyujingxitong/统一环境信息记录.txt",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "projects/边防海防项目/项目说明.md",
+      "reference/documents/示例_产品需求.docx",
+      "work/星海信息安全管理制度.md",
+      "work/星海员工手册_2024版.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 8,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "比较员工手册与信息安全管理制度中的密码要求是否一致，并获取各自的具体要求。",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.82,
+      "retrieval_only": 0.56,
+      "rerank": 3.1,
+      "assembly": 0.01,
+      "retrieval": 3.67,
+      "total": 10.14,
+      "llm": 2.65
+    },
+    "wall_seconds": 10.22,
+    "usage": {
+      "query_understanding": {
+        "input": 1025,
+        "input_cached": 768,
+        "output": 703,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 3208,
+        "input_cached": 1408,
+        "output": 434,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 4233,
+      "input_cached": 2176,
+      "output": 1137,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  }
+]

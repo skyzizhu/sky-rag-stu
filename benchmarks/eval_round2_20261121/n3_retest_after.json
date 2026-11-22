@@ -1,0 +1,179 @@
+{
+  "indexed": 29,
+  "cards": 37,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "configuration": {
+    "model": null,
+    "embedding": null,
+    "rerank": null,
+    "project_linked": true,
+    "keyword_only": true
+  },
+  "questions": [
+    {
+      "id": "CX15",
+      "difficulty": "complex",
+      "question": "市场部参与了哪些项目？参与的项目里哪个预算更高，是多少万元？",
+      "seconds": 0.719,
+      "elapsed": {
+        "retrieval_only": 0.667086124420166,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.667086124420166,
+        "total": 0.667086124420166
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          4,
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "max"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "昆仑项目",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢项目",
+              "sources": [
+                2
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "以下比较仅覆盖该部门参与且你有权查看资料的项目。\n\n- 昆仑项目：预算 300 万元 [1]。\n- 天枢项目：预算 200 万元 [2]。\n\n**预算最高：昆仑项目，300 万元** [1][2]。"
+    },
+    {
+      "id": "CX20",
+      "difficulty": "complex",
+      "question": "知识库里有哪些项目的立项或章程文档提到了数据安全或等级保护的要求？",
+      "seconds": 0.0,
+      "elapsed": {
+        "retrieval_only": 0.0,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0,
+        "total": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "complete",
+        "route": "project_document_mentions"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "以下已关联项目的立项或章程文档正文提到「数据安全」或「等级保护」。\n\n- 天枢项目：本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。 [1]\n- 昆仑项目：平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。 [2]\n- 星云项目：项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。 [3]"
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}

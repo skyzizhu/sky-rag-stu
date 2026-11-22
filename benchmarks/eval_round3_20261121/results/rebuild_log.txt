@@ -1,0 +1,268 @@
+待重建文件：51
+分组： {'lili': 6, 'zhaocai': 12, 'liqiang': 2, 'wangfang': 15, '(空)': 12, 'liuye': 4}
+无卡片（新文件/未入库）： ['work/边界测试_空文件.txt']
+
+=== owner=(空)：12 个文件 ===
+① 找到 12 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+   🤖 自动标签 [projects/dikongyujingxitong/统一环境信息记录.txt]: topic=['基础应用环境', '办公软件'] tags=['Office 2013', 'Visio 2013', 'Project 2013', 'Xmind 8', 'WPS Office 2019', 'Axure 8.0']
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+   🤖 自动标签 [projects/general/20260915 CGW_BHF_总体V1.2.pptx]: topic=['边海防信息支援系统', '中国长城互联网'] tags=['边海防', '军民融合', '网云数智安用', '军地互联', '数智强边', '信息支援']
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [projects/低空项目/项目说明.md]: topic=['低空项目', '项目说明'] tags=['低空经济', '无人机', '空域管理', '项目模板', '待补充']
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [projects/国防动员项目/项目说明.md]: topic=['国防动员项目', '项目说明'] tags=['国防动员', '应急保障', '人民防空', '项目档案', '待补充模板']
+    LLM 调用完成：deepseek-flash，耗时 1.5 秒
+   🤖 自动标签 [projects/开源情报项目/项目说明.md]: topic=['开源情报', '项目说明'] tags=['OSINT', '项目背景', '关键词', '别名', '模板待补充', '信息采集']
+    LLM 调用完成：deepseek-flash，耗时 1.1 秒
+   🤖 自动标签 [projects/边防海防项目/项目说明.md]: topic=['边防海防项目', '项目说明'] tags=['项目背景', '关键词', '占位待补充', '边防', '海防', '档案入库']
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+   🤖 自动标签 [reference/articles/RAG外部资料.pdf]: topic=['检索增强生成', '向量数据库'] tags=['RAG', '向量检索', 'Qdrant', 'Milvus', 'Weaviate', '知识库']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [reference/documents/示例_产品需求.docx]: topic=['云笔记', '知识管理'] tags=['产品需求文档', '全文搜索', '标签管理', '回收站', '验收标准']
+    LLM 调用完成：deepseek-flash，耗时 0.5 秒
+   🤖 自动标签 [reference/documents/示例_会议纪要.rtf]: topic=['产品研发', '知识库搜索'] tags=['周会纪要', '灰度上线', '无结果率', '同义词扩展', '移动端性能', '纪要归档']
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+   🤖 自动标签 [reference/documents/示例_英文产品说明.pdf]: topic=['SkyNotes 产品发布说明'] tags=['Markdown 导出', '标签管理', '离线模式', 'AI 摘要', '产品路线图']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [work/星海薪酬福利制度.md]: topic=['薪酬福利制度', '星海科技'] tags=['年终奖', '五险一金', '补贴福利', '薪级体系', '绩效评估', '晋升答辩']
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+   🤖 自动标签 [work/边界测试_空文件.txt]: topic=['内容缺失'] tags=['空文档', '无法提取']
+   成功 12 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 53 张知识卡片
+   ⚠️ 1 个文件未解析出文字（扫描件未开 OCR 或内容为空）：边界测试_空文件.txt；这些文件本次不会入向量库，开启 OCR 后重新入库即可
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化进度：8/53
+    向量化进度：16/53
+    向量化进度：24/53
+    向量化进度：32/53
+    向量化进度：40/53
+    向量化进度：48/53
+    向量化进度：53/53
+    向量化完成：53 条，耗时 988.0 秒
+⑥ 存入 Qdrant 向量库
+   已写入 53 张卡片
+✅ 入库完成，总耗时 1318.5 秒
+
+入库明细：
+   projects/dikongyujingxitong/统一环境信息记录.txt domain=projects   status=active   卡片数=1
+   projects/general/20260915 CGW_BHF_总体V1.2.pptx domain=projects   status=active   卡片数=37
+   projects/低空项目/项目说明.md                    domain=projects   status=active   卡片数=1
+   projects/国防动员项目/项目说明.md                  domain=projects   status=active   卡片数=1
+   projects/开源情报项目/项目说明.md                  domain=projects   status=active   卡片数=1
+   projects/边防海防项目/项目说明.md                  domain=projects   status=active   卡片数=1
+   reference/articles/RAG外部资料.pdf           domain=reference  status=active   卡片数=3
+   reference/documents/示例_产品需求.docx         domain=reference  status=active   卡片数=3
+   reference/documents/示例_会议纪要.rtf          domain=reference  status=active   卡片数=1
+   reference/documents/示例_英文产品说明.pdf        domain=reference  status=active   卡片数=3
+   work/星海薪酬福利制度.md                         domain=work       status=active   卡片数=1
+   work/边界测试_空文件.txt                        domain=work       status=active   卡片数=0
+
+=== owner=lili：6 个文件 ===
+① 找到 6 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.2 秒
+   🤖 自动标签 [archive/星海旧版员工手册_2022.md]: topic=['员工手册', '已废止制度'] tags=['2022旧版', '差旅报销', '试用期', '密码要求', '废止']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [archive/星海旧版考勤制度_2021.md]: topic=['考勤制度', '旧版制度'] tags=['星海科技', '已废止', '作息时间', '迟到罚款', '2021版']
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [reference/星海简介/公司简介.html]: topic=['星海科技', '公司简介'] tags=['便携式智能检测设备', '研发与销售', '杭州', '高新技术企业', 'X-1000', 'X-2000']
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+   🤖 自动标签 [work/星海员工手册_2024版.md]: topic=['员工手册', '公司制度'] tags=['考勤管理', '差旅报销', '试用期与年假', '账号密码安全', '会议室管理']
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+   🤖 自动标签 [work/星海员工手册_2025版_v3.0.md]: topic=['员工手册', '人事管理制度'] tags=['星海科技', '2025版', '考勤管理', '试用期', '弹性工作制', '假期管理']
+    LLM 调用完成：deepseek-flash，耗时 1.1 秒
+   🤖 自动标签 [work/星海高管薪酬方案.md]: topic=['高管薪酬', '年终奖'] tags=['星海科技', '保密方案', '利润目标达成率', '补充商业医疗保险', '期权激励']
+   成功 6 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 9 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化进度：8/9
+    向量化进度：9/9
+    向量化完成：9 条，耗时 124.4 秒
+⑥ 存入 Qdrant 向量库
+   已写入 9 张卡片
+✅ 入库完成，总耗时 131.6 秒
+
+入库明细：
+   archive/星海旧版员工手册_2022.md                 domain=archive    status=archive  卡片数=1
+   archive/星海旧版考勤制度_2021.md                 domain=archive    status=archive  卡片数=1
+   reference/星海简介/公司简介.html                 domain=reference  status=active   卡片数=1
+   work/星海员工手册_2024版.md                     domain=work       status=active   卡片数=1
+   work/星海员工手册_2025版_v3.0.md                domain=work       status=active   卡片数=4
+   work/星海高管薪酬方案.md                         domain=work       status=active   卡片数=1
+
+=== owner=liqiang：2 个文件 ===
+① 找到 2 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+   🤖 自动标签 [learning/public/统一环境信息记录.txt]: topic=['统一基础应用环境', '办公软件配置'] tags=['Office 2013', 'Visio 2013', 'Project 2013', 'Xmind', 'WPS Office 2019', 'Axure 8.0']
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+   🤖 自动标签 [projects/微信图片_20261119170638_6_27.jpg]: topic=['知识库建设与验收', 'workbuddy全流程落地'] tags=['本地知识库', 'workbuddy', 'SOP', '技能包', '内部培训', '验收测试']
+   成功 2 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 2 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：2 条，耗时 37.7 秒
+⑥ 存入 Qdrant 向量库
+   已写入 2 张卡片
+✅ 入库完成，总耗时 52.4 秒
+
+入库明细：
+   learning/public/统一环境信息记录.txt             domain=learning   status=active   卡片数=1
+   projects/微信图片_20261119170638_6_27.jpg    domain=projects   status=active   卡片数=1
+
+=== owner=liuye：4 个文件 ===
+① 找到 4 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [reference/星海发布会/星海2025年中发布会纪要.pptx]: topic=['新品发布会', 'X-3000 产品发布'] tags=['星海科技', '便携式智能检测仪', '旗舰版参数', '开售渠道', '合作媒体', 'X-4000 规划']
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+   🤖 自动标签 [reference/星海发布会/星海2025年度规划汇报.pptx]: topic=['年度规划', '企业经营'] tags=['星海科技', '2025年度规划', '经营目标', '产品规划', '市场策略', '东南亚市场']
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [reference/星海发布会/星海X-2000发布会纪要.pptx]: topic=['星海科技 X-2000 新品发布会', '产品发布'] tags=['X-2000', '星海科技', '杭州国际博览中心', '电池续航', '首发价', '星云项目团队']
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+   🤖 自动标签 [reference/星海简介/昆仑项目启动新闻.html]: topic=['昆仑项目', 'X-3000检测仪'] tags=['星海科技', '成都', '便携式检测仪', '工业客户', '2026年试运行']
+   成功 4 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 15 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化进度：8/15
+    向量化进度：15/15
+    向量化完成：15 条，耗时 48.3 秒
+⑥ 存入 Qdrant 向量库
+   已写入 15 张卡片
+✅ 入库完成，总耗时 53.5 秒
+
+入库明细：
+   reference/星海发布会/星海2025年中发布会纪要.pptx       domain=reference  status=active   卡片数=6
+   reference/星海发布会/星海2025年度规划汇报.pptx        domain=reference  status=active   卡片数=4
+   reference/星海发布会/星海X-2000发布会纪要.pptx       domain=reference  status=active   卡片数=4
+   reference/星海简介/昆仑项目启动新闻.html             domain=reference  status=active   卡片数=1
+
+=== owner=wangfang：15 个文件 ===
+① 找到 15 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+   🤖 自动标签 [learning/星海RAG技术培训笔记.md]: topic=['RAG 检索增强生成', '技术内训'] tags=['切片参数', '混合检索', 'BM25', '向量检索', 'Rerank 重排序', '数据安全']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [learning/星海产品培训_基础篇.docx]: topic=['X-1000 便携式智能检测仪', '产品培训'] tags=['星海科技', '工业现场巡检', 'Wi-Fi与蓝牙双模', '18小时续航', 'IP67防护', '销售话术']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [learning/星海新员工入职培训手册_v2.0.docx]: topic=['新员工入职培训', '人事管理制度'] tags=['入职流程', '考勤打卡', 'IT设备与账号', '薪酬福利', '保密合规', '试用期管理']
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [projects/北斗项目/北斗项目总结报告.md]: topic=['北斗项目', '项目总结'] tags=['项目验收', '经验教训', '需求变更', '文档管理', '星云项目']
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+   🤖 自动标签 [projects/天枢项目/天枢项目立项报告.docx]: topic=['天枢项目', '项目立项'] tags=['立项报告', 'KPI', '数据安全', '等级保护三级', '里程碑', '项目预算']
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+   🤖 自动标签 [projects/昆仑项目/昆仑项目立项报告.md]: topic=['昆仑项目', '项目立项'] tags=['项目预算', 'KPI指标', '里程碑', '等级保护三级', '数据安全测评', '成都分支机构']
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+   🤖 自动标签 [projects/昆仑项目/昆仑项目需求说明书_v2.0.docx]: topic=['昆仑项目需求说明书', '设备监测系统'] tags=['用户角色', '功能模块', '告警升级', '工单调度', '非功能需求', '验收标准']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [projects/星云项目/星云项目招标技术规格书_v1.2.md]: topic=['数据平台建设', '招标技术规格'] tags=['微服务架构', '等保三级', '性能指标', '安全要求', '国产化适配', '审计日志']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [projects/星云项目/星云项目章程.md]: topic=['星云项目', '项目管理'] tags=['项目章程', 'X-2000', '预算135万元', '里程碑', '等级保护三级', '数据安全']
+    LLM 调用完成：deepseek-flash，耗时 0.5 秒
+   🤖 自动标签 [projects/沧海项目/沧海项目验收报告.docx]: topic=['沧海项目', '项目验收'] tags=['验收报告', '徐凯', '研发部', '文档归档', '遗留问题', '2025-07-15']
+    LLM 调用完成：deepseek-flash，耗时 0.5 秒
+   🤖 自动标签 [reference/星海评审/产品评审会议纪要.rtf]: topic=['X-2000 量产评审', '产品评审会议'] tags=['星海科技', '会议纪要', '便携式检测仪', '传感器交期', '量产良率', '遗留事项']
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [reference/星海运维/机房巡检通知.jpg]: topic=['机房巡检', '巡检通知'] tags=['机房巡检', '每周三', '负责人', '联系电话', 'IT部']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [work/星海IT资产管理办法.txt]: topic=['IT资产管理', '设备管理'] tags=['笔记本电脑', '资产归还', '离职流程', '设备更换', '显示器配置']
+    LLM 调用完成：deepseek-flash，耗时 1.2 秒
+   🤖 自动标签 [work/星海信息安全管理制度.md]: topic=['信息安全', '企业管理制度'] tags=['账号密码安全', '数据安全', '终端管理', '钓鱼邮件演练', '提示词注入防护']
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [work/星海数据备份与恢复管理办法_v1.1.md]: topic=['数据备份与恢复', '备份管理'] tags=['备份策略', 'RPO/RTO', '异地备份', '恢复演练', '保留期限', '职责分工']
+   成功 15 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 34 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化进度：8/34
+    向量化进度：16/34
+    向量化进度：24/34
+    向量化进度：32/34
+    向量化进度：34/34
+    向量化完成：34 条，耗时 263.2 秒
+⑥ 存入 Qdrant 向量库
+   已写入 34 张卡片
+✅ 入库完成，总耗时 280.3 秒
+
+入库明细：
+   learning/星海RAG技术培训笔记.md                  domain=learning   status=active   卡片数=1
+   learning/星海产品培训_基础篇.docx                 domain=learning   status=active   卡片数=4
+   learning/星海新员工入职培训手册_v2.0.docx           domain=learning   status=active   卡片数=6
+   projects/北斗项目/北斗项目总结报告.md                domain=projects   status=active   卡片数=1
+   projects/天枢项目/天枢项目立项报告.docx              domain=projects   status=active   卡片数=4
+   projects/昆仑项目/昆仑项目立项报告.md                domain=projects   status=active   卡片数=1
+   projects/昆仑项目/昆仑项目需求说明书_v2.0.docx        domain=projects   status=active   卡片数=5
+   projects/星云项目/星云项目招标技术规格书_v1.2.md        domain=projects   status=active   卡片数=3
+   projects/星云项目/星云项目章程.md                  domain=projects   status=active   卡片数=1
+   projects/沧海项目/沧海项目验收报告.docx              domain=projects   status=active   卡片数=3
+   reference/星海评审/产品评审会议纪要.rtf              domain=reference  status=active   卡片数=1
+   reference/星海运维/机房巡检通知.jpg                domain=reference  status=active   卡片数=1
+   work/星海IT资产管理办法.txt                      domain=work       status=active   卡片数=1
+   work/星海信息安全管理制度.md                       domain=work       status=active   卡片数=1
+   work/星海数据备份与恢复管理办法_v1.1.md               domain=work       status=active   卡片数=1
+
+=== owner=zhaocai：12 个文件 ===
+① 找到 12 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [archive/星海旧版采购管理制度_2020.md]: topic=['采购管理制度', '分级审批与比价程序'] tags=['已废止', '三家比价', '单一来源采购', '验收付款', '供应商评级', '预付款比例']
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [reference/星海合同/华信数据采购合同_2024.pdf]: topic=['采购合同', '服务器采购'] tags=['合同条款', '付款方式', '交付验收', '服务器集群', '三年质保']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [reference/星海合同/华信运维服务合同_2025_v1.0.pdf]: topic=['运维服务合同', '数据平台运维'] tags=['SLA', '7x24监控', '合同期限', '服务费用', '事件响应', 'Nebula数据平台']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [reference/星海合同/蓝鲸维保服务合同_2025.pdf]: topic=['服务器维护服务合同', '运维服务'] tags=['SLA', '年度服务费', '上海仲裁', '合同期三年', '服务器集群', '现场响应']
+    LLM 调用完成：deepseek-flash，耗时 0.5 秒
+   🤖 自动标签 [reference/星海表格/2024年度部门预算表.xlsx]: topic=['部门预算', '年度预算'] tags=['2024年度', '研发部', '财务内部', '预算审批', '经营管理会议']
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+   🤖 自动标签 [reference/星海表格/2025年度部门预算表.xlsx]: topic=['部门预算', '2025年度预算'] tags=['研发部', '市场部', '财务部', '预算编制', '内部使用']
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [reference/星海表格/星海供应商名录.xlsx]: topic=['供应商管理', '采购管理'] tags=['在册供应商', '黑名单', '供应商评级', '冷链运输', '数据服务', '办公用品']
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [reference/星海表格/星海项目台账_2025.xlsx]: topic=['项目管理', '项目台账'] tags=['项目风险', '预算', '项目状态', '风险登记', '项目周期']
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+   🤖 自动标签 [work/星海付款审批细则.md]: topic=['付款审批', '财务制度'] tags=['双人复核', '总会计师会签', 'T+3付款', '供应商备案', '合同发票备案']
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [work/星海合同管理制度_v1.1.md]: topic=['合同管理', '合同评审与履约'] tags=['审批流程', '用印管理', '法务评审', '履约台账', '归档管理', '合同风险']
+    LLM 调用完成：deepseek-flash，耗时 1.2 秒
+   🤖 自动标签 [work/星海差旅管理办法_2025修订.md]: topic=['差旅管理', '费用报销'] tags=['住宿标准', '餐费补贴', '交通报销', 'OA审批', '差旅报销', '2025修订']
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+   🤖 自动标签 [work/星海财务报销制度_v2.1.md]: topic=['财务报销', '企业财务制度'] tags=['审批权限', '增值税发票', '报销流程', '差旅借款', '违规处理', 'OA系统']
+   成功 12 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 20 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化进度：8/20
+    向量化进度：16/20
+    向量化进度：20/20
+    向量化完成：20 条，耗时 211.5 秒
+⑥ 存入 Qdrant 向量库
+   已写入 20 张卡片
+✅ 入库完成，总耗时 222.6 秒
+
+入库明细：
+   archive/星海旧版采购管理制度_2020.md               domain=archive    status=archive  卡片数=1
+   reference/星海合同/华信数据采购合同_2024.pdf         domain=reference  status=active   卡片数=2
+   reference/星海合同/华信运维服务合同_2025_v1.0.pdf    domain=reference  status=active   卡片数=5
+   reference/星海合同/蓝鲸维保服务合同_2025.pdf         domain=reference  status=active   卡片数=2
+   reference/星海表格/2024年度部门预算表.xlsx          domain=reference  status=active   卡片数=1
+   reference/星海表格/2025年度部门预算表.xlsx          domain=reference  status=active   卡片数=1
+   reference/星海表格/星海供应商名录.xlsx              domain=reference  status=active   卡片数=1
+   reference/星海表格/星海项目台账_2025.xlsx          domain=reference  status=active   卡片数=1
+   work/星海付款审批细则.md                         domain=work       status=active   卡片数=1
+   work/星海合同管理制度_v1.1.md                    domain=work       status=active   卡片数=3
+   work/星海差旅管理办法_2025修订.md                  domain=work       status=active   卡片数=1
+   work/星海财务报销制度_v2.1.md                    domain=work       status=active   卡片数=1
+
+重建完成：2059s，库内 50 文档 / 178 卡片

@@ -1,0 +1,53 @@
+{
+  "total": 60,
+  "overall": [
+    52,
+    60,
+    86.7
+  ],
+  "simple": [
+    19,
+    20,
+    95.0
+  ],
+  "medium": [
+    19,
+    20,
+    95.0
+  ],
+  "complex": [
+    14,
+    20,
+    70.0
+  ],
+  "retrieval_hit": [
+    51,
+    59,
+    86.4
+  ],
+  "mrr": 0.843,
+  "permission": [
+    1,
+    1,
+    100.0
+  ],
+  "wall_seconds_avg": 16.3,
+  "wall_seconds_p50": 11.2,
+  "wall_seconds_max": 91.7,
+  "llm_tokens_input": 187053,
+  "llm_tokens_output": 57744,
+  "calibration_notes": [
+    "SN15: SN15：『无法识别所指定的检索范围』计为设计内诚实拒答（不编造即通过）",
+    "MD07: MD07：枚举模板『3 条带原文证据的记录』计为有效计数表述"
+  ],
+  "failed": [
+    "SN06",
+    "MD20",
+    "CX01",
+    "CX03",
+    "CX04",
+    "CX07",
+    "CX15",
+    "CX20"
+  ]
+}

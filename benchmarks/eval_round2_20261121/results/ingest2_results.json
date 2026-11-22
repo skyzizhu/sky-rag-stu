@@ -1,0 +1,394 @@
+{
+  "ingest": [
+    {
+      "path": "projects/昆仑项目/昆仑项目立项报告.md",
+      "elapsed": 14.94,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部",
+        "市场部"
+      ],
+      "allowed_users": [],
+      "project_id": 5,
+      "version": "1.0",
+      "owner": "wangfang",
+      "errors": null
+    },
+    {
+      "path": "projects/沧海项目/沧海项目验收报告.docx",
+      "elapsed": 7.32,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "project_id": 6,
+      "version": "1.0",
+      "owner": "wangfang",
+      "errors": null
+    },
+    {
+      "path": "work/星海差旅管理办法_2025修订.md",
+      "elapsed": 5.45,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "zhaocai",
+      "errors": null
+    },
+    {
+      "path": "work/星海高管薪酬方案.md",
+      "elapsed": 3.51,
+      "ok": true,
+      "chunks": 1,
+      "classification": "受限",
+      "allowed_groups": [],
+      "allowed_users": [
+        "lili"
+      ],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "lili",
+      "errors": null
+    },
+    {
+      "path": "work/星海付款审批细则.md",
+      "elapsed": 3.98,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "zhaocai",
+      "errors": null
+    },
+    {
+      "path": "work/星海IT资产管理办法.txt",
+      "elapsed": 3.17,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "wangfang",
+      "errors": null
+    },
+    {
+      "path": "archive/星海旧版考勤制度_2021.md",
+      "elapsed": 4.55,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "lili",
+      "errors": null
+    },
+    {
+      "path": "reference/星海表格/2025年度部门预算表.xlsx",
+      "elapsed": 6.31,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "zhaocai",
+      "errors": null
+    },
+    {
+      "path": "reference/星海表格/星海供应商名录.xlsx",
+      "elapsed": 5.23,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "zhaocai",
+      "errors": null
+    },
+    {
+      "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+      "elapsed": 8.59,
+      "ok": true,
+      "chunks": 2,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "zhaocai",
+      "errors": null
+    },
+    {
+      "path": "reference/星海简介/昆仑项目启动新闻.html",
+      "elapsed": 3.85,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "liuye",
+      "errors": null
+    },
+    {
+      "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "elapsed": 5.15,
+      "ok": true,
+      "chunks": 4,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "project_id": null,
+      "version": "1.0",
+      "owner": "liuye",
+      "errors": null
+    },
+    {
+      "path": "projects/星云项目/星云项目章程.md",
+      "elapsed": 6.83,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "project_id": 2,
+      "version": "1.1",
+      "owner": "wangfang",
+      "errors": null
+    },
+    {
+      "path": "projects/天枢项目/天枢项目立项报告.docx",
+      "elapsed": 8.09,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部",
+        "市场部"
+      ],
+      "allowed_users": [],
+      "project_id": 3,
+      "version": "1.1",
+      "owner": "wangfang",
+      "errors": null
+    },
+    {
+      "path": "projects/北斗项目/北斗项目总结报告.md",
+      "elapsed": 7.76,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "project_id": 4,
+      "version": "1.0",
+      "owner": "wangfang",
+      "errors": null
+    }
+  ],
+  "verify": [
+    {
+      "path": "projects/昆仑项目/昆仑项目立项报告.md",
+      "active_cards": 1,
+      "project_id": 5,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部",
+        "市场部"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "projects/沧海项目/沧海项目验收报告.docx",
+      "active_cards": 1,
+      "project_id": 6,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "work/星海差旅管理办法_2025修订.md",
+      "active_cards": 1,
+      "project_id": null,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "work/星海高管薪酬方案.md",
+      "active_cards": 1,
+      "project_id": null,
+      "classification": "受限",
+      "allowed_groups": [],
+      "allowed_users": [
+        "lili"
+      ],
+      "version": "1.0"
+    },
+    {
+      "path": "work/星海付款审批细则.md",
+      "active_cards": 1,
+      "project_id": null,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "work/星海IT资产管理办法.txt",
+      "active_cards": 1,
+      "project_id": null,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "archive/星海旧版考勤制度_2021.md",
+      "active_cards": 0
+    },
+    {
+      "path": "reference/星海表格/2025年度部门预算表.xlsx",
+      "active_cards": 1,
+      "project_id": null,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海表格/星海供应商名录.xlsx",
+      "active_cards": 1,
+      "project_id": null,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+      "active_cards": 2,
+      "project_id": null,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海简介/昆仑项目启动新闻.html",
+      "active_cards": 1,
+      "project_id": null,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "active_cards": 4,
+      "project_id": null,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    },
+    {
+      "path": "projects/星云项目/星云项目章程.md",
+      "active_cards": 1,
+      "project_id": 2,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "version": "1.1"
+    },
+    {
+      "path": "projects/天枢项目/天枢项目立项报告.docx",
+      "active_cards": 1,
+      "project_id": 3,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部",
+        "市场部"
+      ],
+      "allowed_users": [],
+      "version": "1.1"
+    },
+    {
+      "path": "projects/北斗项目/北斗项目总结报告.md",
+      "active_cards": 1,
+      "project_id": 4,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "version": "1.0"
+    }
+  ],
+  "catalog_total": 40
+}

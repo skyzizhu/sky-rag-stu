@@ -1,0 +1,180 @@
+[
+  {
+    "tag": "F1",
+    "question": "项目台账里磐石项目现在是什么状态？原因是什么？",
+    "fallback": {
+      "issue": "unresolved",
+      "attempted": {
+        "project": "项目台账里磐石"
+      },
+      "notice": "「项目台账里磐石」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。",
+      "applied": true
+    },
+    "scope_issue": null,
+    "has_notice_line": true,
+    "sources": [
+      "星海项目台账_2025.xlsx",
+      "20260915 CGW_BHF_总体V1.2.pptx",
+      "项目说明.md",
+      "项目说明.md"
+    ],
+    "filters_project": null,
+    "answer_head": "> ℹ️ 「项目台账里磐石」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。  - 状态：磐石项目目前在项目台账中登记为“**暂停**”，周期备注为“2025-03 起暂停” [1]。 - 原因：风险登记中，该项目对应的风险是“**资金冻结导致停工**",
+    "checks": {
+      "fallback": true,
+      "notice": true,
+      "暂停": true,
+      "资金冻结": true
+    },
+    "passed": true
+  },
+  {
+    "tag": "F2",
+    "question": "台账里星辰项目的负责人是谁？",
+    "fallback": {
+      "issue": "unresolved",
+      "attempted": {
+        "project": "台账里星辰"
+      },
+      "notice": "「台账里星辰」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。",
+      "applied": true
+    },
+    "scope_issue": null,
+    "has_notice_line": true,
+    "sources": [
+      "星海项目台账_2025.xlsx",
+      "星海X-2000发布会纪要.pptx",
+      "2024年度部门预算表.xlsx",
+      "2025年度部门预算表.xlsx"
+    ],
+    "filters_project": null,
+    "answer_head": "> ℹ️ 「台账里星辰」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。  台账里星辰项目的负责人是**郑浩**。该项目预算 150 万元，状态为「筹备中」，计划 2025-09 启动 [1]。",
+    "checks": {
+      "fallback": true,
+      "notice": true,
+      "郑浩": true
+    },
+    "passed": true
+  },
+  {
+    "tag": "F3",
+    "question": "银河项目现在的预算是多少万元？",
+    "fallback": {
+      "issue": "unresolved",
+      "attempted": {
+        "project": "银河"
+      },
+      "notice": "「银河」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。",
+      "applied": true
+    },
+    "scope_issue": null,
+    "has_notice_line": true,
+    "sources": [
+      "昆仑项目立项报告.md",
+      "北斗项目总结报告.md",
+      "天枢项目立项报告.docx",
+      "星云项目章程.md"
+    ],
+    "filters_project": null,
+    "answer_head": "> ℹ️ 「银河」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。  知识库中没有关于“银河项目”的任何内容，因此无法确认其预算金额。资料中仅包含昆仑、北斗、天枢、星云、沧海五个项目的预算信息，均与“银河项目”无关。建议确认项目名称是否准确，或补充该项",
+    "checks": {
+      "fallback": true,
+      "notice": true,
+      "refuse": true
+    },
+    "passed": true
+  },
+  {
+    "tag": "F4",
+    "question": "台账里预算超过 200 万的项目有哪些？负责人分别是谁？",
+    "fallback": {
+      "issue": "unresolved",
+      "attempted": {
+        "project": "台账里预算超过 200 万的"
+      },
+      "notice": "「台账里预算超过 200 万的」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。",
+      "applied": true
+    },
+    "scope_issue": null,
+    "has_notice_line": true,
+    "sources": [
+      "星海项目台账_2025.xlsx"
+    ],
+    "filters_project": null,
+    "answer_head": "> ℹ️ 「台账里预算超过 200 万的」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。  **结果不完整，可能有遗漏。**  本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。  1. **昆仑项目**：昆仑项目 | 林",
+    "checks": {
+      "fallback": true,
+      "notice": true,
+      "昆仑": true,
+      "磐石": true
+    },
+    "passed": true
+  },
+  {
+    "tag": "F5",
+    "question": "台账里星云和天枢两个项目的状态和风险分别是什么？",
+    "fallback": {
+      "issue": "unresolved",
+      "attempted": {
+        "project": "台账里星云和天枢两个"
+      },
+      "notice": "「台账里星云和天枢两个」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。",
+      "applied": true
+    },
+    "scope_issue": null,
+    "has_notice_line": true,
+    "sources": [
+      "星海项目台账_2025.xlsx",
+      "2024年度部门预算表.xlsx",
+      "星海X-2000发布会纪要.pptx",
+      "20260915 CGW_BHF_总体V1.2.pptx"
+    ],
+    "filters_project": null,
+    "answer_head": "> ℹ️ 「台账里星云和天枢两个」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。  - 星云项目：状态为“进行中”；风险为“供应商核心传感器交期风险”，等级“中”[1]。 - 天枢项目：状态为“进行中”；风险为“需求变更频繁”，等级“高”[1]。",
+    "checks": {
+      "fallback": true,
+      "notice": true,
+      "进行中": true,
+      "需求变更": true
+    },
+    "passed": true
+  },
+  {
+    "tag": "N1",
+    "question": "星云项目目前的立项预算是多少万元？",
+    "fallback": null,
+    "scope_issue": null,
+    "has_notice_line": false,
+    "sources": [
+      "星云项目章程.md",
+      "星云项目招标技术规格书_v1.2.md",
+      "星云项目招标技术规格书_v1.2.md",
+      "星云项目招标技术规格书_v1.2.md"
+    ],
+    "filters_project": [
+      2
+    ],
+    "answer_head": "星云项目的立项预算为 **135 万元** [1]。  依据：星云项目章程中的「项目概况」载明，该项目为 X-2000 量产与数据平台建设项目，立项预算为 135 万元，项目周期为 2024-01 至 2024-09 [1]。",
+    "checks": {
+      "fallback": true,
+      "no_notice": true,
+      "135": true
+    },
+    "passed": true
+  },
+  {
+    "tag": "N2",
+    "question": "不要查星云项目的验收资料，查别的",
+    "fallback": null,
+    "scope_issue": "negated",
+    "has_notice_line": false,
+    "sources": [],
+    "filters_project": null,
+    "answer_head": "暂不支持用问句排除指定的项目、业务方向、归属部门或文档类型。请改为指定要查的范围。",
+    "checks": {
+      "fallback": true,
+      "intercepted": true
+    },
+    "passed": true
+  }
+]

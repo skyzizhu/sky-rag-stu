@@ -1,0 +1,409 @@
+[
+  {
+    "id": "M05",
+    "difficulty": "medium",
+    "dimension": "PDF保密与责任",
+    "question": "华信运维合同的保密期限和赔偿责任上限分别是什么？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "- 保密期限：双方保密义务在合同结束后继续有效 **5 年** [4]。\n- 赔偿责任上限：供应商的总赔偿责任不超过 **十二个月的服务费**，且不承担间接损失或后果性损失 [5]。按合同年服务费 36 万元计算，上限即 36 万元 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9534,
+        "source": "华信运维服务合同_2025_v1.0.pdf",
+        "path": "reference/星海合同/华信运维服务合同_2025_v1.0.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9327,
+        "source": "华信运维服务合同_2025_v1.0.pdf",
+        "path": "reference/星海合同/华信运维服务合同_2025_v1.0.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.942,
+        "source": "华信运维服务合同_2025_v1.0.pdf",
+        "path": "reference/星海合同/华信运维服务合同_2025_v1.0.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9919,
+        "source": "华信运维服务合同_2025_v1.0.pdf",
+        "path": "reference/星海合同/华信运维服务合同_2025_v1.0.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9685,
+        "source": "华信运维服务合同_2025_v1.0.pdf",
+        "path": "reference/星海合同/华信运维服务合同_2025_v1.0.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9113,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.8842,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.4621,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "一、总则",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.8978,
+        "source": "星海新员工入职培训手册_v2.0.docx",
+        "path": "learning/星海新员工入职培训手册_v2.0.docx",
+        "section": "六、保密与合规",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.4766,
+        "source": "蓝鲸维保服务合同_2025.pdf",
+        "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+        "section": null,
+        "channels": "向量",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海新员工入职培训手册_v2.0.docx",
+      "reference/星海合同/华信数据采购合同_2024.pdf",
+      "reference/星海合同/华信运维服务合同_2025_v1.0.pdf",
+      "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+      "work/星海合同管理制度_v1.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询华信运维合同中约定的保密期限和赔偿责任上限条款",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.88,
+      "retrieval_only": 1.94,
+      "rerank": 4.48,
+      "assembly": 0.01,
+      "retrieval": 6.43,
+      "total": 11.3,
+      "llm": 1.99
+    },
+    "wall_seconds": 12.62,
+    "usage": {
+      "query_understanding": {
+        "input": 1096,
+        "input_cached": 896,
+        "output": 368,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2407,
+        "input_cached": 1280,
+        "output": 202,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3503,
+      "input_cached": 2176,
+      "output": 570,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": 1,
+      "must_miss": [
+        "12个月"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M07",
+    "difficulty": "medium",
+    "dimension": "非功能指标列举",
+    "question": "昆仑需求说明书的非功能性要求有哪些？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **系统须支持不少于 1000 台设备并发接入**：系统须支持不少于 1000 台设备并发接入 [1]\n\n2. **数据上报延迟不超过 500ms**：数据上报延迟不超过 500ms [1]\n\n3. **系统可用性不低于 99.95%**：系统可用性不低于 99.95% [1]\n\n处理范围：1 份文档、5 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "昆仑项目需求说明书_v2.0.docx",
+        "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "document",
+      "selected_documents": 1,
+      "processed_documents": 1,
+      "metadata_scope": {
+        "project": "昆仑"
+      },
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查找昆仑需求说明书中列出的非功能性要求",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 10.27,
+      "retrieval_only": 0.38,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.38,
+      "total": 17.18,
+      "enumeration": 6.53,
+      "llm": 0.0
+    },
+    "wall_seconds": 17.23,
+    "usage": {
+      "query_understanding": {
+        "input": 1093,
+        "input_cached": 896,
+        "output": 1804,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 1184,
+        "input_cached": 128,
+        "output": 734,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 542,
+        "input_cached": 384,
+        "output": 314,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2819,
+      "input_cached": 1408,
+      "output": 2852,
+      "calls": 3
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M15",
+    "difficulty": "medium",
+    "dimension": "演练与RTO",
+    "question": "恢复演练多久组织一次？恢复时间目标（RTO）要求是多少？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "- 恢复演练每半年组织 1 次，须覆盖完整恢复与单表恢复两种场景，演练报告报研发部负责人审阅 [1]。\n- 恢复时间目标（RTO）不超过 4 小时 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "星海数据备份与恢复管理办法_v1.1.md",
+        "path": "work/星海数据备份与恢复管理办法_v1.1.md",
+        "section": "一、备份策略",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.4919,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "十三、系统对接清单",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.5,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4766,
+        "source": "星海员工手册_2025版_v3.0.md",
+        "path": "work/星海员工手册_2025版_v3.0.md",
+        "section": "星海科技员工手册（2025版）",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "星海员工手册_2025版_v3.0.md",
+        "path": "work/星海员工手册_2025版_v3.0.md",
+        "section": "四、假期管理",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.4841,
+        "source": "星海员工手册_2025版_v3.0.md",
+        "path": "work/星海员工手册_2025版_v3.0.md",
+        "section": "九、分支机构与外勤管理",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.4919,
+        "source": "星海信息安全管理制度.md",
+        "path": "work/星海信息安全管理制度.md",
+        "section": "账号密码安全",
+        "channels": "关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+      "work/星海信息安全管理制度.md",
+      "work/星海员工手册_2025版_v3.0.md",
+      "work/星海数据备份与恢复管理办法_v1.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询恢复演练的组织频率以及恢复时间目标（RTO）的具体要求",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.72,
+      "retrieval_only": 0.85,
+      "rerank": 4.81,
+      "assembly": 0.01,
+      "retrieval": 5.67,
+      "total": 9.48,
+      "llm": 1.09
+    },
+    "wall_seconds": 9.57,
+    "usage": {
+      "query_understanding": {
+        "input": 1100,
+        "input_cached": 896,
+        "output": 414,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 4206,
+        "input_cached": 3968,
+        "output": 88,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 5306,
+      "input_cached": 4864,
+      "output": 502,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  }
+]

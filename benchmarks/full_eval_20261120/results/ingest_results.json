@@ -1,0 +1,609 @@
+{
+  "ingest_rows": [
+    {
+      "path": "work/星海员工手册_2024版.md",
+      "elapsed": 16.4,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "人力资源部",
+      "version": "1.0",
+      "owner": "lili",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "work/星海财务报销制度_v2.1.md",
+      "elapsed": 6.98,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部",
+        "研发部"
+      ],
+      "allowed_users": [],
+      "department": "财务部",
+      "version": "2.1",
+      "owner": "zhaocai",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "work/星海薪酬福利制度.md",
+      "elapsed": 0.01,
+      "ok": false,
+      "chunks": 0,
+      "classification": null,
+      "allowed_groups": null,
+      "allowed_users": null,
+      "department": null,
+      "version": null,
+      "owner": null,
+      "status": null,
+      "errors": "file_missing"
+    },
+    {
+      "path": "work/星海信息安全管理制度.md",
+      "elapsed": 7.49,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "learning/星海RAG技术培训笔记.md",
+      "elapsed": 6.89,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "learning/星海产品培训_基础篇.docx",
+      "elapsed": 7.6,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "projects/星云项目/星云项目章程.md",
+      "elapsed": 6.6,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "projects/天枢项目/天枢项目立项报告.docx",
+      "elapsed": 6.61,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部",
+        "市场部"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "projects/北斗项目/北斗项目总结报告.md",
+      "elapsed": 4.08,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+      "elapsed": 9.21,
+      "ok": true,
+      "chunks": 2,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "财务部",
+      "version": "1.0",
+      "owner": "zhaocai",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "reference/星海表格/2024年度部门预算表.xlsx",
+      "elapsed": 6.51,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "department": "财务部",
+      "version": "1.0",
+      "owner": "zhaocai",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "elapsed": 6.34,
+      "ok": true,
+      "chunks": 4,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "市场部",
+      "version": "1.0",
+      "owner": "liuye",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "reference/星海简介/公司简介.html",
+      "elapsed": 4.61,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "人力资源部",
+      "version": "1.0",
+      "owner": "lili",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "reference/星海评审/产品评审会议纪要.rtf",
+      "elapsed": 4.86,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "reference/星海运维/机房巡检通知.jpg",
+      "elapsed": 4.91,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    {
+      "path": "archive/星海旧版员工手册_2022.md",
+      "elapsed": 5.25,
+      "ok": true,
+      "chunks": 1,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "人力资源部",
+      "version": "1.0",
+      "owner": "lili",
+      "status": "archive",
+      "errors": null
+    },
+    {
+      "path": "work/边界测试_空文件.txt",
+      "elapsed": 0.89,
+      "ok": true,
+      "chunks": 0,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    }
+  ],
+  "verify_rows": [
+    {
+      "path": "work/星海员工手册_2024版.md",
+      "cards": 1,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "人力资源部",
+      "owner": "lili",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "work/星海财务报销制度_v2.1.md",
+      "cards": 1,
+      "allowed_groups": [
+        "财务部",
+        "研发部"
+      ],
+      "allowed_users": [],
+      "classification": "内部",
+      "department": "财务部",
+      "owner": "zhaocai",
+      "status": "active",
+      "version": "2.1"
+    },
+    {
+      "path": "work/星海信息安全管理制度.md",
+      "cards": 1,
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "classification": "内部",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "learning/星海RAG技术培训笔记.md",
+      "cards": 1,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "learning/星海产品培训_基础篇.docx",
+      "cards": 1,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "projects/星云项目/星云项目章程.md",
+      "cards": 1,
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "classification": "内部",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "projects/天枢项目/天枢项目立项报告.docx",
+      "cards": 1,
+      "allowed_groups": [
+        "研发部",
+        "市场部"
+      ],
+      "allowed_users": [],
+      "classification": "内部",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "projects/北斗项目/北斗项目总结报告.md",
+      "cards": 1,
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "classification": "内部",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+      "cards": 2,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "财务部",
+      "owner": "zhaocai",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海表格/2024年度部门预算表.xlsx",
+      "cards": 1,
+      "allowed_groups": [
+        "财务部"
+      ],
+      "allowed_users": [],
+      "classification": "内部",
+      "department": "财务部",
+      "owner": "zhaocai",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "cards": 4,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "市场部",
+      "owner": "liuye",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海简介/公司简介.html",
+      "cards": 1,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "人力资源部",
+      "owner": "lili",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海评审/产品评审会议纪要.rtf",
+      "cards": 1,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "reference/星海运维/机房巡检通知.jpg",
+      "cards": 1,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.0"
+    },
+    {
+      "path": "archive/星海旧版员工手册_2022.md",
+      "cards": 1,
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开",
+      "department": "人力资源部",
+      "owner": "lili",
+      "status": "archive",
+      "version": "1.0"
+    },
+    {
+      "path": "work/边界测试_空文件.txt",
+      "cards": 0
+    }
+  ],
+  "b1_incremental_rescan": {
+    "total_files": 2,
+    "skipped": [
+      "archive/星海旧版员工手册_2022.md",
+      "learning/public/统一环境信息记录.txt",
+      "learning/星海RAG技术培训笔记.md",
+      "learning/星海产品培训_基础篇.docx",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "projects/低空项目/项目说明.md",
+      "projects/北斗项目/北斗项目总结报告.md",
+      "projects/国防动员项目/项目说明.md",
+      "projects/天枢项目/天枢项目立项报告.docx",
+      "projects/开源情报项目/项目说明.md",
+      "projects/微信图片_20261119170638_6_27.jpg",
+      "projects/星云项目/星云项目章程.md",
+      "projects/边防海防项目/项目说明.md",
+      "reference/articles/RAG外部资料.pdf",
+      "reference/documents/示例_产品需求.docx",
+      "reference/documents/示例_会议纪要.rtf",
+      "reference/documents/示例_英文产品说明.pdf",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海合同/华信数据采购合同_2024.pdf",
+      "reference/星海简介/公司简介.html",
+      "reference/星海表格/2024年度部门预算表.xlsx",
+      "reference/星海评审/产品评审会议纪要.rtf",
+      "reference/星海运维/机房巡检通知.jpg",
+      "work/星海信息安全管理制度.md",
+      "work/星海员工手册_2024版.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "new": [
+      "projects/dikongyujingxitong/统一环境信息记录.txt",
+      "work/边界测试_空文件.txt"
+    ],
+    "updated": [],
+    "cleaned": []
+  },
+  "b2_version": {
+    "ingest_row": {
+      "path": "projects/星云项目/星云项目章程.md",
+      "elapsed": 7.06,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.1",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    },
+    "payload": {
+      "path": "projects/星云项目/星云项目章程.md",
+      "cards": 2,
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "classification": "内部",
+      "department": "研发部",
+      "owner": "wangfang",
+      "status": "active",
+      "version": "1.1"
+    },
+    "versions_in_store": [
+      [
+        "1.0",
+        "expired"
+      ],
+      [
+        "1.1",
+        "active"
+      ]
+    ]
+  },
+  "b3_archive": {
+    "path": "archive/星海旧版员工手册_2022.md",
+    "cards": 1,
+    "allowed_groups": [
+      "all"
+    ],
+    "allowed_users": [],
+    "classification": "公开",
+    "department": "人力资源部",
+    "owner": "lili",
+    "status": "archive",
+    "version": "1.0"
+  },
+  "b4_empty_file": [
+    {
+      "path": "work/边界测试_空文件.txt",
+      "elapsed": 0.89,
+      "ok": true,
+      "chunks": 0,
+      "classification": "公开",
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    }
+  ],
+  "b6_delete_cleanup": {
+    "cleaned": [
+      "projects/北斗项目/北斗项目总结报告.md"
+    ],
+    "restored": {
+      "path": "projects/北斗项目/北斗项目总结报告.md",
+      "elapsed": 4.9,
+      "ok": true,
+      "chunks": 1,
+      "classification": "内部",
+      "allowed_groups": [
+        "研发部"
+      ],
+      "allowed_users": [],
+      "department": "研发部",
+      "version": "1.0",
+      "owner": "wangfang",
+      "status": "active",
+      "errors": null
+    }
+  }
+}

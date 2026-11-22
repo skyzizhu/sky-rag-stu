@@ -1,0 +1,134 @@
+[
+  {
+    "id": "C11",
+    "target": true,
+    "passed": true,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 2,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C15",
+    "target": true,
+    "passed": true,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M01",
+    "target": false,
+    "passed": true,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 2,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C05",
+    "target": false,
+    "passed": true,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C02",
+    "target": false,
+    "passed": true,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C10",
+    "target": false,
+    "passed": true,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S18",
+    "target": false,
+    "passed": true,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 2,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  }
+]

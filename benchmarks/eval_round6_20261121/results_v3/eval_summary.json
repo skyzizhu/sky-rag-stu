@@ -1,0 +1,41 @@
+{
+  "total": 45,
+  "graded": 45,
+  "errors": [],
+  "overall": [
+    42,
+    45,
+    93.3
+  ],
+  "simple": [
+    15,
+    15,
+    100.0
+  ],
+  "medium": [
+    13,
+    15,
+    86.7
+  ],
+  "complex": [
+    14,
+    15,
+    93.3
+  ],
+  "retrieval_hit": [
+    43,
+    44,
+    97.7
+  ],
+  "mrr": 0.939,
+  "permission": [
+    1,
+    1,
+    100.0
+  ],
+  "wall_seconds_avg": 11.1,
+  "wall_seconds_p50": 7.2,
+  "wall_seconds_max": 60.1,
+  "llm_tokens_input": 205817,
+  "llm_tokens_output": 61798
+}

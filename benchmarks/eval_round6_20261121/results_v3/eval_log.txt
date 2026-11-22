@@ -1,0 +1,468 @@
+
+[1/45] S01（simple）asker=wangfang
+  Q: 数据治理管理制度把公司数据分为几级？分别是什么？
+    LLM 调用完成：deepseek-flash，耗时 4.6 秒
+Building prefix dict from the default dictionary ...
+Loading model from cache C:\Users\skyzi\AppData\Local\Temp\jieba.cache
+Loading model cost 0.714 seconds.
+Prefix dict has been built successfully.
+    检索耗时 1.42 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 7.5 秒
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=15.8s
+
+[2/45] S02（simple）asker=wangfang
+  Q: 机密级数据外发需要谁审批？
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    检索耗时 0.43 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.8 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=7.5s
+
+[3/45] S03（simple）asker=zhaocai
+  Q: 公司 2026 年的营业收入目标是多少？
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+    检索耗时 0.65 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.5 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=3.8s
+
+[4/45] S04（simple）asker=wangfang
+  Q: 2026 年计划新增多少名员工？研发序列占比多少？
+    LLM 调用完成：deepseek-flash，耗时 2.9 秒
+    检索耗时 0.39 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.31 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.7 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=6.7s
+
+[5/45] S05（simple）asker=wangfang
+  Q: 凤凰项目的负责人是谁？
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+    检索耗时 0.35 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    LLM 流式调用完成：deepseek-flash，耗时 0.5 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=3.0s
+
+[6/45] S06（simple）asker=wangfang
+  Q: 凤凰项目的投资回收期是几年？
+    LLM 调用完成：deepseek-flash，耗时 2.0 秒
+    检索耗时 0.36 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    LLM 流式调用完成：deepseek-flash，耗时 0.4 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=3.7s
+
+[7/45] S07（simple）asker=wangfang
+  Q: 按项目管理手册，项目周报什么时间前提交？
+    LLM 调用完成：deepseek-flash，耗时 1.5 秒
+    检索耗时 0.49 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.6 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=4.1s
+
+[8/45] S08（simple）asker=wangfang
+  Q: 项目管理手册里 CPI 低于多少触发红色预警？
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    检索耗时 0.44 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.7 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=5.3s
+
+[9/45] S09（simple）asker=wangfang
+  Q: Phoenix 技术方案建议书的文档编号是什么？
+    LLM 调用完成：deepseek-flash，耗时 2.6 秒
+    检索耗时 0.43 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.7 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=5.0s
+
+[10/45] S10（simple）asker=wangfang
+  Q: Phoenix 方案承诺的月度可用性 SLA 是多少？
+    LLM 调用完成：deepseek-flash，耗时 1.5 秒
+    检索耗时 0.46 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.5 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=3.6s
+
+[11/45] S11（simple）asker=liuye
+  Q: X-4000 旗舰版的售价是多少元？
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    检索耗时 0.71 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.4 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=2.9s
+
+[12/45] S12（simple）asker=liuye
+  Q: X-4000 官网商城什么时候开售？
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+    检索耗时 0.46 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.8 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=7 wall=3.4s
+
+[13/45] S13（simple）asker=zhaocai
+  Q: 项目台账里灯塔项目的负责人是谁？
+    LLM 调用完成：deepseek-flash，耗时 2.6 秒
+    检索耗时 0.34 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.8 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=5.0s
+
+[14/45] S14（simple）asker=zhaocai
+  Q: 按供应商管理办法，货款统一月结多少天？
+    LLM 调用完成：deepseek-flash，耗时 2.1 秒
+    检索耗时 0.54 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.6 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=5.6s
+
+[15/45] S15（simple）asker=lili
+  Q: 2023 年旧版差旅制度的一线城市住宿标准是多少钱一晚？
+    LLM 调用完成：deepseek-flash，耗时 5.8 秒
+    检索耗时 0.63 秒，召回 4 条，过滤条件：{'status': 'archive', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.0 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=8.1s
+
+[16/45] M01（medium）asker=wangfang
+  Q: 数据脱敏规则里手机号和身份证号分别怎么处理？
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+    检索耗时 0.43 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.9 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=6.1s
+
+[17/45] M02（medium）asker=wangfang
+  Q: 业务操作数据的在线保留和归档保留分别是多少年？
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+    检索耗时 0.45 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.8 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=5.4s
+
+[18/45] M03（medium）asker=zhaocai
+  Q: 2026 年的营收目标比 2025 年的目标增长了多少？
+    LLM 调用完成：deepseek-flash，耗时 5.2 秒
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.36 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.2 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=8.6s
+
+[19/45] M04（medium）asker=zhaocai
+  Q: 2026 年部门预算最高的两个部门是哪两个？分别是多少万元？
+    LLM 调用完成：deepseek-flash，耗时 7.0 秒
+    检索耗时 0.51 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+    LLM 调用完成：deepseek-flash，耗时 0.5 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+    检索耗时 0.89 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 0.5 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+  ❌ checks={'retrieval_hit': True, 'answer_must': False, 'answer_any': True, 'must_not': True} rank=1 wall=24.6s
+     答案片段: **结果不完整，可能有遗漏。**
+
+本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。
+
+1. **研发部**：部门 | 2026 预算（万元） 研发部 | 800 市场部 | 300 人力资源部 | 150 财务部 | 100 行政部 | 90 合计 | 1440 [1]
+
+2. **市场部**：部门 | 2026 预算（万元） 研发部 | 800 市场部 | 300
+
+[20/45] M05（medium）asker=wangfang
+  Q: 凤凰项目的三个关键技术指标是什么？
+    LLM 调用完成：deepseek-flash，耗时 4.6 秒
+    检索耗时 0.31 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    LLM 流式调用完成：deepseek-flash，耗时 1.2 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=7.1s
+
+[21/45] M06（medium）asker=wangfang
+  Q: X-4000 需求规格的非功能指标和凤凰可研报告一致吗？分别是什么？
+    LLM 调用完成：deepseek-flash，耗时 9.0 秒
+    检索耗时 0.44 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.32 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.4 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=12.9s
+
+[22/45] M07（medium）asker=zhaocai
+  Q: 2026 年台账里预算超过 200 万的项目有哪些？
+    LLM 调用完成：deepseek-flash，耗时 6.9 秒
+    检索耗时 0.54 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 4.6 秒
+    LLM 调用完成：deepseek-flash，耗时 4.4 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=16.7s
+
+[23/45] M08（medium）asker=zhaocai
+  Q: 台账里状态为已暂停的项目是哪两个？原因分别是什么？
+    LLM 调用完成：deepseek-flash，耗时 4.6 秒
+    检索耗时 0.44 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=7.1s
+
+[24/45] M09（medium）asker=zhaocai
+  Q: 凤凰项目的三个里程碑分别计划什么时候完成？
+    LLM 调用完成：deepseek-flash，耗时 3.8 秒
+    检索耗时 0.39 秒，召回 0 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}, 'project_id': [7]}
+  ❌ checks={'retrieval_hit': False, 'answer_must': False, 'answer_any': True, 'must_not': True} rank=None wall=4.3s
+     答案片段: 指定范围内没有找到你有权查看的匹配文档。
+
+[25/45] M10（medium）asker=wangfang
+  Q: 需求编号 REQ-FH-015 对应什么规则？
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    检索耗时 0.50 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.5 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=4.3s
+
+[26/45] M11（medium）asker=zhaocai
+  Q: 供应商分为几级？多少万元以上的采购必须三家比价？
+    LLM 调用完成：deepseek-flash，耗时 2.7 秒
+    检索耗时 0.39 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.40 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.7 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=7.7s
+
+[27/45] M12（medium）asker=lili
+  Q: 现在的差旅住宿一线标准和 2023 年旧版相比涨了多少钱？
+    LLM 调用完成：deepseek-flash，耗时 2.7 秒
+    检索耗时 0.79 秒，召回 10 条，过滤条件：{'status': ['active'], 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    检索耗时 0.75 秒，召回 10 条，过滤条件：{'status': ['archive', 'expired'], 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 流式调用完成：deepseek-flash，耗时 4.8 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=14.4s
+
+[28/45] M13（medium）asker=liuye
+  Q: X-4000 旗舰版和 X-3000 旗舰版的售价分别是多少元？
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    检索耗时 0.46 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    检索耗时 0.41 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.6 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=3.6s
+
+[29/45] M14（medium）asker=zhaocai
+  Q: 项目管理手册的立项审批门槛和合同管理制度的金额审批门槛分别是多少万元？
+    LLM 调用完成：deepseek-flash，耗时 5.7 秒
+    检索耗时 0.39 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.32 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.4 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=11.8s
+
+[30/45] M15（medium）asker=wangfang
+  Q: Phoenix 方案的总投入和人力规模分别是多少？
+    LLM 调用完成：deepseek-flash，耗时 3.0 秒
+    检索耗时 0.32 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.29 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.1 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=6 wall=6.9s
+
+[31/45] C01（complex）asker=wangfang
+  Q: 凤凰和星云两个项目的负责人分别是谁？这两个项目的预算加起来是多少万元？
+    LLM 调用完成：deepseek-flash，耗时 3.6 秒
+    检索耗时 0.31 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    检索耗时 0.46 秒，召回 4 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [2]}
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=7.1s
+
+[32/45] C02（complex）asker=wangfang
+  Q: 昆仑、凤凰、星云二期三个项目里预算最高的是哪个？是多少万元？
+    LLM 调用完成：deepseek-flash，耗时 2.9 秒
+    检索耗时 0.36 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.32 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.30 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.3 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=7.3s
+
+[33/45] C03（complex）asker=zhaocai
+  Q: 2026 年台账里预算排名前三的项目和金额分别是什么？
+    LLM 调用完成：deepseek-flash，耗时 6.9 秒
+    检索耗时 0.55 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 4.7 秒
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=14.5s
+
+[34/45] C04（complex）asker=zhaocai
+  Q: 台账里两个已暂停项目的负责人分别是谁？如果要恢复，各自需要先解决什么问题？
+    LLM 调用完成：deepseek-flash，耗时 2.5 秒
+    检索耗时 0.44 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.38 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    LLM 调用完成：deepseek-flash，耗时 3.1 秒
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+    LLM 调用完成：deepseek-flash，耗时 1.2 秒
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    LLM 调用完成：deepseek-flash，耗时 1.2 秒
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+    LLM 调用完成：deepseek-flash，耗时 1.2 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+    LLM 调用完成：deepseek-flash，耗时 1.1 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=23.4s
+
+[35/45] C05（complex）asker=zhaocai
+  Q: 2026 年三大重点投入项目的预算合计是多少万元？分别是哪些项目？
+    LLM 调用完成：deepseek-flash，耗时 4.6 秒
+    检索耗时 0.43 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.41 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 10.5 秒
+    LLM 调用完成：deepseek-flash，耗时 3.9 秒
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+    检索耗时 0.97 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=36.4s
+
+[36/45] C06（complex）asker=zhaocai
+  Q: 研发部 2026 年的预算比 2025 年增加了多少万元？增幅大约多少？
+    LLM 调用完成：deepseek-flash，耗时 4.0 秒
+    检索耗时 0.42 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.0 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=7.9s
+
+[37/45] C07（complex）asker=wangfang
+  Q: 凤凰项目的负责人、预算、周期和团队规模分别是什么？
+    LLM 调用完成：deepseek-flash，耗时 3.1 秒
+    检索耗时 0.26 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    检索耗时 0.21 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    检索耗时 0.26 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    检索耗时 0.27 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    LLM 流式调用完成：deepseek-flash，耗时 0.6 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=5.8s
+
+[38/45] C08（complex）asker=liuye
+  Q: X-4000 是什么时候发布的？标准版和旗舰版分别多少钱？旗舰版续航多久？
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    检索耗时 0.60 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.5 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=5.2s
+
+[39/45] C09（complex）asker=wangfang
+  Q: 知识库里哪些文档规定了数据或日志的保留时长？分别保留多久？
+    LLM 调用完成：deepseek-flash，耗时 2.0 秒
+    检索耗时 0.57 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 6.7 秒
+    LLM 调用完成：deepseek-flash，耗时 10.0 秒
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+    LLM 调用完成：deepseek-flash，耗时 6.1 秒
+    LLM 调用完成：deepseek-flash，耗时 10.2 秒
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+    检索耗时 0.83 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+    LLM 调用完成：deepseek-flash，耗时 4.5 秒
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+    LLM 调用完成：deepseek-flash，耗时 4.1 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=57.3s
+
+[40/45] C10（complex）asker=wangfang
+  Q: 数据治理制度规定的四级分类、机密外发审批人和跨部门导出审批时限分别是什么？
+    LLM 调用完成：deepseek-flash，耗时 3.0 秒
+    检索耗时 0.32 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.37 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.3 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=10.9s
+
+[41/45] C11（complex）asker=liuye
+  Q: 我是市场部的员工，凤凰项目有哪些资料我能查到？
+    LLM 调用完成：deepseek-flash，耗时 2.0 秒
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [7]}
+    LLM 调用完成：deepseek-flash，耗时 8.4 秒
+    LLM 调用完成：deepseek-flash，耗时 11.5 秒
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+    LLM 调用完成：deepseek-flash，耗时 12.0 秒
+    LLM 调用完成：deepseek-flash，耗时 5.5 秒
+    LLM 调用完成：deepseek-flash，耗时 5.0 秒
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+    检索耗时 0.68 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [7]}
+    检索耗时 0.79 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [7]}
+    LLM 调用完成：deepseek-flash，耗时 4.4 秒
+    检索耗时 0.84 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [7]}
+    检索耗时 0.90 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [7]}
+    LLM 调用完成：deepseek-flash，耗时 3.8 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'must_not_sources': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=60.1s
+
+[42/45] C12（complex）asker=zhaocai
+  Q: 凤凰项目现在的预算执行情况怎么样了？花了多少钱？
+    LLM 调用完成：deepseek-flash，耗时 3.6 秒
+    检索耗时 0.44 秒，召回 0 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}, 'project_id': [7]}
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.5 秒
+  ❌ checks={'answer_must': True, 'answer_any': True, 'must_not': False, 'refuse': True} rank=None wall=8.4s
+     答案片段: > ℹ️ 按「凤凰」过滤未找到资料，已放宽为全库语义检索结果。
+
+知识库中没有凤凰项目实际支出或预算执行（已花金额、执行率）的记录，因此无法回答"花了多少钱"。
+
+能确认的相关信息：
+
+- 凤凰项目预算为 260 万元，状态为"进行中"，周期为 2026-01 至 2026-09，负责人为沈青 [4]
+- 该项目属于 2026 年三大重点投入项目之一，投入内容为 X-4000 软件平台 [1]
+-
+
+[43/45] C13（complex）asker=wangfang
+  Q: Phoenix 方案的 RPO 和 RTO 分别是多少？和星云招标规格书的容灾要求相比谁更高？
+    LLM 调用完成：deepseek-flash，耗时 7.5 秒
+    检索耗时 0.46 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.42 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 3.6 秒
+  ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=15.5s
+
+[44/45] C14（complex）asker=wangfang
+  Q: 凤凰项目最终验收计划什么时候完成？试运行有什么要求？
+    LLM 调用完成：deepseek-flash，耗时 4.3 秒
+    检索耗时 0.37 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    检索耗时 0.24 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    LLM 流式调用完成：deepseek-flash，耗时 2.3 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=8.2s
+
+[45/45] C15（complex）asker=wangfang
+  Q: 2026 年三大战略分别是什么？对应看到的前两个重点产品动作是什么？
+    LLM 调用完成：deepseek-flash，耗时 2.1 秒
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.43 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 3.0 秒
+  ✅ checks={'retrieval_hit': True, 'answer_must': True, 'answer_any': True, 'must_not': True} rank=1 wall=7.8s
+
+============================================================
+{
+  "total": 45,
+  "graded": 45,
+  "errors": [],
+  "overall": [
+    42,
+    45,
+    93.3
+  ],
+  "simple": [
+    15,
+    15,
+    100.0
+  ],
+  "medium": [
+    13,
+    15,
+    86.7
+  ],
+  "complex": [
+    14,
+    15,
+    93.3
+  ],
+  "retrieval_hit": [
+    43,
+    44,
+    97.7
+  ],
+  "mrr": 0.939,
+  "permission": [
+    1,
+    1,
+    100.0
+  ],
+  "wall_seconds_avg": 11.1,
+  "wall_seconds_p50": 7.2,
+  "wall_seconds_max": 60.1,
+  "llm_tokens_input": 205817,
+  "llm_tokens_output": 61798
+}
+未通过： ['M04', 'M09', 'C12']

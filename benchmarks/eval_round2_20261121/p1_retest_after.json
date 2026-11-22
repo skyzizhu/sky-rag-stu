@@ -1,0 +1,670 @@
+{
+  "indexed": 29,
+  "cards": 37,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "configuration": {
+    "model": "deepseek-flash",
+    "embedding": "qwen3-embedding:4b",
+    "rerank": "local_onnx",
+    "project_linked": true,
+    "keyword_only": false
+  },
+  "questions": [
+    {
+      "id": "SN06",
+      "difficulty": "simple",
+      "question": "沧海项目是什么时候通过验收的？",
+      "seconds": 8.157,
+      "elapsed": {
+        "query_understanding": 2.5061755180358887,
+        "retrieval_only": 1.4303817749023438,
+        "rerank": 3.521024465560913,
+        "assembly": 0.0009982585906982422,
+        "retrieval": 4.952404499053955,
+        "total": 8.093757152557373,
+        "llm": 0.6351771354675293
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          5
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "沧海项目"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/沧海项目/沧海项目验收报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/沧海项目/沧海项目验收报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "沧海项目于 **2025-07-15** 通过客户验收 [1]。",
+      "support_probe": {
+        "checks": [
+          {
+            "decision": {
+              "status": "supported",
+              "checked": [
+                "验收日期"
+              ],
+              "missing": [],
+              "date_fields": [
+                "验收日期"
+              ]
+            },
+            "passages": [
+              "来源文档：沧海项目验收报告.docx\n沧海项目验收报告\n\n# 一、项目基本信息\n项目负责人：徐凯。项目预算：45 万元。项目周期 2025-01 至 2025-06，参与部门：研发部。\n\n# 二、验收结论\n项目于 2025-07-15 通过客户验收，交付物共 8 项，全部符合合同要求。\n\n# 三、遗留问题\n项目文档归档不齐全，需在 2025-09-30 前补齐并移交档案室。"
+            ]
+          }
+        ],
+        "evidence_only_sources_without_gate": [
+          "projects/沧海项目/沧海项目验收报告.docx",
+          "projects/北斗项目/北斗项目总结报告.md",
+          "projects/星云项目/星云项目章程.md",
+          "projects/天枢项目/天枢项目立项报告.docx",
+          "reference/星海简介/昆仑项目启动新闻.html"
+        ]
+      }
+    },
+    {
+      "id": "SN15",
+      "difficulty": "simple",
+      "question": "银河项目现在的预算是多少万元？",
+      "seconds": 1.406,
+      "elapsed": {
+        "query_understanding": 1.368579626083374
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "银河"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true,
+          "refuse": true
+        },
+        "passed": true,
+        "best_rank": null,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": [
+          "SN15：『无法识别所指定的检索范围』计为设计内诚实拒答（不编造即通过）"
+        ]
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "id": "MD20",
+      "difficulty": "medium",
+      "question": "华信数据采购合同约定的设备交付时间是什么时候？",
+      "seconds": 7.766,
+      "elapsed": {
+        "query_understanding": 3.0792713165283203,
+        "retrieval_only": 0.4019777774810791,
+        "rerank": 3.298409938812256,
+        "assembly": 0.0040132999420166016,
+        "retrieval": 3.7044010162353516,
+        "total": 7.726438522338867,
+        "llm": 0.9427661895751953
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 4
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "projects/沧海项目/沧海项目验收报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/沧海项目/沧海项目验收报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "华信数据采购合同约定：供应商应在 **2024-09-30 之前（before 2024-09-30）** 交付全部设备 [1]。\n\n说明：这是合同约定的交付截止时间，并非实际交付完成日期；知识库中没有资料说明设备实际交付的具体日期。",
+      "support_probe": {
+        "checks": [
+          {
+            "decision": {
+              "status": "supported",
+              "checked": [
+                "交付日期"
+              ],
+              "missing": [],
+              "date_fields": [
+                "交付日期"
+              ]
+            },
+            "passages": [
+              "来源文档：华信数据采购合同_2024.pdf\nPURCHASE CONTRACT\nContract No: HX-2024-088\nSigning Date: 2024-08-15\nBuyer: Xinghai Technology Co., Ltd.\nVendor: Huaxin Data Technology Co., Ltd.\n1. Subject\nThe Buyer purchases from the Vendor one server cluster\n(Model: HX-Rack-500) for the Nebula project data platform.\n2. Total Amount\nThe total contract amount is RMB 860,000 (CNY).\nThe price includes delivery, installation and a 3-year\nwarranty.\n3. Payment Terms\n3.1 Advance payment: 30% of the total amount within 7\n    working days after signing;\n3.2 Delivery payment: 50% after on-site installation;\n3.3 Acceptance payment: the remaining 20% after final\n    acceptance.\n4. Delivery and Acceptance\nThe Vendor shall deliver all equipment before 2024-09-30.\nFinal acceptance will be completed within 15 working days\nafter installation.\n5. Data Security\nThe Vendor shall comply with GB/T 22239 (MLPS Level 3)\nand shall not retain any copies of Buyer business data.\n6. Dispute Resolution\nAny dispute shall be submitted to arbitration in Hangzhou.\nSignatures:\nBuyer: Xinghai Technology Vendor: Huaxin Data\nDate: 2024-08-15 Date: 2024-08-15",
+              "来源文档：沧海项目验收报告.docx\n沧海项目验收报告\n\n# 一、项目基本信息\n项目负责人：徐凯。项目预算：45 万元。项目周期 2025-01 至 2025-06，参与部门：研发部。\n\n# 二、验收结论\n项目于 2025-07-15 通过客户验收，交付物共 8 项，全部符合合同要求。\n\n# 三、遗留问题\n项目文档归档不齐全，需在 2025-09-30 前补齐并移交档案室。",
+              "来源文档：北斗项目总结报告.md\n## 项目概况\n北斗项目是星云项目的前置预研项目，预算 80 万元，\n项目周期 2023-07 至 2024-06，项目负责人陈明，已于 2024-06 正式结项。\n\n## 验收结论\n项目通过客户验收，交付物共 12 项。遗留问题：部分设计文档不齐全，\n已列入星云项目的整改计划。\n\n## 经验教训\n需求变更 9 次是本项目延期的主要原因，后续项目应在立项阶段冻结基线需求。",
+              "来源文档：星云项目章程.md\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+            ]
+          }
+        ],
+        "evidence_only_sources_without_gate": [
+          "reference/星海合同/华信数据采购合同_2024.pdf",
+          "projects/沧海项目/沧海项目验收报告.docx",
+          "projects/北斗项目/北斗项目总结报告.md",
+          "projects/星云项目/星云项目章程.md"
+        ]
+      }
+    },
+    {
+      "id": "CX01",
+      "difficulty": "complex",
+      "question": "星云和天枢两个项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 4.531,
+      "elapsed": {
+        "query_understanding": 2.716066360473633,
+        "retrieval_only": 0.5049839019775391,
+        "rerank": 1.262242078781128,
+        "assembly": 0.0,
+        "retrieval": 1.767225980758667,
+        "total": 4.4832923412323
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1,
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "sum"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "星云",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢",
+              "sources": [
+                2
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云：负责人 陈明 [1]，预算 135 万元 [1]。\n- 天枢：负责人 周红 [2]，预算 200 万元 [2]。\n\n**预算合计 335 万元** [1][2]。"
+    },
+    {
+      "id": "CX02",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗、昆仑四个项目里预算最高的是哪个？是多少万元？",
+      "seconds": 7.594,
+      "elapsed": {
+        "query_understanding": 5.112464666366577,
+        "retrieval_only": 0.602928876876831,
+        "rerank": 1.8258543014526367,
+        "assembly": 0.0020275115966796875,
+        "retrieval": 2.4308106899261475,
+        "total": 7.543275356292725
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "max"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "星云",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢",
+              "sources": [
+                2
+              ]
+            },
+            {
+              "name": "北斗",
+              "sources": [
+                3
+              ]
+            },
+            {
+              "name": "昆仑",
+              "sources": [
+                4
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "projects/昆仑项目/昆仑项目立项报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云：预算 135 万元 [1]。\n- 天枢：预算 200 万元 [2]。\n- 北斗：预算 80 万元 [3]。\n- 昆仑：预算 300 万元 [4]。\n\n**预算最高：昆仑，300 万元** [1][2][3][4]。"
+    },
+    {
+      "id": "CX03",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目的预算加起来是多少万元？",
+      "seconds": 7.156,
+      "elapsed": {
+        "query_understanding": 4.797623634338379,
+        "retrieval_only": 0.5446863174438477,
+        "rerank": 1.7679405212402344,
+        "assembly": 0.001957416534423828,
+        "retrieval": 2.314584255218506,
+        "total": 7.112207889556885
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1,
+          2,
+          3
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "sum"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "星云",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢",
+              "sources": [
+                2
+              ]
+            },
+            {
+              "name": "北斗",
+              "sources": [
+                3
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云：预算 135 万元 [1]。\n- 天枢：预算 200 万元 [2]。\n- 北斗：预算 80 万元 [3]。\n\n**预算合计 415 万元** [1][2][3]。"
+    },
+    {
+      "id": "CX07",
+      "difficulty": "complex",
+      "question": "天枢、昆仑、沧海三个项目的负责人分别是谁？预算分别是多少万元？",
+      "seconds": 18.469,
+      "elapsed": {
+        "query_understanding": 16.420644521713257,
+        "retrieval_only": 0.7442402839660645,
+        "rerank": 1.2723932266235352,
+        "assembly": 0.0010004043579101562,
+        "retrieval": 2.0176339149475098,
+        "total": 18.438278436660767
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2,
+          4,
+          5
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [],
+          "missing": [],
+          "projects": [
+            {
+              "name": "天枢",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "昆仑",
+              "sources": [
+                2
+              ]
+            },
+            {
+              "name": "沧海",
+              "sources": [
+                3
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "projects/沧海项目/沧海项目验收报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/沧海项目/沧海项目验收报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 天枢：负责人 周红 [1]，预算 200 万元 [1]。\n- 昆仑：负责人 林岚 [2]，预算 300 万元 [2]。\n- 沧海：负责人 徐凯 [3]，预算 45 万元 [3]。"
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}

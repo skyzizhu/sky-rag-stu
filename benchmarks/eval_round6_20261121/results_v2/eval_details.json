@@ -1,0 +1,7174 @@
+[
+  {
+    "id": "S01",
+    "difficulty": "simple",
+    "dimension": "单事实检索-1",
+    "question": "数据治理管理制度把公司数据分为几级？分别是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **4 条带原文证据的记录**；这不是全库确定总数。\n\n1. **公开级**：公司数据分为四级：公开、内部、秘密、机密。 [1]\n\n2. **内部级**：公司数据分为四级：公开、内部、秘密、机密。 [1]\n\n3. **秘密级**：公司数据分为四级：公开、内部、秘密、机密。 [1]\n\n4. **机密级**：公司数据分为四级：公开、内部、秘密、机密。 [1]\n\n处理范围：1 份文档、1 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海数据治理管理制度_v2.0.md",
+        "path": "work/星海数据治理管理制度_v2.0.md",
+        "section": "一、总则",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "work/星海数据治理管理制度_v2.0.md"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "document",
+      "selected_documents": 1,
+      "processed_documents": 1,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查询公司数据治理管理制度中数据分级的具体级别数量及各级名称",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 4.34,
+      "retrieval_only": 1.52,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 1.52,
+      "total": 13.67,
+      "enumeration": 7.81,
+      "llm": 0.0
+    },
+    "wall_seconds": 15.19,
+    "usage": {
+      "query_understanding": {
+        "input": 1097,
+        "input_cached": 896,
+        "output": 649,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 1043,
+        "input_cached": 128,
+        "output": 1333,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 627,
+        "input_cached": 384,
+        "output": 130,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2767,
+      "input_cached": 1408,
+      "output": 2112,
+      "calls": 3
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S02",
+    "difficulty": "simple",
+    "dimension": "单事实检索-2",
+    "question": "机密级数据外发需要谁审批？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "机密级数据外发必须经 CTO 审批 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海数据治理管理制度_v2.0.md",
+        "path": "work/星海数据治理管理制度_v2.0.md",
+        "section": "一、总则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.0,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.4919,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.0,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.4692,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.4841,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "一、总则",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.4692,
+        "source": "星海数据备份与恢复管理办法_v1.1.md",
+        "path": "work/星海数据备份与恢复管理办法_v1.1.md",
+        "section": "一、备份策略",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.4621,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+      "work/星海合同管理制度_v1.1.md",
+      "work/星海数据备份与恢复管理办法_v1.1.md",
+      "work/星海数据治理管理制度_v2.0.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询机密级数据外发需要谁审批",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.45,
+      "retrieval_only": 0.4,
+      "rerank": 6.17,
+      "assembly": 0.02,
+      "retrieval": 6.58,
+      "total": 8.96,
+      "llm": 0.94
+    },
+    "wall_seconds": 9.06,
+    "usage": {
+      "query_understanding": {
+        "input": 1093,
+        "input_cached": 896,
+        "output": 120,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 3132,
+        "input_cached": 2304,
+        "output": 21,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 4225,
+      "input_cached": 3200,
+      "output": 141,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S03",
+    "difficulty": "simple",
+    "dimension": "单事实检索-3",
+    "question": "公司 2026 年的营业收入目标是多少？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "公司 2026 年营业收入目标为 **3.2 亿元**（2025 年目标为 2.5 亿元）[1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "一、总体目标",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9607,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "二、三大战略",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9385,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "三、部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9607,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.8842,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "五、主要风险",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.9839,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "经营目标",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询公司2026年营业收入目标的具体数值",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.05,
+      "retrieval_only": 0.81,
+      "rerank": 2.27,
+      "assembly": 0.0,
+      "retrieval": 3.08,
+      "total": 4.76,
+      "llm": 0.62
+    },
+    "wall_seconds": 4.83,
+    "usage": {
+      "query_understanding": {
+        "input": 1094,
+        "input_cached": 896,
+        "output": 125,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 942,
+        "input_cached": 768,
+        "output": 62,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2036,
+      "input_cached": 1664,
+      "output": 187,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S04",
+    "difficulty": "simple",
+    "dimension": "单事实检索-4",
+    "question": "2026 年计划新增多少名员工？研发序列占比多少？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "2026 年计划新增员工 **200 人**，其中研发序列占比 **60%**。[1]",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "一、总体目标",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9394,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "二、三大战略",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9531,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "三、部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9462,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.9314,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "五、主要风险",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.9839,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "经营目标",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.4919,
+        "source": "公司简介.html",
+        "path": "reference/星海简介/公司简介.html",
+        "section": "星海科技公司简介",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.4552,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.4692,
+        "source": "示例_会议纪要.rtf",
+        "path": "reference/documents/示例_会议纪要.rtf",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.4841,
+        "source": "星海员工手册_2025版_v3.0.md",
+        "path": "work/星海员工手册_2025版_v3.0.md",
+        "section": "四、假期管理",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.4766,
+        "source": "星海新员工入职培训手册_v2.0.docx",
+        "path": "learning/星海新员工入职培训手册_v2.0.docx",
+        "section": "四、IT 设备与账号",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.4766,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "星海科技 2026 春季新品发布会纪要",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.4552,
+        "source": "星海员工手册_2024版.md",
+        "path": "work/星海员工手册_2024版.md",
+        "section": "星海科技员工手册（2024版）",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海新员工入职培训手册_v2.0.docx",
+      "reference/documents/示例_会议纪要.rtf",
+      "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+      "reference/星海简介/公司简介.html",
+      "work/星海2026年度经营计划.docx",
+      "work/星海员工手册_2024版.md",
+      "work/星海员工手册_2025版_v3.0.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 9,
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询2026年计划新增员工数量及研发序列占比",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.48,
+      "retrieval_only": 0.76,
+      "rerank": 5.57,
+      "assembly": 0.01,
+      "retrieval": 6.35,
+      "total": 10.73,
+      "llm": 0.9
+    },
+    "wall_seconds": 10.83,
+    "usage": {
+      "query_understanding": {
+        "input": 1099,
+        "input_cached": 896,
+        "output": 548,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2720,
+        "input_cached": 2560,
+        "output": 64,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3819,
+      "input_cached": 3456,
+      "output": 612,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S05",
+    "difficulty": "simple",
+    "dimension": "单事实检索-5",
+    "question": "凤凰项目的负责人是谁？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "凤凰项目的负责人是沈青。[2]",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9839,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9531,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9683,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9385,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9173,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.4357,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.442,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.9173,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4485,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "metadata_scope": {
+        "project": "凤凰"
+      },
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询凤凰项目的负责人是谁",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.07,
+      "retrieval_only": 0.36,
+      "rerank": 1.67,
+      "assembly": 0.0,
+      "retrieval": 2.03,
+      "total": 4.65,
+      "llm": 0.55
+    },
+    "wall_seconds": 4.79,
+    "usage": {
+      "query_understanding": {
+        "input": 1089,
+        "input_cached": 896,
+        "output": 207,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1469,
+        "input_cached": 1280,
+        "output": 30,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2558,
+      "input_cached": 2176,
+      "output": 237,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S06",
+    "difficulty": "simple",
+    "dimension": "单事实检索-6",
+    "question": "凤凰项目的投资回收期是几年？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "凤凰项目的投资回收期为 **2.2 年** [3]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9607,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9839,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 1.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9038,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.4621,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "metadata_scope": {
+        "project": "凤凰"
+      },
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询凤凰项目的投资回收期",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.23,
+      "retrieval_only": 0.36,
+      "rerank": 1.98,
+      "assembly": 0.0,
+      "retrieval": 2.34,
+      "total": 5.67,
+      "llm": 1.1
+    },
+    "wall_seconds": 5.78,
+    "usage": {
+      "query_understanding": {
+        "input": 1092,
+        "input_cached": 896,
+        "output": 271,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 845,
+        "input_cached": 640,
+        "output": 36,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1937,
+      "input_cached": 1536,
+      "output": 307,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S07",
+    "difficulty": "simple",
+    "dimension": "单事实检索-7",
+    "question": "按项目管理手册，项目周报什么时间前提交？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "按项目管理手册，项目周报须在**每周五 17:00 前**提交至 PMO [3]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9607,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "一、立项管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9839,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "二、计划管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 1.0,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "三、执行与报告",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4552,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "四、监控与预警",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.9607,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "五、收尾管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.4552,
+        "source": "沧海项目验收报告.docx",
+        "path": "projects/沧海项目/沧海项目验收报告.docx",
+        "section": "一、项目基本信息",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.0,
+        "source": "沧海项目验收报告.docx",
+        "path": "projects/沧海项目/沧海项目验收报告.docx",
+        "section": "二、验收结论",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.4621,
+        "source": "沧海项目验收报告.docx",
+        "path": "projects/沧海项目/沧海项目验收报告.docx",
+        "section": "三、遗留问题",
+        "channels": "向量",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海项目管理手册_v1.0.docx",
+      "projects/沧海项目/沧海项目验收报告.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询项目管理手册中规定的项目周报提交截止时间",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.12,
+      "retrieval_only": 0.49,
+      "rerank": 3.95,
+      "assembly": 0.0,
+      "retrieval": 4.44,
+      "total": 7.62,
+      "llm": 1.06
+    },
+    "wall_seconds": 7.75,
+    "usage": {
+      "query_understanding": {
+        "input": 1096,
+        "input_cached": 896,
+        "output": 267,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1046,
+        "input_cached": 640,
+        "output": 33,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2142,
+      "input_cached": 1536,
+      "output": 300,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S08",
+    "difficulty": "simple",
+    "dimension": "单事实检索-8",
+    "question": "项目管理手册里 CPI 低于多少触发红色预警？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "CPI 低于 **0.8** 时会触发红色预警，并且必须强制制定纠偏计划 [3]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9607,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "二、计划管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9612,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "三、执行与报告",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 1.0,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "四、监控与预警",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4552,
+        "source": "天枢项目立项报告.docx",
+        "path": "projects/天枢项目/天枢项目立项报告.docx",
+        "section": "二、关键技术指标（KPI）",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.4552,
+        "source": "昆仑项目需求说明书_v2.0.docx",
+        "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海项目管理手册_v1.0.docx",
+      "projects/天枢项目/天枢项目立项报告.docx",
+      "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 3,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询项目管理手册中触发红色预警的 CPI 阈值",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.61,
+      "retrieval_only": 0.39,
+      "rerank": 3.67,
+      "assembly": 0.0,
+      "retrieval": 4.07,
+      "total": 6.41,
+      "llm": 0.73
+    },
+    "wall_seconds": 6.47,
+    "usage": {
+      "query_understanding": {
+        "input": 1095,
+        "input_cached": 896,
+        "output": 205,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1027,
+        "input_cached": 512,
+        "output": 53,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2122,
+      "input_cached": 1408,
+      "output": 258,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S09",
+    "difficulty": "simple",
+    "dimension": "单事实检索-9",
+    "question": "Phoenix 技术方案建议书的文档编号是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "Phoenix 技术方案建议书的文档编号是 **PHX-PROP-2026-007** [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9049,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9683,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9685,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.4692,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.4766,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "reference/星海合同/Phoenix技术方案建议书_2026.pdf"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 Phoenix 技术方案建议书的文档编号",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 6.29,
+      "retrieval_only": 0.42,
+      "rerank": 1.39,
+      "assembly": 0.0,
+      "retrieval": 1.81,
+      "total": 8.72,
+      "llm": 0.62
+    },
+    "wall_seconds": 8.82,
+    "usage": {
+      "query_understanding": {
+        "input": 1095,
+        "input_cached": 896,
+        "output": 1142,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 971,
+        "input_cached": 768,
+        "output": 31,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2066,
+      "input_cached": 1664,
+      "output": 1173,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S10",
+    "difficulty": "simple",
+    "dimension": "单事实检索-10",
+    "question": "Phoenix 方案承诺的月度可用性 SLA 是多少？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "Phoenix 方案承诺的月度可用性 SLA 为 **99.9%/月**（Uptime SLA: 99.9% per month）[1]。可行性研究报告中同样提出系统可用性不低于 99.9% [8]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9692,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9692,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9318,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9387,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9761,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.4621,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9394,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.4485,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "文档展开",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "reference/星海合同/Phoenix技术方案建议书_2026.pdf"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 Phoenix 方案中承诺的月度可用性 SLA 数值",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.33,
+      "retrieval_only": 0.53,
+      "rerank": 2.78,
+      "assembly": 0.01,
+      "retrieval": 3.32,
+      "total": 5.31,
+      "llm": 0.66
+    },
+    "wall_seconds": 5.44,
+    "usage": {
+      "query_understanding": {
+        "input": 1097,
+        "input_cached": 896,
+        "output": 198,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1498,
+        "input_cached": 1280,
+        "output": 60,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2595,
+      "input_cached": 2176,
+      "output": 258,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S11",
+    "difficulty": "simple",
+    "dimension": "单事实检索-11",
+    "question": "X-4000 旗舰版的售价是多少元？",
+    "asker": "liuye",
+    "user_groups": [
+      "市场部"
+    ],
+    "filters": {},
+    "answer": "X-4000 旗舰版的售价是 **25999 元** [3]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "星海科技 2026 春季新品发布会纪要",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9405,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "生态合作",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "星海科技 2025 年中新品发布会纪要",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.9685,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.9262,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.8978,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 X-4000 旗舰版产品的售价金额",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.04,
+      "retrieval_only": 0.93,
+      "rerank": 1.58,
+      "assembly": 0.01,
+      "retrieval": 2.52,
+      "total": 4.37,
+      "llm": 0.81
+    },
+    "wall_seconds": 4.48,
+    "usage": {
+      "query_understanding": {
+        "input": 1095,
+        "input_cached": 896,
+        "output": 139,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1413,
+        "input_cached": 1279,
+        "output": 53,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2508,
+      "input_cached": 2175,
+      "output": 192,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S12",
+    "difficulty": "simple",
+    "dimension": "单事实检索-12",
+    "question": "X-4000 官网商城什么时候开售？",
+    "asker": "liuye",
+    "user_groups": [
+      "市场部"
+    ],
+    "filters": {},
+    "answer": "X-4000 官网商城将于 2026-03-25 开售 [10]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "星海科技 2025 年中新品发布会纪要",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4919,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.4919,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "星海科技 2026 春季新品发布会纪要",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.5,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.5,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "生态合作",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 14,
+        "score": 0.4841,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "产品规划",
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 3,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 X-4000 在官网商城的开售时间",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.27,
+      "retrieval_only": 0.49,
+      "rerank": 1.52,
+      "assembly": 0.01,
+      "retrieval": 2.02,
+      "total": 3.71,
+      "llm": 0.43
+    },
+    "wall_seconds": 3.85,
+    "usage": {
+      "query_understanding": {
+        "input": 1095,
+        "input_cached": 896,
+        "output": 108,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1489,
+        "input_cached": 1280,
+        "output": 28,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2584,
+      "input_cached": 2176,
+      "output": 136,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 7,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S13",
+    "difficulty": "simple",
+    "dimension": "单事实检索-13",
+    "question": "项目台账里灯塔项目的负责人是谁？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "> ℹ️ 「项目台账里灯塔」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n灯塔项目的负责人是孙倩 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9839,
+        "source": "星海项目台账_2025.xlsx",
+        "path": "reference/星海表格/星海项目台账_2025.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9607,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星云项目团队致谢",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4766,
+        "source": "机房巡检通知.jpg",
+        "path": "reference/星海运维/机房巡检通知.jpg",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4692,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "一、立项管理",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "二、计划管理",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.9394,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "三、执行与报告",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.0,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "四、监控与预警",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.0,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "五、收尾管理",
+        "channels": "文档展开",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海项目管理手册_v1.0.docx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海表格/星海2026项目总台账.xlsx",
+      "reference/星海表格/星海项目台账_2025.xlsx",
+      "reference/星海运维/机房巡检通知.jpg"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询项目台账中灯塔项目的负责人信息",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.11,
+      "retrieval_only": 0.37,
+      "rerank": 3.94,
+      "assembly": 0.01,
+      "retrieval": 4.32,
+      "total": 6.98,
+      "llm": 0.55
+    },
+    "wall_seconds": 7.05,
+    "usage": {
+      "query_understanding": {
+        "input": 1092,
+        "input_cached": 896,
+        "output": 282,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1773,
+        "input_cached": 1024,
+        "output": 55,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2865,
+      "input_cached": 1920,
+      "output": 337,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S14",
+    "difficulty": "simple",
+    "dimension": "单事实检索-14",
+    "question": "按供应商管理办法，货款统一月结多少天？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "按供应商管理办法，货款统一月结 60 天 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海供应商管理办法_2026修订.md",
+        "path": "work/星海供应商管理办法_2026修订.md",
+        "section": "一、准入",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9685,
+        "source": "星海付款审批细则.md",
+        "path": "work/星海付款审批细则.md",
+        "section": "复核与会签",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4621,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.8906,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "七、保证金管理",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海合同/华信数据采购合同_2024.pdf",
+      "work/星海付款审批细则.md",
+      "work/星海供应商管理办法_2026修订.md",
+      "work/星海合同管理制度_v1.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询供应商管理办法中关于货款统一月结天数的规定",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.38,
+      "retrieval_only": 0.43,
+      "rerank": 6.26,
+      "assembly": 0.01,
+      "retrieval": 6.7,
+      "total": 8.99,
+      "llm": 0.9
+    },
+    "wall_seconds": 9.07,
+    "usage": {
+      "query_understanding": {
+        "input": 1095,
+        "input_cached": 896,
+        "output": 103,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1693,
+        "input_cached": 1024,
+        "output": 33,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2788,
+      "input_cached": 1920,
+      "output": 136,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "S15",
+    "difficulty": "simple",
+    "dimension": "单事实检索-15",
+    "question": "2023 年旧版差旅制度的一线城市住宿标准是多少钱一晚？",
+    "asker": "lili",
+    "user_groups": [
+      "人力资源部"
+    ],
+    "filters": {},
+    "answer": "2023 年旧版差旅制度规定，一线城市的住宿标准是每晚 300 元 [1]。\n\n需要注意，该版本已废止，现行标准应以 2025 版员工手册与差旅管理办法为准 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海旧版差旅制度_2023.md",
+        "path": "archive/星海旧版差旅制度_2023.md",
+        "section": "星海差旅制度（2023 旧版，已废止）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9761,
+        "source": "星海旧版员工手册_2022.md",
+        "path": "archive/星海旧版员工手册_2022.md",
+        "section": "星海科技员工手册（2022 旧版，已废止）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9685,
+        "source": "星海旧版采购管理制度_2020.md",
+        "path": "archive/星海旧版采购管理制度_2020.md",
+        "section": "星海采购管理制度（2020 旧版，已废止）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9607,
+        "source": "星海旧版考勤制度_2021.md",
+        "path": "archive/星海旧版考勤制度_2021.md",
+        "section": "星海科技考勤制度（2021 旧版，已废止）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "archive/星海旧版员工手册_2022.md",
+      "archive/星海旧版差旅制度_2023.md",
+      "archive/星海旧版考勤制度_2021.md",
+      "archive/星海旧版采购管理制度_2020.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询2023年旧版差旅制度中一线城市住宿标准的每晚金额",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.55,
+      "retrieval_only": 0.6,
+      "rerank": 1.14,
+      "assembly": 0.0,
+      "retrieval": 1.74,
+      "total": 6.31,
+      "llm": 1.02
+    },
+    "wall_seconds": 6.4,
+    "usage": {
+      "query_understanding": {
+        "input": 1101,
+        "input_cached": 896,
+        "output": 623,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1178,
+        "input_cached": 1024,
+        "output": 98,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2279,
+      "input_cached": 1920,
+      "output": 721,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M01",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-1",
+    "question": "数据脱敏规则里手机号和身份证号分别怎么处理？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据制度中的静态脱敏规则 [1]：\n\n- **手机号**：保留前 3 位与后 4 位，中间 4 位用 `*` 替代 [1]。\n- **身份证号**：保留前 6 位与后 4 位，出生日期整体用 `*` 替代 [1]。\n\n另外，测试与开发环境一律使用脱敏副本，禁止直接在生产数据上调试 [1]；查询出口的动态脱敏按角色生效，普通员工看不到完整手机号与证件号 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海数据治理管理制度_v2.0.md",
+        "path": "work/星海数据治理管理制度_v2.0.md",
+        "section": "一、总则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.8777,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9314,
+        "source": "星海信息安全管理制度.md",
+        "path": "work/星海信息安全管理制度.md",
+        "section": "账号密码安全",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.4919,
+        "source": "星海RAG技术培训笔记.md",
+        "path": "learning/星海RAG技术培训笔记.md",
+        "section": "什么是 RAG",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海RAG技术培训笔记.md",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "work/星海信息安全管理制度.md",
+      "work/星海数据治理管理制度_v2.0.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "了解数据脱敏规则中手机号与身份证号分别采用的处理方式",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.73,
+      "retrieval_only": 0.43,
+      "rerank": 8.61,
+      "assembly": 0.02,
+      "retrieval": 9.06,
+      "total": 12.91,
+      "llm": 1.11
+    },
+    "wall_seconds": 13.01,
+    "usage": {
+      "query_understanding": {
+        "input": 1097,
+        "input_cached": 896,
+        "output": 337,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2704,
+        "input_cached": 768,
+        "output": 162,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3801,
+      "input_cached": 1664,
+      "output": 499,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M02",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-2",
+    "question": "业务操作数据的在线保留和归档保留分别是多少年？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据《星海数据治理管理制度（V2.0）》的数据生命周期规定：\n\n- 业务操作数据的在线保留期限为 **2 年**；\n- 在线保留期满后转入归档库，再保留 **5 年**；\n- 归档期满后，由数据 Owner 评估销毁或延期 [1]。\n\n注：如果涉及诉讼，相关数据需要按法务要求冻结，不适用上述常规保留期限 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9692,
+        "source": "星海数据治理管理制度_v2.0.md",
+        "path": "work/星海数据治理管理制度_v2.0.md",
+        "section": "一、总则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9839,
+        "source": "星海数据备份与恢复管理办法_v1.1.md",
+        "path": "work/星海数据备份与恢复管理办法_v1.1.md",
+        "section": "一、备份策略",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.4841,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "一、总则",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.4621,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "七、保证金管理",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.4766,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "星云项目招标技术规格书",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.8906,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "十三、系统对接清单",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9692,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": "二、功能需求",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+      "reference/documents/示例_产品需求.docx",
+      "work/星海合同管理制度_v1.1.md",
+      "work/星海数据备份与恢复管理办法_v1.1.md",
+      "work/星海数据治理管理制度_v2.0.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询业务操作数据的在线保留年限与归档保留年限分别是多少年",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.32,
+      "retrieval_only": 0.47,
+      "rerank": 9.34,
+      "assembly": 0.02,
+      "retrieval": 9.83,
+      "total": 12.33,
+      "llm": 1.19
+    },
+    "wall_seconds": 12.5,
+    "usage": {
+      "query_understanding": {
+        "input": 1096,
+        "input_cached": 896,
+        "output": 206,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 3347,
+        "input_cached": 1536,
+        "output": 150,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 4443,
+      "input_cached": 2432,
+      "output": 356,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M03",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-3",
+    "question": "2026 年的营收目标比 2025 年的目标增长了多少？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "2026 年营业收入目标是 3.2 亿元 [1]，2025 年营业收入目标是 2.5 亿元 [7]，因此该目标增长了 0.7 亿元，增幅为 28%。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "一、总体目标",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9841,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "二、三大战略",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4621,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "三、部门预算",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.4766,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "五、主要风险",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.4841,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "星海科技 2025 年度规划汇报",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.9841,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "经营目标",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.8978,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "产品规划",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.0,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "市场策略",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.4621,
+        "source": "星海供应商管理办法_2026修订.md",
+        "path": "work/星海供应商管理办法_2026修订.md",
+        "section": "一、准入",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.9186,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "星海科技 2025 年中新品发布会纪要",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 14,
+        "score": 0.8978,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 15,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 16,
+        "score": 0.4766,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 17,
+        "score": 0.4552,
+        "source": "2025年度部门预算表.xlsx",
+        "path": "reference/星海表格/2025年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 18,
+        "score": 0.4841,
+        "source": "示例_会议纪要.rtf",
+        "path": "reference/documents/示例_会议纪要.rtf",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 19,
+        "score": 0.9049,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "星海科技 2026 春季新品发布会纪要",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 20,
+        "score": 0.4692,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/documents/示例_会议纪要.rtf",
+      "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "reference/星海表格/2025年度部门预算表.xlsx",
+      "work/星海2026年度经营计划.docx",
+      "work/星海供应商管理办法_2026修订.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 7,
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询2026年营收目标相对2025年营收目标的增长额",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.96,
+      "retrieval_only": 0.65,
+      "rerank": 2.96,
+      "assembly": 0.01,
+      "retrieval": 3.62,
+      "total": 8.36,
+      "llm": 0.77
+    },
+    "wall_seconds": 8.49,
+    "usage": {
+      "query_understanding": {
+        "input": 1100,
+        "input_cached": 896,
+        "output": 643,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2552,
+        "input_cached": 2304,
+        "output": 103,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3652,
+      "input_cached": 3200,
+      "output": 746,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M04",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-4",
+    "question": "2026 年部门预算最高的两个部门是哪两个？分别是多少万元？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "2026 年部门预算最高的两个部门是：\n\n- 研发部：800 万元 [3]\n- 市场部：300 万元 [3]",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.4692,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "一、总体目标",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "二、三大战略",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9919,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "三、部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9607,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "五、主要风险",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.9919,
+        "source": "2025年度部门预算表.xlsx",
+        "path": "reference/星海表格/2025年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9607,
+        "source": "2024年度部门预算表.xlsx",
+        "path": "reference/星海表格/2024年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9107,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海表格/2024年度部门预算表.xlsx",
+      "reference/星海表格/2025年度部门预算表.xlsx",
+      "reference/星海表格/星海2026项目总台账.xlsx",
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询2026年部门预算排名前两位的部门及各自预算金额（万元）",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.84,
+      "retrieval_only": 0.48,
+      "rerank": 5.73,
+      "assembly": 0.0,
+      "retrieval": 6.22,
+      "total": 10.73,
+      "llm": 0.67
+    },
+    "wall_seconds": 10.84,
+    "usage": {
+      "query_understanding": {
+        "input": 1100,
+        "input_cached": 896,
+        "output": 518,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1735,
+        "input_cached": 896,
+        "output": 74,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2835,
+      "input_cached": 1792,
+      "output": 592,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M05",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-5",
+    "question": "凤凰项目的三个关键技术指标是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "凤凰项目的三个关键技术指标是：\n\n- 支持 2000 台设备并发接入 [3][9]\n- 核心接口响应时间不超过 300 毫秒（95 分位）[3][9]\n- 系统可用性不低于 99.9% [3][9]",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9531,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9683,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 1.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9612,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9314,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.8906,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.8973,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9276,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.9107,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4552,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "metadata_scope": {
+        "project": "凤凰"
+      },
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询凤凰项目的三个关键技术指标具体指什么",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.58,
+      "retrieval_only": 0.31,
+      "rerank": 2.72,
+      "assembly": 0.01,
+      "retrieval": 3.05,
+      "total": 6.52,
+      "llm": 0.89
+    },
+    "wall_seconds": 6.67,
+    "usage": {
+      "query_understanding": {
+        "input": 1091,
+        "input_cached": 896,
+        "output": 393,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1471,
+        "input_cached": 1280,
+        "output": 69,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2562,
+      "input_cached": 2176,
+      "output": 462,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M06",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-6",
+    "question": "X-4000 需求规格的非功能指标和凤凰可研报告一致吗？分别是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "一致。\n\n**X-4000 需求规格中的非功能要求** [4]：\n- 支持 2000 台设备并发接入\n- 核心接口响应时间不超过 300 毫秒（95 分位）\n- 系统可用性不低于 99.9%\n- 该文档明确注明“与《凤凰项目可行性研究报告》保持一致” [4]\n\n**凤凰项目可行性研究报告中的关键技术指标** [8]：\n- 支持 2000 台设备并发接入\n- 核心接口响应时间不超过 300 毫秒（95 分位）\n- 系统可用性不低于 99.9%\n\n两份文档中的三项指标完全相同 [4][8]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9761,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9541,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 1.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9607,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9462,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9245,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9766,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.9534,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.9042,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 11,
+        "score": 0.9552,
+        "source": "昆仑项目需求说明书_v2.0.docx",
+        "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 12,
+        "score": 0.0,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": "一、背景与目标",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.4357,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": "二、功能需求",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 14,
+        "score": 0.8842,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": "三、验收标准",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 15,
+        "score": 0.9113,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 16,
+        "score": 0.4552,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 17,
+        "score": 0.8971,
+        "source": "天枢项目立项报告.docx",
+        "path": "projects/天枢项目/天枢项目立项报告.docx",
+        "section": "二、关键技术指标（KPI）",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 18,
+        "score": 0.4552,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星海科技 X-2000 新品发布会",
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "projects/天枢项目/天枢项目立项报告.docx",
+      "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+      "reference/documents/示例_产品需求.docx",
+      "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 8,
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "对比 X-4000 需求规格与凤凰可研报告中的非功能指标是否一致，并分别说明各自内容",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 8.73,
+      "retrieval_only": 0.85,
+      "rerank": 4.47,
+      "assembly": 0.01,
+      "retrieval": 5.33,
+      "total": 15.45,
+      "llm": 1.38
+    },
+    "wall_seconds": 15.6,
+    "usage": {
+      "query_understanding": {
+        "input": 1105,
+        "input_cached": 896,
+        "output": 1360,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2231,
+        "input_cached": 1920,
+        "output": 202,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3336,
+      "input_cached": 2816,
+      "output": 1562,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M07",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-7",
+    "question": "2026 年台账里预算超过 200 万的项目有哪些？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "> ℹ️ 「2026 年台账里预算超过 200 万的」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **昆仑项目**：昆仑项目 | 林岚 | 300 | 进行中 | 2025-03~2026-02 [1]\n\n2. **低空预警系统**：低空预警系统 | 李强 | 500 | 进行中 | 2024-05~2026-04 [1]\n\n3. **凤凰项目**：凤凰项目 | 沈青 | 260 | 进行中 | 2026-01~2026-09 [1]\n\n处理范围：1 份文档、1 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海表格/星海2026项目总台账.xlsx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "document",
+      "selected_documents": 1,
+      "processed_documents": 1,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查找2026年台账中预算超过200万元的项目清单",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 6.7,
+      "retrieval_only": 0.52,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.52,
+      "total": 13.91,
+      "enumeration": 6.69,
+      "llm": 0.0
+    },
+    "wall_seconds": 13.97,
+    "usage": {
+      "query_understanding": {
+        "input": 1099,
+        "input_cached": 896,
+        "output": 1185,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 850,
+        "input_cached": 640,
+        "output": 770,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 614,
+        "input_cached": 384,
+        "output": 486,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2563,
+      "input_cached": 1920,
+      "output": 2441,
+      "calls": 3
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": 1,
+      "must_miss": [
+        "磐石"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M08",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-8",
+    "question": "台账里状态为已暂停的项目是哪两个？原因分别是什么？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。\n\n1. **磐石项目**：磐石项目 | 吴刚 | 220 | 已暂停 | 资金冻结 [1]\n\n2. **灯塔项目**：灯塔项目 | 孙倩 | 90 | 已暂停 | 需求重大变更 [1]\n\n处理范围：12 份文档、63 张卡片、12 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海表格/星海2026项目总台账.xlsx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 12,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "从台账中找出状态为已暂停的两个项目，并说明各自的暂停原因",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 4.58,
+      "retrieval_only": 1.0,
+      "rerank": 1.9,
+      "assembly": 0.1,
+      "retrieval": 3.01,
+      "total": 23.3,
+      "enumeration": 15.7,
+      "llm": 0.0
+    },
+    "wall_seconds": 23.37,
+    "usage": {
+      "query_understanding": {
+        "input": 1098,
+        "input_cached": 896,
+        "output": 653,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 1557,
+        "input_cached": 128,
+        "output": 799,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 927,
+        "input_cached": 128,
+        "output": 89,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 1059,
+        "input_cached": 128,
+        "output": 58,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 2132,
+        "input_cached": 128,
+        "output": 79,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 2036,
+        "input_cached": 128,
+        "output": 65,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 2487,
+        "input_cached": 128,
+        "output": 90,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 1422,
+        "input_cached": 128,
+        "output": 49,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 3058,
+        "input_cached": 128,
+        "output": 84,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 2622,
+        "input_cached": 128,
+        "output": 31,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 2663,
+        "input_cached": 128,
+        "output": 76,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 3079,
+        "input_cached": 128,
+        "output": 68,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 2220,
+        "input_cached": 128,
+        "output": 66,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 523,
+        "input_cached": 384,
+        "output": 91,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 26883,
+      "input_cached": 2816,
+      "output": 2298,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M09",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-9",
+    "question": "凤凰项目的三个里程碑分别计划什么时候完成？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "指定范围内没有找到你有权查看的匹配文档。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 0,
+      "metadata_scope": {
+        "project": "凤凰"
+      },
+      "coverage": "not_found",
+      "enumeration": false,
+      "intent": "查询凤凰项目中三个里程碑各自的计划完成时间",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.32,
+      "retrieval_only": 0.35,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.35,
+      "total": 2.66
+    },
+    "wall_seconds": 2.73,
+    "usage": {
+      "query_understanding": {
+        "input": 1093,
+        "input_cached": 896,
+        "output": 381,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1093,
+      "input_cached": 896,
+      "output": 381,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "2026-04-30",
+        "2026-06-30",
+        "2026-09-15"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M10",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-10",
+    "question": "需求编号 REQ-FH-015 对应什么规则？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "REQ-FH-015 对应的是**告警联动规则**，隶属「告警联动」模块 [3]。\n\n具体内容：\n- 同一设备同一告警类型在 30 分钟内触发 2 次的，自动生成工单并派发给责任班组 [3]。\n- 同一章节还规定：工单 4 小时未响应自动升级至班长，8 小时未响应升级至租户管理员 [3]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9178,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.4841,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 1.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9173,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9042,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "昆仑项目需求说明书_v2.0.docx",
+        "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+        "section": "一、用户角色",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.4766,
+        "source": "昆仑项目需求说明书_v2.0.docx",
+        "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9839,
+        "source": "昆仑项目需求说明书_v2.0.docx",
+        "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.0,
+        "source": "昆仑项目需求说明书_v2.0.docx",
+        "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.0,
+        "source": "昆仑项目需求说明书_v2.0.docx",
+        "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+        "section": "五、验收标准",
+        "channels": "文档展开",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询需求编号 REQ-FH-015 所对应的规则",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 0.96,
+      "retrieval_only": 0.5,
+      "rerank": 1.31,
+      "assembly": 0.0,
+      "retrieval": 1.81,
+      "total": 4.04,
+      "llm": 1.27
+    },
+    "wall_seconds": 4.14,
+    "usage": {
+      "query_understanding": {
+        "input": 1097,
+        "input_cached": 896,
+        "output": 99,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1790,
+        "input_cached": 1536,
+        "output": 215,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2887,
+      "input_cached": 2432,
+      "output": 314,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M11",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-11",
+    "question": "供应商分为几级？多少万元以上的采购必须三家比价？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "- 供应商按年度评审分为 A、B、C、D 四级：A 级优先合作并缩短账期，B 级正常合作，C 级限制新增合作，D 级淘汰并移出名录；连续两次评审为 C 级的直接降为 D 级 [2]。\n- 单次采购 30 万元及以上的，须三家比价 [2]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "星海供应商名录.xlsx",
+        "path": "reference/星海表格/星海供应商名录.xlsx",
+        "section": "Sheet：在册供应商",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "星海供应商管理办法_2026修订.md",
+        "path": "work/星海供应商管理办法_2026修订.md",
+        "section": "一、准入",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "星海数据治理管理制度_v2.0.md",
+        "path": "work/星海数据治理管理制度_v2.0.md",
+        "section": "一、总则",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.4552,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "一、总则",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.4841,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "七、保证金管理",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9685,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "一、立项管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.9541,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.9049,
+        "source": "华信数据采购合同_2024.pdf",
+        "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.9607,
+        "source": "星海付款审批细则.md",
+        "path": "work/星海付款审批细则.md",
+        "section": "复核与会签",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4841,
+        "source": "星海项目台账_2025.xlsx",
+        "path": "reference/星海表格/星海项目台账_2025.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 11,
+        "score": 0.4621,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.4841,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.4692,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海项目管理手册_v1.0.docx",
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "reference/星海合同/华信数据采购合同_2024.pdf",
+      "reference/星海表格/星海供应商名录.xlsx",
+      "reference/星海表格/星海项目台账_2025.xlsx",
+      "work/星海付款审批细则.md",
+      "work/星海供应商管理办法_2026修订.md",
+      "work/星海合同管理制度_v1.1.md",
+      "work/星海数据治理管理制度_v2.0.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 10,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询供应商分级制度以及采购必须三家比价的金额门槛规定",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.72,
+      "retrieval_only": 0.57,
+      "rerank": 13.83,
+      "assembly": 0.02,
+      "retrieval": 14.42,
+      "total": 18.18,
+      "llm": 1.05
+    },
+    "wall_seconds": 18.39,
+    "usage": {
+      "query_understanding": {
+        "input": 1098,
+        "input_cached": 896,
+        "output": 352,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 4195,
+        "input_cached": 2432,
+        "output": 127,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 5293,
+      "input_cached": 3328,
+      "output": 479,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 2,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M12",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-12",
+    "question": "现在的差旅住宿一线标准和 2023 年旧版相比涨了多少钱？",
+    "asker": "lili",
+    "user_groups": [
+      "人力资源部"
+    ],
+    "filters": {},
+    "answer": "可以确认 2023 旧版的一线城市住宿标准为每晚 300 元 [3]。但现行资料对一线城市标准存在不一致：\n\n- 按《星海差旅管理办法（2025 修订）》，一线城市为每晚 450 元 [1]，相较 2023 旧版上涨 **150 元/晚** [1][3]。\n- 按《星海员工手册（2025版）》，一线城市为每晚 500 元 [2]，相较 2023 旧版上涨 **200 元/晚** [2][3]。\n\n因此，因两份现行资料标准不一致，无法给出唯一的上涨金额。上述比较均针对“一线城市每晚住宿报销标准”这一同一事项；2023 旧版已废止 [3]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海差旅管理办法_2025修订.md",
+        "path": "work/星海差旅管理办法_2025修订.md",
+        "section": "星海差旅管理办法（2025 修订）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9839,
+        "source": "星海员工手册_2025版_v3.0.md",
+        "path": "work/星海员工手册_2025版_v3.0.md",
+        "section": "四、假期管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 1.0,
+        "source": "星海旧版差旅制度_2023.md",
+        "path": "archive/星海旧版差旅制度_2023.md",
+        "section": "星海差旅制度（2023 旧版，已废止）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9839,
+        "source": "星海旧版员工手册_2022.md",
+        "path": "archive/星海旧版员工手册_2022.md",
+        "section": "星海科技员工手册（2022 旧版，已废止）",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "archive/星海旧版员工手册_2022.md",
+      "archive/星海旧版差旅制度_2023.md",
+      "work/星海员工手册_2025版_v3.0.md",
+      "work/星海差旅管理办法_2025修订.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "version_comparison",
+      "processed_documents": 4,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "比较现行差旅住宿一线标准与2023年旧版标准的上涨金额",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 6.07,
+      "retrieval_only": 1.7,
+      "rerank": 16.67,
+      "assembly": 0.01,
+      "retrieval": 18.37,
+      "total": 27.89,
+      "llm": 3.45
+    },
+    "wall_seconds": 27.95,
+    "usage": {
+      "query_understanding": {
+        "input": 1102,
+        "input_cached": 896,
+        "output": 1105,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1662,
+        "input_cached": 1408,
+        "output": 488,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2764,
+      "input_cached": 2304,
+      "output": 1593,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M13",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-13",
+    "question": "X-4000 旗舰版和 X-3000 旗舰版的售价分别是多少元？",
+    "asker": "liuye",
+    "user_groups": [
+      "市场部"
+    ],
+    "filters": {},
+    "answer": "X-4000 旗舰版售价为 25999 元 [3]；X-3000 旗舰版售价为 19999 元 [10]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "星海科技 2026 春季新品发布会纪要",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9405,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "生态合作",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "星海科技 2025 年中新品发布会纪要",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 1.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.9262,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.4621,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 14,
+        "score": 0.9612,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "产品规划",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 15,
+        "score": 0.9049,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 16,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 17,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 18,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 19,
+        "score": 0.4621,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 20,
+        "score": 0.4552,
+        "source": "昆仑项目启动新闻.html",
+        "path": "reference/星海简介/昆仑项目启动新闻.html",
+        "section": "昆仑项目在成都正式启动",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 21,
+        "score": 0.4621,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星海科技 X-2000 新品发布会",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 22,
+        "score": 0.9198,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "X-2000 核心亮点",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 23,
+        "score": 0.8906,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": "一、产品概述",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 24,
+        "score": 0.4766,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": "四、常见问题",
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx",
+      "reference/星海简介/昆仑项目启动新闻.html"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 7,
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询 X-4000 旗舰版与 X-3000 旗舰版的售价",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 4.94,
+      "retrieval_only": 0.83,
+      "rerank": 1.42,
+      "assembly": 0.02,
+      "retrieval": 2.26,
+      "total": 8.3,
+      "llm": 1.1
+    },
+    "wall_seconds": 8.45,
+    "usage": {
+      "query_understanding": {
+        "input": 1104,
+        "input_cached": 896,
+        "output": 884,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2662,
+        "input_cached": 2432,
+        "output": 119,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3766,
+      "input_cached": 3328,
+      "output": 1003,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M14",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-14",
+    "question": "项目管理手册的立项审批门槛和合同管理制度的金额审批门槛分别是多少万元？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "**项目管理手册——立项审批门槛** [1]\n- 预算 **100 万元及以上**的项目：须经经营管理会议批准。\n- 预算 **100 万元以下**的项目：由分管副总经理批准。\n\n**合同管理制度——金额审批门槛** [6]\n- 单笔金额达到 **50 万元及以上**的合同：须经分管副总经理审批；涉外合同一律须由法务部会签。\n- 与同一供应商**年度累计签约金额超过 100 万元**的：须报经营管理会议审议。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "一、立项管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.9612,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "二、计划管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9462,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "三、执行与报告",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9531,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "四、监控与预警",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.9761,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "五、收尾管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 1.0,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "一、总则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9761,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "七、保证金管理",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9534,
+        "source": "星海付款审批细则.md",
+        "path": "work/星海付款审批细则.md",
+        "section": "复核与会签",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.4692,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4552,
+        "source": "星海项目台账_2025.xlsx",
+        "path": "reference/星海表格/星海项目台账_2025.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 11,
+        "score": 0.9387,
+        "source": "星海财务报销制度_v2.1.md",
+        "path": "work/星海财务报销制度_v2.1.md",
+        "section": "审批权限",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 12,
+        "score": 0.4552,
+        "source": "星海供应商管理办法_2026修订.md",
+        "path": "work/星海供应商管理办法_2026修订.md",
+        "section": "一、准入",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海项目管理手册_v1.0.docx",
+      "reference/星海表格/星海2026项目总台账.xlsx",
+      "reference/星海表格/星海项目台账_2025.xlsx",
+      "work/星海付款审批细则.md",
+      "work/星海供应商管理办法_2026修订.md",
+      "work/星海合同管理制度_v1.1.md",
+      "work/星海财务报销制度_v2.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 7,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询项目管理手册的立项审批门槛和合同管理制度的金额审批门槛分别是多少万元",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.6,
+      "retrieval_only": 0.67,
+      "rerank": 11.96,
+      "assembly": 0.02,
+      "retrieval": 12.65,
+      "total": 16.64,
+      "llm": 1.38
+    },
+    "wall_seconds": 16.79,
+    "usage": {
+      "query_understanding": {
+        "input": 1101,
+        "input_cached": 896,
+        "output": 388,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 3495,
+        "input_cached": 3328,
+        "output": 198,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 4596,
+      "input_cached": 4224,
+      "output": 586,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "M15",
+    "difficulty": "medium",
+    "dimension": "多事实与对比-15",
+    "question": "Phoenix 方案的总投入和人力规模分别是多少？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "- 总投入：固定总价为 260 万元人民币（120 人月 × 2 万元/人月，另加 20 万元缓冲）[4]；可行性研究报告中的项目预算同样为 260 万元 [7]。\n- 人力规模：方案中的总工作量为 120 人月，核心团队为 8 名工程师 [2]；可行性研究报告则记载项目团队规模为 12 人 [7]。\n\n注：两份资料对团队人数的口径不一致（8 名核心工程师 vs 12 人团队规模），但总投入均为 260 万元。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.4485,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9621,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.4692,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9472,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9534,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9685,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.4552,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.9841,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4485,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "向量",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "reference/星海合同/Phoenix技术方案建议书_2026.pdf"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 Phoenix 方案的总投入金额与人力规模",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.55,
+      "retrieval_only": 0.43,
+      "rerank": 2.21,
+      "assembly": 0.01,
+      "retrieval": 2.64,
+      "total": 6.18,
+      "llm": 1.99
+    },
+    "wall_seconds": 6.29,
+    "usage": {
+      "query_understanding": {
+        "input": 1096,
+        "input_cached": 896,
+        "output": 195,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1497,
+        "input_cached": 1280,
+        "output": 297,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2593,
+      "input_cached": 2176,
+      "output": 492,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C01",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-1",
+    "question": "凤凰和星云两个项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "- 凤凰：负责人 沈青 [2]，预算 260 万元 [2]。\n- 星云：负责人 陈明 [11]，预算 135 万元 [11]。\n\n**预算合计 395 万元** [2][11]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9541,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9531,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9761,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9178,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9394,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.442,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.4357,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.9314,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4552,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 11,
+        "score": 1.0,
+        "source": "星云项目章程.md",
+        "path": "projects/星云项目/星云项目章程.md",
+        "section": "项目概况",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 12,
+        "score": 0.9685,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "星云项目招标技术规格书",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 13,
+        "score": 0.9685,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "五、交付与验收",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 14,
+        "score": 0.9683,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "十三、系统对接清单",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+      "projects/星云项目/星云项目章程.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "project_comparison",
+      "coverage": "unknown",
+      "enumeration": false
+    },
+    "elapsed": {
+      "query_understanding": 3.15,
+      "retrieval_only": 1.39,
+      "rerank": 6.68,
+      "assembly": 0.01,
+      "retrieval": 8.08,
+      "total": 11.23
+    },
+    "wall_seconds": 11.39,
+    "usage": {
+      "query_understanding": {
+        "input": 1101,
+        "input_cached": 896,
+        "output": 504,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1101,
+      "input_cached": 896,
+      "output": 504,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C02",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-2",
+    "question": "昆仑、凤凰、星云二期三个项目里预算最高的是哪个？是多少万元？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "无法确认所有要比较的项目，请核对项目名称。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "project_comparison",
+      "coverage": "not_found",
+      "enumeration": false
+    },
+    "elapsed": {
+      "query_understanding": 3.72,
+      "retrieval_only": 0.0,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.0,
+      "total": 3.72
+    },
+    "wall_seconds": 3.78,
+    "usage": {
+      "query_understanding": {
+        "input": 1102,
+        "input_cached": 896,
+        "output": 565,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1102,
+      "input_cached": 896,
+      "output": 565,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "sources_min_count": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "昆仑",
+        "300万"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C03",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-3",
+    "question": "2026 年台账里预算排名前三的项目和金额分别是什么？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **凤凰项目**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n2. **星云二期**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n3. **昆仑二期**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n处理范围：1 份文档、5 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "分批提取",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "document",
+      "selected_documents": 1,
+      "processed_documents": 1,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查询2026年台账中预算排名前三的项目及其对应金额",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 8.65,
+      "retrieval_only": 0.53,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.53,
+      "total": 18.08,
+      "enumeration": 8.91,
+      "llm": 0.0
+    },
+    "wall_seconds": 18.18,
+    "usage": {
+      "query_understanding": {
+        "input": 1099,
+        "input_cached": 896,
+        "output": 1371,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 959,
+        "input_cached": 128,
+        "output": 1467,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 668,
+        "input_cached": 384,
+        "output": 89,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2726,
+      "input_cached": 1408,
+      "output": 2927,
+      "calls": 3
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": false,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": null,
+      "must_miss": [
+        "低空预警",
+        "500",
+        "300"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C04",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-4",
+    "question": "台账里两个已暂停项目的负责人分别是谁？如果要恢复，各自需要先解决什么问题？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "> ℹ️ 「台账里两个已暂停」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。\n\n1. **磐石项目**：磐石项目 | 吴刚 | 220 | 已暂停 | 资金冻结 [1]\n\n2. **灯塔项目**：灯塔项目 | 孙倩 | 90 | 已暂停 | 需求重大变更 [1]\n\n处理范围：12 份文档、61 张卡片、12 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海表格/星海2026项目总台账.xlsx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 12,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查询台账中两个已暂停项目的负责人，以及恢复各自需要先解决的问题",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 8.9,
+      "retrieval_only": 1.08,
+      "rerank": 2.2,
+      "assembly": 0.04,
+      "retrieval": 3.32,
+      "total": 29.97,
+      "enumeration": 17.75,
+      "llm": 0.0
+    },
+    "wall_seconds": 30.05,
+    "usage": {
+      "query_understanding": {
+        "input": 1103,
+        "input_cached": 896,
+        "output": 1502,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 1522,
+        "input_cached": 128,
+        "output": 787,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 1477,
+        "input_cached": 128,
+        "output": 53,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 2799,
+        "input_cached": 128,
+        "output": 112,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 914,
+        "input_cached": 128,
+        "output": 75,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 2248,
+        "input_cached": 128,
+        "output": 115,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 1043,
+        "input_cached": 128,
+        "output": 97,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 3099,
+        "input_cached": 128,
+        "output": 115,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 3224,
+        "input_cached": 128,
+        "output": 72,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 2313,
+        "input_cached": 128,
+        "output": 125,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 2840,
+        "input_cached": 128,
+        "output": 65,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 2365,
+        "input_cached": 128,
+        "output": 93,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 2780,
+        "input_cached": 128,
+        "output": 65,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 527,
+        "input_cached": 384,
+        "output": 127,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 28254,
+      "input_cached": 2816,
+      "output": 3403,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C05",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-5",
+    "question": "2026 年三大重点投入项目的预算合计是多少万元？分别是哪些项目？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "> ℹ️ 「2026 年三大重点投入」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **6 条带原文证据的记录**；这不是全库确定总数。\n\n部分同名记录尚不能确认是同一实体，已分别保留，当前记录数不等于去重后的实体总数。\n\n1. **凤凰项目**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n2. **星云二期**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n3. **昆仑二期**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n4. **凤凰项目**：凤凰项目 | 沈青 | 260 | 进行中 | 2026-01~2026-09 [2]\n\n5. **星云二期**：星云二期 | 陈明 | 180 | 筹备中 | 2026-03 启动 [2]\n\n6. **昆仑二期**：昆仑二期 | 林岚 | 150 | 筹备中 | 2026-04 启动 [2]\n\n处理范围：19 份文档、56 张卡片、11 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海表格/星海2026项目总台账.xlsx",
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 19,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查询2026年三大重点投入项目的预算合计金额，以及这三个项目分别是什么",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 6.32,
+      "retrieval_only": 1.19,
+      "rerank": 1.49,
+      "assembly": 0.02,
+      "retrieval": 2.69,
+      "total": 39.12,
+      "enumeration": 30.11,
+      "llm": 0.0
+    },
+    "wall_seconds": 39.19,
+    "usage": {
+      "query_understanding": {
+        "input": 1101,
+        "input_cached": 896,
+        "output": 1132,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 965,
+        "input_cached": 128,
+        "output": 1103,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 1561,
+        "input_cached": 128,
+        "output": 1549,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 819,
+        "input_cached": 128,
+        "output": 82,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 883,
+        "input_cached": 128,
+        "output": 58,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 973,
+        "input_cached": 128,
+        "output": 110,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 890,
+        "input_cached": 128,
+        "output": 75,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 963,
+        "input_cached": 128,
+        "output": 69,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 230,
+        "input_cached": 0,
+        "output": 330,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 1127,
+        "input_cached": 128,
+        "output": 41,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 2040,
+        "input_cached": 128,
+        "output": 203,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 2489,
+        "input_cached": 128,
+        "output": 141,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 1447,
+        "input_cached": 128,
+        "output": 32,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 796,
+        "input_cached": 384,
+        "output": 391,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 16284,
+      "input_cached": 2688,
+      "output": 5316,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": false,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": 1,
+      "must_miss": [
+        "590万"
+      ],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C06",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-6",
+    "question": "研发部 2026 年的预算比 2025 年增加了多少万元？增幅大约多少？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "- 研发部 2026 年预算为 800 万元 [3]，2025 年预算为 600 万元 [6]。\n- 因此，2026 年预算比 2025 年增加了 **200 万元**。\n- 增幅约为 **33.3%**，计算方式为 200 ÷ 600。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9245,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "一、总体目标",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "二、三大战略",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 1.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "三、部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9607,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "五、主要风险",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 1.0,
+        "source": "2025年度部门预算表.xlsx",
+        "path": "reference/星海表格/2025年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.8906,
+        "source": "星海2026项目总台账.xlsx",
+        "path": "reference/星海表格/星海2026项目总台账.xlsx",
+        "section": "Sheet：项目台账",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9607,
+        "source": "2024年度部门预算表.xlsx",
+        "path": "reference/星海表格/2024年度部门预算表.xlsx",
+        "section": "Sheet：部门预算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.4692,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "星海科技 2025 年度规划汇报",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.4552,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "经营目标",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.0,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "产品规划",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.0,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "市场策略",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.4621,
+        "source": "星海供应商管理办法_2026修订.md",
+        "path": "work/星海供应商管理办法_2026修订.md",
+        "section": "一、准入",
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 14,
+        "score": 0.4692,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "七、保证金管理",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 15,
+        "score": 0.9251,
+        "source": "星海项目管理手册_v1.0.docx",
+        "path": "learning/星海项目管理手册_v1.0.docx",
+        "section": "一、立项管理",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 16,
+        "score": 0.4552,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "星海科技 2026 春季新品发布会纪要",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 17,
+        "score": 0.8978,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "星海科技 2025 年中新品发布会纪要",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海项目管理手册_v1.0.docx",
+      "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "reference/星海表格/2024年度部门预算表.xlsx",
+      "reference/星海表格/2025年度部门预算表.xlsx",
+      "reference/星海表格/星海2026项目总台账.xlsx",
+      "work/星海2026年度经营计划.docx",
+      "work/星海供应商管理办法_2026修订.md",
+      "work/星海合同管理制度_v1.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 10,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询研发部2026年预算相对2025年的增加金额和增幅",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.4,
+      "retrieval_only": 0.78,
+      "rerank": 4.61,
+      "assembly": 0.01,
+      "retrieval": 5.41,
+      "total": 9.7,
+      "llm": 0.89
+    },
+    "wall_seconds": 9.84,
+    "usage": {
+      "query_understanding": {
+        "input": 1106,
+        "input_cached": 896,
+        "output": 578,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 3139,
+        "input_cached": 2944,
+        "output": 139,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 4245,
+      "input_cached": 3840,
+      "output": 717,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": false,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [
+        "33%"
+      ],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C07",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-7",
+    "question": "凤凰项目的负责人、预算、周期和团队规模分别是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "- 项目负责人：沈青\n- 项目预算：260 万元\n- 项目周期：2026-01 至 2026-09\n- 团队规模：12 人\n\n以上信息均来自项目基本信息 [2]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9839,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9531,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9761,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9385,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9042,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9198,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9042,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.9107,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4485,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "metadata_scope": {
+        "project": "凤凰"
+      },
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询凤凰项目的负责人、预算、周期和团队规模等基本信息",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.45,
+      "retrieval_only": 1.17,
+      "rerank": 2.74,
+      "assembly": 0.0,
+      "retrieval": 3.91,
+      "total": 8.27,
+      "llm": 0.91
+    },
+    "wall_seconds": 8.42,
+    "usage": {
+      "query_understanding": {
+        "input": 1097,
+        "input_cached": 896,
+        "output": 680,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1477,
+        "input_cached": 1280,
+        "output": 91,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2574,
+      "input_cached": 2176,
+      "output": 771,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C08",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-8",
+    "question": "X-4000 是什么时候发布的？标准版和旗舰版分别多少钱？旗舰版续航多久？",
+    "asker": "liuye",
+    "user_groups": [
+      "市场部"
+    ],
+    "filters": {},
+    "answer": "X-4000 于 2026-03-18 在杭州国际博览中心举办的星海科技 2026 春季新品发布会上正式发布 [1][2]。\n\n- 标准版售价：21999 元 [2]\n- 旗舰版售价：25999 元 [3]\n- 旗舰版电池续航：48 小时 [3]",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "星海科技 2026 春季新品发布会纪要",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.9621,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "生态合作",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.9123,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "星海科技 X-2000 新品发布会",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.9621,
+        "source": "星海X-2000发布会纪要.pptx",
+        "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "section": "X-2000 核心亮点",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "星海科技 2025 年中新品发布会纪要",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.9685,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.934,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 13,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 14,
+        "score": 0.0,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 15,
+        "score": 0.9038,
+        "source": "星海2025年中发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 16,
+        "score": 0.9357,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 17,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 18,
+        "score": 0.4692,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 19,
+        "score": 0.4919,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 20,
+        "score": 0.4841,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 21,
+        "score": 0.9394,
+        "source": "星海2025年度规划汇报.pptx",
+        "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "section": "产品规划",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 22,
+        "score": 0.4841,
+        "source": "星海产品培训_基础篇.docx",
+        "path": "learning/星海产品培训_基础篇.docx",
+        "section": "四、常见问题",
+        "channels": "向量",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "learning/星海产品培训_基础篇.docx",
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "reference/星海发布会/星海2025年度规划汇报.pptx",
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "reference/星海发布会/星海X-2000发布会纪要.pptx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 6,
+      "coverage": "unknown",
+      "enumeration": false,
+      "intent": "查询 X-4000 的发布时间、标准版与旗舰版价格，以及旗舰版续航时间",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 3.59,
+      "retrieval_only": 2.84,
+      "rerank": 2.62,
+      "assembly": 0.01,
+      "retrieval": 5.48,
+      "total": 10.26,
+      "llm": 1.19
+    },
+    "wall_seconds": 10.43,
+    "usage": {
+      "query_understanding": {
+        "input": 1106,
+        "input_cached": 896,
+        "output": 644,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 2450,
+        "input_cached": 2176,
+        "output": 175,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 3556,
+      "input_cached": 3072,
+      "output": 819,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C09",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-9",
+    "question": "知识库里哪些文档规定了数据或日志的保留时长？分别保留多久？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星海数据备份与恢复管理办法**：来源文档：星海数据备份与恢复管理办法\\_v1.1.md｜章节：星海数据备份与恢复管理办法 \\> 一、备份策略 [1]\n\n2. **示例\\_产品需求.docx**：3. 回收站内容保留 30 天，到期自动清空。 [2]\n\n3. **星海数据治理管理制度（V2.0）**：业务操作数据在线保留 2 年，期满转入归档库再保留 5 年，到期由数据 Owner 评估销毁或延期。日志类数据在线保留 180 天。涉及诉讼的数据按法务要求冻结。 [3]\n\n处理范围：15 份文档、44 张卡片、10 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "星海数据备份与恢复管理办法_v1.1.md",
+        "path": "work/星海数据备份与恢复管理办法_v1.1.md",
+        "section": "一、备份策略",
+        "channels": "分批提取",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "示例_产品需求.docx",
+        "path": "reference/documents/示例_产品需求.docx",
+        "section": "二、功能需求",
+        "channels": "分批提取",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.0,
+        "source": "星海数据治理管理制度_v2.0.md",
+        "path": "work/星海数据治理管理制度_v2.0.md",
+        "section": "一、总则",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/documents/示例_产品需求.docx",
+      "work/星海数据备份与恢复管理办法_v1.1.md",
+      "work/星海数据治理管理制度_v2.0.md"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 12,
+      "processed_documents": 15,
+      "coverage": "partial",
+      "enumeration": true,
+      "intent": "查找知识库中规定数据或日志保留时长的文档，并列出各自的具体保留期限",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 2.21,
+      "retrieval_only": 0.82,
+      "rerank": 6.39,
+      "assembly": 0.05,
+      "retrieval": 7.26,
+      "total": 56.59,
+      "enumeration": 47.12,
+      "llm": 0.0
+    },
+    "wall_seconds": 56.67,
+    "usage": {
+      "query_understanding": {
+        "input": 1100,
+        "input_cached": 896,
+        "output": 259,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 1040,
+        "input_cached": 896,
+        "output": 1012,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 2042,
+        "input_cached": 1792,
+        "output": 2048,
+        "finish_reason": "length"
+      },
+      "enumeration_3": {
+        "input": 1602,
+        "input_cached": 1408,
+        "output": 204,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 813,
+        "input_cached": 128,
+        "output": 373,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 947,
+        "input_cached": 256,
+        "output": 59,
+        "finish_reason": "stop"
+      },
+      "enumeration_6": {
+        "input": 1150,
+        "input_cached": 128,
+        "output": 79,
+        "finish_reason": "stop"
+      },
+      "enumeration_7": {
+        "input": 1122,
+        "input_cached": 896,
+        "output": 62,
+        "finish_reason": "stop"
+      },
+      "enumeration_8": {
+        "input": 1699,
+        "input_cached": 1536,
+        "output": 1203,
+        "finish_reason": "stop"
+      },
+      "enumeration_9": {
+        "input": 1027,
+        "input_cached": 768,
+        "output": 117,
+        "finish_reason": "stop"
+      },
+      "enumeration_10": {
+        "input": 232,
+        "input_cached": 0,
+        "output": 241,
+        "finish_reason": "stop"
+      },
+      "enumeration_11": {
+        "input": 1118,
+        "input_cached": 896,
+        "output": 203,
+        "finish_reason": "stop"
+      },
+      "enumeration_12": {
+        "input": 1852,
+        "input_cached": 128,
+        "output": 95,
+        "finish_reason": "stop"
+      },
+      "enumeration_13": {
+        "input": 643,
+        "input_cached": 384,
+        "output": 1049,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 16387,
+      "input_cached": 10112,
+      "output": 7004,
+      "calls": 14
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C10",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-10",
+    "question": "数据治理制度规定的四级分类、机密外发审批人和跨部门导出审批时限分别是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "根据《星海数据治理管理制度（V2.0）》，你问的三项内容分别如下：\n\n- **四级数据分类**：公开、内部、秘密、机密。其中公开级指可对外发布的产品资料、新闻稿；内部级指日常经营数据，限员工访问；秘密级指财务明细、客户名单、未发布产品规划；机密级指核心算法、定价成本、并购信息 [1]。\n- **机密级数据外发审批人**：必须经 CTO 审批 [1]。\n- **跨部门数据导出审批时限**：须经数据 Owner 与安全组双审批，审批时限为 1 个工作日 [1]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "source": "星海数据治理管理制度_v2.0.md",
+        "path": "work/星海数据治理管理制度_v2.0.md",
+        "section": "一、总则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.4919,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.4766,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9123,
+        "source": "20260915 CGW_BHF_总体V1.2.pptx",
+        "path": "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4841,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "一、总则",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.0,
+        "source": "星海合同管理制度_v1.1.md",
+        "path": "work/星海合同管理制度_v1.1.md",
+        "section": "七、保证金管理",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.4919,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.8777,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 11,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 12,
+        "score": 0.9049,
+        "source": "星海信息安全管理制度.md",
+        "path": "work/星海信息安全管理制度.md",
+        "section": "账号密码安全",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/general/20260915 CGW_BHF_总体V1.2.pptx",
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "work/星海信息安全管理制度.md",
+      "work/星海合同管理制度_v1.1.md",
+      "work/星海数据治理管理制度_v2.0.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 5,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询数据治理制度中关于数据四级分类、机密外发审批人以及跨部门导出审批时限的规定",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 4.22,
+      "retrieval_only": 1.16,
+      "rerank": 12.1,
+      "assembly": 0.03,
+      "retrieval": 13.29,
+      "total": 19.21,
+      "llm": 1.69
+    },
+    "wall_seconds": 19.35,
+    "usage": {
+      "query_understanding": {
+        "input": 1104,
+        "input_cached": 896,
+        "output": 774,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 4073,
+        "input_cached": 2816,
+        "output": 234,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 5177,
+      "input_cached": 3712,
+      "output": 1008,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C11",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-11",
+    "question": "我是市场部的员工，凤凰项目有哪些资料我能查到？",
+    "asker": "liuye",
+    "user_groups": [
+      "市场部"
+    ],
+    "filters": {},
+    "answer": "本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **凤凰项目可行性研究报告**：凤凰项目可行性研究报告 [1][2]\n\n2. **X-4000 需求规格说明书**：X-4000 需求规格说明书 版本：V1.0　编制：研发部　日期：2026-01-05　隶属：凤凰项目 [3]\n\n3. **《凤凰项目可行性研究报告》**：与《凤凰项目可行性研究报告》保持一致。 [4]\n\n处理范围：2 份文档、10 张卡片、2 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "分批提取",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "分批提取",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "分批提取",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.0,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "分批提取",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx"
+    ],
+    "enumeration": true,
+    "evidence_meta": {
+      "route": "cross_document",
+      "selected_documents": 2,
+      "processed_documents": 2,
+      "metadata_scope": {
+        "project": "凤凰"
+      },
+      "coverage": "unknown",
+      "enumeration": true,
+      "intent": "查询凤凰项目相关的全部资料清单",
+      "ctx_max_items": 40,
+      "recall_k": 50
+    },
+    "elapsed": {
+      "query_understanding": 1.94,
+      "retrieval_only": 0.39,
+      "rerank": 0.28,
+      "assembly": 0.0,
+      "retrieval": 0.68,
+      "total": 33.14,
+      "enumeration": 30.53,
+      "llm": 0.0
+    },
+    "wall_seconds": 33.24,
+    "usage": {
+      "query_understanding": {
+        "input": 1096,
+        "input_cached": 896,
+        "output": 210,
+        "finish_reason": "stop"
+      },
+      "enumeration_1": {
+        "input": 884,
+        "input_cached": 128,
+        "output": 790,
+        "finish_reason": "stop"
+      },
+      "enumeration_2": {
+        "input": 1102,
+        "input_cached": 128,
+        "output": 1624,
+        "finish_reason": "stop"
+      },
+      "enumeration_3": {
+        "input": 219,
+        "input_cached": 0,
+        "output": 246,
+        "finish_reason": "stop"
+      },
+      "enumeration_4": {
+        "input": 236,
+        "input_cached": 0,
+        "output": 307,
+        "finish_reason": "stop"
+      },
+      "enumeration_5": {
+        "input": 561,
+        "input_cached": 384,
+        "output": 1690,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 4098,
+      "input_cached": 1536,
+      "output": 4867,
+      "calls": 6
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "must_not_sources": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C12",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-12",
+    "question": "凤凰项目现在的预算执行情况怎么样了？花了多少钱？",
+    "asker": "zhaocai",
+    "user_groups": [
+      "财务部"
+    ],
+    "filters": {},
+    "answer": "指定范围内没有找到你有权查看的匹配文档。",
+    "sources": [],
+    "retrieved_paths": [],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 0,
+      "metadata_scope": {
+        "project": "凤凰"
+      },
+      "coverage": "not_found",
+      "enumeration": false,
+      "intent": "查询凤凰项目当前的预算执行情况与已花费金额",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 1.52,
+      "retrieval_only": 0.59,
+      "rerank": 0.0,
+      "assembly": 0.0,
+      "retrieval": 0.59,
+      "total": 2.11
+    },
+    "wall_seconds": 2.19,
+    "usage": {
+      "query_understanding": {
+        "input": 1095,
+        "input_cached": 896,
+        "output": 186,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 1095,
+      "input_cached": 896,
+      "output": 186,
+      "calls": 1
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true,
+        "refuse": true
+      },
+      "passed": true,
+      "best_rank": null,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C13",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-13",
+    "question": "Phoenix 方案的 RPO 和 RTO 分别是多少？和星云招标规格书的容灾要求相比谁更高？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "**Phoenix 方案的 RPO / RTO**\n\n- RPO：5 分钟；RTO：30 分钟 [1]。\n\n**星云招标规格书中的相关容灾要求**\n\n- 生产环境部署于杭州总部机房与成都异地机房，双机房互为容灾，异地容灾切换时间目标不超过 30 分钟 [8]。\n- 备份与容灾：每日增量备份、每周全量备份，备份保留不少于 90 天；数据库主从复制，从库延迟不超过 5 秒 [8]。\n- 规格书中未直接给出以“RPO/RTO”命名的指标定义。\n\n**对比结论**\n\n- RTO（恢复时间）：两者处于同一量级——Phoenix 为 30 分钟 [1]，星云要求异地容灾切换时间不超过 30 分钟 [8]，基本相当，Phoenix 并未更高。\n- RPO（恢复点）：星云招标规格书未明确规定 RPO 数值，因此无法就 RPO 作出“谁更高”的判定。\n- 需注意：星云规格书还要求整体可用性不低于 99.99% [6]，高于 Phoenix 的 99.9% [1]；若把可用性一并计入容灾能力，则星云的整体要求更高。但严格来说，这属于可用性指标，并非 RPO/RTO 指标。\n\n如需严格比较 RPO，知识库中没有星云项目对应的 RPO 指标，无法确认。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9919,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.9766,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.9394,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9385,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9761,
+        "source": "Phoenix技术方案建议书_2026.pdf",
+        "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+        "section": null,
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9839,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "星云项目招标技术规格书",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9683,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "五、交付与验收",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 1.0,
+        "source": "星云项目招标技术规格书_v1.2.md",
+        "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+        "section": "十三、系统对接清单",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.4485,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 11,
+        "score": 0.4766,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 12,
+        "score": 0.4621,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量",
+        "classification": "内部"
+      },
+      {
+        "rank": 13,
+        "score": 0.0,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "文档展开",
+        "classification": "内部"
+      },
+      {
+        "rank": 14,
+        "score": 0.4552,
+        "source": "星海数据备份与恢复管理办法_v1.1.md",
+        "path": "work/星海数据备份与恢复管理办法_v1.1.md",
+        "section": "一、备份策略",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 15,
+        "score": 0.8978,
+        "source": "星云项目章程.md",
+        "path": "projects/星云项目/星云项目章程.md",
+        "section": "项目概况",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 16,
+        "score": 0.4766,
+        "source": "北斗项目总结报告.md",
+        "path": "projects/北斗项目/北斗项目总结报告.md",
+        "section": "项目概况",
+        "channels": "关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 17,
+        "score": 0.4692,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "二、三大战略",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 18,
+        "score": 0.4621,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "五、主要风险",
+        "channels": "关键词",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "projects/北斗项目/北斗项目总结报告.md",
+      "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+      "projects/星云项目/星云项目章程.md",
+      "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+      "work/星海2026年度经营计划.docx",
+      "work/星海数据备份与恢复管理办法_v1.1.md"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 7,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 Phoenix 方案的 RPO、RTO 数值，并与星云招标规格书的容灾要求进行对比",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 4.6,
+      "retrieval_only": 0.84,
+      "rerank": 7.88,
+      "assembly": 0.03,
+      "retrieval": 8.74,
+      "total": 17.54,
+      "llm": 4.19
+    },
+    "wall_seconds": 17.65,
+    "usage": {
+      "query_understanding": {
+        "input": 1111,
+        "input_cached": 896,
+        "output": 807,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 3885,
+        "input_cached": 3072,
+        "output": 573,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 4996,
+      "input_cached": 3968,
+      "output": 1380,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C14",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-14",
+    "question": "凤凰项目最终验收计划什么时候完成？试运行有什么要求？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "**最终验收计划时间**\n- 资料给出的验收时间要求是：Phase 3 交付物需在 2026-09-15 **前**完成验收 [5]。\n- 需要说明：这是计划/截止性质的时点，并非实际完成或验收通过日期；资料中未记载实际验收日期 [5]。\n\n**试运行要求**\n- 需试运行 60 天，且期间零 P1 级故障，方可申请验收 [5]。\n\n补充：项目周期为 2026-01 至 2026-09 [7]，与上述 9 月中旬前的验收安排大致吻合，但资料未直接说明两者的对应关系。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.8842,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "一、用户角色",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 2,
+        "score": 0.8777,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "二、功能模块清单",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 3,
+        "score": 0.8906,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "三、关键业务规则",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 4,
+        "score": 0.9462,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "四、非功能性要求",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 5,
+        "score": 0.9766,
+        "source": "X-4000需求规格_v1.0.docx",
+        "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+        "section": "五、验收标准",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 6,
+        "score": 0.9607,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "一、项目背景",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 7,
+        "score": 0.9766,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "二、项目基本信息",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 8,
+        "score": 0.9761,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "三、关键技术指标",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 9,
+        "score": 0.9612,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "四、财务测算",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      },
+      {
+        "rank": 10,
+        "score": 0.9104,
+        "source": "凤凰项目可行性研究报告.docx",
+        "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+        "section": "五、风险与对策",
+        "channels": "向量 + 关键词",
+        "classification": "内部"
+      }
+    ],
+    "retrieved_paths": [
+      "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "projects/凤凰项目/凤凰项目可行性研究报告.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "metadata_scope": {
+        "project": "凤凰项目"
+      },
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询凤凰项目最终验收计划的完成时间及试运行要求",
+      "ctx_max_items": 10,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 2.88,
+      "retrieval_only": 0.6,
+      "rerank": 1.23,
+      "assembly": 0.0,
+      "retrieval": 1.82,
+      "total": 7.3,
+      "llm": 2.6
+    },
+    "wall_seconds": 7.44,
+    "usage": {
+      "query_understanding": {
+        "input": 1097,
+        "input_cached": 896,
+        "output": 526,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1561,
+        "input_cached": 1408,
+        "output": 356,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2658,
+      "input_cached": 2304,
+      "output": 882,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  },
+  {
+    "id": "C15",
+    "difficulty": "complex",
+    "dimension": "复合与聚合-15",
+    "question": "2026 年三大战略分别是什么？对应看到的前两个重点产品动作是什么？",
+    "asker": "wangfang",
+    "user_groups": [
+      "研发部"
+    ],
+    "filters": {},
+    "answer": "**2026 年三大战略** [2]：\n- 战略一：X-4000 系列量产，抢占高端便携检测市场\n- 战略二：东南亚市场突破，海外营收占比达到 15%\n- 战略三：星云数据平台商业化，对外输出数据治理与检测云服务\n\n**资料中能对应上的前两个重点产品动作**：\n- X-4000 系列量产：2026-03-18 春季发布会正式发布 X-4000 便携式智能检测仪，标准版售价 21999 元 [7]；官网商城 2026-03-25 开售 [9]。配套的凤凰项目（预算 260 万元）负责 X-4000 软件平台交付 [4][11]。\n- 星云数据平台商业化：对应星云二期项目，预算 180 万元，用于数据平台商业化改造 [4]。\n\n补充说明：三大战略中的战略二（东南亚市场突破）在现有资料中没有对应的具体产品动作；重点项目中的第三项昆仑二期（设备管理平台增强，预算 150 万元）也不在前两个动作范围之内 [4]。",
+    "sources": [
+      {
+        "rank": 1,
+        "score": 0.9458,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "一、总体目标",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 2,
+        "score": 1.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "二、三大战略",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 3,
+        "score": 0.0,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "三、部门预算",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 4,
+        "score": 0.9685,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "四、重点项目",
+        "channels": "向量 + 关键词",
+        "classification": "公开"
+      },
+      {
+        "rank": 5,
+        "score": 0.4692,
+        "source": "星海2026年度经营计划.docx",
+        "path": "work/星海2026年度经营计划.docx",
+        "section": "五、主要风险",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 6,
+        "score": 0.4841,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "星海科技 2026 春季新品发布会纪要",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 7,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "发布产品",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 8,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "旗舰版参数",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 9,
+        "score": 0.4552,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "渠道与开售",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 10,
+        "score": 0.4621,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "合作媒体",
+        "channels": "向量",
+        "classification": "公开"
+      },
+      {
+        "rank": 11,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "生态合作",
+        "channels": "文档展开",
+        "classification": "公开"
+      },
+      {
+        "rank": 12,
+        "score": 0.0,
+        "source": "星海2026春季发布会纪要.pptx",
+        "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+        "section": "下一代规划",
+        "channels": "文档展开",
+        "classification": "公开"
+      }
+    ],
+    "retrieved_paths": [
+      "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "work/星海2026年度经营计划.docx"
+    ],
+    "enumeration": false,
+    "evidence_meta": {
+      "route": "ordinary",
+      "processed_documents": 2,
+      "coverage": "partial",
+      "enumeration": false,
+      "intent": "查询 2026 年的三大战略，以及与之对应的前两个重点产品动作",
+      "ctx_max_items": 5,
+      "recall_k": 10
+    },
+    "elapsed": {
+      "query_understanding": 4.67,
+      "retrieval_only": 0.49,
+      "rerank": 0.72,
+      "assembly": 0.0,
+      "retrieval": 1.21,
+      "total": 9.88,
+      "llm": 4.0
+    },
+    "wall_seconds": 9.99,
+    "usage": {
+      "query_understanding": {
+        "input": 1102,
+        "input_cached": 896,
+        "output": 711,
+        "finish_reason": "stop"
+      },
+      "generation": {
+        "input": 1451,
+        "input_cached": 1152,
+        "output": 735,
+        "estimated": false,
+        "finish_reason": "stop"
+      }
+    },
+    "usage_total": {
+      "input": 2553,
+      "input_cached": 2048,
+      "output": 1446,
+      "calls": 2
+    },
+    "cache_hit": false,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    }
+  }
+]

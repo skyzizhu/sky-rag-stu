@@ -1,0 +1,243 @@
+[
+  {
+    "id": "S18",
+    "target": true,
+    "passed": true,
+    "wall": 17.36,
+    "expansion": {
+      "documents": [
+        "doc_a88c6a8b",
+        "doc_b3a54e54"
+      ],
+      "added": 7
+    },
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 2,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    },
+    "answer_head": "根据知识库资料，X-3000 便携式智能检测仪正式版是在 **2025 年 7 月 8 日**的星海科技 2025 年中新品发布会上首发的，该发布会的地点是杭州国际博览中心 [2][3]。\n\n另外，资料还提到以下两个相关时间点：\n- 官网商城将于 2025-07-15 开售 [5]\n- 发布会回放将",
+    "n_sources": 12
+  },
+  {
+    "id": "C12",
+    "target": true,
+    "passed": true,
+    "wall": 11.3,
+    "expansion": {
+      "documents": [
+        "doc_a88c6a8b",
+        "doc_b3a54e54"
+      ],
+      "added": 8
+    },
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    },
+    "answer_head": "资料中没有完整给出三代产品的“首发价”，只能确认以下价格信息：\n\n- X-1000：官方指导价 12999 元，资料未标注为首发价 [11]。\n- X-2000：首发价 15999 元 [2]。\n- X-3000：标准版售价 17999 元，旗舰版售价 19999 元；资料未标注为标准版或旗舰版的“",
+    "n_sources": 15
+  },
+  {
+    "id": "C13",
+    "target": true,
+    "passed": true,
+    "wall": 6.4,
+    "expansion": {
+      "documents": [
+        "doc_a88c6a8b",
+        "doc_b3a54e54"
+      ],
+      "added": 7
+    },
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    },
+    "answer_head": "**发布时间**\n- X-3000 便携式智能检测仪正式版在星海科技 2025 年中新品发布会上首发，发布会时间为 2025-07-08，地点在杭州国际博览中心 [1][2]。此前 2025-05-20 昆仑项目启动仪式上曾发布过 X-3000 概念机 [8]。\n\n**售价**\n- 标准版为 179",
+    "n_sources": 12
+  },
+  {
+    "id": "C11",
+    "target": true,
+    "passed": false,
+    "wall": 17.05,
+    "expansion": null,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": false,
+        "answer_any": false,
+        "must_not": true
+      },
+      "passed": false,
+      "best_rank": 1,
+      "must_miss": [
+        "14位"
+      ],
+      "any_miss": [
+        "严格"
+      ],
+      "not_violations": []
+    },
+    "answer_head": "- **2025 版员工手册**：办公账号登录密码长度不得少于 12 位，且须定期更换，具体要求按《星海信息安全管理制度》执行 [1]。\n- **信息安全管理制度**：所有业务系统的登录密码长度不得少于 12 位，必须同时包含大写字母、小写字母、数字和特殊符号；每 90 天更换一次，新密码不得与最近",
+    "n_sources": 10
+  },
+  {
+    "id": "S19",
+    "target": false,
+    "passed": true,
+    "wall": 3.2,
+    "expansion": {
+      "documents": [
+        "doc_a88c6a8b",
+        "doc_b3a54e54"
+      ],
+      "added": 7
+    },
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    },
+    "answer_head": "X-3000 旗舰版的售价为 **19999 元** [3]。",
+    "n_sources": 12
+  },
+  {
+    "id": "M12",
+    "target": false,
+    "passed": true,
+    "wall": 4.72,
+    "expansion": {
+      "documents": [
+        "doc_a88c6a8b",
+        "doc_b3a54e54"
+      ],
+      "added": 7
+    },
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 2,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    },
+    "answer_head": "X-3000 旗舰版的配置亮点包括：\n\n- 电池续航 36 小时 [4]\n- 整机重量 0.85 kg [4]\n- 支持 5G 与卫星双模通信 [4]\n- 售价 19999 元 [4]\n\n补充：该产品为标准版与旗舰版所在的 X-3000 系列，正式版于 2025 年中发布会首发，标准版售价 1799",
+    "n_sources": 12
+  },
+  {
+    "id": "S01",
+    "target": false,
+    "passed": true,
+    "wall": 13.65,
+    "expansion": {
+      "documents": [
+        "doc_35839163"
+      ],
+      "added": 1
+    },
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    },
+    "answer_head": "- 2025 版《员工手册》正文写的一线城市（北京、上海、广州、深圳）住宿标准是**每晚 500 元** [2]。\n- 但同手册附则规定：手册条款与《星海差旅管理办法（2025 修订）》冲突时，差旅事项以该办法为准 [4]；而该办法规定一线城市住宿为**每晚 450 元**，并明确取代员工手册中的差",
+    "n_sources": 6
+  },
+  {
+    "id": "C07",
+    "target": false,
+    "passed": true,
+    "wall": 10.88,
+    "expansion": null,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    },
+    "answer_head": "- 项目负责人：林岚 [1]\n- 项目预算：300 万元 [1]\n- 功能模块数量：12 个，对应需求编号 REQ-KL-001 至 REQ-KL-012 [2]",
+    "n_sources": 2
+  },
+  {
+    "id": "C06",
+    "target": false,
+    "passed": true,
+    "wall": 14.52,
+    "expansion": null,
+    "grade": {
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true,
+        "answer_any": true,
+        "must_not": true
+      },
+      "passed": true,
+      "best_rank": 1,
+      "must_miss": [],
+      "any_miss": [],
+      "not_violations": []
+    },
+    "answer_head": "- 预算：知识库中只记录了星云项目的立项预算为 135 万元 [4]；没有资料说明“目前”的预算是否经过调整，因此无法确认最新预算。\n- 交付截止时间：招标技术规格书要求，投标人须在 **2025 年 12 月 31 日前**完成全部建设内容并提交验收申请 [2]；资料未单独确认“交付日期”，也不能",
+    "n_sources": 4
+  }
+]

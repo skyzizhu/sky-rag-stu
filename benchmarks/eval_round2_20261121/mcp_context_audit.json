@@ -1,0 +1,657 @@
+{
+  "indexed": 29,
+  "cards": 37,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "configuration": {
+    "model": "deepseek-flash",
+    "embedding": null,
+    "rerank": null,
+    "project_linked": true,
+    "keyword_only": true
+  },
+  "questions": [
+    {
+      "id": "SN02",
+      "protocol": [
+        {
+          "case": "first_named_call",
+          "refused": false,
+          "issue": null,
+          "project_ids": [
+            1
+          ],
+          "matched_project_ids": [
+            1
+          ],
+          "sources": [
+            "星云项目章程.md"
+          ],
+          "error": null
+        },
+        {
+          "case": "bare_same_connection",
+          "refused": true,
+          "issue": "project_reference",
+          "project_ids": [],
+          "matched_project_ids": [],
+          "sources": [],
+          "error": null
+        },
+        {
+          "case": "explicit_project",
+          "refused": false,
+          "issue": null,
+          "project_ids": [
+            2
+          ],
+          "matched_project_ids": [
+            2
+          ],
+          "sources": [
+            "天枢项目立项报告.docx"
+          ],
+          "error": null
+        },
+        {
+          "case": "history_switch",
+          "refused": false,
+          "issue": null,
+          "project_ids": [
+            2
+          ],
+          "matched_project_ids": [
+            2
+          ],
+          "sources": [
+            "天枢项目立项报告.docx"
+          ],
+          "error": null
+        },
+        {
+          "case": "history_correction",
+          "refused": false,
+          "issue": null,
+          "project_ids": [
+            2
+          ],
+          "matched_project_ids": [
+            2
+          ],
+          "sources": [
+            "天枢项目立项报告.docx"
+          ],
+          "error": null
+        },
+        {
+          "case": "old_history_vs_project",
+          "refused": false,
+          "issue": null,
+          "project_ids": [
+            2
+          ],
+          "matched_project_ids": [
+            2
+          ],
+          "sources": [
+            "天枢项目立项报告.docx"
+          ],
+          "error": null
+        },
+        {
+          "case": "named_question_vs_project",
+          "refused": true,
+          "issue": "conflict",
+          "project_ids": [
+            2
+          ],
+          "matched_project_ids": [],
+          "sources": [],
+          "error": null
+        },
+        {
+          "case": "mixed_projects",
+          "refused": true,
+          "issue": "project_reference_ambiguous",
+          "project_ids": [],
+          "matched_project_ids": [],
+          "sources": [],
+          "error": null
+        },
+        {
+          "case": "assistant_only",
+          "refused": true,
+          "issue": "project_reference",
+          "project_ids": [],
+          "matched_project_ids": [],
+          "sources": [],
+          "error": null
+        },
+        {
+          "case": "permission_boundary",
+          "refused": true,
+          "issue": "project_reference",
+          "project_ids": [],
+          "matched_project_ids": [],
+          "sources": [],
+          "error": null
+        }
+      ],
+      "agent_trials": [
+        {
+          "profile": "current",
+          "case": "named",
+          "expected": "星云项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "星云项目 立项 预算",
+                "top_k": 10
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "ok": true,
+          "bare_calls": 0
+        },
+        {
+          "profile": "current",
+          "case": "unique",
+          "expected": "星云项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "星云项目 立项预算 万元",
+                "project": "星云项目",
+                "top_k": 8
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            },
+            {
+              "arguments": {
+                "question": "星云项目 项目背景 立项资料 预算",
+                "top_k": 8
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "ok": true,
+          "bare_calls": 0
+        },
+        {
+          "profile": "current",
+          "case": "switch",
+          "expected": "天枢项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "天枢项目 立项预算 万元",
+                "project": "天枢",
+                "top_k": 10
+              },
+              "result": {
+                "refused": null,
+                "issue": null,
+                "project_ids": [],
+                "matched_project_ids": [],
+                "sources": [],
+                "error": "找不到项目「天枢」，请使用准确的项目名称或 ID"
+              }
+            },
+            {
+              "arguments": {
+                "question": "天枢项目 立项报告 预算 总额",
+                "top_k": 10
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  2
+                ],
+                "matched_project_ids": [
+                  2
+                ],
+                "sources": [
+                  "天枢项目立项报告.docx"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "ok": false,
+          "bare_calls": 0
+        },
+        {
+          "profile": "current",
+          "case": "correction",
+          "expected": "天枢项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "天枢项目 立项预算",
+                "project": "天枢",
+                "top_k": 8
+              },
+              "result": {
+                "refused": null,
+                "issue": null,
+                "project_ids": [],
+                "matched_project_ids": [],
+                "sources": [],
+                "error": "找不到项目「天枢」，请使用准确的项目名称或 ID"
+              }
+            },
+            {
+              "arguments": {
+                "question": "天枢项目 立项报告 预算金额 万元",
+                "top_k": 8
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  2
+                ],
+                "matched_project_ids": [
+                  2
+                ],
+                "sources": [
+                  "天枢项目立项报告.docx"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "ok": false,
+          "bare_calls": 0
+        },
+        {
+          "profile": "current",
+          "case": "style_followup",
+          "expected": "星云项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "星云项目 立项 预算 万元",
+                "project": "星云项目",
+                "top_k": 10
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "ok": true,
+          "bare_calls": 0
+        },
+        {
+          "profile": "current",
+          "case": "ambiguous",
+          "expected": null,
+          "calls": [
+            {
+              "arguments": {
+                "question": "星云项目 立项预算 万元",
+                "top_k": 8
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            },
+            {
+              "arguments": {
+                "question": "天枢项目 立项预算 万元",
+                "top_k": 8
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  2
+                ],
+                "matched_project_ids": [
+                  2
+                ],
+                "sources": [
+                  "天枢项目立项报告.docx"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "answer": "我来查一下这两个项目的立项预算资料。",
+          "ok": false,
+          "bare_calls": 0
+        },
+        {
+          "profile": "explicit_context",
+          "case": "named",
+          "expected": "星云项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "星云项目 立项预算",
+                "project": "星云项目",
+                "top_k": 10
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            },
+            {
+              "arguments": {
+                "question": "星云项目 立项 预算 金额",
+                "top_k": 10
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "ok": true,
+          "bare_calls": 0
+        },
+        {
+          "profile": "explicit_context",
+          "case": "unique",
+          "expected": "星云项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "星云项目 立项预算 多少万元",
+                "project": "星云项目",
+                "top_k": 10
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "ok": true,
+          "bare_calls": 0
+        },
+        {
+          "profile": "explicit_context",
+          "case": "switch",
+          "expected": "天枢项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "天枢项目 立项预算 万元",
+                "project": "天枢",
+                "top_k": 8
+              },
+              "result": {
+                "refused": null,
+                "issue": null,
+                "project_ids": [],
+                "matched_project_ids": [],
+                "sources": [],
+                "error": "找不到项目「天枢」，请使用准确的项目名称或 ID"
+              }
+            },
+            {
+              "arguments": {
+                "question": "天枢项目 项目负责人",
+                "project": "天枢",
+                "top_k": 8
+              },
+              "result": {
+                "refused": null,
+                "issue": null,
+                "project_ids": [],
+                "matched_project_ids": [],
+                "sources": [],
+                "error": "找不到项目「天枢」，请使用准确的项目名称或 ID"
+              }
+            }
+          ],
+          "ok": false,
+          "bare_calls": 0
+        },
+        {
+          "profile": "explicit_context",
+          "case": "correction",
+          "expected": "天枢项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "天枢项目 立项预算 多少万元",
+                "project": "天枢",
+                "top_k": 10,
+                "history": [
+                  {
+                    "role": "user",
+                    "content": "先看星云项目。"
+                  },
+                  {
+                    "role": "user",
+                    "content": "我说错了，前面说的是星云项目，现在只查天枢项目。"
+                  }
+                ]
+              },
+              "result": {
+                "refused": null,
+                "issue": null,
+                "project_ids": [],
+                "matched_project_ids": [],
+                "sources": [],
+                "error": "找不到项目「天枢」，请使用准确的项目名称或 ID"
+              }
+            }
+          ],
+          "ok": false,
+          "bare_calls": 0
+        },
+        {
+          "profile": "explicit_context",
+          "case": "style_followup",
+          "expected": "星云项目",
+          "calls": [
+            {
+              "arguments": {
+                "question": "星云项目 立项预算 多少万元",
+                "project": "星云项目",
+                "top_k": 8
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "ok": true,
+          "bare_calls": 0
+        },
+        {
+          "profile": "explicit_context",
+          "case": "ambiguous",
+          "expected": null,
+          "calls": [
+            {
+              "arguments": {
+                "question": "星云项目 立项预算 万元",
+                "project": "星云项目",
+                "top_k": 8
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  1
+                ],
+                "matched_project_ids": [
+                  1
+                ],
+                "sources": [
+                  "星云项目章程.md"
+                ],
+                "error": null
+              }
+            },
+            {
+              "arguments": {
+                "question": "天枢项目 立项预算 万元",
+                "project": "天枢项目",
+                "top_k": 8
+              },
+              "result": {
+                "refused": false,
+                "issue": null,
+                "project_ids": [
+                  2
+                ],
+                "matched_project_ids": [
+                  2
+                ],
+                "sources": [
+                  "天枢项目立项报告.docx"
+                ],
+                "error": null
+              }
+            }
+          ],
+          "answer": "",
+          "ok": false,
+          "bare_calls": 0
+        }
+      ],
+      "project_ids": {
+        "沧海项目": 5,
+        "昆仑项目": 4,
+        "北斗项目": 3,
+        "天枢项目": 2,
+        "星云项目": 1
+      },
+      "schema": {
+        "properties": [
+          "business_direction",
+          "department",
+          "doc_type",
+          "domain",
+          "history",
+          "project",
+          "question",
+          "status",
+          "top_k"
+        ],
+        "required": [
+          "question"
+        ]
+      }
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}

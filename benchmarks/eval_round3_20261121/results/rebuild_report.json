@@ -1,0 +1,70 @@
+{
+  "elapsed": 2059,
+  "groups": [
+    {
+      "owner": "",
+      "files": 12,
+      "ok": 12,
+      "failed": [],
+      "chunks": 53,
+      "new": 12,
+      "updated": 0,
+      "skipped": 0
+    },
+    {
+      "owner": "lili",
+      "files": 6,
+      "ok": 6,
+      "failed": [],
+      "chunks": 9,
+      "new": 6,
+      "updated": 0,
+      "skipped": 0
+    },
+    {
+      "owner": "liqiang",
+      "files": 2,
+      "ok": 2,
+      "failed": [],
+      "chunks": 2,
+      "new": 2,
+      "updated": 0,
+      "skipped": 0
+    },
+    {
+      "owner": "liuye",
+      "files": 4,
+      "ok": 4,
+      "failed": [],
+      "chunks": 15,
+      "new": 3,
+      "updated": 1,
+      "skipped": 0
+    },
+    {
+      "owner": "wangfang",
+      "files": 15,
+      "ok": 15,
+      "failed": [],
+      "chunks": 34,
+      "new": 14,
+      "updated": 1,
+      "skipped": 0
+    },
+    {
+      "owner": "zhaocai",
+      "files": 12,
+      "ok": 12,
+      "failed": [],
+      "chunks": 20,
+      "new": 11,
+      "updated": 1,
+      "skipped": 0
+    }
+  ],
+  "docs": 50,
+  "cards": 178,
+  "owner_missing": [
+    "work/边界测试_空文件.txt"
+  ]
+}

@@ -1,0 +1,183 @@
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.1 秒
+   🤖 自动标签 [work/星海数据治理管理制度_v2.0.md]: topic=['数据治理', '数据安全'] tags=['数据分级', '数据脱敏', '数据质量', '主数据管理', '数据生命周期']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 12.0 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 19.8 秒
+
+入库明细：
+   work/星海数据治理管理制度_v2.0.md                  domain=work       status=active   卡片数=1
+  ✓ work/星海数据治理管理制度_v2.0.md  chunks=1  20.8s
+     [min_cards min_sections] cards=1 sections=1 pages=-
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [work/星海2026年度经营计划.docx]: topic=['经营计划', '年度战略'] tags=['星海科技', '预算', 'X-4000量产', '东南亚市场', '数据平台商业化', '人才流失率']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 5 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：5 条，耗时 10.7 秒
+⑥ 存入 Qdrant 向量库
+   已写入 5 张卡片
+✅ 入库完成，总耗时 14.1 秒
+
+入库明细：
+   work/星海2026年度经营计划.docx                   domain=work       status=active   卡片数=5
+  ✓ work/星海2026年度经营计划.docx  chunks=5  14.1s
+     [doc_type_filled] cards=5 sections=5 pages=-
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+   🤖 自动标签 [projects/凤凰项目/凤凰项目可行性研究报告.docx]: topic=['凤凰项目', '可行性研究'] tags=['研发项目', '财务测算', '技术指标', '风险管理', 'X-4000检测仪', '2026年计划']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 5 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：5 条，耗时 8.5 秒
+⑥ 存入 Qdrant 向量库
+   已写入 5 张卡片
+✅ 入库完成，总耗时 10.1 秒
+
+入库明细：
+   projects/凤凰项目/凤凰项目可行性研究报告.docx           domain=projects   status=active   卡片数=5
+  ✓ projects/凤凰项目/凤凰项目可行性研究报告.docx  chunks=5  10.1s
+     [all-ok] cards=5 sections=5 pages=-
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+   🤖 自动标签 [learning/星海项目管理手册_v1.0.docx]: topic=['项目管理', '制度规范'] tags=['立项审批', 'WBS', 'EVM', '项目周报', '变更控制', '项目收尾']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 5 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：5 条，耗时 8.6 秒
+⑥ 存入 Qdrant 向量库
+   已写入 5 张卡片
+✅ 入库完成，总耗时 10.6 秒
+
+入库明细：
+   learning/星海项目管理手册_v1.0.docx              domain=learning   status=active   卡片数=5
+  ✓ learning/星海项目管理手册_v1.0.docx  chunks=5  10.6s
+     [doc_type_filled] cards=5 sections=5 pages=-
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.5 秒
+   🤖 自动标签 [reference/星海合同/Phoenix技术方案建议书_2026.pdf]: topic=['Phoenix项目技术方案', 'X-4000软件子系统'] tags=['微服务', 'Kubernetes', 'Kafka', 'SLA', '等保三级', '交付计划']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 5 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：5 条，耗时 15.1 秒
+⑥ 存入 Qdrant 向量库
+   已写入 5 张卡片
+✅ 入库完成，总耗时 17.2 秒
+
+入库明细：
+   reference/星海合同/Phoenix技术方案建议书_2026.pdf   domain=reference  status=active   卡片数=5
+  ✓ reference/星海合同/Phoenix技术方案建议书_2026.pdf  chunks=5  17.2s
+     [all-ok] cards=5 sections=0 pages=['1', '2', '3', '4', '5']
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [reference/星海发布会/星海2026春季发布会纪要.pptx]: topic=['新品发布', 'X-4000'] tags=['星海科技', '智能检测仪', '售价', '渠道开售', '生态合作', 'X-5000']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 7 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：7 条，耗时 9.9 秒
+⑥ 存入 Qdrant 向量库
+   已写入 7 张卡片
+✅ 入库完成，总耗时 11.5 秒
+
+入库明细：
+   reference/星海发布会/星海2026春季发布会纪要.pptx       domain=reference  status=active   卡片数=7
+  ✓ reference/星海发布会/星海2026春季发布会纪要.pptx  chunks=7  11.5s
+     [doc_type_filled] cards=7 sections=7 pages=['1', '2', '3', '4', '5', '6', '7']
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [reference/星海表格/星海2026项目总台账.xlsx]: topic=['项目台账', '里程碑管理'] tags=['项目预算', '项目状态', '项目周期', '负责人', '里程碑计划']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 13.7 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 15.2 秒
+
+入库明细：
+   reference/星海表格/星海2026项目总台账.xlsx          domain=reference  status=active   卡片数=1
+  ✓ reference/星海表格/星海2026项目总台账.xlsx  chunks=1  15.2s
+     [doc_type_filled] cards=1 sections=1 pages=-
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [work/星海供应商管理办法_2026修订.md]: topic=['供应商管理', '采购管理'] tags=['供应商准入', '供应商分级', '比价采购', '付款账期', '供应商考核', '质保金']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 7.7 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 8.7 秒
+
+入库明细：
+   work/星海供应商管理办法_2026修订.md                 domain=work       status=active   卡片数=1
+  ✓ work/星海供应商管理办法_2026修订.md  chunks=1  8.7s
+     [min_cards min_sections] cards=1 sections=1 pages=-
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [archive/星海旧版差旅制度_2023.md]: topic=['差旅制度', '星海公司'] tags=['已废止', '住宿标准', '餐费补贴', '出差审批', '2023版']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 4.2 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 5.5 秒
+
+入库明细：
+   archive/星海旧版差旅制度_2023.md                 domain=archive    status=archive  卡片数=1
+  ✓ archive/星海旧版差旅制度_2023.md  chunks=1  5.5s
+     [all-ok] cards=1 sections=1 pages=-
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [projects/凤凰项目/X-4000需求规格_v1.0.docx]: topic=['X-4000 需求规格', '凤凰项目'] tags=['告警联动', '工单调度', '多租户', '权限管理', '非功能性要求', '验收标准']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 5 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：5 条，耗时 14.9 秒
+⑥ 存入 Qdrant 向量库
+   已写入 5 张卡片
+✅ 入库完成，总耗时 16.4 秒
+
+入库明细：
+   projects/凤凰项目/X-4000需求规格_v1.0.docx       domain=projects   status=active   卡片数=5
+  ✓ projects/凤凰项目/X-4000需求规格_v1.0.docx  chunks=5  16.4s
+     [doc_type_filled] cards=5 sections=5 pages=-
+
+metadata 字段正确率：101/110 = 91.8%
+文件级全过：3/10；库：60 文档 / 214 卡片；总耗时 131s

@@ -1,0 +1,402 @@
+======================================================================
+阶段 1：逐文件入库（16 个语料文件 + 1 个空文件边界样本）
+======================================================================
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+   🤖 自动标签 [work/星海员工手册_2024版.md]: topic=['员工手册', '人事行政制度'] tags=['考勤', '差旅报销', '试用期', '年假', '账号密码', '会议室管理']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 7.9 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 15.3 秒
+
+入库明细：
+   work/星海员工手册_2024版.md                     domain=work       status=active   卡片数=1
+  ✓ work/星海员工手册_2024版.md  chunks=1 class=公开 groups=['all'] users=[] dept=人力资源部 owner=lili 16.4s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.2 秒
+   🤖 自动标签 [work/星海财务报销制度_v2.1.md]: topic=['财务报销制度', '费用报销管理'] tags=['审批权限', '增值税发票', 'OA报销流程', '差旅借款', '违规处理', '星海科技']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 5.4 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 7.0 秒
+
+入库明细：
+   work/星海财务报销制度_v2.1.md                    domain=work       status=active   卡片数=1
+  ✓ work/星海财务报销制度_v2.1.md  chunks=1 class=内部 groups=['财务部', '研发部'] users=[] dept=财务部 owner=zhaocai 7.0s
+① 找到 1 个待入库文件
+✅ 增量入库完成：没有需要处理的文件
+  ✗ work/星海薪酬福利制度.md  chunks=0 class=None groups=None users=None dept=None owner=None 0.0s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+   🤖 自动标签 [work/星海信息安全管理制度.md]: topic=['信息安全管理制度', '账号与数据安全'] tags=['密码策略', '数据备份', '等级保护', '钓鱼邮件演练', '终端管理', '账号停用']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 6.2 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 7.5 秒
+
+入库明细：
+   work/星海信息安全管理制度.md                       domain=work       status=active   卡片数=1
+  ✓ work/星海信息安全管理制度.md  chunks=1 class=内部 groups=['研发部'] users=[] dept=研发部 owner=wangfang 7.5s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [learning/星海RAG技术培训笔记.md]: topic=['RAG 检索增强生成', '检索优化'] tags=['chunk_size 切片', 'BM25 混合检索', 'Rerank 重排序', '向量检索', '数据安全', '内网部署']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 5.9 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 6.9 秒
+
+入库明细：
+   learning/星海RAG技术培训笔记.md                  domain=learning   status=active   卡片数=1
+  ✓ learning/星海RAG技术培训笔记.md  chunks=1 class=公开 groups=['all'] users=[] dept=研发部 owner=wangfang 6.9s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [learning/星海产品培训_基础篇.docx]: topic=['X-1000便携式智能检测仪', '产品培训'] tags=['星海科技', '工业巡检', '产品参数', '销售话术', '常见问题']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 4.7 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 7.6 秒
+
+入库明细：
+   learning/星海产品培训_基础篇.docx                 domain=learning   status=active   卡片数=1
+  ✓ learning/星海产品培训_基础篇.docx  chunks=1 class=公开 groups=['all'] users=[] dept=研发部 owner=wangfang 7.6s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+   🤖 自动标签 [projects/星云项目/星云项目章程.md]: topic=['星云项目', '项目章程'] tags=['X-2000', '项目里程碑', '数据安全', '等级保护三级', '协作约定']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 4.5 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 6.6 秒
+
+入库明细：
+   projects/星云项目/星云项目章程.md                  domain=projects   status=active   卡片数=1
+  ✓ projects/星云项目/星云项目章程.md  chunks=1 class=内部 groups=['研发部'] users=[] dept=研发部 owner=wangfang 6.6s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+   🤖 自动标签 [projects/天枢项目/天枢项目立项报告.docx]: topic=['天枢项目', '项目立项'] tags=['项目预算', 'KPI指标', '数据安全测评', '等级保护三级', '里程碑', '星云项目']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 5.3 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 6.6 秒
+
+入库明细：
+   projects/天枢项目/天枢项目立项报告.docx              domain=projects   status=active   卡片数=1
+  ✓ projects/天枢项目/天枢项目立项报告.docx  chunks=1 class=内部 groups=['研发部', '市场部'] users=[] dept=研发部 owner=wangfang 6.6s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.5 秒
+   🤖 自动标签 [projects/北斗项目/北斗项目总结报告.md]: topic=['北斗项目', '项目总结'] tags=['预研项目', '结项验收', '需求变更', '经验教训', '星云项目']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 3.3 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 4.1 秒
+
+入库明细：
+   projects/北斗项目/北斗项目总结报告.md                domain=projects   status=active   卡片数=1
+  ✓ projects/北斗项目/北斗项目总结报告.md  chunks=1 class=内部 groups=['研发部'] users=[] dept=研发部 owner=wangfang 4.1s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [reference/星海合同/华信数据采购合同_2024.pdf]: topic=['采购合同', '服务器集群采购'] tags=['采购合同', '服务器集群', '付款条款', '交付验收', '合同金额', '质保']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 2 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：2 条，耗时 8.3 秒
+⑥ 存入 Qdrant 向量库
+   已写入 2 张卡片
+✅ 入库完成，总耗时 9.2 秒
+
+入库明细：
+   reference/星海合同/华信数据采购合同_2024.pdf         domain=reference  status=active   卡片数=2
+  ✓ reference/星海合同/华信数据采购合同_2024.pdf  chunks=2 class=公开 groups=['all'] users=[] dept=财务部 owner=zhaocai 9.2s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+   🤖 自动标签 [reference/星海表格/2024年度部门预算表.xlsx]: topic=['部门预算', '预算编制'] tags=['2024年度预算', '财务部', '预算调整', '审批流程', '内部使用', '经营管理会议']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 3.9 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 6.5 秒
+
+入库明细：
+   reference/星海表格/2024年度部门预算表.xlsx          domain=reference  status=active   卡片数=1
+  ✓ reference/星海表格/2024年度部门预算表.xlsx  chunks=1 class=内部 groups=['财务部'] users=[] dept=财务部 owner=zhaocai 6.5s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.7 秒
+   🤖 自动标签 [reference/星海发布会/星海X-2000发布会纪要.pptx]: topic=['星海科技 X-2000 新品发布会'] tags=['X-2000', '2024-11-18', '杭州国际博览中心', '陈明', '星云项目团队', '首发价 15999 元']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 4 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：4 条，耗时 5.2 秒
+⑥ 存入 Qdrant 向量库
+   已写入 4 张卡片
+✅ 入库完成，总耗时 6.3 秒
+
+入库明细：
+   reference/星海发布会/星海X-2000发布会纪要.pptx       domain=reference  status=active   卡片数=4
+  ✓ reference/星海发布会/星海X-2000发布会纪要.pptx  chunks=4 class=公开 groups=['all'] users=[] dept=市场部 owner=liuye 6.3s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+   🤖 自动标签 [reference/星海简介/公司简介.html]: topic=['星海科技', '企业简介'] tags=['便携式智能检测设备', '杭州', '国家高新技术企业', 'CMMI 3级', 'X-1000', 'X-2000']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 3.6 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 4.6 秒
+
+入库明细：
+   reference/星海简介/公司简介.html                 domain=reference  status=active   卡片数=1
+  ✓ reference/星海简介/公司简介.html  chunks=1 class=公开 groups=['all'] users=[] dept=人力资源部 owner=lili 4.6s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+   🤖 自动标签 [reference/星海评审/产品评审会议纪要.rtf]: topic=['产品评审', '会议纪要'] tags=['X-2000', '便携式检测仪', '量产版本', '供应链交期', '良率报表自动化']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 3.8 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 4.9 秒
+
+入库明细：
+   reference/星海评审/产品评审会议纪要.rtf              domain=reference  status=active   卡片数=1
+  ✓ reference/星海评审/产品评审会议纪要.rtf  chunks=1 class=公开 groups=['all'] users=[] dept=研发部 owner=wangfang 4.9s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.1 秒
+   🤖 自动标签 [reference/星海运维/机房巡检通知.jpg]: topic=['机房巡检'] tags=['巡检通知', '巡检时间', '负责人', '联系电话', 'IT部']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 1.4 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 4.9 秒
+
+入库明细：
+   reference/星海运维/机房巡检通知.jpg                domain=reference  status=active   卡片数=1
+  ✓ reference/星海运维/机房巡检通知.jpg  chunks=1 class=公开 groups=['all'] users=[] dept=研发部 owner=wangfang 4.9s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+   🤖 自动标签 [archive/星海旧版员工手册_2022.md]: topic=['员工手册', '旧版制度'] tags=['已废止', '差旅报销', '试用期', '密码要求', '2022旧版']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 4.1 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 5.2 秒
+
+入库明细：
+   archive/星海旧版员工手册_2022.md                 domain=archive    status=archive  卡片数=1
+  ✓ archive/星海旧版员工手册_2022.md  chunks=1 class=公开 groups=['all'] users=[] dept=人力资源部 owner=lili 5.2s
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+   🤖 自动标签 [work/边界测试_空文件.txt]: topic=['未知主题'] tags=['空文档', '无内容']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 0 张知识卡片
+   ⚠️ 1 个文件未解析出文字（扫描件未开 OCR 或内容为空）：边界测试_空文件.txt；这些文件本次不会入向量库，开启 OCR 后重新入库即可
+  ✓ work/边界测试_空文件.txt  chunks=0 class=公开 groups=['all'] users=[] dept=研发部 owner=wangfang 0.9s
+
+阶段 1.5：Qdrant payload 抽检验证
+
+阶段 2：边界 B1 —— 全量扫描重复入库（增量跳过）
+① 找到 28 个待入库文件
+   ⏭️ 26 个文件内容未变化，跳过（省时省钱）
+      ⏭️ archive/星海旧版员工手册_2022.md
+      ⏭️ learning/public/统一环境信息记录.txt
+      ⏭️ learning/星海RAG技术培训笔记.md
+      ⏭️ learning/星海产品培训_基础篇.docx
+      ⏭️ projects/general/20260915 CGW_BHF_总体V1.2.pptx
+      ⏭️ projects/低空项目/项目说明.md
+      ⏭️ projects/北斗项目/北斗项目总结报告.md
+      ⏭️ projects/国防动员项目/项目说明.md
+      ⏭️ projects/天枢项目/天枢项目立项报告.docx
+      ⏭️ projects/开源情报项目/项目说明.md
+      ⏭️ projects/微信图片_20261119170638_6_27.jpg
+      ⏭️ projects/星云项目/星云项目章程.md
+      ⏭️ projects/边防海防项目/项目说明.md
+      ⏭️ reference/articles/RAG外部资料.pdf
+      ⏭️ reference/documents/示例_产品需求.docx
+      ⏭️ reference/documents/示例_会议纪要.rtf
+      ⏭️ reference/documents/示例_英文产品说明.pdf
+      ⏭️ reference/星海发布会/星海X-2000发布会纪要.pptx
+      ⏭️ reference/星海合同/华信数据采购合同_2024.pdf
+      ⏭️ reference/星海简介/公司简介.html
+      ⏭️ reference/星海表格/2024年度部门预算表.xlsx
+      ⏭️ reference/星海评审/产品评审会议纪要.rtf
+      ⏭️ reference/星海运维/机房巡检通知.jpg
+      ⏭️ work/星海信息安全管理制度.md
+      ⏭️ work/星海员工手册_2024版.md
+      ⏭️ work/星海财务报销制度_v2.1.md
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+   🤖 自动标签 [projects/dikongyujingxitong/统一环境信息记录.txt]: topic=['基础应用环境', '办公软件'] tags=['Office 2013', 'Visio 2013', 'Project 2013', 'Xmind 8', 'WPS Office 2019', 'Axure 8.0']
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+   🤖 自动标签 [work/边界测试_空文件.txt]: topic=['未提供内容'] tags=['空文档', '内容缺失', '无法识别']
+   成功 2 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+   ⚠️ 1 个文件未解析出文字（扫描件未开 OCR 或内容为空）：边界测试_空文件.txt；这些文件本次不会入向量库，开启 OCR 后重新入库即可
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 2.9 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 6.2 秒
+
+入库明细：
+   projects/dikongyujingxitong/统一环境信息记录.txt domain=projects   status=active   卡片数=1
+   work/边界测试_空文件.txt                        domain=work       status=active   卡片数=0
+  全量扫描：total=2 skipped=26 processed=2 cleaned=0 elapsed=6.2s
+
+阶段 3：边界 B2 —— 版本管理（星云章程内容更新）
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+   🤖 自动标签 [projects/星云项目/星云项目章程.md]: topic=['星云项目', '项目章程'] tags=['X-2000', '数据平台', '项目里程碑', '等保三级', '135万元预算']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 5.0 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 7.1 秒
+
+入库明细：
+   projects/星云项目/星云项目章程.md                  domain=projects   status=active   卡片数=1
+  ✓ projects/星云项目/星云项目章程.md  chunks=1 class=内部 groups=['研发部'] users=[] dept=研发部 owner=wangfang 7.1s
+  星云章程版本分布： [('1.0', 'expired'), ('1.1', 'active')]
+
+阶段 4：边界 B3/B4/B5 检查
+  B3 归档文件状态： archive 密级： 公开
+  B4 空文件入库结果： {'path': 'work/边界测试_空文件.txt', 'elapsed': 0.89, 'ok': True, 'chunks': 0, 'classification': '公开', 'allowed_groups': ['all'], 'allowed_users': [], 'department': '研发部', 'version': '1.0', 'owner': 'wangfang', 'status': 'active', 'errors': None}
+  B5 不支持格式文件存在： reference\边界测试_不支持格式.xyz （应仅存在于磁盘，不在向量库）
+  B5 向量库中 xyz 卡片数： 0
+  B1 扫描文件数（不含 xyz/已删除）应为语料数： 2
+
+阶段 5：边界 B6 —— 删除文件 → 向量同步清理（北斗项目演示，之后恢复）
+① 找到 27 个待入库文件
+   🧹 已同步清理 1 个已删除文件的向量数据
+   ⏭️ 27 个文件内容未变化，跳过（省时省钱）
+      ⏭️ archive/星海旧版员工手册_2022.md
+      ⏭️ learning/public/统一环境信息记录.txt
+      ⏭️ learning/星海RAG技术培训笔记.md
+      ⏭️ learning/星海产品培训_基础篇.docx
+      ⏭️ projects/dikongyujingxitong/统一环境信息记录.txt
+      ⏭️ projects/general/20260915 CGW_BHF_总体V1.2.pptx
+      ⏭️ projects/低空项目/项目说明.md
+      ⏭️ projects/国防动员项目/项目说明.md
+      ⏭️ projects/天枢项目/天枢项目立项报告.docx
+      ⏭️ projects/开源情报项目/项目说明.md
+      ⏭️ projects/微信图片_20261119170638_6_27.jpg
+      ⏭️ projects/星云项目/星云项目章程.md
+      ⏭️ projects/边防海防项目/项目说明.md
+      ⏭️ reference/articles/RAG外部资料.pdf
+      ⏭️ reference/documents/示例_产品需求.docx
+      ⏭️ reference/documents/示例_会议纪要.rtf
+      ⏭️ reference/documents/示例_英文产品说明.pdf
+      ⏭️ reference/星海发布会/星海X-2000发布会纪要.pptx
+      ⏭️ reference/星海合同/华信数据采购合同_2024.pdf
+      ⏭️ reference/星海简介/公司简介.html
+      ⏭️ reference/星海表格/2024年度部门预算表.xlsx
+      ⏭️ reference/星海评审/产品评审会议纪要.rtf
+      ⏭️ reference/星海运维/机房巡检通知.jpg
+      ⏭️ work/星海信息安全管理制度.md
+      ⏭️ work/星海员工手册_2024版.md
+      ⏭️ work/星海财务报销制度_v2.1.md
+      ⏭️ work/边界测试_空文件.txt
+✅ 增量入库完成：没有需要处理的文件
+  删除后全量扫描清理： ['projects/北斗项目/北斗项目总结报告.md']
+① 找到 1 个待入库文件
+② 解析文件 → 统一文本 + Metadata
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+   🤖 自动标签 [projects/北斗项目/北斗项目总结报告.md]: topic=['北斗项目', '项目总结'] tags=['预研项目', '项目验收', '需求变更', '经验教训', '星云项目']
+   成功 1 个，失败 0 个
+③ 清洗文本，④ 切成知识卡片
+   共切出 1 张知识卡片
+⑤ 向量化（模型：qwen3-embedding:4b）
+   向量维度：2560
+    向量化完成：1 条，耗时 3.3 秒
+⑥ 存入 Qdrant 向量库
+   已写入 1 张卡片
+✅ 入库完成，总耗时 4.9 秒
+
+入库明细：
+   projects/北斗项目/北斗项目总结报告.md                domain=projects   status=active   卡片数=1
+  ✓ projects/北斗项目/北斗项目总结报告.md  chunks=1 class=内部 groups=['研发部'] users=[] dept=研发部 owner=wangfang 4.9s
+
+入库阶段完成，结果已写入 results/ingest_results.json

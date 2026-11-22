@@ -1,0 +1,488 @@
+{
+  "ingest": [
+    {
+      "path": "work/星海员工手册_2025版_v3.0.md",
+      "elapsed": 122.95,
+      "ok": true,
+      "chunks": 4,
+      "errors": null
+    },
+    {
+      "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+      "elapsed": 86.46,
+      "ok": true,
+      "chunks": 3,
+      "errors": null
+    },
+    {
+      "path": "reference/星海合同/华信运维服务合同_2025_v1.0.pdf",
+      "elapsed": 44.72,
+      "ok": true,
+      "chunks": 5,
+      "errors": null
+    },
+    {
+      "path": "learning/星海新员工入职培训手册_v2.0.docx",
+      "elapsed": 41.92,
+      "ok": true,
+      "chunks": 1,
+      "errors": null
+    },
+    {
+      "path": "work/星海合同管理制度_v1.1.md",
+      "elapsed": 87.25,
+      "ok": true,
+      "chunks": 3,
+      "errors": null
+    },
+    {
+      "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+      "elapsed": 45.02,
+      "ok": true,
+      "chunks": 1,
+      "errors": null
+    },
+    {
+      "path": "work/星海数据备份与恢复管理办法_v1.1.md",
+      "elapsed": 16.24,
+      "ok": true,
+      "chunks": 1,
+      "errors": null
+    },
+    {
+      "path": "archive/星海旧版采购管理制度_2020.md",
+      "elapsed": 18.12,
+      "ok": true,
+      "chunks": 1,
+      "errors": null
+    },
+    {
+      "path": "reference/星海表格/星海项目台账_2025.xlsx",
+      "elapsed": 31.02,
+      "ok": true,
+      "chunks": 1,
+      "errors": null
+    },
+    {
+      "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "elapsed": 24.7,
+      "ok": true,
+      "chunks": 6,
+      "errors": null
+    }
+  ],
+  "metadata_matrix": [
+    {
+      "path": "work/星海员工手册_2025版_v3.0.md",
+      "actual": {
+        "doc_type": "员工手册",
+        "department": "人力资源部",
+        "version": "3.0",
+        "document_version": "",
+        "document_version_status": "needs_review",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "lili"
+      },
+      "cards": 4,
+      "sections": [
+        "九、分支机构与外勤管理",
+        "十六、驻外与轮岗",
+        "四、假期管理",
+        "星海科技员工手册（2025版）"
+      ],
+      "pages": [],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": true,
+        "department": true,
+        "version": true,
+        "docver_status": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true
+      },
+      "field_results": {},
+      "passed": true
+    },
+    {
+      "path": "projects/星云项目/星云项目招标技术规格书_v1.2.md",
+      "actual": {
+        "doc_type": "技术规格书",
+        "department": "研发部",
+        "version": "1.2",
+        "document_version": "1.2",
+        "document_version_status": "declared",
+        "classification": "内部",
+        "allowed_groups": [
+          "研发部"
+        ],
+        "allowed_users": [],
+        "project_id": 2,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 3,
+      "sections": [
+        "五、交付与验收",
+        "十三、系统对接清单",
+        "星云项目招标技术规格书"
+      ],
+      "pages": [],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": true,
+        "department": true,
+        "version": true,
+        "document_version": true,
+        "docver_status": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true,
+        "min_sections": false
+      },
+      "field_results": {},
+      "passed": false
+    },
+    {
+      "path": "reference/星海合同/华信运维服务合同_2025_v1.0.pdf",
+      "actual": {
+        "doc_type": "合同",
+        "department": "财务部",
+        "version": "1.0",
+        "document_version": "1.0",
+        "document_version_status": "filename_only",
+        "classification": "内部",
+        "allowed_groups": [
+          "财务部"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "zhaocai"
+      },
+      "cards": 5,
+      "sections": [],
+      "pages": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": true,
+        "department": true,
+        "version": true,
+        "document_version": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true,
+        "page_metadata": true
+      },
+      "field_results": {},
+      "passed": true
+    },
+    {
+      "path": "learning/星海新员工入职培训手册_v2.0.docx",
+      "actual": {
+        "doc_type": "",
+        "department": "",
+        "version": "2.0",
+        "document_version": "",
+        "document_version_status": "needs_review",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 1,
+      "sections": [],
+      "pages": [],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": false,
+        "department": true,
+        "version": true,
+        "docver_status": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true
+      },
+      "field_results": {},
+      "passed": false
+    },
+    {
+      "path": "work/星海合同管理制度_v1.1.md",
+      "actual": {
+        "doc_type": "管理制度",
+        "department": "财务部",
+        "version": "1.1",
+        "document_version": "1.1",
+        "document_version_status": "filename_only",
+        "classification": "内部",
+        "allowed_groups": [
+          "财务部",
+          "研发部"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "zhaocai"
+      },
+      "cards": 3,
+      "sections": [
+        "一、总则",
+        "七、保证金管理"
+      ],
+      "pages": [],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": true,
+        "department": true,
+        "version": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true
+      },
+      "field_results": {},
+      "passed": true
+    },
+    {
+      "path": "projects/昆仑项目/昆仑项目需求说明书_v2.0.docx",
+      "actual": {
+        "doc_type": "需求说明书",
+        "department": "研发部",
+        "version": "2.0",
+        "document_version": "",
+        "document_version_status": "needs_review",
+        "classification": "内部",
+        "allowed_groups": [
+          "研发部",
+          "市场部"
+        ],
+        "allowed_users": [],
+        "project_id": 5,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 1,
+      "sections": [],
+      "pages": [],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": true,
+        "department": true,
+        "version": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true
+      },
+      "field_results": {},
+      "passed": true
+    },
+    {
+      "path": "work/星海数据备份与恢复管理办法_v1.1.md",
+      "actual": {
+        "doc_type": "管理制度",
+        "department": "研发部",
+        "version": "1.1",
+        "document_version": "",
+        "document_version_status": "needs_review",
+        "classification": "内部",
+        "allowed_groups": [
+          "研发部"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 1,
+      "sections": [
+        "一、备份策略"
+      ],
+      "pages": [],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": true,
+        "department": true,
+        "version": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true
+      },
+      "field_results": {},
+      "passed": true
+    },
+    {
+      "path": "archive/星海旧版采购管理制度_2020.md",
+      "actual": {
+        "doc_type": "管理制度",
+        "department": "财务部",
+        "version": "1.0",
+        "document_version": "",
+        "document_version_status": "undeclared",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "archive",
+        "owner": "zhaocai"
+      },
+      "cards": 1,
+      "sections": [
+        "星海采购管理制度（2020 旧版，已废止）"
+      ],
+      "pages": [],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": true,
+        "department": true,
+        "version": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true
+      },
+      "field_results": {},
+      "passed": true
+    },
+    {
+      "path": "reference/星海表格/星海项目台账_2025.xlsx",
+      "actual": {
+        "doc_type": "",
+        "department": "财务部",
+        "version": "1.0",
+        "document_version": "",
+        "document_version_status": "unavailable",
+        "classification": "内部",
+        "allowed_groups": [
+          "财务部"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "zhaocai"
+      },
+      "cards": 1,
+      "sections": [
+        "Sheet：项目台账"
+      ],
+      "pages": [],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": false,
+        "department": true,
+        "version": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true
+      },
+      "field_results": {},
+      "passed": false
+    },
+    {
+      "path": "reference/星海发布会/星海2025年中发布会纪要.pptx",
+      "actual": {
+        "doc_type": "",
+        "department": "市场部",
+        "version": "1.0",
+        "document_version": "",
+        "document_version_status": "undeclared",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "liuye"
+      },
+      "cards": 6,
+      "sections": [
+        "下一代规划",
+        "发布产品",
+        "合作媒体",
+        "旗舰版参数",
+        "星海科技 2025 年中新品发布会纪要",
+        "渠道与开售"
+      ],
+      "pages": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "checks": {
+        "doc_type": true,
+        "doc_type_filled": false,
+        "department": true,
+        "version": true,
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "min_cards": true
+      },
+      "field_results": {},
+      "passed": false
+    }
+  ],
+  "field_pass": 113,
+  "field_total": 117,
+  "field_rate": 96.6,
+  "file_pass": 6,
+  "file_total": 10
+}

@@ -1,0 +1,4961 @@
+{
+  "indexed": 29,
+  "cards": 37,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "configuration": {
+    "model": "deepseek-flash",
+    "embedding": "qwen3-embedding:4b",
+    "rerank": "local_onnx",
+    "project_linked": true,
+    "keyword_only": false
+  },
+  "questions": [
+    {
+      "id": "SN01",
+      "difficulty": "simple",
+      "question": "星云项目目前的立项预算是多少万元？",
+      "seconds": 6.734,
+      "elapsed": {
+        "query_understanding": 2.232144594192505,
+        "retrieval_only": 1.1424710750579834,
+        "rerank": 2.654660224914551,
+        "assembly": 0.0019533634185791016,
+        "retrieval": 3.7990846633911133,
+        "total": 6.700442552566528,
+        "llm": 0.6692132949829102
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "星云项目的立项预算是 **135 万元** [1]。\n\n- 项目来源：X-2000 量产与数据平台建设项目，即星云项目 [1]\n- 项目周期：2024-01 至 2024-09 [1]"
+    },
+    {
+      "id": "SN02",
+      "difficulty": "simple",
+      "question": "天枢项目的负责人是谁？",
+      "seconds": 4.203,
+      "elapsed": {
+        "query_understanding": 2.6535544395446777,
+        "retrieval_only": 0.32376933097839355,
+        "rerank": 0.6848087310791016,
+        "assembly": 0.0,
+        "retrieval": 1.0085780620574951,
+        "total": 4.162693977355957,
+        "llm": 0.5005614757537842
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "天枢项目的负责人是周红 [1]。"
+    },
+    {
+      "id": "SN03",
+      "difficulty": "simple",
+      "question": "天枢项目的接口响应时间目标是多少？",
+      "seconds": 3.078,
+      "elapsed": {
+        "query_understanding": 1.7861907482147217,
+        "retrieval_only": 0.28475499153137207,
+        "rerank": 0.4205949306488037,
+        "assembly": 0.0,
+        "retrieval": 0.7053499221801758,
+        "total": 3.0311505794525146,
+        "llm": 0.5396099090576172
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "天枢项目的接口响应时间目标为 ≤200ms，验收方式为压测报告 [1]。"
+    },
+    {
+      "id": "SN04",
+      "difficulty": "simple",
+      "question": "研发部 2025 年度的预算是多少万元？",
+      "seconds": 5.907,
+      "elapsed": {
+        "query_understanding": 2.420513868331909,
+        "retrieval_only": 0.3890044689178467,
+        "rerank": 2.2571513652801514,
+        "assembly": 0.000995635986328125,
+        "retrieval": 2.647151470184326,
+        "total": 5.875949382781982,
+        "llm": 0.8082840442657471
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 3
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海表格/2025年度部门预算表.xlsx",
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "reference/星海发布会/星海2025年度规划汇报.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2025年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "研发部 2025 年度预算为 **600 万元**，负责人是陈明，备注为“含昆仑/沧海项目投入”[1]。"
+    },
+    {
+      "id": "SN05",
+      "difficulty": "simple",
+      "question": "昆仑项目的负责人是谁？",
+      "seconds": 4.156,
+      "elapsed": {
+        "query_understanding": 2.690778970718384,
+        "retrieval_only": 0.2197580337524414,
+        "rerank": 0.29625701904296875,
+        "assembly": 0.0010018348693847656,
+        "retrieval": 0.5170168876647949,
+        "total": 4.123139381408691,
+        "llm": 0.9153435230255127
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          4
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "昆仑"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/昆仑项目/昆仑项目立项报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "昆仑项目的负责人是林岚 [1]。"
+    },
+    {
+      "id": "SN06",
+      "difficulty": "simple",
+      "question": "沧海项目是什么时候通过验收的？",
+      "seconds": 5.062,
+      "elapsed": {
+        "query_understanding": 3.0191898345947266,
+        "retrieval_only": 0.28168368339538574,
+        "rerank": 1.7172789573669434,
+        "assembly": 0.002507925033569336,
+        "retrieval": 2.0014705657958984,
+        "total": 5.020660400390625
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "2025-07-15"
+        ],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "找到了候选资料，但没有足够证据支持这个问题。",
+      "support_probe": {
+        "checks": [
+          {
+            "decision": {
+              "status": "unsupported",
+              "checked": [
+                "验收日期"
+              ],
+              "missing": [
+                "验收日期"
+              ]
+            },
+            "passages": [
+              "来源文档：沧海项目验收报告.docx\n沧海项目验收报告\n\n# 一、项目基本信息\n项目负责人：徐凯。项目预算：45 万元。项目周期 2025-01 至 2025-06，参与部门：研发部。\n\n# 二、验收结论\n项目于 2025-07-15 通过客户验收，交付物共 8 项，全部符合合同要求。\n\n# 三、遗留问题\n项目文档归档不齐全，需在 2025-09-30 前补齐并移交档案室。",
+              "来源文档：北斗项目总结报告.md\n## 项目概况\n北斗项目是星云项目的前置预研项目，预算 80 万元，\n项目周期 2023-07 至 2024-06，项目负责人陈明，已于 2024-06 正式结项。\n\n## 验收结论\n项目通过客户验收，交付物共 12 项。遗留问题：部分设计文档不齐全，\n已列入星云项目的整改计划。\n\n## 经验教训\n需求变更 9 次是本项目延期的主要原因，后续项目应在立项阶段冻结基线需求。",
+              "来源文档：产品评审会议纪要.rtf\n星海科技产品评审会议纪要会议时间：2024-10-20 14:00-16:30会议地点：杭州总部 3 楼会议室主持人：周红参会人：陈明、周红、王芳、刘洋、财务部代表赵彩一、评审对象：X-2000 便携式检测仪量产版本。二、评审结论：通过。附条件：供应链须在 2024-11-01 前确认核心传感器交期。三、遗留事项：量产良率报表自动化由测试组刘洋跟进，预计 2024-12 完成。",
+              "来源文档：星云项目章程.md\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。",
+              "来源文档：天枢项目立项报告.docx\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。\n\n# 二、关键技术指标（KPI）\n指标 | 目标值 | 验收方式\n接口响应时间 | ≤200ms | 压测报告\n并发用户数 | ≥5000 | 压测报告\n系统可用性 | 99.9% | 季度运行报告\n\n# 三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。\n\n# 四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+            ]
+          }
+        ],
+        "evidence_only_sources_without_gate": [
+          "projects/沧海项目/沧海项目验收报告.docx",
+          "projects/北斗项目/北斗项目总结报告.md",
+          "projects/星云项目/星云项目章程.md",
+          "projects/天枢项目/天枢项目立项报告.docx",
+          "reference/星海简介/昆仑项目启动新闻.html"
+        ]
+      }
+    },
+    {
+      "id": "SN07",
+      "difficulty": "simple",
+      "question": "蓝鲸维保服务合同每年的服务费是多少？",
+      "seconds": 7.016,
+      "elapsed": {
+        "query_understanding": 3.1529619693756104,
+        "retrieval_only": 0.9256422519683838,
+        "rerank": 1.7629611492156982,
+        "assembly": 0.0010077953338623047,
+        "retrieval": 2.6896111965179443,
+        "total": 6.990891933441162,
+        "llm": 1.1483187675476074
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 4
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "reference/星海表格/2025年度部门预算表.xlsx",
+        "reference/星海合同/华信数据采购合同_2024.pdf"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2025年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "蓝鲸维保服务合同（合同编号 OCEAN-SVC-2025-041）的服务费为每年人民币 120,000 元，按年度预付 [1]。"
+    },
+    {
+      "id": "SN08",
+      "difficulty": "simple",
+      "question": "公司 2025 年的目标营业收入是多少？",
+      "seconds": 5.031,
+      "elapsed": {
+        "query_understanding": 1.58738112449646,
+        "retrieval_only": 0.29427552223205566,
+        "rerank": 1.940568208694458,
+        "assembly": 0.002005338668823242,
+        "retrieval": 2.236849069595337,
+        "total": 4.988527059555054,
+        "llm": 1.1642968654632568
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 3
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料，星海科技2025年全年目标营业收入为 **2.5 亿元** [1]。"
+    },
+    {
+      "id": "SN09",
+      "difficulty": "simple",
+      "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 7.063,
+      "elapsed": {
+        "query_understanding": 1.3913133144378662,
+        "retrieval_only": 0.3447914123535156,
+        "rerank": 3.946408748626709,
+        "assembly": 0.0,
+        "retrieval": 4.291200160980225,
+        "total": 7.024143218994141,
+        "llm": 1.3416297435760498
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海薪酬福利制度.md",
+        "work/星海员工手册_2024版.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海信息安全管理制度.md",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据《星海薪酬福利制度》，年终奖按公司经营业绩与个人绩效发放，一般为 **2~4 个月月薪** [1]：\n\n- 绩效 A 档：4 个月\n- 绩效 B 档：3 个月\n- 绩效 C 档：2 个月\n\n年终奖于次年 1 月随工资发放 [1]。制度中没有按职级（普通员工或主管）区分年终奖月数的规定，因此确定月数要依据绩效档位。"
+    },
+    {
+      "id": "SN10",
+      "difficulty": "simple",
+      "question": "星海差旅管理办法里一线城市的住宿报销上限是多少钱一晚？",
+      "seconds": 7.297,
+      "elapsed": {
+        "query_understanding": 1.365394115447998,
+        "retrieval_only": 0.7107582092285156,
+        "rerank": 4.0881874561309814,
+        "assembly": 0.0030782222747802734,
+        "retrieval": 4.802023887634277,
+        "total": 7.266402721405029,
+        "llm": 1.098984718322754
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海差旅管理办法_2025修订.md",
+        "work/星海员工手册_2024版.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海薪酬福利制度.md",
+        "reference/星海发布会/星海2025年度规划汇报.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据《星海差旅管理办法（2025 修订）》，一线城市（北京、上海、广州、深圳）的住宿标准为**每晚 450 元** [1]。\n\n该办法自 2025-01-01 起施行，并取代《员工手册》中的差旅报销标准条款，因此员工手册里的一线城市每晚 400 元不再适用 [1][2]。"
+    },
+    {
+      "id": "SN11",
+      "difficulty": "simple",
+      "question": "供应商黑名单里有哪些公司？",
+      "seconds": 14.531,
+      "elapsed": {
+        "query_understanding": 1.6809186935424805,
+        "retrieval_only": 0.2643561363220215,
+        "rerank": 2.3156306743621826,
+        "assembly": 0.015186071395874023,
+        "retrieval": 2.595172882080078,
+        "total": 14.495091575663537,
+        "enumeration": 10.219000000040978,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 18,
+        "selected_documents": 12,
+        "stage2": {
+          "status": "executed",
+          "rounds": 2,
+          "queries": 4,
+          "batches": 6,
+          "valid_batches": 6,
+          "split_batches": 0,
+          "cards_read": 26,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "no_new_information",
+          "elapsed": 10.219000000040978,
+          "calls": 8,
+          "estimated_tokens": 7774,
+          "candidate_documents": 18,
+          "processed_documents": 18,
+          "items": 1,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海表格/星海供应商名录.xlsx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/星海供应商名录.xlsx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **1 条带原文证据的记录**；这不是全库确定总数。\n\n1. **中天咨询**：中天咨询 | 2024年数据违规 | 2024-12 [1]\n\n处理范围：18 份文档、26 张卡片、6 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "SN12",
+      "difficulty": "simple",
+      "question": "高管的年终奖一般是几个月工资？",
+      "seconds": 6.359,
+      "elapsed": {
+        "query_understanding": 1.5380585193634033,
+        "retrieval_only": 0.2991166114807129,
+        "rerank": 3.0589537620544434,
+        "assembly": 0.0,
+        "retrieval": 3.3580703735351562,
+        "total": 6.315460205078125,
+        "llm": 1.4193313121795654
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海高管薪酬方案.md",
+        "work/星海薪酬福利制度.md",
+        "work/星海员工手册_2024版.md",
+        "work/星海IT资产管理办法.txt",
+        "reference/星海发布会/星海2025年度规划汇报.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海高管薪酬方案.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料，高管的年终奖为 **6~8 个月月薪**，并与公司年度利润目标达成率挂钩 [1]。\n\n补充说明：普通员工的年终奖一般为 2~4 个月月薪，按绩效分档（A 档 4 个月、B 档 3 个月、C 档 2 个月）[2]，与高管的方案不同。"
+    },
+    {
+      "id": "SN13",
+      "difficulty": "simple",
+      "question": "昆仑项目是在哪个城市启动的？",
+      "seconds": 5.031,
+      "elapsed": {
+        "query_understanding": 1.9745893478393555,
+        "retrieval_only": 0.25917768478393555,
+        "rerank": 2.135490894317627,
+        "assembly": 0.0,
+        "retrieval": 2.3946685791015625,
+        "total": 4.977743864059448,
+        "llm": 0.6084859371185303
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 4
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海简介/昆仑项目启动新闻.html",
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/沧海项目/沧海项目验收报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海简介/昆仑项目启动新闻.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/沧海项目/沧海项目验收报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "昆仑项目在**成都**启动：2025-05-20，星海科技昆仑项目启动仪式在成都分支机构举行 [1]。此外，项目组常驻成都分支机构 [2]。"
+    },
+    {
+      "id": "SN14",
+      "difficulty": "simple",
+      "question": "按付款审批细则，单笔多少万元及以上的付款需要总会计师会签？",
+      "seconds": 11.094,
+      "elapsed": {
+        "query_understanding": 6.109614372253418,
+        "retrieval_only": 0.7921605110168457,
+        "rerank": 3.3739819526672363,
+        "assembly": 0.001813650131225586,
+        "retrieval": 4.167956113815308,
+        "total": 11.063762903213501,
+        "llm": 0.7861924171447754
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海付款审批细则.md",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "reference/星海表格/2025年度部门预算表.xlsx",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海付款审批细则.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2025年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "按《星海付款审批细则》，单笔 **10 万元及以上**的付款须总会计师会签 [1]。"
+    },
+    {
+      "id": "SN15",
+      "difficulty": "simple",
+      "question": "银河项目现在的预算是多少万元？",
+      "seconds": 1.078,
+      "elapsed": {
+        "query_understanding": 1.0498883724212646
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "metadata_scope": {
+          "project": "银河"
+        },
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true,
+          "refuse": true
+        },
+        "passed": true,
+        "best_rank": null,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": [
+          "SN15：『无法识别所指定的检索范围』计为设计内诚实拒答（不编造即通过）"
+        ]
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。"
+    },
+    {
+      "id": "SN16",
+      "difficulty": "simple",
+      "question": "笔记本电脑使用几年后由 IT 部统一评估更换？",
+      "seconds": 6.937,
+      "elapsed": {
+        "query_understanding": 1.707259178161621,
+        "retrieval_only": 0.3331029415130615,
+        "rerank": 3.713059902191162,
+        "assembly": 0.0,
+        "retrieval": 4.046162843704224,
+        "total": 6.904975414276123,
+        "llm": 1.1515533924102783
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海IT资产管理办法.txt",
+        "work/星海信息安全管理制度.md",
+        "work/星海员工手册_2024版.md",
+        "reference/星海运维/机房巡检通知.jpg",
+        "learning/星海RAG技术培训笔记.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "笔记本电脑使用年限为 **4 年**，到期后由 IT 部统一评估更换。[1]"
+    },
+    {
+      "id": "SN17",
+      "difficulty": "simple",
+      "question": "蓝鲸维保合同要求关键故障多长时间内到场处理？",
+      "seconds": 7.859,
+      "elapsed": {
+        "query_understanding": 3.8641583919525146,
+        "retrieval_only": 0.3612053394317627,
+        "rerank": 1.9331517219543457,
+        "assembly": 0.002007007598876953,
+        "retrieval": 2.2963640689849854,
+        "total": 7.823385715484619,
+        "llm": 1.6628632545471191
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 3
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "reference/星海表格/星海供应商名录.xlsx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/星海供应商名录.xlsx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据《蓝鲸维保服务合同_2025》（合同编号 OCEAN-SVC-2025-041）的服务水平约定：\n\n- 关键故障的现场响应时间为 **4 小时**（4-hour on-site response for critical failures）[1]\n- 该合同还包含每月例行巡检（Monthly routine inspection）[1]\n\n补充说明：该合同的服务方为 Deep Blue Services Ltd.，服务对象为在 HX-2024-088 号合同下采购的 HX-Rack-500 服务器集群 [1]。"
+    },
+    {
+      "id": "SN18",
+      "difficulty": "simple",
+      "question": "沧海项目的预算是多少万元？",
+      "seconds": 3.016,
+      "elapsed": {
+        "query_understanding": 2.0831830501556396,
+        "retrieval_only": 0.2760884761810303,
+        "rerank": 0.23026275634765625,
+        "assembly": 0.0,
+        "retrieval": 0.5063512325286865,
+        "total": 2.9777894020080566,
+        "llm": 0.38825511932373047
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          5
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "沧海"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/沧海项目/沧海项目验收报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/沧海项目/沧海项目验收报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "沧海项目的预算是 **45 万元**。[1]"
+    },
+    {
+      "id": "SN19",
+      "difficulty": "simple",
+      "question": "2025 年度规划里计划新增多少名员工？",
+      "seconds": 10.797,
+      "elapsed": {
+        "query_understanding": 7.89975380897522,
+        "retrieval_only": 0.4250361919403076,
+        "rerank": 1.9048938751220703,
+        "assembly": 0.0010020732879638672,
+        "retrieval": 2.330932140350342,
+        "total": 10.768787384033203,
+        "llm": 0.5381014347076416
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "市场部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "市场部"
+          ],
+          "username": "liuye"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 3
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料，星海2025年度规划中计划新增员工 **150 人** [1]。"
+    },
+    {
+      "id": "SN20",
+      "difficulty": "simple",
+      "question": "旧版考勤制度规定的上班时间是几点？",
+      "seconds": 3.828,
+      "elapsed": {
+        "query_understanding": 1.9325134754180908,
+        "retrieval_only": 0.32135653495788574,
+        "rerank": 0.4861891269683838,
+        "assembly": 0.0,
+        "retrieval": 0.8075456619262695,
+        "total": 3.792590618133545,
+        "llm": 1.0525314807891846
+      },
+      "filters": {
+        "status": "archive",
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 2
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "archive/星海旧版考勤制度_2021.md",
+        "archive/星海旧版员工手册_2022.md"
+      ],
+      "source_versions": [
+        {
+          "path": "archive/星海旧版考勤制度_2021.md",
+          "version": "1.0",
+          "status": "archive"
+        },
+        {
+          "path": "archive/星海旧版员工手册_2022.md",
+          "version": "1.0",
+          "status": "archive"
+        }
+      ],
+      "answer": "旧版考勤制度规定的上班时间是 **8:30**，作息时间为 8:30-17:30，午休 1 小时 [1]。\n\n需要注意，该版本（2021 旧版）已废止，仅留档备查；2024 版员工手册已将工作时间调整为 9:00-18:00 [1]。"
+    },
+    {
+      "id": "MD01",
+      "difficulty": "medium",
+      "question": "星云项目章程的立项预算相比最初的 120 万元有没有变化？现在是多少万元？",
+      "seconds": 10.328,
+      "elapsed": {
+        "query_understanding": 8.128255605697632,
+        "retrieval_only": 0.7012073993682861,
+        "rerank": 0.4032306671142578,
+        "assembly": 0.0,
+        "retrieval": 1.104438066482544,
+        "total": 10.27850890159607,
+        "llm": 1.0458152294158936
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "metadata_scope": {
+          "project": "星云"
+        },
+        "processed_documents": 1
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料，星云项目的立项预算为 **135 万元** [1]。\n\n但资料中**没有提到“最初的 120 万元”**，也没有说明预算是否发生过调整，因此无法确认其相对 120 万元有没有变化。"
+    },
+    {
+      "id": "MD02",
+      "difficulty": "medium",
+      "question": "2024 年度哪个部门的预算最多？是多少万元？",
+      "seconds": 5.953,
+      "elapsed": {
+        "query_understanding": 2.393709659576416,
+        "retrieval_only": 0.46846604347229004,
+        "rerank": 2.2239608764648438,
+        "assembly": 0.0020003318786621094,
+        "retrieval": 2.694427251815796,
+        "total": 5.911299228668213,
+        "llm": 0.823162317276001
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "reference/星海表格/2025年度部门预算表.xlsx",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "work/星海财务报销制度_v2.1.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2025年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        }
+      ],
+      "answer": "2024 年度预算最多的部门是**研发部**，预算为 **520 万元** [1]。"
+    },
+    {
+      "id": "MD03",
+      "difficulty": "medium",
+      "question": "星云项目章程里定了哪几个里程碑？",
+      "seconds": 9.047,
+      "elapsed": {
+        "query_understanding": 1.9814198017120361,
+        "retrieval_only": 0.35662102699279785,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.35662102699279785,
+        "total": 8.994040828722063,
+        "enumeration": 6.6560000000172295,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "document",
+        "metadata_scope": {
+          "project": "星云"
+        },
+        "processed_documents": 1,
+        "selected_documents": 1,
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 1,
+          "valid_batches": 1,
+          "split_batches": 0,
+          "cards_read": 1,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "document_read",
+          "elapsed": 6.6560000000172295,
+          "calls": 1,
+          "estimated_tokens": 1496,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 4,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "本次从已处理资料中整理出 **4 条带原文证据的记录**；这不是全库确定总数。\n\n1. **M1 需求确认**：- M1 需求确认：2024-03； [1]\n\n2. **M2 开发完成**：- M2 开发完成：2024-06； [1]\n\n3. **M3 系统上线**：- M3 系统上线：2024-09； [1]\n\n4. **M4 项目验收**：M4 项目验收：2024-12。 [1]\n\n处理范围：1 份文档、1 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "MD04",
+      "difficulty": "medium",
+      "question": "X-2000 的整机重量和首发价分别是多少？",
+      "seconds": 11.265,
+      "elapsed": {
+        "query_understanding": 1.9163169860839844,
+        "retrieval_only": 0.35169124603271484,
+        "rerank": 7.847151517868042,
+        "assembly": 0.0,
+        "retrieval": 8.198842763900757,
+        "total": 11.22293758392334,
+        "llm": 1.1077778339385986
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 4
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "learning/星海产品培训_基础篇.docx",
+        "projects/星云项目/星云项目章程.md",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料，X-2000 的整机重量和首发价分别是：\n\n- 整机重量：0.9 kg [1]\n- 首发价：15999 元 [1]"
+    },
+    {
+      "id": "MD05",
+      "difficulty": "medium",
+      "question": "沧海项目验收报告里提到了什么遗留问题？",
+      "seconds": 5.172,
+      "elapsed": {
+        "query_understanding": 2.7648801803588867,
+        "retrieval_only": 0.32810258865356445,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.32810258865356445,
+        "total": 5.123982769029681,
+        "enumeration": 2.0310000000172295,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          5
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "document",
+        "metadata_scope": {
+          "project": "沧海项目"
+        },
+        "processed_documents": 1,
+        "selected_documents": 1,
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 1,
+          "valid_batches": 1,
+          "split_batches": 0,
+          "cards_read": 1,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "document_read",
+          "elapsed": 2.0310000000172295,
+          "calls": 1,
+          "estimated_tokens": 800,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 1,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/沧海项目/沧海项目验收报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/沧海项目/沧海项目验收报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "本次从已处理资料中整理出 **1 条带原文证据的记录**；这不是全库确定总数。\n\n1. **项目文档归档不齐全**：# 三、遗留问题 项目文档归档不齐全，需在 2025-09-30 前补齐并移交档案室。 [1]\n\n处理范围：1 份文档、1 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "MD06",
+      "difficulty": "medium",
+      "question": "昆仑项目立项报告里定了哪几个里程碑？",
+      "seconds": 5.218,
+      "elapsed": {
+        "query_understanding": 1.820678949356079,
+        "retrieval_only": 0.2932133674621582,
+        "rerank": 0.0,
+        "assembly": 0.0020139217376708984,
+        "retrieval": 0.2952272891998291,
+        "total": 5.1779062385321595,
+        "enumeration": 3.0619999999762513,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          4
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "document",
+        "metadata_scope": {
+          "project": "昆仑项目"
+        },
+        "processed_documents": 1,
+        "selected_documents": 1,
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 1,
+          "valid_batches": 1,
+          "split_batches": 0,
+          "cards_read": 1,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "document_read",
+          "elapsed": 3.0619999999762513,
+          "calls": 1,
+          "estimated_tokens": 1014,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 3,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/昆仑项目/昆仑项目立项报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **M1 方案评审**：- M1 方案评审：2025-05； [1]\n\n2. **M2 开发完成**：- M2 开发完成：2025-10； [1]\n\n3. **M3 试运行**：- M3 试运行：2026-01。 [1]\n\n处理范围：1 份文档、1 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "MD07",
+      "difficulty": "medium",
+      "question": "在册供应商名录里有几家供应商？分别叫什么？",
+      "seconds": 3.109,
+      "elapsed": {
+        "query_understanding": 2.7272825241088867,
+        "retrieval_only": 0.3316829204559326,
+        "rerank": 0.0,
+        "assembly": 0.0020046234130859375,
+        "retrieval": 0.33368754386901855,
+        "total": 3.0609700679779053
+      },
+      "filters": {
+        "status": "active",
+        "source": "在册供应商名录",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "document",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": false,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "华信",
+          "蓝鲸",
+          "红杉"
+        ],
+        "any_miss": [
+          "3 家"
+        ],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "知识库中没有找到可用于回答这个问题的资料。"
+    },
+    {
+      "id": "MD08",
+      "difficulty": "medium",
+      "question": "员工手册里带薪年假是怎么规定的？",
+      "seconds": 14.922,
+      "elapsed": {
+        "query_understanding": 3.0788543224334717,
+        "retrieval_only": 0.5653672218322754,
+        "rerank": 9.956458806991577,
+        "assembly": 0.0,
+        "retrieval": 10.521826028823853,
+        "total": 14.879997730255127,
+        "llm": 1.2793173789978027
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "work/星海差旅管理办法_2025修订.md",
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海IT资产管理办法.txt"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据员工手册 [1]，带薪年假按入职年限划分：\n\n- 入职满 1 年但不满 5 年：每年 5 天\n- 入职满 5 年但不满 10 年：每年 10 天\n- 入职满 10 年以上：每年 15 天\n- 年假当年未休完的，可顺延至次年 3 月底 [1]\n\n另外，员工手册还规定，新员工试用期为 6 个月 [1]（这一点与年假无直接关系，仅供参照）。"
+    },
+    {
+      "id": "MD09",
+      "difficulty": "medium",
+      "question": "信息安全管理制度要求密码多久更换一次？",
+      "seconds": 14.219,
+      "elapsed": {
+        "query_understanding": 1.0721302032470703,
+        "retrieval_only": 0.244171142578125,
+        "rerank": 11.50088906288147,
+        "assembly": 0.0,
+        "retrieval": 11.745060205459595,
+        "total": 14.187392473220825,
+        "llm": 1.3702020645141602
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海信息安全管理制度.md",
+        "work/星海员工手册_2024版.md",
+        "work/星海IT资产管理办法.txt",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/昆仑项目/昆仑项目立项报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据《星海信息安全管理制度》，密码每 **90 天** 必须更换一次，且新密码不得与最近 5 次历史密码重复 [1]。"
+    },
+    {
+      "id": "MD10",
+      "difficulty": "medium",
+      "question": "天枢项目立项报告里的 KPI 指标有哪些？",
+      "seconds": 5.328,
+      "elapsed": {
+        "query_understanding": 2.2399027347564697,
+        "retrieval_only": 0.34813761711120605,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.34813761711120605,
+        "total": 5.276040351833217,
+        "enumeration": 2.687999999965541,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "document",
+        "metadata_scope": {
+          "project": "天枢"
+        },
+        "processed_documents": 1,
+        "selected_documents": 1,
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 1,
+          "valid_batches": 1,
+          "split_batches": 0,
+          "cards_read": 1,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "document_read",
+          "elapsed": 2.687999999965541,
+          "calls": 1,
+          "estimated_tokens": 963,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 3,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **接口响应时间**：接口响应时间 | ≤200ms | 压测报告 [1]\n\n2. **并发用户数**：并发用户数 | ≥5000 | 压测报告 [1]\n\n3. **系统可用性**：系统可用性 | 99.9% | 季度运行报告 [1]\n\n处理范围：1 份文档、1 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "MD11",
+      "difficulty": "medium",
+      "question": "昆仑项目立项报告里的 KPI 指标有哪些？",
+      "seconds": 10.422,
+      "elapsed": {
+        "query_understanding": 6.160650968551636,
+        "retrieval_only": 0.3172459602355957,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.3172459602355957,
+        "total": 10.352896928787231,
+        "enumeration": 3.875,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          4
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "document",
+        "metadata_scope": {
+          "project": "昆仑项目"
+        },
+        "processed_documents": 1,
+        "selected_documents": 1,
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 1,
+          "valid_batches": 1,
+          "split_batches": 0,
+          "cards_read": 1,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "document_read",
+          "elapsed": 3.875,
+          "calls": 1,
+          "estimated_tokens": 1021,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 3,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/昆仑项目/昆仑项目立项报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **支持 1000 台检测设备并发接入**：- 支持 1000 台检测设备并发接入； [1]\n\n2. **数据上报延迟不超过 500ms**：- 数据上报延迟不超过 500ms； [1]\n\n3. **系统可用性 99.95%**：- 系统可用性 99.95%。 [1]\n\n处理范围：1 份文档、1 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "MD12",
+      "difficulty": "medium",
+      "question": "蓝鲸维保合同的维保期限是从什么时候到什么时候？一共几年？",
+      "seconds": 10.141,
+      "elapsed": {
+        "query_understanding": 2.4984121322631836,
+        "retrieval_only": 0.36641931533813477,
+        "rerank": 6.380406141281128,
+        "assembly": 0.0016896724700927734,
+        "retrieval": 6.7485151290893555,
+        "total": 10.099430561065674,
+        "llm": 0.8525032997131348
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 4
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+        "reference/星海表格/星海供应商名录.xlsx",
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "work/星海IT资产管理办法.txt"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/星海供应商名录.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "蓝鲸维保服务合同的维保期限如下：\n\n- 起始日期：2025年7月1日\n- 结束日期：2028年6月30日\n- 总时长：三年 [1]"
+    },
+    {
+      "id": "MD13",
+      "difficulty": "medium",
+      "question": "差旅借款最多能借预计差旅费的百分之多少？返程后多久内要冲销？",
+      "seconds": 7.281,
+      "elapsed": {
+        "query_understanding": 2.513831853866577,
+        "retrieval_only": 0.7408130168914795,
+        "rerank": 3.1785709857940674,
+        "assembly": 0.0029840469360351562,
+        "retrieval": 3.922368049621582,
+        "total": 7.24028468132019,
+        "llm": 0.8040847778320312
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 8
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海差旅管理办法_2025修订.md",
+        "work/星海员工手册_2024版.md",
+        "work/星海付款审批细则.md",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "reference/星海合同/蓝鲸维保服务合同_2025.pdf"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海付款审批细则.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料：\n\n- 差旅借款最多可申请不超过预计差旅费 **80%** 的借款 [1]\n- 借款须在返程后 **15 个工作日**内冲销 [1]\n\n（来源：《星海财务报销制度_v2.1.md》差旅借款章节 [1]）"
+    },
+    {
+      "id": "MD14",
+      "difficulty": "medium",
+      "question": "按公司薪酬制度，通讯补贴的标准是多少？",
+      "seconds": 7.406,
+      "elapsed": {
+        "query_understanding": 3.276949644088745,
+        "retrieval_only": 0.2873539924621582,
+        "rerank": 2.9184751510620117,
+        "assembly": 0.001986980438232422,
+        "retrieval": 3.2078161239624023,
+        "total": 7.365085124969482,
+        "llm": 0.880319356918335
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海薪酬福利制度.md",
+        "work/星海员工手册_2024版.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海差旅管理办法_2025修订.md",
+        "work/星海信息安全管理制度.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "按公司薪酬福利制度，通讯补贴标准为 [1]：\n\n- 普通员工：每月 100 元\n- 部门主管：每月 200 元"
+    },
+    {
+      "id": "MD15",
+      "difficulty": "medium",
+      "question": "X-1000 的防护等级和整机重量分别是多少？",
+      "seconds": 5.719,
+      "elapsed": {
+        "query_understanding": 2.1878445148468018,
+        "retrieval_only": 0.3717622756958008,
+        "rerank": 1.811697006225586,
+        "assembly": 0.0,
+        "retrieval": 2.1834592819213867,
+        "total": 5.669119119644165,
+        "llm": 1.2978153228759766
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海简介/公司简介.html",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料，X-1000 的参数如下：\n\n- 防护等级：IP67 [1]\n- 整机重量：1.2 kg [1]"
+    },
+    {
+      "id": "MD16",
+      "difficulty": "medium",
+      "question": "2025 年度规划对海外市场有什么安排？",
+      "seconds": 6.015,
+      "elapsed": {
+        "query_understanding": 2.593963861465454,
+        "retrieval_only": 0.38426661491394043,
+        "rerank": 1.4973819255828857,
+        "assembly": 0.0,
+        "retrieval": 1.8816485404968262,
+        "total": 5.974514961242676,
+        "llm": 1.4989025592803955
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 3
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "work/星海信息安全管理制度.md",
+        "work/星海差旅管理办法_2025修订.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料，2025 年度规划中与海外市场相关的安排有：\n\n- 重点拓展**东南亚海外市场** [1]\n- 计划参加**两次国际展会** [1]\n\n资料中关于海外市场只提到以上两项安排，没有更细的国家、预算或销售目标等信息。"
+    },
+    {
+      "id": "MD17",
+      "difficulty": "medium",
+      "question": "公司会议室需要提前多久预约？单次最长能订多长时间？",
+      "seconds": 6.375,
+      "elapsed": {
+        "query_understanding": 2.601947069168091,
+        "retrieval_only": 0.43118953704833984,
+        "rerank": 2.2437584400177,
+        "assembly": 0.0,
+        "retrieval": 2.67494797706604,
+        "total": 6.341582775115967,
+        "llm": 1.064687728881836
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "work/星海差旅管理办法_2025修订.md",
+        "learning/星海RAG技术培训笔记.md",
+        "work/星海IT资产管理办法.txt",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据《星海科技员工手册（2024版）》：\n\n- 会议室须**提前 1 个工作日**在行政系统中申请 [1]。\n- 单次会议**最长预订 4 小时** [1]。\n- 补充：超过 20 人参加的会议需报行政部备案 [1]。"
+    },
+    {
+      "id": "MD18",
+      "difficulty": "medium",
+      "question": "星海付款审批细则要求的付款周期是什么？",
+      "seconds": 8.656,
+      "elapsed": {
+        "query_understanding": 1.8370840549468994,
+        "retrieval_only": 0.6278553009033203,
+        "rerank": 5.32471227645874,
+        "assembly": 0.004015684127807617,
+        "retrieval": 5.956583261489868,
+        "total": 8.623135566711426,
+        "llm": 0.8294682502746582
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海付款审批细则.md",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海员工手册_2024版.md",
+        "work/星海差旅管理办法_2025修订.md",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海付款审批细则.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "星海《付款审批细则》规定付款周期为 **T+3**，即审批通过后第 3 个工作日付款 [1]。"
+    },
+    {
+      "id": "MD19",
+      "difficulty": "medium",
+      "question": "公司通过了哪些资质认证？",
+      "seconds": 21.844,
+      "elapsed": {
+        "query_understanding": 1.3604156970977783,
+        "retrieval_only": 0.4462733268737793,
+        "rerank": 3.334914445877075,
+        "assembly": 0.018356800079345703,
+        "retrieval": 3.7995445728302,
+        "total": 21.800960269931238,
+        "enumeration": 16.64100000000326,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 20,
+        "selected_documents": 12,
+        "stage2": {
+          "status": "executed",
+          "rounds": 2,
+          "queries": 4,
+          "batches": 6,
+          "valid_batches": 6,
+          "split_batches": 0,
+          "cards_read": 27,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "no_new_information",
+          "elapsed": 16.64100000000326,
+          "calls": 8,
+          "estimated_tokens": 9151,
+          "candidate_documents": 20,
+          "processed_documents": 20,
+          "items": 3,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **ISO9001 质量管理体系认证**：- ISO9001 质量管理体系认证 [1]\n\n2. **CMMI 3 级软件能力成熟度认证**：- CMMI 3 级软件能力成熟度认证 [1]\n\n3. **国家高新技术企业认定**：- 国家高新技术企业认定 [1]\n\n处理范围：20 份文档、27 张卡片、6 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "MD20",
+      "difficulty": "medium",
+      "question": "华信数据采购合同约定的设备交付时间是什么时候？",
+      "seconds": 4.719,
+      "elapsed": {
+        "query_understanding": 1.7384874820709229,
+        "retrieval_only": 0.3274862766265869,
+        "rerank": 2.610006332397461,
+        "assembly": 0.002000093460083008,
+        "retrieval": 2.939492702484131,
+        "total": 4.677980184555054
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "ordinary",
+        "processed_documents": 0
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "2024-09-30"
+        ],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "找到了候选资料，但没有足够证据支持这个问题。",
+      "support_probe": {
+        "checks": [
+          {
+            "decision": {
+              "status": "unsupported",
+              "checked": [
+                "交付日期"
+              ],
+              "missing": [
+                "交付日期"
+              ]
+            },
+            "passages": [
+              "来源文档：华信数据采购合同_2024.pdf\nPURCHASE CONTRACT\nContract No: HX-2024-088\nSigning Date: 2024-08-15\nBuyer: Xinghai Technology Co., Ltd.\nVendor: Huaxin Data Technology Co., Ltd.\n1. Subject\nThe Buyer purchases from the Vendor one server cluster\n(Model: HX-Rack-500) for the Nebula project data platform.\n2. Total Amount\nThe total contract amount is RMB 860,000 (CNY).\nThe price includes delivery, installation and a 3-year\nwarranty.\n3. Payment Terms\n3.1 Advance payment: 30% of the total amount within 7\n    working days after signing;\n3.2 Delivery payment: 50% after on-site installation;\n3.3 Acceptance payment: the remaining 20% after final\n    acceptance.\n4. Delivery and Acceptance\nThe Vendor shall deliver all equipment before 2024-09-30.\nFinal acceptance will be completed within 15 working days\nafter installation.\n5. Data Security\nThe Vendor shall comply with GB/T 22239 (MLPS Level 3)\nand shall not retain any copies of Buyer business data.\n6. Dispute Resolution\nAny dispute shall be submitted to arbitration in Hangzhou.\nSignatures:\nBuyer: Xinghai Technology Vendor: Huaxin Data\nDate: 2024-08-15 Date: 2024-08-15",
+              "来源文档：沧海项目验收报告.docx\n沧海项目验收报告\n\n# 一、项目基本信息\n项目负责人：徐凯。项目预算：45 万元。项目周期 2025-01 至 2025-06，参与部门：研发部。\n\n# 二、验收结论\n项目于 2025-07-15 通过客户验收，交付物共 8 项，全部符合合同要求。\n\n# 三、遗留问题\n项目文档归档不齐全，需在 2025-09-30 前补齐并移交档案室。",
+              "来源文档：北斗项目总结报告.md\n## 项目概况\n北斗项目是星云项目的前置预研项目，预算 80 万元，\n项目周期 2023-07 至 2024-06，项目负责人陈明，已于 2024-06 正式结项。\n\n## 验收结论\n项目通过客户验收，交付物共 12 项。遗留问题：部分设计文档不齐全，\n已列入星云项目的整改计划。\n\n## 经验教训\n需求变更 9 次是本项目延期的主要原因，后续项目应在立项阶段冻结基线需求。",
+              "来源文档：星海X-2000发布会纪要.pptx\n合作媒体：科技日报、电子发烧友、数码之家\n发布会全程回放将于 2024-11-20 上线官网\n> 演讲者备注：媒体问答环节约 40 分钟，优先安排合作媒体提问。"
+            ]
+          }
+        ],
+        "evidence_only_sources_without_gate": [
+          "reference/星海合同/华信数据采购合同_2024.pdf",
+          "projects/沧海项目/沧海项目验收报告.docx",
+          "projects/北斗项目/北斗项目总结报告.md",
+          "projects/星云项目/星云项目章程.md"
+        ]
+      }
+    },
+    {
+      "id": "CX01",
+      "difficulty": "complex",
+      "question": "星云和天枢两个项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 2.266,
+      "elapsed": {
+        "query_understanding": 2.228609085083008,
+        "retrieval_only": 0.0,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0,
+        "total": 2.228609085083008
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "project_comparison",
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "sources_min_count": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "陈明",
+          "周红",
+          "335万元"
+        ],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法确认所有要比较的项目，请核对项目名称。"
+    },
+    {
+      "id": "CX02",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗、昆仑四个项目里预算最高的是哪个？是多少万元？",
+      "seconds": 9.171,
+      "elapsed": {
+        "query_understanding": 7.183271884918213,
+        "retrieval_only": 0.6343317031860352,
+        "rerank": 1.3153040409088135,
+        "assembly": 0.0,
+        "retrieval": 1.9496357440948486,
+        "total": 9.132907629013062
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "max"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "星云",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢",
+              "sources": [
+                2
+              ]
+            },
+            {
+              "name": "北斗",
+              "sources": [
+                3
+              ]
+            },
+            {
+              "name": "昆仑",
+              "sources": [
+                4
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "projects/昆仑项目/昆仑项目立项报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云：预算 135 万元 [1]。\n- 天枢：预算 200 万元 [2]。\n- 北斗：预算 80 万元 [3]。\n- 昆仑：预算 300 万元 [4]。\n\n**预算最高：昆仑，300 万元** [1][2][3][4]。"
+    },
+    {
+      "id": "CX03",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目的预算加起来是多少万元？",
+      "seconds": 4.5,
+      "elapsed": {
+        "query_understanding": 4.446395397186279,
+        "retrieval_only": 0.0,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0,
+        "total": 4.446395397186279
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "project_comparison",
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "sources_min_count": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "415万元"
+        ],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法确认所有要比较的项目，请核对项目名称。"
+    },
+    {
+      "id": "CX04",
+      "difficulty": "complex",
+      "question": "星云和天枢的预算分别是多少万元？这两个项目共享什么资源？",
+      "seconds": 9.875,
+      "elapsed": {
+        "query_understanding": 4.986607313156128,
+        "retrieval_only": 0.7929544448852539,
+        "rerank": 3.1724162101745605,
+        "assembly": 0.012764930725097656,
+        "retrieval": 3.978135585784912,
+        "total": 9.85255217552185,
+        "llm": 0.8878092765808105
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 9
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "projects/沧海项目/沧海项目验收报告.docx",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "learning/星海RAG技术培训笔记.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/沧海项目/沧海项目验收报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云项目预算为 **135 万元** [1]。\n- 天枢项目预算为 **200 万元** [2]。\n- 两个项目共享 **测试环境** [1][2]；天枢项目资料还提到，双方共享 **设备台账** [2]。"
+    },
+    {
+      "id": "CX05",
+      "difficulty": "complex",
+      "question": "2024 年度和 2025 年度的公司预算总额分别是多少？两年相比增加了多少万元？",
+      "seconds": 8.735,
+      "elapsed": {
+        "query_understanding": 3.4352610111236572,
+        "retrieval_only": 0.9277563095092773,
+        "rerank": 3.3563408851623535,
+        "assembly": 0.0030515193939208984,
+        "retrieval": 4.287148714065552,
+        "total": 8.682968854904175,
+        "llm": 0.9605591297149658
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 8
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海表格/2025年度部门预算表.xlsx",
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "work/星海差旅管理办法_2025修订.md",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2025年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 2024 年度预算总额为 **855 万元** [2]\n- 2025 年度预算总额为 **1095 万元** [1]\n- 两年相比，2025 年比 2024 年增加了 **240 万元**（1095 − 855）[1][2]\n\n补充说明：根据资料的记载，2025 年预算比 2024 年增加，主要来自新增财务部预算科目、行政部租金上调，以及研发部、市场部、人力资源部预算的提高 [1][2]。"
+    },
+    {
+      "id": "CX06",
+      "difficulty": "complex",
+      "question": "研发部 2025 年的预算比 2024 年增加了多少万元？增幅大约是百分之多少？",
+      "seconds": 9.39,
+      "elapsed": {
+        "query_understanding": 3.3806729316711426,
+        "retrieval_only": 0.5855722427368164,
+        "rerank": 4.114952564239502,
+        "assembly": 0.004102468490600586,
+        "retrieval": 4.704627275466919,
+        "total": 9.361647844314575,
+        "llm": 1.2763476371765137
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 8
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海表格/2025年度部门预算表.xlsx",
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "work/星海员工手册_2024版.md",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "reference/星海合同/蓝鲸维保服务合同_2025.pdf"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2025年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "研发部 2025 年预算比 2024 年增加金额与增幅如下：\n\n- 2024 年研发部预算为 520 万元 [2]，2025 年为 600 万元 [1]，因此增加 **80 万元**。\n- 增幅约为 **15.4%**，计算方式为 80 ÷ 520。\n\n补充：2025 年研发部预算的备注为“含昆仑/沧海项目投入”[1]，2024 年则“含星云/天枢项目投入”[2]。这两年的项目内容不同，可能是预算增加的原因之一。"
+    },
+    {
+      "id": "CX07",
+      "difficulty": "complex",
+      "question": "天枢、昆仑、沧海三个项目的负责人分别是谁？预算分别是多少万元？",
+      "seconds": 3.094,
+      "elapsed": {
+        "query_understanding": 3.049736261367798,
+        "retrieval_only": 0.0,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.0,
+        "total": 3.049736261367798
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "not_found",
+        "route": "project_comparison",
+        "scope_issue": "unresolved"
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "sources_min_count": false,
+          "answer_must": false,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [
+          "周红",
+          "林岚",
+          "徐凯",
+          "200万元",
+          "300万元",
+          "45万元"
+        ],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "无法确认所有要比较的项目，请核对项目名称。"
+    },
+    {
+      "id": "CX08",
+      "difficulty": "complex",
+      "question": "员工手册里现在的差旅住宿报销标准，和 2022 年旧版手册相比有什么变化？",
+      "seconds": 14.562,
+      "elapsed": {
+        "query_understanding": 4.820333242416382,
+        "retrieval_only": 1.1639201641082764,
+        "rerank": 4.088536977767944,
+        "assembly": 0.002904653549194336,
+        "retrieval": 5.255361795425415,
+        "total": 14.512938499450684,
+        "llm": 4.437243461608887
+      },
+      "filters": {
+        "status": [
+          "active",
+          "archive",
+          "expired"
+        ],
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "version_comparison",
+        "processed_documents": 4,
+        "version_comparison": {
+          "missing_sides": []
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 2,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海差旅管理办法_2025修订.md",
+        "work/星海员工手册_2024版.md",
+        "archive/星海旧版员工手册_2022.md",
+        "archive/星海旧版考勤制度_2021.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "archive/星海旧版员工手册_2022.md",
+          "version": "1.0",
+          "status": "archive"
+        },
+        {
+          "path": "archive/星海旧版考勤制度_2021.md",
+          "version": "1.0",
+          "status": "archive"
+        }
+      ],
+      "answer": "## 结论：现行住宿标准不再由员工手册规定\n\n需先明确一点：2025 年修订的《星海差旅管理办法》自 2025-01-01 起施行，**取代了《员工手册》中的差旅报销标准条款** [1]。因此，涉及“现在”的差旅住宿标准时，应以 2025 办法为准；2024 版员工手册中的差旅条款只作为被取代的中间版本参考 [2]。两个版本讨论的都是同一事项，即公司差旅住宿报销，因此可以直接比较。\n\n## 住宿标准对比\n\n- **2022 旧版手册**：住宿费**不分城市等级，统一每晚 350 元** [3]\n- **2024 版员工手册**：按城市分级，其中一线 400 元、二线 300 元、其他 200 元 [2]\n- **2025 修订办法（现行）**：按城市分级，其中一线 450 元、二线 350 元、其他 250 元 [1]\n\n变化要点：\n\n- 计费方式由“统一标准、不区分城市”改为“按一线、二线、其他城市分级”，并且现行版本仍沿用这种分级方式 [1][3]\n- 同属一线城市时，住宿标准由 350 元（2022 版）变为 400 元（2024 版），再变为 450 元（现行）；同属其他城市时，住宿标准由 350 元（2022 版）变为 200 元（2024 版），再变为 250 元（现行）[1][2][3]\n- 2022 旧版被 2024 版取代 [3]，2024 版中的差旅条款又被 2025 办法取代 [1]\n\n## 同条款的其他差异（供参考）\n\n- 餐费补贴：2022 旧版为每人每天 80 元 [3]，2024 版为 100 元 [2]，现行版本为 120 元 [1]\n- 市内交通：2022 旧版和 2024 版均凭票据实报销 [2][3]；现行版本仍凭票据实报销，并明确不再设上限 [1]\n\n## 证据说明\n\n没有查到 2022 旧版关于“市内交通上限”的内容。旧版资料只说明市内交通凭票据实报销，没有提到上限；因此，无法依据资料判断这项是否发生变化 [3]。"
+    },
+    {
+      "id": "CX09",
+      "difficulty": "complex",
+      "question": "星海差旅管理办法 2025 修订版和员工手册的住宿标准一致吗？一线城市标准差多少钱？",
+      "seconds": 21.375,
+      "elapsed": {
+        "query_understanding": 10.194916486740112,
+        "retrieval_only": 3.1511106491088867,
+        "rerank": 6.087310314178467,
+        "assembly": 0.005521297454833984,
+        "retrieval": 9.243942260742188,
+        "total": 21.331459045410156,
+        "llm": 1.8926002979278564
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 8
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海差旅管理办法_2025修订.md",
+        "work/星海员工手册_2024版.md",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海薪酬福利制度.md",
+        "work/星海信息安全管理制度.md",
+        "work/星海IT资产管理办法.txt",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "不一致。\n\n- 《星海差旅管理办法（2025 修订）》规定一线城市（北京、上海、广州、深圳）住宿标准为每晚 **450 元** [1]。\n- 《星海科技员工手册（2024版）》规定一线城市住宿标准为每晚 **400 元** [2]。\n- 一线城市标准差 **50 元/晚**，即修订版比员工手册高 50 元。\n\n另外，2025 修订版明确说明，该办法自 2025-01-01 起施行，并取代《员工手册》中的差旅报销标准条款 [1]。因此现行应执行 450 元/晚的标准。\n\n（二线、其他城市的标准同样各上调 50 元：二线 350 元对 300 元，其他城市 250 元对 200 元 [1][2]。）"
+    },
+    {
+      "id": "CX10",
+      "difficulty": "complex",
+      "question": "旧版考勤制度和现在的员工手册在作息时间上有什么差异？",
+      "seconds": 10.391,
+      "elapsed": {
+        "query_understanding": 2.992511034011841,
+        "retrieval_only": 0.7959485054016113,
+        "rerank": 3.710381507873535,
+        "assembly": 0.0011873245239257812,
+        "retrieval": 4.507517337799072,
+        "total": 10.35129714012146,
+        "llm": 2.851268768310547
+      },
+      "filters": {
+        "status": [
+          "active",
+          "archive",
+          "expired"
+        ],
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "version_comparison",
+        "processed_documents": 4,
+        "version_comparison": {
+          "missing_sides": []
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "work/星海差旅管理办法_2025修订.md",
+        "archive/星海旧版考勤制度_2021.md",
+        "archive/星海旧版员工手册_2022.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "archive/星海旧版考勤制度_2021.md",
+          "version": "1.0",
+          "status": "archive"
+        },
+        {
+          "path": "archive/星海旧版员工手册_2022.md",
+          "version": "1.0",
+          "status": "archive"
+        }
+      ],
+      "answer": "**结论：两版资料讨论的是同一事项（公司作息时间），可以对比。**\n\n- 现行《星海科技员工手册（2024版）》规定：每周五天工作制，工作时间为 **9:00-18:00**，午休 1 小时 [1]。\n- 旧版《星海科技考勤制度（2021）》规定：工作时间为 **8:30-17:30**，午休 1 小时 [3]。\n\n**具体差异**\n\n- 上班时间：旧版 8:30，现行 9:00，推迟了 30 分钟 [1][3]。\n- 下班时间：旧版 17:30，现行 18:00，同样推迟了 30 分钟 [1][3]。\n- 作息时间整体调整的说明：旧版资料备注中也说明，2024 版已将工作时间调整为 9:00-18:00 [3]。\n\n**顺带说明的关联差异：迟到处理**\n\n- 旧版制度规定迟到一次罚款 20 元 [3]。\n- 现行手册取消了罚款，改为迟到 30 分钟以内每月前两次免于考勤扣罚 [1]；旧版备注也明确 2024 版取消了迟到罚款 [3]。\n\n如需比较除作息时间以外的其他考勤细节（如请假、加班），知识库中旧版资料未涉及，无法对比。"
+    },
+    {
+      "id": "CX11",
+      "difficulty": "complex",
+      "question": "2024 年公司对外举办了哪些活动或发布？",
+      "seconds": 21.515,
+      "elapsed": {
+        "query_understanding": 1.3760170936584473,
+        "retrieval_only": 0.39960360527038574,
+        "rerank": 3.091594934463501,
+        "assembly": 0.010455131530761719,
+        "retrieval": 3.5016536712646484,
+        "total": 21.471670764964074,
+        "enumeration": 16.594000000040978,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 20,
+        "selected_documents": 12,
+        "stage2": {
+          "status": "executed",
+          "rounds": 2,
+          "queries": 4,
+          "batches": 6,
+          "valid_batches": 6,
+          "split_batches": 0,
+          "cards_read": 27,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "no_new_information",
+          "elapsed": 16.594000000040978,
+          "calls": 8,
+          "estimated_tokens": 9259,
+          "candidate_documents": 20,
+          "processed_documents": 20,
+          "items": 1,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **1 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星海科技 X-2000 新品发布会**：时间：2024-11-18　地点：杭州国际博览中心 [1]\n\n处理范围：20 份文档、27 张卡片、6 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "CX12",
+      "difficulty": "complex",
+      "question": "员工手册里试用期是多长？入职满 5 年不满 10 年的年假有几天？餐费补贴每天多少钱？",
+      "seconds": 11.36,
+      "elapsed": {
+        "query_understanding": 3.5935988426208496,
+        "retrieval_only": 1.6023197174072266,
+        "rerank": 4.6109843254089355,
+        "assembly": 0.01704239845275879,
+        "retrieval": 6.230346441268921,
+        "total": 11.315096855163574,
+        "llm": 1.4911515712738037
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 8
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "work/星海差旅管理办法_2025修订.md",
+        "work/星海薪酬福利制度.md",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "work/星海财务报销制度_v2.1.md",
+        "work/星海信息安全管理制度.md",
+        "work/星海IT资产管理办法.txt",
+        "reference/星海简介/公司简介.html"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料：\n\n- **试用期**：新员工试用期为 6 个月，试用期表现合格者可按期转正 [1]。\n- **年假**：入职满 5 年不满 10 年的，每年带薪年假为 10 天 [1]。\n- **餐费补贴**：需要注意，两版资料的金额不同。员工手册（2024版）规定每人每天 100 元 [1]，但《星海差旅管理办法（2025修订）》自 2025-01-01 起施行，取代员工手册中的差旅报销标准条款，将餐费补贴调整为每人每天 120 元 [2]。因此，现行标准应为**每人每天 120 元**。"
+    },
+    {
+      "id": "CX13",
+      "difficulty": "complex",
+      "question": "X-2000 是什么时候发布的？发布会在哪里举行？合作媒体有哪几家？",
+      "seconds": 33.11,
+      "elapsed": {
+        "query_understanding": 3.8438045978546143,
+        "retrieval_only": 1.0079586505889893,
+        "rerank": 2.843526601791382,
+        "assembly": 0.00990438461303711,
+        "retrieval": 3.861389636993408,
+        "total": 33.08019423484802,
+        "enumeration": 25.375,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 20,
+        "selected_documents": 12,
+        "stage2": {
+          "status": "executed",
+          "rounds": 2,
+          "queries": 4,
+          "batches": 6,
+          "valid_batches": 6,
+          "split_batches": 0,
+          "cards_read": 27,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "no_new_information",
+          "elapsed": 25.375,
+          "calls": 8,
+          "estimated_tokens": 10473,
+          "candidate_documents": 20,
+          "processed_documents": 20,
+          "items": 5,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **5 条带原文证据的记录**；这不是全库确定总数。\n\n1. **时间**：时间：2024-11-18 [1]\n\n2. **地点**：地点：杭州国际博览中心 [1]\n\n3. **科技日报**：合作媒体：科技日报、电子发烧友、数码之家 [2]\n\n4. **电子发烧友**：合作媒体：科技日报、电子发烧友、数码之家 [2]\n\n5. **数码之家**：合作媒体：科技日报、电子发烧友、数码之家 [2]\n\n处理范围：20 份文档、27 张卡片、6 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "CX14",
+      "difficulty": "complex",
+      "question": "华信数据采购合同的合同总金额是多少？按付款条款，交付安装完成后还要付总金额的百分之多少？",
+      "seconds": 11.438,
+      "elapsed": {
+        "query_understanding": 5.466017246246338,
+        "retrieval_only": 1.2568776607513428,
+        "rerank": 2.5856757164001465,
+        "assembly": 0.0,
+        "retrieval": 3.8425533771514893,
+        "total": 11.402690410614014,
+        "llm": 2.0941197872161865
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 9
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "projects/星云项目/星云项目章程.md",
+        "projects/沧海项目/沧海项目验收报告.docx",
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "projects/北斗项目/北斗项目总结报告.md",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "work/星海薪酬福利制度.md",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "work/星海差旅管理办法_2025修订.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海合同/华信数据采购合同_2024.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/沧海项目/沧海项目验收报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据华信数据采购合同（合同编号 HX-2024-088）：\n\n- 合同总金额为人民币 **860,000 元**，该金额包含交付、安装及 3 年质保 [1]。\n- 付款方式分为三期：签约后 7 个工作日内支付合同总金额的 30% 作为预付款；现场安装完成后支付合同总金额的 50% 作为交付款；最终验收后支付合同总金额剩余的 20% 作为验收款 [1]。\n- 因此，现场交付安装完成后，还需支付合同总金额的 **20%**，也就是验收款 [1]。"
+    },
+    {
+      "id": "CX15",
+      "difficulty": "complex",
+      "question": "市场部参与了哪些项目？参与的项目里哪个预算更高，是多少万元？",
+      "seconds": 29.813,
+      "elapsed": {
+        "query_understanding": 3.4771533012390137,
+        "retrieval_only": 0.5941264629364014,
+        "rerank": 2.3006787300109863,
+        "assembly": 0.0,
+        "retrieval": 2.8948051929473877,
+        "total": 29.77795849420363,
+        "enumeration": 23.40600000001723,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 20,
+        "selected_documents": 12,
+        "stage2": {
+          "status": "executed",
+          "rounds": 2,
+          "queries": 4,
+          "batches": 6,
+          "valid_batches": 6,
+          "split_batches": 0,
+          "cards_read": 27,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "no_new_information",
+          "elapsed": 23.40600000001723,
+          "calls": 8,
+          "estimated_tokens": 10338,
+          "candidate_documents": 20,
+          "processed_documents": 20,
+          "items": 3,
+          "possible_duplicates": 2
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "reference/星海简介/昆仑项目启动新闻.html"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/昆仑项目启动新闻.html",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n部分同名记录尚不能确认是同一实体，已分别保留，当前记录数不等于去重后的实体总数。\n\n1. **昆仑项目**：项目负责人：林岚。项目预算：300 万元。 项目周期 2025-03 至 2026-02，项目组常驻成都分支机构。 参与部门：研发部、市场部。 [1]\n\n2. **天枢项目**：项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。 [2]\n\n3. **昆仑项目**：昆仑项目由研发部与市场部联合推进，计划 2026 年初完成试运行， 投产后将服务西南地区 300 家工业客户。 [3]\n\n处理范围：20 份文档、27 张卡片、6 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "CX16",
+      "difficulty": "complex",
+      "question": "我是市场部的员工，哪些项目的资料我能查到？哪些项目我查不到？",
+      "seconds": 22.11,
+      "elapsed": {
+        "query_understanding": 3.564793586730957,
+        "retrieval_only": 0.5511641502380371,
+        "rerank": 1.8266310691833496,
+        "assembly": 0.0,
+        "retrieval": 2.3777952194213867,
+        "total": 22.067588806152344,
+        "enumeration": 16.125,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "市场部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "市场部"
+          ],
+          "username": "liuye"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 14,
+        "selected_documents": 12,
+        "stage2": {
+          "status": "executed",
+          "rounds": 2,
+          "queries": 4,
+          "batches": 5,
+          "valid_batches": 5,
+          "split_batches": 0,
+          "cards_read": 21,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "no_new_information",
+          "elapsed": 16.125,
+          "calls": 7,
+          "estimated_tokens": 7521,
+          "candidate_documents": 14,
+          "processed_documents": 14,
+          "items": 0,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": false,
+          "sources_min_count": false,
+          "must_not_sources": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": false,
+        "best_rank": null,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [],
+      "source_versions": [],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **0 条带原文证据的记录**；这不是全库确定总数。\n\n处理范围：14 份文档、21 张卡片、5 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "CX17",
+      "difficulty": "complex",
+      "question": "蓝鲸维保合同三年的总服务费是多少？和一台 X-2000 的首发价相比，哪个更贵？",
+      "seconds": 10.5,
+      "elapsed": {
+        "query_understanding": 3.827381134033203,
+        "retrieval_only": 0.6113767623901367,
+        "rerank": 3.545485496520996,
+        "assembly": 0.003276348114013672,
+        "retrieval": 4.1601386070251465,
+        "total": 10.479480504989624,
+        "llm": 2.4919607639312744
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 7
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+        "learning/星海产品培训_基础篇.docx",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "reference/星海简介/公司简介.html",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "reference/星海表格/星海供应商名录.xlsx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海合同/蓝鲸维保服务合同_2025.pdf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/星海供应商名录.xlsx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 蓝鲸维保合同的服务费为每年 RMB 120,000，合同期为三年，因此三年总服务费为 **RMB 360,000** [2]。\n- 一台 X-2000 的首发价为 **15,999 元** [1]。\n- 两者相比，**蓝鲸维保合同三年的总服务费更贵**，约为 X-2000 单台首发价的 22.5 倍。"
+    },
+    {
+      "id": "CX18",
+      "difficulty": "complex",
+      "question": "按公司制度，绩效 A 档员工的年终奖是几个月工资？和高管方案里年终奖的下限相比差几个月？",
+      "seconds": 9.641,
+      "elapsed": {
+        "query_understanding": 4.274720191955566,
+        "retrieval_only": 0.6640579700469971,
+        "rerank": 3.216156005859375,
+        "assembly": 0.003342866897583008,
+        "retrieval": 3.883556842803955,
+        "total": 9.60671591758728,
+        "llm": 1.4484388828277588
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 8
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "work/星海薪酬福利制度.md",
+        "work/星海高管薪酬方案.md",
+        "work/星海员工手册_2024版.md",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海IT资产管理办法.txt",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "work/星海差旅管理办法_2025修订.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海高管薪酬方案.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海IT资产管理办法.txt",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海差旅管理办法_2025修订.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 绩效 A 档员工的年终奖为 **4 个月月薪** [1]。\n- 高管年终奖为 **6~8 个月月薪**，下限是 **6 个月** [2]。\n- 两者相比，绩效 A 档员工比高管年终奖下限少 **2 个月** [1][2]。\n\n需要说明的是，高管方案仅适用于总经理、副总经理、财务总监，且属于保密文件 [2]。"
+    },
+    {
+      "id": "CX19",
+      "difficulty": "complex",
+      "question": "2024 年度和 2025 年度的预算表里，研发部和市场部的负责人分别是谁？",
+      "seconds": 16.813,
+      "elapsed": {
+        "query_understanding": 11.878422021865845,
+        "retrieval_only": 1.3601500988006592,
+        "rerank": 2.702427387237549,
+        "assembly": 0.0020017623901367188,
+        "retrieval": 4.064579248428345,
+        "total": 16.765854835510254,
+        "llm": 0.8228535652160645
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "ordinary",
+        "processed_documents": 7
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "reference/星海表格/2025年度部门预算表.xlsx",
+        "reference/星海运维/机房巡检通知.jpg",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "learning/星海RAG技术培训笔记.md",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海表格/2025年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海2025年度规划汇报.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海RAG技术培训笔记.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 2024 年度：研发部负责人是陈明，市场部负责人是周红 [1]。\n- 2025 年度：研发部负责人是陈明，市场部负责人是周红 [2]。"
+    },
+    {
+      "id": "CX20",
+      "difficulty": "complex",
+      "question": "知识库里有哪些项目的立项或章程文档提到了数据安全或等级保护的要求？",
+      "seconds": 38.407,
+      "elapsed": {
+        "query_understanding": 5.652505397796631,
+        "retrieval_only": 0.4598698616027832,
+        "rerank": 4.5353288650512695,
+        "assembly": 0.04444146156311035,
+        "retrieval": 5.039640188217163,
+        "total": 38.364145585976075,
+        "enumeration": 27.67199999996228,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 20,
+        "selected_documents": 12,
+        "stage2": {
+          "status": "executed",
+          "rounds": 2,
+          "queries": 4,
+          "batches": 6,
+          "valid_batches": 6,
+          "split_batches": 0,
+          "cards_read": 27,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "no_new_information",
+          "elapsed": 27.67199999996228,
+          "calls": 8,
+          "estimated_tokens": 10396,
+          "candidate_documents": 20,
+          "processed_documents": 20,
+          "items": 3,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": [],
+        "calibration": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/昆仑项目/昆仑项目立项报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星云项目**：来源文档：星云项目章程.md ## 项目概况 星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元， 项目周期 2024-01 至 2024-09。项目负责人：陈明。 [1]\n\n2. **天枢项目**：来源文档：天枢项目立项报告.docx 天枢项目立项报告 [2]\n\n3. **昆仑项目**：来源文档：昆仑项目立项报告.md [3]\n\n处理范围：20 份文档、27 张卡片、6 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。"
+    }
+  ],
+  "mcp": [
+    {
+      "id": "CX16",
+      "sources": [
+        "projects/昆仑项目/昆仑项目立项报告.md",
+        "reference/星海简介/昆仑项目启动新闻.html",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "work/星海员工手册_2024版.md",
+        "reference/星海发布会/星海2025年度规划汇报.pptx",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "reference/星海合同/华信数据采购合同_2024.pdf",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "reference/星海运维/机房巡检通知.jpg",
+        "learning/星海RAG技术培训笔记.md",
+        "learning/星海产品培训_基础篇.docx",
+        "work/星海IT资产管理办法.txt"
+      ],
+      "refused": false,
+      "forbidden_hits": []
+    }
+  ],
+  "replay": []
+}

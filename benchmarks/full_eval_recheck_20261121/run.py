@@ -56,7 +56,7 @@ def load_module(name, path):
     return module
 
 
-def build_corpus(base, cfg, store, embedding):
+def build_corpus(base, cfg, store, embedding, *, latest_charter=None):
     gen = load_module("exam_fixture", ORIGINAL / "gen_corpus.py")
     gen.generate(base)
     plan = PLAN
@@ -82,7 +82,7 @@ def build_corpus(base, cfg, store, embedding):
     chart = next(row for row in plan if "星云项目章程" in row[0])
     file = cfg.knowledge_dir / chart[0]
     old = file.read_text(encoding="utf-8")
-    updated = (old.replace("预算 120 万元", "预算 135 万元")
+    updated = latest_charter or (old.replace("预算 120 万元", "预算 135 万元")
                .replace("M3 系统上线：2024-09。", "M3 系统上线：2024-09；M4 项目验收：2024-12。")
                .replace("徐凯（后端）。", "徐凯（后端）、刘洋（测试）。"))
     if "预算 135 万元" not in updated:
@@ -118,7 +118,7 @@ def link_fixture_projects(plan):
         manage.update_metadata(path, {"project_id": project_ids[name]})
 
 
-def observe(q, *, cloud=False, keyword=False, override=None):
+def observe(q, *, cloud=False, keyword=False, override=None, grader=grade):
     question = q["question"]
     filters = q.get("filters") or None
     started = time.monotonic()
@@ -134,13 +134,13 @@ def observe(q, *, cloud=False, keyword=False, override=None):
         result, meta = pipeline.query_evidence(question, filters=filters, use_llm=False,
                                                use_rerank=not keyword, **identity(q))
     focus = ("coverage", "route", "metadata_scope", "processed_documents", "selected_documents",
-             "limited_by", "scope_issue", "stage2", "comparison")
+             "limited_by", "scope_issue", "stage2", "comparison", "version_comparison")
     return {
         "id": q["id"], "difficulty": q["difficulty"], "question": question,
         "seconds": round(time.monotonic() - started, 3),
         "elapsed": result.elapsed, "filters": result.filters,
         "meta": {key: meta[key] for key in focus if key in meta},
-        "grade": grade(q, result),
+        "grade": grader(q, result),
         "sources": list(dict.fromkeys(s.get("path") for s in result.sources)),
         "source_versions": [{"path": path, "version": version, "status": status}
                             for path, version, status in dict.fromkeys(
@@ -217,7 +217,8 @@ def check_mcp(questions):
     return rows
 
 
-def main():
+def main(*, question_file=ORIGINAL / "questions.json", corpus_builder=build_corpus,
+         observe_question=observe, project_linked=False):
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--cloud", action="store_true", help="Run the configured LLM on synthetic content")
@@ -227,7 +228,7 @@ def main():
     parser.add_argument("--project-linked", action="store_true", help="Link project documents through document management")
     parser.add_argument("--output", type=Path, help="Override the output JSON file")
     args = parser.parse_args()
-    questions = json.loads((ORIGINAL / "questions.json").read_text(encoding="utf-8"))["questions"]
+    questions = json.loads(question_file.read_text(encoding="utf-8"))["questions"]
     selected = set(args.only.split(",")) if args.only else None
     destination = args.output or HERE / ("cloud_keyword.json" if args.cloud and args.keyword else
                           "cloud.json" if args.cloud else "controls.json" if args.replay_only
@@ -271,12 +272,17 @@ def main():
             # Query evidence still supplies a client to the local reranker.
             stack.enter_context(patch("src.pipeline.get_llm_client", return_value=None))
         with contextlib.redirect_stdout(io.StringIO()):
-            plan, indexed, ingest, missing = build_corpus(base, cfg, store, embedding)
-            if args.project_linked:
+            plan, indexed, ingest, missing = corpus_builder(base, cfg, store, embedding)
+            if args.project_linked and not project_linked:
                 link_fixture_projects(plan)
         failed = [item["path"] for item in indexed if not item["rows"]]
         payload = {"indexed": sum(bool(item["rows"]) for item in indexed[:-1]),
                    "cards": store.count(), "failed": failed, "missing_ingest": missing,
+                   "configuration": {"model": cfg.llm_model if args.cloud else None,
+                                     "embedding": cfg.embedding_model if not args.keyword else None,
+                                     "rerank": cfg.rerank_backend if cfg.rerank_enabled else None,
+                                     "project_linked": project_linked or args.project_linked,
+                                     "keyword_only": args.keyword},
                    "questions": [], "mcp": [], "replay": []}
 
         def save():
@@ -288,16 +294,17 @@ def main():
             if selected is not None and q["id"] not in selected:
                 continue
             try:
-                row = observe(q, cloud=args.cloud, keyword=args.keyword)
+                row = observe_question(q, cloud=args.cloud, keyword=args.keyword)
             except Exception as exc:
                 row = {"id": q["id"], "error": type(exc).__name__}
             payload["questions"].append(row)
             save()
-            print(q["id"], row.get("seconds"), row.get("error") or row["grade"]["checks"], flush=True)
-        if not args.cloud and not selected:
+            print(q["id"], row.get("seconds"),
+                  row.get("error") or row.get("grade", {}).get("checks", "recorded"), flush=True)
+        if not selected:
             with contextlib.redirect_stdout(io.StringIO()):
                 payload["mcp"] = check_mcp(questions)
-                if not args.project_linked:
+                if not args.cloud and not (project_linked or args.project_linked):
                     payload["replay"] = replay(questions, plan, ingest)
             save()
 

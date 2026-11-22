@@ -1,0 +1,179 @@
+{
+  "cards_total": 90,
+  "embed_query": {
+    "n": 3,
+    "min": 0.393,
+    "p50": 0.419,
+    "p90": 0.439,
+    "max": 0.439,
+    "mean": 0.417,
+    "dim": 2560
+  },
+  "bm25": {
+    "cold_build_first_query": 1.545,
+    "warm_query": 0.085
+  },
+  "vector_search": {
+    "n": 5,
+    "min": 0.014,
+    "p50": 0.016,
+    "p90": 0.031,
+    "max": 0.031,
+    "mean": 0.019
+  },
+  "retrieval_half": {
+    "stats": [
+      {
+        "q": "出差住宿报销标准是多少",
+        "wall": 13.111,
+        "elapsed": {
+          "retrieval_only": 1.101,
+          "rerank": 11.994,
+          "assembly": 0.009,
+          "retrieval": 13.104,
+          "total": 13.104
+        },
+        "coverage": "partial",
+        "n_sources": 5
+      },
+      {
+        "q": "年终奖发几个月工资",
+        "wall": 5.985,
+        "elapsed": {
+          "retrieval_only": 1.639,
+          "rerank": 4.214,
+          "assembly": 0.123,
+          "retrieval": 5.975,
+          "total": 5.975
+        },
+        "coverage": "partial",
+        "n_sources": 25
+      },
+      {
+        "q": "研发部预算是多少",
+        "wall": 3.957,
+        "elapsed": {
+          "retrieval_only": 0.706,
+          "rerank": 3.246,
+          "assembly": 0.003,
+          "retrieval": 3.955,
+          "total": 3.955
+        },
+        "coverage": "partial",
+        "n_sources": 5
+      },
+      {
+        "q": "合同付款方式是怎么约定的",
+        "wall": 4.582,
+        "elapsed": {
+          "retrieval_only": 0.843,
+          "rerank": 3.727,
+          "assembly": 0.004,
+          "retrieval": 4.574,
+          "total": 4.574
+        },
+        "coverage": "partial",
+        "n_sources": 4
+      },
+      {
+        "q": "发布会是什么时候开的",
+        "wall": 3.508,
+        "elapsed": {
+          "retrieval_only": 1.094,
+          "rerank": 2.4,
+          "assembly": 0.006,
+          "retrieval": 3.501,
+          "total": 3.501
+        },
+        "coverage": "partial",
+        "n_sources": 3
+      },
+      {
+        "q": "年假有几天",
+        "wall": 7.383,
+        "elapsed": {
+          "retrieval_only": 0.996,
+          "rerank": 6.371,
+          "assembly": 0.008,
+          "retrieval": 7.375,
+          "total": 7.375
+        },
+        "coverage": "partial",
+        "n_sources": 5
+      }
+    ],
+    "wall_dist": {
+      "n": 6,
+      "min": 3.508,
+      "p50": 5.284,
+      "p90": 13.111,
+      "max": 13.111,
+      "mean": 6.421
+    }
+  },
+  "e2e": [
+    {
+      "q": "员工手册里差旅住宿报销标准是多少？",
+      "wall": 10.4,
+      "elapsed": {
+        "query_understanding": 3.01,
+        "retrieval_only": 0.37,
+        "rerank": 5.07,
+        "assembly": 0.0,
+        "retrieval": 5.44,
+        "total": 10.18,
+        "llm": 1.73
+      },
+      "usage": {
+        "input": 2617,
+        "output": 680,
+        "calls": 2
+      },
+      "answer_len": 320
+    },
+    {
+      "q": "华信合同付款方式是怎么约定的？",
+      "wall": 9.66,
+      "elapsed": {
+        "query_understanding": 1.48,
+        "retrieval_only": 0.74,
+        "rerank": 6.02,
+        "assembly": 0.01,
+        "retrieval": 6.78,
+        "total": 9.59,
+        "llm": 1.34
+      },
+      "usage": {
+        "input": 2449,
+        "output": 289,
+        "calls": 2
+      },
+      "answer_len": 150
+    },
+    {
+      "q": "2024 年度哪个部门预算最多？",
+      "wall": 12.01,
+      "elapsed": {
+        "query_understanding": 2.28,
+        "retrieval_only": 0.63,
+        "rerank": 8.07,
+        "assembly": 0.01,
+        "retrieval": 8.71,
+        "total": 11.91,
+        "llm": 0.92
+      },
+      "usage": {
+        "input": 3507,
+        "output": 295,
+        "calls": 2
+      },
+      "answer_len": 144
+    }
+  ],
+  "cache": {
+    "first_wall": 10.15,
+    "second_wall": 0.0,
+    "second_cache_hit": true,
+    "speedup": 2080.9
+  }
+}

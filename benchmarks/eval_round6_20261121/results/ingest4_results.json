@@ -1,0 +1,473 @@
+{
+  "ingest": [
+    {
+      "path": "work/星海数据治理管理制度_v2.0.md",
+      "ok": true,
+      "chunks": 1,
+      "elapsed": 20.8,
+      "errors": null
+    },
+    {
+      "path": "work/星海2026年度经营计划.docx",
+      "ok": true,
+      "chunks": 5,
+      "elapsed": 14.1,
+      "errors": null
+    },
+    {
+      "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "ok": true,
+      "chunks": 5,
+      "elapsed": 10.1,
+      "errors": null
+    },
+    {
+      "path": "learning/星海项目管理手册_v1.0.docx",
+      "ok": true,
+      "chunks": 5,
+      "elapsed": 10.6,
+      "errors": null
+    },
+    {
+      "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+      "ok": true,
+      "chunks": 5,
+      "elapsed": 17.2,
+      "errors": null
+    },
+    {
+      "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "ok": true,
+      "chunks": 7,
+      "elapsed": 11.5,
+      "errors": null
+    },
+    {
+      "path": "reference/星海表格/星海2026项目总台账.xlsx",
+      "ok": true,
+      "chunks": 1,
+      "elapsed": 15.2,
+      "errors": null
+    },
+    {
+      "path": "work/星海供应商管理办法_2026修订.md",
+      "ok": true,
+      "chunks": 1,
+      "elapsed": 8.7,
+      "errors": null
+    },
+    {
+      "path": "archive/星海旧版差旅制度_2023.md",
+      "ok": true,
+      "chunks": 1,
+      "elapsed": 5.5,
+      "errors": null
+    },
+    {
+      "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "ok": true,
+      "chunks": 5,
+      "elapsed": 16.4,
+      "errors": null
+    }
+  ],
+  "matrix": [
+    {
+      "path": "work/星海数据治理管理制度_v2.0.md",
+      "actual": {
+        "doc_type": "管理制度",
+        "department": "研发部",
+        "version": "2.0",
+        "classification": "内部",
+        "allowed_groups": [
+          "研发部",
+          "财务部"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 1,
+      "sections": [
+        "一、总则"
+      ],
+      "pages": [],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type": true,
+        "doc_type_filled": true,
+        "min_cards": false,
+        "min_sections": false,
+        "prefix": true
+      },
+      "passed": false
+    },
+    {
+      "path": "work/星海2026年度经营计划.docx",
+      "actual": {
+        "doc_type": "",
+        "department": "财务部",
+        "version": "1.0",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "zhaocai"
+      },
+      "cards": 5,
+      "sections": [
+        "一、总体目标",
+        "三、部门预算",
+        "二、三大战略",
+        "五、主要风险",
+        "四、重点项目"
+      ],
+      "pages": [],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type_filled": false,
+        "min_cards": true,
+        "min_sections": true,
+        "prefix": true
+      },
+      "passed": false
+    },
+    {
+      "path": "projects/凤凰项目/凤凰项目可行性研究报告.docx",
+      "actual": {
+        "doc_type": "可行性研究报告",
+        "department": "研发部",
+        "version": "1.0",
+        "classification": "内部",
+        "allowed_groups": [
+          "研发部",
+          "市场部"
+        ],
+        "allowed_users": [],
+        "project_id": 7,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 5,
+      "sections": [
+        "一、项目背景",
+        "三、关键技术指标",
+        "二、项目基本信息",
+        "五、风险与对策",
+        "四、财务测算"
+      ],
+      "pages": [],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type_filled": true,
+        "min_cards": true,
+        "min_sections": true,
+        "prefix": true
+      },
+      "passed": true
+    },
+    {
+      "path": "learning/星海项目管理手册_v1.0.docx",
+      "actual": {
+        "doc_type": "",
+        "department": "研发部",
+        "version": "1.0",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 5,
+      "sections": [
+        "一、立项管理",
+        "三、执行与报告",
+        "二、计划管理",
+        "五、收尾管理",
+        "四、监控与预警"
+      ],
+      "pages": [],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type_filled": false,
+        "min_cards": true,
+        "min_sections": true,
+        "prefix": true
+      },
+      "passed": false
+    },
+    {
+      "path": "reference/星海合同/Phoenix技术方案建议书_2026.pdf",
+      "actual": {
+        "doc_type": "技术方案",
+        "department": "研发部",
+        "version": "1.0",
+        "classification": "内部",
+        "allowed_groups": [
+          "研发部"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 5,
+      "sections": [],
+      "pages": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type_filled": true,
+        "min_cards": true,
+        "page_metadata": true,
+        "prefix": true
+      },
+      "passed": true
+    },
+    {
+      "path": "reference/星海发布会/星海2026春季发布会纪要.pptx",
+      "actual": {
+        "doc_type": "",
+        "department": "市场部",
+        "version": "1.0",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "liuye"
+      },
+      "cards": 7,
+      "sections": [
+        "下一代规划",
+        "发布产品",
+        "合作媒体",
+        "旗舰版参数",
+        "星海科技 2026 春季新品发布会纪要",
+        "渠道与开售",
+        "生态合作"
+      ],
+      "pages": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type_filled": false,
+        "min_cards": true,
+        "prefix": true
+      },
+      "passed": false
+    },
+    {
+      "path": "reference/星海表格/星海2026项目总台账.xlsx",
+      "actual": {
+        "doc_type": "",
+        "department": "财务部",
+        "version": "1.0",
+        "classification": "内部",
+        "allowed_groups": [
+          "财务部"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "zhaocai"
+      },
+      "cards": 1,
+      "sections": [
+        "Sheet：项目台账"
+      ],
+      "pages": [],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type_filled": false,
+        "min_cards": true,
+        "prefix": true
+      },
+      "passed": false
+    },
+    {
+      "path": "work/星海供应商管理办法_2026修订.md",
+      "actual": {
+        "doc_type": "管理办法",
+        "department": "财务部",
+        "version": "1.0",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "active",
+        "owner": "zhaocai"
+      },
+      "cards": 1,
+      "sections": [
+        "一、准入"
+      ],
+      "pages": [],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type": true,
+        "doc_type_filled": true,
+        "min_cards": false,
+        "min_sections": false,
+        "prefix": true
+      },
+      "passed": false
+    },
+    {
+      "path": "archive/星海旧版差旅制度_2023.md",
+      "actual": {
+        "doc_type": "管理制度",
+        "department": "财务部",
+        "version": "1.0",
+        "classification": "公开",
+        "allowed_groups": [
+          "all"
+        ],
+        "allowed_users": [],
+        "project_id": null,
+        "status": "archive",
+        "owner": "zhaocai"
+      },
+      "cards": 1,
+      "sections": [
+        "星海差旅制度（2023 旧版，已废止）"
+      ],
+      "pages": [],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type": true,
+        "doc_type_filled": true,
+        "min_cards": true,
+        "prefix": true
+      },
+      "passed": true
+    },
+    {
+      "path": "projects/凤凰项目/X-4000需求规格_v1.0.docx",
+      "actual": {
+        "doc_type": "",
+        "department": "研发部",
+        "version": "1.0",
+        "classification": "内部",
+        "allowed_groups": [
+          "研发部",
+          "市场部"
+        ],
+        "allowed_users": [],
+        "project_id": 7,
+        "status": "active",
+        "owner": "wangfang"
+      },
+      "cards": 5,
+      "sections": [
+        "一、用户角色",
+        "三、关键业务规则",
+        "二、功能模块清单",
+        "五、验收标准",
+        "四、非功能性要求"
+      ],
+      "pages": [],
+      "checks": {
+        "classification": true,
+        "allowed_groups": true,
+        "allowed_users": true,
+        "project_id": true,
+        "status": true,
+        "owner": true,
+        "version": true,
+        "doc_type_filled": false,
+        "min_cards": true,
+        "min_sections": true,
+        "prefix": true
+      },
+      "passed": false
+    }
+  ],
+  "field_pass": 101,
+  "field_total": 110,
+  "field_rate": 91.8,
+  "file_pass": 3,
+  "file_total": 10,
+  "library": {
+    "docs": 60,
+    "cards": 214
+  },
+  "elapsed": 131
+}

@@ -1,0 +1,841 @@
+{
+  "indexed": 17,
+  "cards": 21,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "questions": [
+    {
+      "id": "S06",
+      "difficulty": "simple",
+      "question": "研发部 2024 年度的预算是多少？",
+      "seconds": 3.422,
+      "elapsed": {
+        "query_understanding": 1.6758830547332764,
+        "retrieval_only": 1.1053133010864258,
+        "rerank": 0.0,
+        "assembly": 0.0030579566955566406,
+        "retrieval": 1.1083712577819824,
+        "total": 3.3735570907592773,
+        "llm": 0.5893027782440186
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海运维/机房巡检通知.jpg",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "learning/星海产品培训_基础篇.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海运维/机房巡检通知.jpg",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "learning/星海产品培训_基础篇.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "研发部 2024 年度预算为 **520 万元**，负责人是陈明，预算包含星云、天枢项目的投入 [1]。"
+    },
+    {
+      "id": "M02",
+      "difficulty": "medium",
+      "question": "星云项目最新章程相比最初立项时有哪些变化？",
+      "seconds": 10.938,
+      "elapsed": {
+        "query_understanding": 7.823674440383911,
+        "retrieval_only": 0.03277993202209473,
+        "rerank": 0.0,
+        "assembly": 0.0009222030639648438,
+        "retrieval": 0.03370213508605957,
+        "total": 10.93135404586792,
+        "llm": 3.073977470397949
+      },
+      "filters": {
+        "status": [
+          "active",
+          "archive",
+          "expired"
+        ],
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "version_comparison",
+        "metadata_scope": {
+          "project": "星云项目"
+        },
+        "processed_documents": 2
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.0",
+          "status": "expired"
+        }
+      ],
+      "answer": "## 对比结论\n\n两侧资料均为《星云项目章程》的同一章节内容（项目概况、里程碑、协作约定、数据安全），可视为同一事项的不同版本：[1] 为现行 1.1 版（active），[2] 为历史 1.0 版（expired）。\n\n## 主要变化\n\n- **立项预算上调**：由 120 万元调整为 135 万元 [2][1]\n- **核心成员增加**：现行版本在陈明（项目负责人）、林岚（架构）、徐凯（后端）之外，新增刘洋（测试）[2][1]\n- **里程碑增加一项**：历史版本止于 M3 系统上线（2024-09）；现行版本新增 M4 项目验收：2024-12 [2][1]\n\n## 未变化的内容\n\n- 项目名称与定位（X-2000 量产与数据平台建设项目）一致 [1][2]\n- 项目周期 2024-01 至 2024-09 一致 [1][2]\n- 项目负责人陈明一致 [1][2]\n- 里程碑 M1 需求确认（2024-03）、M2 开发完成（2024-06）、M3 系统上线（2024-09）一致 [1][2]\n- 协作约定（与天枢项目共享测试环境、北斗项目为前置预研项目）一致 [1][2]\n- 数据安全（等级保护三级、测评费用已列入预算）一致 [1][2]\n\n## 说明\n\n资料中历史版本仅有 1.0 一版，因此上述\"最初立项\"以该版为参照；若存在更早版本，知识库中没有相关内容。另外，里程碑 M4 定于 2024-12，而项目周期截止 2024-09，资料未说明二者关系，知识库中无进一步解释。"
+    },
+    {
+      "id": "M03",
+      "difficulty": "medium",
+      "question": "2024 年度哪个部门的预算最多？是多少？",
+      "seconds": 3.109,
+      "elapsed": {
+        "query_understanding": 2.4863345623016357,
+        "retrieval_only": 0.0020275115966796875,
+        "rerank": 0.0,
+        "assembly": 0.009303092956542969,
+        "retrieval": 0.011330604553222656,
+        "total": 3.0864078998565674,
+        "llm": 0.588742733001709
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海评审/产品评审会议纪要.rtf",
+        "reference/星海发布会/星海X-2000发布会纪要.pptx",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据知识库资料，2024 年度预算最多的部门是**研发部**，预算为 **520 万元**，负责人是陈明，备注为含星云/天枢项目投入 [1]。"
+    },
+    {
+      "id": "M15",
+      "difficulty": "medium",
+      "question": "发布会纪要里提到的合作媒体有哪几家？",
+      "seconds": 6.156,
+      "elapsed": {
+        "query_understanding": 1.723646879196167,
+        "retrieval_only": 0.034259796142578125,
+        "rerank": 0.0,
+        "assembly": 0.0010120868682861328,
+        "retrieval": 0.03527188301086426,
+        "total": 6.133918762207031,
+        "enumeration": 4.375,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "市场部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "市场部"
+          ],
+          "username": "liuye"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "document",
+        "processed_documents": 1,
+        "selected_documents": 1,
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 1,
+          "valid_batches": 1,
+          "cards_read": 4,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "document_read",
+          "elapsed": 4.375,
+          "calls": 1,
+          "estimated_tokens": 1070,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 3,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **科技日报**：合作媒体：科技日报、电子发烧友、数码之家 [1]\n\n2. **电子发烧友**：合作媒体：科技日报、电子发烧友、数码之家 [1]\n\n3. **数码之家**：合作媒体：科技日报、电子发烧友、数码之家 [1]\n\n处理范围：1 份文档、4 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。"
+    },
+    {
+      "id": "C01",
+      "difficulty": "complex",
+      "question": "2024 年度公司所有部门的预算总额是多少万元？",
+      "seconds": 2.5,
+      "elapsed": {
+        "query_understanding": 1.4544506072998047,
+        "retrieval_only": 0.008649349212646484,
+        "rerank": 0.0,
+        "assembly": 0.00500798225402832,
+        "retrieval": 0.013657331466674805,
+        "total": 2.49515962600708,
+        "llm": 1.0270516872406006
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "财务部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "财务部"
+          ],
+          "username": "zhaocai"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海表格/2024年度部门预算表.xlsx",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海员工手册_2024版.md",
+        "reference/星海评审/产品评审会议纪要.rtf"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海表格/2024年度部门预算表.xlsx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海评审/产品评审会议纪要.rtf",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "2024 年度公司所有部门的预算总额为 **855 万元** [1]。\n\n其中各部门的预算分别为：研发部 520 万元、市场部 180 万元、人力资源部 95 万元、行政部 60 万元 [1]。"
+    },
+    {
+      "id": "C02",
+      "difficulty": "complex",
+      "question": "星云项目和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "seconds": 6.078,
+      "elapsed": {
+        "query_understanding": 5.987696647644043,
+        "retrieval_only": 0.047299861907958984,
+        "rerank": 0.0,
+        "assembly": 0.001031637191772461,
+        "retrieval": 0.048331499099731445,
+        "total": 6.036028146743774
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1,
+          2
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "sum"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "星云项目",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢项目",
+              "sources": [
+                2
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云项目：负责人 陈明 [1]，预算 135 万元 [1]。\n- 天枢项目：负责人 周红 [2]，预算 200 万元 [2]。\n\n**预算合计 335 万元** [1][2]。"
+    },
+    {
+      "id": "C03",
+      "difficulty": "complex",
+      "question": "现在的差旅住宿报销标准比 2022 年旧版员工手册的标准涨了多少？",
+      "seconds": 7.063,
+      "elapsed": {
+        "query_understanding": 4.2291107177734375,
+        "retrieval_only": 0.04968667030334473,
+        "rerank": 0.0,
+        "assembly": 0.0014846324920654297,
+        "retrieval": 0.051171302795410156,
+        "total": 7.047419786453247,
+        "llm": 2.7671377658843994
+      },
+      "filters": {
+        "status": [
+          "active",
+          "archive",
+          "expired"
+        ],
+        "allowed_groups": [
+          "all",
+          "人力资源部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "人力资源部"
+          ],
+          "username": "lili"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "version_comparison",
+        "processed_documents": 3
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海员工手册_2024版.md",
+        "reference/星海简介/公司简介.html",
+        "archive/星海旧版员工手册_2022.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "archive/星海旧版员工手册_2022.md",
+          "version": "1.0",
+          "status": "archive"
+        }
+      ],
+      "answer": "现行标准与旧版不是统一金额对统一金额的关系，需分城市比较。\n\n**同一事项确认**：两侧资料都是差旅住宿报销标准。现行版按出差城市分级报销 [1]；2022 旧版「不分城市等级，统一每晚 350 元」，且该版本已废止 [3]。\n\n**分档比较（现行 vs 旧版 350 元/晚）**\n\n- 一线城市（北京、上海、广州、深圳）现行 400 元/晚，比旧版高 50 元/晚 [1][3]\n- 二线城市（省会城市及计划单列市）现行 300 元/晚，比旧版低 50 元/晚 [1][3]\n- 其他城市现行 200 元/晚，比旧版低 150 元/晚 [1][3]\n\n**结论**：现行标准并非整体上调——只有一线城市提高了 50 元/晚，二线和其他城市反而低于旧版的 350 元/晚 [1][3]。因此不能给出一个统一的\"涨了多少\"的数字；若需按某类城市判断，请以上述对应档位为准。\n\n补充：现行版差旅部分还规定餐费补贴每人每天 100 元、出差前须在 OA 提交申请单，未经事前审批不予报销 [1]；旧版餐费补贴为每人每天 80 元 [3]。"
+    },
+    {
+      "id": "C05",
+      "difficulty": "complex",
+      "question": "星云、天枢、北斗三个项目里预算最大的是哪个项目？预算是多少？",
+      "seconds": 5.921,
+      "elapsed": {
+        "query_understanding": 5.869438886642456,
+        "retrieval_only": 0.017669677734375,
+        "rerank": 0.0,
+        "assembly": 0.0,
+        "retrieval": 0.017669677734375,
+        "total": 5.887108564376831
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        },
+        "project_id": [
+          1,
+          2,
+          3
+        ]
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "project_comparison",
+        "comparison": {
+          "operations": [
+            "max"
+          ],
+          "missing": [],
+          "projects": [
+            {
+              "name": "星云",
+              "sources": [
+                1
+              ]
+            },
+            {
+              "name": "天枢",
+              "sources": [
+                2
+              ]
+            },
+            {
+              "name": "北斗",
+              "sources": [
+                3
+              ]
+            }
+          ]
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 2,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "projects/星云项目/星云项目章程.md",
+        "projects/天枢项目/天枢项目立项报告.docx",
+        "projects/北斗项目/北斗项目总结报告.md"
+      ],
+      "source_versions": [
+        {
+          "path": "projects/星云项目/星云项目章程.md",
+          "version": "1.1",
+          "status": "active"
+        },
+        {
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "projects/北斗项目/北斗项目总结报告.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "- 星云：预算 135 万元 [1]。\n- 天枢：预算 200 万元 [2]。\n- 北斗：预算 80 万元 [3]。\n\n**预算最高：天枢，200 万元** [1][2][3]。"
+    },
+    {
+      "id": "C11",
+      "difficulty": "complex",
+      "question": "按公司制度，普通员工的年终奖一般是几个月工资？",
+      "seconds": 4.391,
+      "elapsed": {
+        "query_understanding": 3.3126935958862305,
+        "retrieval_only": 0.03728437423706055,
+        "rerank": 0.0,
+        "assembly": 0.0004642009735107422,
+        "retrieval": 0.03774857521057129,
+        "total": 4.385245323181152,
+        "llm": 1.0348031520843506
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "unknown",
+        "route": "ordinary",
+        "processed_documents": 5
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "work/星海薪酬福利制度.md",
+        "work/星海财务报销制度_v2.1.md",
+        "reference/星海简介/公司简介.html",
+        "work/星海信息安全管理制度.md",
+        "work/星海员工手册_2024版.md"
+      ],
+      "source_versions": [
+        {
+          "path": "work/星海薪酬福利制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海财务报销制度_v2.1.md",
+          "version": "2.1",
+          "status": "active"
+        },
+        {
+          "path": "reference/星海简介/公司简介.html",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海信息安全管理制度.md",
+          "version": "1.0",
+          "status": "active"
+        },
+        {
+          "path": "work/星海员工手册_2024版.md",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "根据《星海薪酬福利制度》，年终奖按公司经营业绩与个人绩效发放，一般为 **2~4 个月月薪** [1]。具体档位如下：\n\n- 绩效 A 档：4 个月\n- 绩效 B 档：3 个月\n- 绩效 C 档：2 个月\n- 发放时间：次年 1 月随工资发放 [1]\n\n需要注意，制度中没有专门针对“普通员工”这一身份的年终奖月数规定；年终奖月数只根据绩效档位确定。"
+    },
+    {
+      "id": "C13",
+      "difficulty": "complex",
+      "question": "2024 年公司举办了哪些对外活动？",
+      "seconds": 13.687,
+      "elapsed": {
+        "query_understanding": 1.730504035949707,
+        "retrieval_only": 0.031484365463256836,
+        "rerank": 0.0,
+        "assembly": 0.01195216178894043,
+        "retrieval": 0.043436527252197266,
+        "total": 13.664940563205164,
+        "enumeration": 11.89100000000326,
+        "llm": 0.0
+      },
+      "filters": {
+        "status": "active",
+        "allowed_groups": [
+          "all",
+          "研发部"
+        ],
+        "__viewer__": {
+          "groups": [
+            "all",
+            "研发部"
+          ],
+          "username": "wangfang"
+        }
+      },
+      "meta": {
+        "coverage": "partial",
+        "route": "cross_document",
+        "processed_documents": 12,
+        "selected_documents": 12,
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 12,
+          "valid_batches": 12,
+          "cards_read": 16,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_error": false,
+          "stop_reason": "call_budget",
+          "elapsed": 11.89100000000326,
+          "calls": 12,
+          "estimated_tokens": 9127,
+          "candidate_documents": 12,
+          "processed_documents": 12,
+          "items": 1,
+          "possible_duplicates": 0
+        }
+      },
+      "grade": {
+        "checks": {
+          "retrieval_hit": true,
+          "sources_min_count": true,
+          "answer_must": true,
+          "answer_any": true,
+          "must_not": true
+        },
+        "passed": true,
+        "best_rank": 1,
+        "must_miss": [],
+        "any_miss": [],
+        "not_violations": []
+      },
+      "sources": [
+        "reference/星海发布会/星海X-2000发布会纪要.pptx"
+      ],
+      "source_versions": [
+        {
+          "path": "reference/星海发布会/星海X-2000发布会纪要.pptx",
+          "version": "1.0",
+          "status": "active"
+        }
+      ],
+      "answer": "本次从已处理资料中整理出 **1 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星海科技 X-2000 新品发布会**：来源文档：星海X-2000发布会纪要.pptx 时间：2024-11-18　地点：杭州国际博览中心 [1]\n\n处理范围：12 份文档、16 张卡片、12 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。"
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}

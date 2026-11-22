@@ -1,0 +1,16 @@
+{
+  "questions": [
+    {"id":"F01","asker":{"username":"wangfang"},"question":"沧海项目是什么时候通过验收的？","expected":"2025-07-15，沧海项目验收报告。"},
+    {"id":"F02","asker":{"username":"wangfang"},"question":"华信数据采购合同约定的设备交付截止日期是什么？实际何时完成交付？","expected":"合同约定在 2024-09-30 之前交付。该合同不能证明实际完成日期。"},
+    {"id":"F03","asker":{"username":"wangfang"},"question":"星云项目现行章程的立项预算是多少万元？","expected":"现行 135 万元；旧版 120 万元不能当作现行预算。"},
+    {"id":"F04","asker":{"username":"wangfang"},"question":"2026 年度研发部部门预算是多少万元？","expected":"无 2026 年度部门预算可确认；如补充旧数据，必须标明实际年份。"},
+    {"id":"G01","asker":{"username":"wangfang"},"question":"星云和天枢两个项目的负责人分别是谁？这两个项目的预算加起来是多少万元？","expected":"星云陈明，135 万元；天枢周红，200 万元；合计 335 万元。"},
+    {"id":"G02","asker":{"username":"wangfang"},"question":"星云和天枢的预算分别是多少万元？这两个项目共享什么资源？","expected":"星云 135 万元、天枢 200 万元；两项目共享测试环境，天枢立项报告另提设备台账。"},
+    {"id":"G03","asker":{"username":"wangfang"},"question":"星云项目章程的新旧版本相比，立项预算分别是多少，增加了多少万元？","expected":"现行 135 万元，历史 120 万元，增加 15 万元；两侧各有正确引用。"},
+    {"id":"G04","asker":{"username":"liuye"},"question":"星云、天枢、昆仑三个项目里预算最大的是哪个项目？预算是多少？","expected":"市场部账号可查天枢 200 万元、昆仑 300 万元，星云章程不可见，无法确认三个项目的最高项。"},
+    {"id":"H01","asker":{"username":"wangfang"},"history":["星云项目的里程碑有哪些？"],"question":"它的立项预算是多少万元？","expected":"星云现行 135 万元，仅用本轮星云证据。"},
+    {"id":"H02","asker":{"username":"wangfang"},"history":["先查星云项目的负责人。","现在只看天枢项目的里程碑。"],"question":"它的立项预算是多少万元？","expected":"切换到天枢，200 万元。"},
+    {"id":"H03","asker":{"username":"wangfang"},"history":["先查星云项目的负责人。","我刚才说错了，前面说的是星云项目，现在只查天枢项目。"],"question":"它的立项预算是多少万元？","expected":"最新更正明确指定天枢，200 万元。"},
+    {"id":"H04","asker":{"username":"wangfang"},"compact":true,"history":["请查星云项目当前的里程碑。","请保持简洁。请保持简洁。请保持简洁。请保持简洁。","用中文回答。用中文回答。用中文回答。用中文回答。","按表格展示。","请保持简洁。","用中文回答。"],"question":"它的立项预算是多少万元？","expected":"压缩前后的项目归属一致，星云现行 135 万元。"}
+  ]
+}

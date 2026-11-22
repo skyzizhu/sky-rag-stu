@@ -1,0 +1,168 @@
+{
+  "indexed": 29,
+  "cards": 37,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "configuration": {
+    "model": null,
+    "embedding": null,
+    "rerank": null,
+    "project_linked": true,
+    "keyword_only": true
+  },
+  "questions": [
+    {
+      "id": "project_anaphora",
+      "pronoun_only": {
+        "answer": null,
+        "route": "ordinary",
+        "issue": null,
+        "project_id": null,
+        "sources": [
+          "projects/北斗项目/北斗项目总结报告.md",
+          "projects/天枢项目/天枢项目立项报告.docx",
+          "projects/昆仑项目/昆仑项目立项报告.md",
+          "projects/星云项目/星云项目章程.md",
+          "learning/星海产品培训_基础篇.docx"
+        ]
+      },
+      "explicit_project_reference": {
+        "answer": null,
+        "route": "ordinary",
+        "issue": null,
+        "project_id": [
+          1
+        ],
+        "sources": [
+          "projects/星云项目/星云项目章程.md"
+        ]
+      }
+    },
+    {
+      "id": "MD07",
+      "inferred_source": {
+        "route": "document",
+        "filters": {
+          "status": "active",
+          "source": "在册供应商名录",
+          "allowed_groups": [
+            "all",
+            "财务部"
+          ],
+          "__viewer__": {
+            "groups": [
+              "all",
+              "财务部"
+            ],
+            "username": "zhaocai"
+          }
+        },
+        "sources": []
+      },
+      "no_inferred_source": {
+        "route": "document",
+        "filters": {
+          "status": "active",
+          "allowed_groups": [
+            "all",
+            "财务部"
+          ],
+          "__viewer__": {
+            "groups": [
+              "all",
+              "财务部"
+            ],
+            "username": "zhaocai"
+          }
+        },
+        "sources": [
+          "reference/星海表格/星海供应商名录.xlsx"
+        ]
+      }
+    },
+    {
+      "id": "CX01",
+      "original": {
+        "answer": "无法确认所有要比较的项目，请核对项目名称。",
+        "route": "project_comparison",
+        "issue": "unresolved",
+        "project_id": null,
+        "sources": []
+      },
+      "variant": "星云和天枢项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "without_count_phrase": {
+        "answer": "- 星云：负责人 陈明 [1]，预算 135 万元 [1]。\n- 天枢项目：负责人 周红 [2]，预算 200 万元 [2]。\n\n**预算合计 335 万元** [1][2]。",
+        "route": "project_comparison",
+        "issue": null,
+        "project_id": [
+          1,
+          2
+        ],
+        "sources": [
+          "projects/星云项目/星云项目章程.md",
+          "projects/天枢项目/天枢项目立项报告.docx"
+        ]
+      }
+    },
+    {
+      "id": "CX03",
+      "original": {
+        "answer": "无法确认所有要比较的项目，请核对项目名称。",
+        "route": "project_comparison",
+        "issue": "unresolved",
+        "project_id": null,
+        "sources": []
+      },
+      "variant": "星云、天枢、北斗项目的预算加起来是多少万元？",
+      "without_count_phrase": {
+        "answer": "- 星云：预算 135 万元 [1]。\n- 天枢：预算 200 万元 [2]。\n- 北斗项目：预算 80 万元 [3]。\n\n**预算合计 415 万元** [1][2][3]。",
+        "route": "project_comparison",
+        "issue": null,
+        "project_id": [
+          1,
+          2,
+          3
+        ],
+        "sources": [
+          "projects/星云项目/星云项目章程.md",
+          "projects/天枢项目/天枢项目立项报告.docx",
+          "projects/北斗项目/北斗项目总结报告.md"
+        ]
+      }
+    },
+    {
+      "id": "CX07",
+      "original": {
+        "answer": "无法确认所有要比较的项目，请核对项目名称。",
+        "route": "project_comparison",
+        "issue": "unresolved",
+        "project_id": null,
+        "sources": []
+      },
+      "variant": "天枢、昆仑、沧海项目的负责人分别是谁？预算分别是多少万元？",
+      "without_count_phrase": {
+        "answer": "- 天枢：负责人 周红 [1]，预算 200 万元 [1]。\n- 昆仑：负责人 林岚 [2]，预算 300 万元 [2]。\n- 沧海项目：负责人 徐凯 [3]，预算 45 万元 [3]。",
+        "route": "project_comparison",
+        "issue": null,
+        "project_id": [
+          2,
+          4,
+          5
+        ],
+        "sources": [
+          "projects/天枢项目/天枢项目立项报告.docx",
+          "projects/昆仑项目/昆仑项目立项报告.md",
+          "projects/沧海项目/沧海项目验收报告.docx"
+        ]
+      }
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}
