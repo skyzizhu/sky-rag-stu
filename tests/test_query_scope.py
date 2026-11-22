@@ -262,6 +262,66 @@ class QueryScopeTests(IngestHarness):
         result, _ = self.evidence("查验收资料", history=history, use_llm=False)
         self.assertNotIn("project_id", result.filters)
 
+    def test_mcp_unique_short_name_and_collision_are_logged(self):
+        project = projects.save_project(projects.ProjectFields("天枢项目", None, None, [], ""))["id"]
+        note = self.write_note("天枢项目的验收材料已归档。", "tender.md")
+        self.ingest([note], default_project_id=project, default_groups=["all"])
+        with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})):
+            search = json.loads(mcp_server._tool_knowledge_search_impl("验收材料", project="天枢"))
+            self.assertEqual(search["filters_applied"]["project_id"], [project])
+            self.assertEqual({row["source"] for row in search["matches"]}, {"tender.md"})
+            projects.save_project(projects.ProjectFields("天枢专案", None, None, [], ""))
+            with mock.patch.object(mcp_server, "_answer_in_scope") as run:
+                error = json.loads(mcp_server._tool_knowledge_search_impl("验收材料", project="天枢"))
+                self.assertIn("匹配多个主档", error["error"])
+                run.assert_not_called()
+        bad, good = auth_db.list_qa_logs(limit=2, username="alice")
+        self.assertEqual(bad["mcp_context"]["scope_issue"], "invalid_filter")
+        self.assertEqual(good["mcp_context"]["project_source"], "project_argument")
+
+    def test_mcp_followup_rejects_stale_project_argument_before_retrieval(self):
+        history = [{"role": "user", "content": "先看低空监管平台项目。"},
+                   {"role": "user", "content": "我说错了，现在只查低空预警平台项目。"},
+                   {"role": "assistant", "content": "好的。"}]
+        with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})), \
+             mock.patch.object(mcp_server, "_answer_in_scope") as run:
+            for tool, result_key in ((mcp_server._tool_knowledge_search_impl, "matches"),
+                                     (mcp_server._tool_knowledge_qa_impl, "sources")):
+                reply = json.loads(tool("它的验收资料有哪些？", project=self.regulatory, history=history))
+                self.assertEqual(reply["coverage_details"]["scope_issue"], "conflict")
+                self.assertEqual(reply[result_key], [])
+                self.assertTrue(reply["refused"])
+            run.assert_not_called()
+        log = auth_db.list_qa_logs(limit=1, username="alice")[0]
+        self.assertEqual(log["mcp_context"], {
+            "tool": "knowledge_qa", "input_mode": "project_and_history", "history_count": 3,
+            "project_source": "project_argument", "scope_issue": "conflict",
+        })
+
+    def test_mcp_preserves_explicit_scope_against_ordinary_history(self):
+        history = [{"role": "user", "content": "先看低空预警平台项目。"}]
+        with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})):
+            question = "它的验收资料有哪些？"
+            explicit = json.loads(mcp_server._tool_knowledge_search_impl(
+                question, project=self.regulatory, history=history))
+            self.assertEqual({row["source"] for row in explicit["matches"]},
+                             {"plan.md", "report.md", "purchase.md"})
+            inferred = json.loads(mcp_server._tool_knowledge_search_impl(question, history=history))
+            self.assertEqual({row["source"] for row in inferred["matches"]}, {"warning.md"})
+        self.assertEqual(auth_db.list_qa_logs(limit=1, username="alice")[0]["mcp_context"]["project_source"],
+                         "history")
+
+    def test_mcp_followup_with_no_visible_project_documents_keeps_scope(self):
+        project = projects.save_project(projects.ProjectFields("仅财务可见项目", None, None, [], ""))["id"]
+        self.ingest([self.write_note("验收标准和性能要求。", "finance-only.md")],
+                    default_project_id=project, default_groups=["finance"])
+        history = [{"role": "user", "content": "先看「仅财务可见项目」。"}]
+        with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})):
+            reply = json.loads(mcp_server._tool_knowledge_search_impl("它的验收资料有哪些？", history=history))
+        self.assertEqual(reply["filters_applied"]["project_id"], [project])
+        self.assertEqual(reply["matches"], [])
+        self.assertTrue(reply["refused"])
+
     def test_explicit_project_switch_and_correction_update_shared_scope(self):
         histories = (
             "现在只看低空预警平台项目的里程碑。",

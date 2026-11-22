@@ -1292,9 +1292,7 @@ def query_evidence(
             if project_id := context_project.get("project_id"):
                 filters, scope_issue = resolve_scope(question, {"project": project_id}, filters)
                 if not scope_issue:
-                    scope_injected_keys |= {key for key, value in (filters or {}).items()
-                                            if key not in pre_scope_filters
-                                            or pre_scope_filters[key] != value}
+                    # A resolved follow-up keeps the user's project on retrieval retries.
                     spoken_scope["project"] = context_project["name"]
                     if not bare_reference and not (qu and qu.ok):
                         search_query = f"{context_project['name']} {search_query}"

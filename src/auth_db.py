@@ -1067,17 +1067,21 @@ def log_qa_event(username: str, department: str, entry: str, question: str,
         for s in (sources or [])[:12]
     ]
     try:
+        values = (username or "", department or "", entry or "", question or "",
+                  answer or "", json.dumps(slim_sources, ensure_ascii=False),
+                  json.dumps(filters or {}, ensure_ascii=False), int(top_k or 0),
+                  float(elapsed or 0), json.dumps(usage or {}, ensure_ascii=False))
+        context_column = ""
+        if mcp_context is not None:
+            context_column = ", mcp_context"
+            values += (json.dumps(mcp_context, ensure_ascii=False),)
+        placeholders = ",".join("?" for _ in range(len(values) + 1))
         with _connect() as conn:
             conn.execute(
                 "INSERT INTO qa_logs(username, department, entry, question, answer,"
-                " sources, filters, top_k, elapsed, usage, mcp_context, created_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-                (username or "", department or "", entry or "", question or "",
-                 answer or "", json.dumps(slim_sources, ensure_ascii=False),
-                 json.dumps(filters or {}, ensure_ascii=False),
-                 int(top_k or 0), float(elapsed or 0),
-                 json.dumps(usage or {}, ensure_ascii=False),
-                 json.dumps(mcp_context or {}, ensure_ascii=False), _now()),
+                f" sources, filters, top_k, elapsed, usage{context_column}, created_at)"
+                f" VALUES({placeholders})",
+                (*values, _now()),
             )
     except (sqlite3.Error, TypeError, ValueError):
         pass

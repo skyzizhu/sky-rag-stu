@@ -30,6 +30,17 @@ def verified(calls=2):
 
 
 class DashboardAggregationTests(TempAuthDB):
+    def test_legacy_qa_log_migrates_optional_mcp_context(self):
+        seed()
+        with auth_db._connect() as conn:
+            conn.execute("ALTER TABLE qa_logs DROP COLUMN mcp_context")
+        seed()
+        auth_db.init_db()
+        self.assertEqual([row["mcp_context"] for row in auth_db.list_qa_logs()], [{}, {}])
+        diagnostics = {"tool": "knowledge_search", "history_count": 2}
+        auth_db.log_qa_event("alice", "研发部", "mcp_http", "追问", mcp_context=diagnostics)
+        self.assertEqual(auth_db.list_qa_logs()[0]["mcp_context"], diagnostics)
+
     def test_departments_channels_daily_zeros_and_verified_llm_totals(self):
         self.make_department('研发部'); self.make_department('市场部'); self.make_department('零调用部')
         auth_db.create_admin('boss', 'secret123')

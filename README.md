@@ -545,7 +545,9 @@ python scripts/test_km_scenarios.py            # 知识库管理机制自动测�
 
 五个内容工具均新增可选关键字参数 `doc_type`，原有位置参数（包括 `ctx`）顺序保持不变。示例参数：`knowledge_search(question="建设目标", domain="work", doc_type="一期方案")`，或 `list_documents(doc_type="__unclassified__")`。类型标签去首尾空白后精确匹配，无隐式别名合并；省略/留空/`all` 不限类型，`__unclassified__` 仅查旧缺失/`null`/空值。`get_document` 的类型过滤不会放宽 active-only 或部门权限规则。返回的来源、matches、全文/片段文档档案和目录行均包含 `doc_type`（旧文档为空字符串）。
 
-五个内容工具也接受可选参数 `project`（项目名称或整数 ID）和 `business_direction`（主业务方向名称、字母编号或整数 ID）。例如 `list_documents(business_direction="低空经济", department="研发部")`，或 `knowledge_search(question="验收要求", project="低空监管平台")`。同时提供时取交集，继续叠加部门权限、领域、状态及文档类型。方向按项目主档实时解析。项目或方向不存在会返回具体错误，方向下没有项目或交集为空会返回空结果。文档结果带 `project_id`，未挂项目为 `null`。
+五个内容工具也接受可选参数 `project`（完整项目名称、唯一简称或整数 ID）和 `business_direction`（主业务方向名称、字母编号或整数 ID）。例如 `list_documents(business_direction="低空经济", department="研发部")`，或 `knowledge_search(question="验收要求", project="低空监管平台")`。同时提供时取交集，继续叠加部门权限、领域、状态及文档类型。简称只兼容项目名称常用后缀的变体，有多个匹配时请改用完整名称或 ID。方向按项目主档实时解析。项目或方向不存在会返回具体错误，方向下没有项目或交集为空会返回空结果。文档结果带 `project_id`，未挂项目为 `null`。
+
+`knowledge_search` 和 `knowledge_qa` 由调用方管理会话。优先传本轮问题和已确认的 `project`，需要服务端消解指代时传相关 `history`。依赖指代的问题中，如果最近一条用户消息明确切换到了另一个项目，接口返回 `coverage_details.scope_issue=conflict`，调用方应核对参数后重试。后台员工检索日志详情记录入参形态、采用的历史条数、项目范围来源和范围状态。诊断字段不保存历史正文。
 
 **接入方式**（以 ZCode / Claude Desktop 为例，写入其 MCP 配置）：
 

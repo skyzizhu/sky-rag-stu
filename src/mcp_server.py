@@ -213,16 +213,16 @@ def _history(history: list[dict] | None) -> list[dict]:
     ][-24:]
 
 
-def _run_context_query(question, top_k, domain, status, doc_type, department, project,
-                       business_direction, history, ctx, *, tool, use_llm):
+def _run_context_query(question, top_k, ctx, *, tool, use_llm, domain, status, doc_type,
+                       department, project, business_direction, history):
     from src.pipeline import QAResult
-    from src.query_scope import conversation_project, project_reference, selected_project_text
+    from src.query_scope import conversation_project, extract_scope, project_reference, selected_project_text
 
     started = time.monotonic()
     groups, username, user = _identity_from_ctx(ctx)
     recent = _history(history)
     has_project = bool(project.strip()) if isinstance(project, str) else project is not None
-    is_reference = bool(project_reference(question))
+    is_reference = bool(project_reference(question)) and not extract_scope(question).get("project")
     mode = ("project_and_history" if recent else "project") if has_project else (
         "history" if recent else "missing" if is_reference else "question")
     diagnostics = {"tool": tool, "input_mode": mode, "history_count": len(recent), "project_source": "none"}
@@ -391,7 +391,8 @@ def _tool_knowledge_qa_impl(
     未命中边界：检索结果为空或资料不足时，如实告知用户"知识库中没有找到相关内容"，
     不要用模型通用知识替答、也不要转而搜索磁盘；由用户决定是否换用其他途径
     （补充资料入库、或明确要求你另找途径）。
-    多轮追问时请传入 history（最近几轮 user/assistant 消息），可正确解析指代。
+    多轮追问优先传完整问题和本轮确认的 project（完整名称或 ID）。需要解析指代时传相关用户历史，
+    尤其保留最新更正。项目仍不明确时应先澄清。收到 scope_issue=conflict 时核对 project 后重试。
     比较项目负责人或预算时，可在 question 中列出 2 至 4 个项目名称。每个项目独立检索，缺少预算证据时只报告已确认的数据。
 
     Args:
@@ -402,31 +403,19 @@ def _tool_knowledge_qa_impl(
         history: 可选，按时间顺序的对话消息。项目指代最多看 24 条，模型最近对话最多取 6 条。
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
         department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查未指定
-        project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
+        project: 可选，使用完整名称、唯一简称或正整数 ID 限定项目；省略或留空表示不限
         business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
     """
     if not question or not question.strip():
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
 
-    groups, username, user = _identity_from_ctx(ctx)
-
-    try:
-        filters = _filters(domain, status, doc_type=doc_type, department=department,
-                           project=project, business_direction=business_direction)
-    except ValueError as exc:
-        return json.dumps({"error": str(exc)}, ensure_ascii=False)
-
-    _t0 = time.time()
-    result = _answer_in_scope(
-        question.strip(),
-        top_k=max(1, min(int(top_k), 10)),
-        filters=filters,
-        history=_history(history),
-        user_groups=groups,
-        username=username,
+    result, error = _run_context_query(
+        question.strip(), max(1, min(int(top_k), 10)), ctx, tool="knowledge_qa", use_llm=True,
+        domain=domain, status=status, doc_type=doc_type, department=department,
+        project=project, business_direction=business_direction, history=history,
     )
-    _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0,
-            username=username, department=str(user.get("department") or ""))
+    if error is not None:
+        return json.dumps({"error": error}, ensure_ascii=False)
     answer_status = _answer_status(result)
     return json.dumps(
         {
@@ -466,6 +455,8 @@ def _tool_knowledge_search_impl(
     枚举类问题（"我有哪些…"）以检索结果为准作答，不要转而搜索磁盘文件。
     解释型提问（针对具体主题问"四类痛点/三大特性是什么"）同样适用本工具——
     结果以描述该主题的资料为准。
+    多轮追问优先传完整问题和本轮确认的 project（完整名称或 ID）。需要解析指代时传相关用户历史，
+    尤其保留最新更正。项目仍不明确时应先澄清。收到 scope_issue=conflict 时核对 project 后重试。
     未命中边界：检索结果为空或资料不足时，如实告知用户"知识库中没有找到相关内容"，
     不要用模型通用知识替答、也不要转而搜索磁盘；由用户决定是否换用其他途径
     （补充资料入库、或明确要求你另找途径）。
@@ -478,7 +469,7 @@ def _tool_knowledge_search_impl(
         status: 可选，知识状态过滤（active/archive/expired）
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
         department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查未指定
-        project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
+        project: 可选，使用完整名称、唯一简称或正整数 ID 限定项目；省略或留空表示不限
         business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
         history: 可选，按时间顺序传入最近会话消息。用于解析「这个项目」等追问，最多取 24 条。
     """
@@ -486,25 +477,13 @@ def _tool_knowledge_search_impl(
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
     from src.permissions import classify_visibility
 
-    try:
-        filters = _filters(domain, status, doc_type=doc_type, department=department,
-                           project=project, business_direction=business_direction)
-    except ValueError as exc:
-        return json.dumps({"error": str(exc)}, ensure_ascii=False)
-
-    groups, username, user = _identity_from_ctx(ctx)
-    _t0 = time.time()
-    result = _answer_in_scope(
-        question.strip(),
-        top_k=max(1, min(int(top_k), 10)),
-        use_llm=False,  # 仅检索：不调用生成模型
-        filters=filters,
-        history=_history(history),
-        user_groups=groups,
-        username=username,
+    result, error = _run_context_query(
+        question.strip(), max(1, min(int(top_k), 10)), ctx, tool="knowledge_search", use_llm=False,
+        domain=domain, status=status, doc_type=doc_type, department=department,
+        project=project, business_direction=business_direction, history=history,
     )
-    _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0,
-            username=username, department=str(user.get("department") or ""))
+    if error is not None:
+        return json.dumps({"error": error}, ensure_ascii=False)
     return json.dumps(
         {
             "query": question.strip(),

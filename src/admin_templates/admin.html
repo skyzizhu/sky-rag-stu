@@ -1907,13 +1907,25 @@ function showQaLogDetail(id) {
   const sources = Array.isArray(row.sources) ? row.sources : [];
   const body = $('#qa-log-detail-body');
   const field = (label, value) => `<section class="qa-detail-field"><h4>${label}</h4><div class="log-detail">${esc(value)}</div></section>`;
+  const context = row.mcp_context || {};
+  const inputLabels = {project_and_history: '项目和历史', project: '项目参数', history: '相关历史',
+                       question: '本轮问题', missing: '缺少指代上下文'};
+  const sourceLabels = {project_argument: '项目参数', history: '历史消息', question: '本轮问题',
+                        business_direction: '业务方向', none: '无'};
   body.innerHTML = `<div class="muted">${esc(row.created_at)} · ${esc(row.username) || '—'} · ${esc(row.department) || '—'} · ${esc(qaEntryLabel[row.entry] || row.entry)}</div>
     <p><b>命中个数</b> ${sources.length} 个来源 <span class="muted">·</span> <b>耗时</b> ${esc(row.elapsed.toFixed(1))} 秒</p>
     ${field('问题', row.question)}
     ${field('回答', row.answer || '（仅检索，无生成）')}
     ${row.answer?.length >= 3000 ? '<div class="muted">回答预览最多显示 3000 个字符。</div>' : ''}
     ${field('命中来源', sources.map(item => item?.path || item?.source).filter(Boolean).join('、') || '无')}
-    ${field('过滤条件', JSON.stringify(row.filters || {}, null, 2))}`;
+    ${field('过滤条件', JSON.stringify(row.filters || {}, null, 2))}
+    ${context.tool ? field('MCP 上下文', [
+      `工具 ${context.tool}`,
+      `入参 ${inputLabels[context.input_mode] || '—'}`,
+      `采用历史 ${context.history_count} 条`,
+      `项目范围来源 ${sourceLabels[context.project_source] || '—'}`,
+      ...(context.scope_issue ? [`范围状态 ${context.scope_issue}`] : [])
+    ].join(' · ')) : ''}`;
   $('#qa-log-detail').showModal();
   body.scrollTop = 0;
 }

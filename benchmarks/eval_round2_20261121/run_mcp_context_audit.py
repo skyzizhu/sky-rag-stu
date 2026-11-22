@@ -45,7 +45,10 @@ async def call(session, arguments, username=ENGINEERING):
         result = await session.call_tool("knowledge_search", arguments)
     if result.isError:
         return {"error": "tool_error"}
-    return summarize(json.loads(next(block.text for block in result.content if block.type == "text")))
+    summary = summarize(json.loads(next(block.text for block in result.content if block.type == "text")))
+    logs = auth_db.list_qa_logs(limit=1, username=username)
+    summary["diagnostics"] = logs[0]["mcp_context"] if logs else {}
+    return summary
 
 
 async def observe_protocol(cloud):
@@ -57,6 +60,7 @@ async def observe_protocol(cloud):
             ("first_named_call", {"question": f"{NEBULA}的立项预算是多少万元？"}, ENGINEERING),
             ("bare_same_connection", {"question": FOLLOWUP}, ENGINEERING),
             ("explicit_project", {"question": FOLLOWUP, "project": TIANSHU}, ENGINEERING),
+            ("unique_short_name", {"question": FOLLOWUP, "project": "天枢"}, ENGINEERING),
             ("history_switch", {"question": FOLLOWUP, "history": history(*SWITCH)}, ENGINEERING),
             ("history_correction", {"question": FOLLOWUP, "history": history(*CORRECTION)}, ENGINEERING),
             ("old_history_vs_project", {"question": FOLLOWUP, "project": TIANSHU,
@@ -88,25 +92,19 @@ async def replay_arguments(session, ids):
     if not path.exists():
         return {}
     trials = json.loads(path.read_text(encoding="utf-8"))["questions"][0].get("agent_trials", [])
-    exact_resolver = projects.resolve_project_filter
-
-    def unique_variant(project, direction, *, allow_name_variants=False):
-        return exact_resolver(project, direction, allow_name_variants=True)
-
     output = []
-    with patch.object(projects, "resolve_project_filter", side_effect=unique_variant):
-        for trial in trials:
-            expected_id = ids.get(trial["expected"])
-            if not expected_id or not trial.get("calls"):
-                continue
-            first = trial["calls"][0]
-            replayed = await call(session, first["arguments"])
-            output.append({"profile": trial["profile"], "case": trial["case"],
-                           "before": first["result"].get("matched_project_ids", []) == [expected_id],
-                           "after": replayed.get("matched_project_ids", []) == [expected_id]})
-        for name in ("栖云项目", "栖云专案"):
-            projects.save_project(projects.ProjectFields(name, None, None, [], ""))
-        collision = await call(session, {"question": FOLLOWUP, "project": "栖云"})
+    for trial in trials:
+        expected_id = ids.get(trial["expected"])
+        if not expected_id or not trial.get("calls"):
+            continue
+        first = trial["calls"][0]
+        replayed = await call(session, first["arguments"])
+        output.append({"profile": trial["profile"], "case": trial["case"],
+                       "before": first["result"].get("matched_project_ids", []) == [expected_id],
+                       "after": replayed.get("matched_project_ids", []) == [expected_id]})
+    for name in ("栖云项目", "栖云专案"):
+        projects.save_project(projects.ProjectFields(name, None, None, [], ""))
+    collision = await call(session, {"question": FOLLOWUP, "project": "栖云"})
     return {"first_call": output, "ambiguous_alias": collision}
 
 
@@ -169,6 +167,10 @@ async def observe_agent(session, search, ids):
                     for item in trial["calls"])
             except Exception as exc:
                 trial["error"] = type(exc).__name__
+                if status := getattr(exc, "status_code", None):
+                    trial["http_status"] = status
+                if status == 402:
+                    return [*observations, trial]
             observations.append(trial)
     return observations
 

@@ -75,6 +75,7 @@ _PROJECT_SELECTION = re.compile(
     r"|(?:更正为|更正為|改为|改為|改成|改查|切换到|切換到|换成|換成)"
     r"\s*(?:查询|查詢|查看|查|看)?)\s*"
 )
+_INITIAL_PROJECT_FOCUS = re.compile(r"^\s*(?:请|請)?\s*先\s*(?:查看|查询|查詢|查|看)\s*")
 
 
 def _in_content(text: str, start: int) -> bool:
@@ -197,6 +198,8 @@ def _project_turn(text: str, catalog: list[dict]) -> dict:
     selected = selected_project_text(text)
     if selected is not None:
         text = selected
+    else:
+        text = _INITIAL_PROJECT_FOCUS.sub("", text, count=1)
     text_nfkc = unicodedata.normalize("NFKC", text)
     spans = []
     identities = set()
