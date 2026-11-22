@@ -21,9 +21,9 @@ _MONTH = (r"jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?
           r"aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?")
 _DAY = r"\d{1,2}(?:st|nd|rd|th)?"
 _DATE = re.compile(
-    rf"(?<!\d)(?:\d{{4}}\s*[年/.-]\s*\d{{1,2}}\s*[月/.-]\s*\d{{1,2}}[日号號]?"
-    rf"|\d{{1,2}}月\d{{1,2}}[日号號]|\b(?:{_MONTH})\.?\s+{_DAY}(?:,\s*|\s+)\d{{4}}"
-    rf"|{_DAY}\s+(?:{_MONTH})\.?\s+\d{{4}})(?!\d)",
+    rf"(?<!\d)(?:\d{{4}}\s*[年/.-]\s*\d{{1,2}}\s*[月/.-]\s*\d{{1,2}}(?:\s*[日号號])?"
+    rf"|\d{{1,2}}\s*月\s*\d{{1,2}}\s*[日号號]|\b(?:{_MONTH})\.?\s+{_DAY}(?:,\s*|\s+)\d{{4}}"
+    rf"|{_DAY}\s+(?:{_MONTH})\.?\s+\d{{4}})(?!\d)", re.I,
 )
 _DATE_ASK = re.compile(r"何时|何時|哪天|几号|幾號|什么时候|什麼時候|日期|时间|時間|\bwhen\b|\bdate\b|\bdeadline\b")
 _DATES = (
@@ -39,6 +39,25 @@ _SOURCE_LINE = re.compile(r"(?m)^\s*(?:来源文档:|#{1,6}[ \t]).*$")
 _BEFORE_DATE = re.compile(
     r"(?:日期|时间|時間|截止|不[迟遲]于|[:=为為于]|\b(?:on|by|before|until|after|prior to|no later than)\b)\s*$")
 _AFTER_DATE = re.compile(r"\s*(?:(?:已)?通过(?:了)?(?:客户)?|(?:已)?通過(?:了)?(?:客戶)?|(?:已)?完成|前须|前須)\s*")
+_DEADLINE_ASK = re.compile(r"截止|期限|[约約]定|\b(?:deadline|due date|contractual)\b", re.I)
+_DEADLINE_EVIDENCE = re.compile(
+    r"截止|期限|最[迟遲]|[约約]定|[须須]|应在|應在|应于|應於|不得|不[迟遲][于於]"
+    r"|\b(?:shall|must|required|due|deadline)\b", re.I,
+)
+_DEADLINE_PREFIX = re.compile(
+    r"(?P<inclusive>不[迟遲][于於]|不得晚[于於]|\b(?:on or before|no later than|by)\b)"
+    r"|(?P<strict>\b(?:strictly before|before|prior to)\b)", re.I,
+)
+_DEADLINE_TAIL = re.compile(r"[\s*`_]*$")
+_DEADLINE_SUFFIX = re.compile(
+    r"[\s*`_]*(?:(?P<inclusive>(?:之前|以前|前)\s*[（(]\s*含(?:当天|當天|当日|當日)\s*[）)]"
+    r"|[（(]\s*含(?:当天|當天|当日|當日)\s*[）)]|(?:当天|當天|当日|當日)(?:及|或)(?:之前|以前))"
+    r"|(?P<strict>(?:之前|以前|前)(?!后|後|往)))",
+)
+_NUMERIC_DATE = re.compile(r"(?:(\d{4})\s*[年/.-]\s*)?(\d{1,2})\s*[月/.-]\s*(\d{1,2})(?:\s*[日号號])?")
+_MONTH_INDEX = {month: number for number, month in enumerate("jan feb mar apr may jun jul aug sep oct nov dec".split(), 1)}
+_NEGATED_DEADLINE = re.compile(r"(?:不是|并非|並非|不能说|不能寫成|不能写成|\bnot|\brather than)\s*[“‘「『\"']?\s*$", re.I)
+_UNRELATED_DEADLINE = re.compile(r"发票|發票|付款|退款|保修|\b(?:invoice|payment|refund|warranty)\b", re.I)
 
 
 def _normalize(text: str) -> str:
@@ -86,6 +105,84 @@ def _dated_events(evidence: list[str]) -> set[str]:
                 if len(nearest) == 1:
                     found.update(nearest)
     return found
+
+
+def _deadline_parts(text: str, day: re.Match) -> tuple[re.Match | None, re.Match | None]:
+    prefix = next((match for match in reversed(list(_DEADLINE_PREFIX.finditer(text, 0, day.start())))
+                   if _DEADLINE_TAIL.fullmatch(text[match.end():day.start()])), None)
+    suffix = _DEADLINE_SUFFIX.match(text, day.end())
+    return prefix, suffix
+
+
+def _numeric_date(day: str) -> tuple[int | None, int, int] | None:
+    day = _normalize(day)
+    match = _NUMERIC_DATE.fullmatch(day)
+    if match:
+        return int(match[1]) if match[1] else None, int(match[2]), int(match[3])
+    if re.search(r"[a-z]", day):
+        month = re.search(rf"\b(?:{_MONTH})\b", day)
+        parts = re.findall(r"\d+", day)
+        if month and len(parts) == 2 and len(parts[1]) == 4:
+            return int(parts[1]), _MONTH_INDEX[month[0][:3]], int(parts[0])
+    return None
+
+
+def deadline_constraint(question: str, sources: list[dict]) -> dict:
+    """Capture one unambiguous, year-specific deadline from cited evidence."""
+    question = _normalize(question)
+    events = [(label, event) for label, event in _DATES if event.search(question)]
+    if len(events) != 1 or not _DEADLINE_ASK.search(question):
+        return {}
+    deadlines = {}
+    for source in sources:
+        for clause in _date_clauses(_normalize(source["text"])):
+            if not events[0][1].search(clause) or not _DEADLINE_EVIDENCE.search(clause):
+                continue
+            for day in _DATE.finditer(clause):
+                value = _numeric_date(day[0])
+                if not value or value[0] is None:
+                    continue
+                prefix, suffix = _deadline_parts(clause, day)
+                for qualifier in (prefix, suffix):
+                    if qualifier:
+                        operator = "by" if qualifier["inclusive"] else "before"
+                        deadlines.setdefault((value, operator), source["rank"])
+    if len(deadlines) != 1:
+        return {}
+    ((year, month, day), operator), rank = next(iter(deadlines.items()))
+    return {"date": f"{year:04d}-{month:02d}-{day:02d}", "operator": operator, "rank": rank, "event": events[0][0]}
+
+
+def preserve_deadline_wording(answer: str, constraint: dict) -> str:
+    """Repair only contradictory explicit modifiers of the verified date."""
+    if not constraint:
+        return answer
+    year, month, day = _numeric_date(constraint["date"])
+    inclusive = constraint["operator"] == "by"
+    current = dict(_DATES)[constraint["event"]]
+    for match in reversed(list(_DATE.finditer(answer))):
+        if _numeric_date(match[0]) not in {(year, month, day), (None, month, day)}:
+            continue
+        prefix, suffix = _deadline_parts(answer, match)
+        if not any(bool(part["inclusive"]) != inclusive for part in (prefix, suffix) if part):
+            continue
+        start = prefix.start() if prefix else match.start()
+        if _NEGATED_DEADLINE.search(answer[:start]):
+            continue
+        clause = _normalize(re.split(r"[\r\n。；;，,！？!?]+", answer[:start])[-1] +
+                            re.split(r"[\r\n。；;，,！？!?]+", answer[start:], maxsplit=1)[0])
+        if not current.search(clause) and (_UNRELATED_DEADLINE.search(clause) or any(
+                label != constraint["event"] and event.search(clause) for label, event in _DATES)):
+            continue
+        tail = suffix.start(suffix.lastgroup) if suffix else match.end()
+        end = suffix.end() if suffix else match.end()
+        date_text = answer[prefix.end() if prefix else match.start():tail]
+        if prefix and prefix[0].isascii():
+            replacement = ("no later than" if inclusive else "before") + date_text
+        else:
+            replacement = ("在" if prefix else "") + date_text + ("当日及之前" if inclusive else "之前")
+        answer = answer[:start] + replacement + answer[end:]
+    return answer
 
 
 def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, ...] = ()) -> dict:

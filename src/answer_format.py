@@ -6,6 +6,31 @@ import re
 
 _FENCED_CODE_RE = re.compile(r"(```[\s\S]*?```)")
 _NUMBERED_MARKER_RE = re.compile(r"(?<!\d)(\d{1,2})(?:[、）)]|[.．](?!\d))\s*")
+_ANSWER_CITATION_RE = re.compile(
+    r"```[\s\S]*?(?:```|$)|`[^`\n]*`|(?<![\\!\[])\[(?P<rank>[0-9]{1,9})\](?![\](])"
+)
+ANSWER_STATUS_PREFIX = "[[answer_status:"
+_ANSWER_STATUS_LINE = re.compile(r"\[\[answer_status:(answered|partial|insufficient_evidence)\]\]")
+
+
+def split_answer_status(text: str, *, final: bool = False) -> tuple[str | None, str]:
+    """Read an optional first-line status without exposing it as answer text."""
+    prefix = text.lstrip()
+    if not final and "\n" not in prefix and len(text) < 80 and (
+            ANSWER_STATUS_PREFIX.startswith(prefix) or prefix.startswith(ANSWER_STATUS_PREFIX)):
+        return None, text
+    line, _, body = prefix.partition("\n")
+    match = _ANSWER_STATUS_LINE.fullmatch(line.strip())
+    return (match[1], body) if match else ("", text)
+
+
+def answer_citations(text: str) -> set[int]:
+    return {int(match["rank"]) for match in _ANSWER_CITATION_RE.finditer(text) if match["rank"]}
+
+
+def remove_invalid_citations(text: str, ranks: set[int]) -> str:
+    return _ANSWER_CITATION_RE.sub(
+        lambda match: "" if match["rank"] and int(match["rank"]) not in ranks else match[0], text)
 
 
 def _format_text_block(text: str) -> str:

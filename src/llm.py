@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-import re
 import time
 from functools import lru_cache
 
@@ -57,6 +56,35 @@ def _estimate_usage(messages: list[dict], output_text: str) -> dict:
             "output": estimate_tokens(output_text), "estimated": True}
 
 
+class _ThinkFilter:
+    """Keep only visible text and hold possible partial tags between deltas."""
+
+    def __init__(self):
+        self.pending = ""
+        self.hidden = False
+
+    def feed(self, delta: str, *, final: bool = False) -> str:
+        self.pending += delta
+        visible = []
+        while self.pending:
+            tag = "</think>" if self.hidden else "<think>"
+            before, found, after = self.pending.partition(tag)
+            if found:
+                if not self.hidden:
+                    visible.append(before)
+                self.pending = after
+                self.hidden = not self.hidden
+                continue
+            tail = next((size for size in range(len(tag) - 1, 0, -1)
+                         if self.pending.endswith(tag[:size])), 0) if not final else 0
+            end = len(self.pending) - tail
+            if not self.hidden:
+                visible.append(self.pending[:end])
+            self.pending = self.pending[end:]
+            break
+        return "".join(visible)
+
+
 class LLMClient:
     def __init__(self, config: AppConfig | None = None):
         self.cfg = config or get_config()
@@ -97,10 +125,7 @@ class LLMClient:
         """
         if not text or "<think>" not in text:
             return text  # 没有 think 标签，原样返回（保留换行）
-        cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
-        if "<think>" in cleaned and "</think>" not in cleaned:
-            cleaned = cleaned.split("<think>")[-1].strip()
-        return cleaned or text
+        return _ThinkFilter().feed(text, final=True).strip()
 
     def _create(self, messages: list[dict], stream: bool = False, include_usage: bool = False,
                 timeout: float | None = None, max_tokens: int | None = None,
@@ -166,6 +191,8 @@ class LLMClient:
         acc_text = ""  # 本地估算输出 token 用：生成器内部积累的已产出文本
         captured: dict | None = None
         finish_reason: str | None = None
+        think = _ThinkFilter()
+        stream = None
         try:
             stream = self._create(messages, stream=True, include_usage=usage_out is not None)
             for chunk in stream:
@@ -182,16 +209,21 @@ class LLMClient:
                     finish_reason = fr
                 delta = chunk.choices[0].delta.content
                 if delta:
-                    clean = self._clean_think_tags(delta)
+                    clean = think.feed(delta)
                     if clean:
                         produced = True
                         acc_text += clean
                         yield clean
-            if not produced:  # 流式没有产出任何内容：一次性重试
+            if tail := think.feed("", final=True):
+                produced = True
+                acc_text += tail
+                yield tail
+            if not produced and finish_reason != "length":
                 fallback_usage: dict | None = {} if usage_out is not None else None
                 answer, _ = self.chat(messages, usage_out=fallback_usage)
                 if fallback_usage:
                     captured = fallback_usage
+                    finish_reason = fallback_usage.get("finish_reason") or finish_reason
                 if answer:
                     acc_text += answer
                     yield answer
@@ -201,12 +233,14 @@ class LLMClient:
             if usage_out is not None:
                 usage_out.update(captured or _estimate_usage(messages, acc_text))
                 usage_out["finish_reason"] = finish_reason
+            if close := getattr(stream, "close", None):
+                close()
             if self.cfg.debug:
                 print(f"    LLM 流式调用完成：{self.cfg.llm_model}，耗时 {time.time() - start:.1f} 秒")
 
 
 def strip_think_tags(text: str) -> str:
-    """模块级思考标签清洗（pipeline 在答案定稿时做全文终清，跨 chunk 边界不漏）。"""
+    """清洗完整文本中的思考标签。"""
     return LLMClient._clean_think_tags(text or "")
 
 

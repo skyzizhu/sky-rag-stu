@@ -33,3 +33,7 @@ knowledge/
 
 # 本地精排模型（bge-reranker-v2-m3 ONNX，约 600MB）——运行时数据，不入仓库
 models/
+
+# ZCode 本地工具目录
+.zcode/
+NUL

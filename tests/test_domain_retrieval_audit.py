@@ -373,6 +373,14 @@ class CrossVersionContextTests(unittest.TestCase):
         self.assertEqual(notes, [])
         self.assertEqual(len(used), 2)
 
+    def test_adjacent_pages_keep_individual_citation_numbers(self):
+        rows = [self.item("1.1", 3, "第十二页给出要求。"), self.item("1.1", 4, "第十三页给出金额。")]
+        for item, page in zip(rows, ("12", "13")):
+            item.metadata["page"] = page
+        context, used, _, _ = build_context(rows)
+        self.assertEqual([(item.rank, item.metadata["page"]) for item in used], [(1, "12"), (2, "13")])
+        self.assertIn("[2] 来源: a.md | 页码: 13\n第十三页给出金额。", context)
+
     def test_adjacent_merge_within_one_version_still_works(self):
         context, used, _dropped, notes = build_context(
             [self.item("1.1", 3, "第三段。"), self.item("1.1", 4, "第四段。")])

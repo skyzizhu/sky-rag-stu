@@ -256,6 +256,28 @@ class EnumerationProcessingTests(IngestHarness):
                                ('query_understanding', 'retrieval_only', 'rerank', 'assembly', 'enumeration', 'llm')))
         self.assertNotEqual(result.evidence_meta['coverage'], 'complete')
 
+    def test_pipeline_discards_records_when_document_grant_changes_during_extraction(self):
+        from src.manage import update_metadata
+
+        path = self.note('项目甲 PRJ-101 使用RAG。')
+        llm = FakeExtractor()
+        original = llm.chat
+
+        def chat(messages, **kwargs):
+            output = original(messages, **kwargs)
+            if messages[0]['content'] == EXTRACTION_PROMPT:
+                update_metadata(path['path'], {'allowed_groups': [], 'allowed_users': []})
+            return output
+
+        with mock.patch.object(llm, 'chat', side_effect=chat), \
+             mock.patch('src.pipeline.get_llm_client', return_value=llm):
+            result = answer_question('这份文档有哪些项目', use_query_understanding=False, use_rerank=False,
+                                     config=self.cfg, filters={'source': path['source']},
+                                     user_groups=[], username='alice')
+        self.assertEqual(result.evidence_meta['scope_issue'], 'index_changed')
+        self.assertEqual((result.enumerated_items, result.sources, result.context), ([], [], ''))
+        self.assertNotIn('项目甲', result.answer)
+
     def test_evidence_only_and_disabled_do_not_extract(self):
         self.note('项目甲 PRJ-101 使用RAG。')
         with mock.patch('src.pipeline.get_llm_client', side_effect=AssertionError('仅证据不得调用云端')):

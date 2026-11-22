@@ -238,6 +238,40 @@ def _sources_payload(sources: list[dict]) -> list[dict]:
     ]
 
 
+def _items_payload(items: list[dict]) -> list[dict]:
+    """Keep public citation fields instead of returning raw card payloads."""
+    return [
+        {**item, "evidence": [
+            {"source_id": evidence["source_id"], "quote": evidence["quote"],
+             "metadata": {key: evidence["metadata"][key] for key in (
+                 "document_id", "chunk_id", "source", "path", "section", "page",
+                 "project_id", "doc_type", "version", "status", "classification",
+             ) if key in evidence["metadata"]}}
+            for evidence in item["evidence"]
+        ]}
+        for item in items
+    ]
+
+
+def _public_filters(filters: dict) -> dict:
+    return {key: value for key, value in filters.items()
+            if key not in {"allowed_groups", "allowed_users", "__viewer__"}}
+
+
+def _answer_status(result) -> str:
+    details = result.evidence_meta or {}
+    if not result.answer or details.get("coverage") == "not_found":
+        return "insufficient_evidence"
+    status = details.get("answer_status")
+    if status == "insufficient_evidence":
+        return status
+    if (status == "partial" or details.get("generation_status") in {"truncated", "interrupted"}
+            or (details.get("comparison") or {}).get("missing")
+            or (not status and (details.get("evidence_support") or {}).get("status") == "partial")):
+        return "partial"
+    return "answered"
+
+
 def _with_domain_codes(fn):
     """V3.8：工具说明里的领域编号从注册表生成（服务启动时取值）。
 
@@ -293,6 +327,7 @@ def _tool_knowledge_qa_impl(
     - 用户明确要求查询知识库、或问题指向用户曾收录的文档
     禁止：在未查询本工具的情况下，用模型通用知识回答上述个人资料类问题。
     证据边界：知识库检索结果是可引用的私有资料证据；coverage=partial/unknown 时不能声称已列全或给出全库确定总数。
+    answer_status 表示本次答复能确认全部所问事项、只能确认部分，或证据不足。
     除非用户明确要求，不要额外搜索用户磁盘/文件系统。
     未命中边界：检索结果为空或资料不足时，如实告知用户"知识库中没有找到相关内容"，
     不要用模型通用知识替答、也不要转而搜索磁盘；由用户决定是否换用其他途径
@@ -333,15 +368,17 @@ def _tool_knowledge_qa_impl(
     )
     _log_qa(question.strip(), result, max(1, min(int(top_k), 10)), time.time() - _t0,
             username=username, department=str(user.get("department") or ""))
+    answer_status = _answer_status(result)
     return json.dumps(
         {
             "answer": result.answer or "知识库中没有找到足够的信息回答这个问题。",
             "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
             "coverage_details": getattr(result, "evidence_meta", None) or {},
-            "items": getattr(result, "enumerated_items", []),
+            "items": _items_payload(result.enumerated_items),
             "sources": _sources_payload(result.sources),
-            "filters_applied": result.filters,
-            "refused": result.answer is None or (result.evidence_meta or {}).get("coverage") == "not_found",
+            "filters_applied": _public_filters(result.filters),
+            "answer_status": answer_status,
+            "refused": answer_status == "insufficient_evidence",
         },
         ensure_ascii=False,
         indent=2,
@@ -414,8 +451,7 @@ def _tool_knowledge_search_impl(
             "query": question.strip(),
             "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
             "coverage_details": getattr(result, "evidence_meta", None) or {},
-            "filters_applied": {key: value for key, value in result.filters.items()
-                                if key not in {"allowed_groups", "allowed_users", "__viewer__"}},
+            "filters_applied": _public_filters(result.filters),
             "matches": [
                 {
                     "rank": i,
@@ -495,15 +531,17 @@ def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
     )
     _log_qa(topic.strip(), result, max(1, min(int(top_k), 20)), time.time() - _t0,
             username=username, department=str(user.get("department") or ""))
+    answer_status = _answer_status(result)
     return json.dumps(
         {
             "topic": topic.strip(),
             "digest": result.answer or "知识库中没有与该主题相关的足够内容。",
-            "items": getattr(result, "enumerated_items", []),
+            "items": _items_payload(result.enumerated_items),
             "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
             "coverage_details": getattr(result, "evidence_meta", None) or {},
             "sources": _sources_payload(result.sources),
-            "refused": result.answer is None or (result.evidence_meta or {}).get("coverage") == "not_found",
+            "answer_status": answer_status,
+            "refused": answer_status == "insufficient_evidence",
         },
         ensure_ascii=False,
         indent=2,

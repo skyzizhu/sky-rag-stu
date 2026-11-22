@@ -136,6 +136,11 @@ class ChatUsageTests(unittest.TestCase):
         self.assertEqual(usage["input"], estimate_tokens("问题" * 5))
         self.assertEqual(usage["output"], estimate_tokens("你好"))
 
+    def test_stream_filters_think_tags_split_between_chunks(self):
+        chunks = ("开头<thi", "nk>内部文本</th", "ink>答案", "<think>未闭合")
+        client = make_client_with(lambda **kwargs: self._stream_chunks(text=chunks, finish_reason="length"))
+        self.assertEqual(list(client.chat_stream([])), ["开头", "答案"])
+
     def test_stream_empty_falls_back_and_forwards_usage(self):
         """流式零产出回退一次性调用：用量走 chat 通道，不按估算计。"""
         usage_obj = SimpleNamespace(prompt_tokens=70, completion_tokens=9)
@@ -360,8 +365,14 @@ class PipelineTruncationTests(IngestHarness):
                                            use_rerank=True, use_query_understanding=False)
             for _ in deltas:
                 pass
+            again, deltas = answer_stream("写提示词有哪些技巧？", top_k=5, use_llm=True,
+                                          use_rerank=True, use_query_understanding=False)
+            for _ in deltas:
+                pass
         self.assertTrue(result.answer.endswith("或换更聚焦的问法。"))
         self.assertIn("被截断", result.answer)
+        self.assertEqual(result.evidence_meta["generation_status"], "truncated")
+        self.assertFalse(again.cache_hit)
         trunc_items = [it for n in result.trace for it in n.get("items", []) if "截断" in str(it[0])]
         self.assertTrue(trunc_items, "追踪面板应有截断标记")
 

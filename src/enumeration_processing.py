@@ -9,6 +9,7 @@ import time
 import unicodedata
 
 from src.context import estimate_tokens
+from src.permissions import classify_visibility
 from src.enumeration import document_key, document_representatives
 
 EXTRACTION_PROMPT = '''你是知识条目提取器。只依据提供的资料，回答原始问题中的列举需求。
@@ -128,6 +129,9 @@ def evidence_fragments(row, batch_tokens):
     """长卡片拆成带稳定编号的片段，逐段处理而不是静默截去尾部。"""
     payload = row['payload']
     text = str(payload.get('text') or '')
+    metadata = {key: value for key, value in payload.items()
+                if key not in {'text', 'allowed_groups', 'allowed_users'}}
+    metadata['classification'] = classify_visibility(payload.get('allowed_groups'), payload.get('allowed_users'))
     # 最坏情况下每个字符也不超预算；以实际估算再二分，避免中英文密度不同。
     start = 0
     while start < len(text):
@@ -135,7 +139,7 @@ def evidence_fragments(row, batch_tokens):
         while end > start + 1 and estimate_tokens(text[start:end]) > batch_tokens - 160:
             end = start + max(1, (end - start) // 2)
         yield {'source_id': f"{row['id']}:{start}", 'text': text[start:end],
-               'metadata': {k: v for k, v in payload.items() if k != 'text'}}
+               'metadata': metadata}
         # 少量重叠保留切分边界附近的名称与证据，重叠记录由后续去重。
         start = end if end == len(text) else max(start + 1, end - min(64, (end - start) // 4))
 

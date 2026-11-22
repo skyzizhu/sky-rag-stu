@@ -1963,13 +1963,14 @@ def page_chat():
                 for delta in deltas:
                     full_text += delta
                     answer_ph.markdown(format_answer_markdown(full_text) + " ▌")
-                formatted_answer = format_answer_markdown(result.answer or full_text or "")
+                formatted_answer = format_answer_markdown(result.answer or "")
                 answer_ph.markdown(formatted_answer)
                 progress_ph.empty()
                 result.answer = formatted_answer or None
                 # V3.6 回答质量评估：回答完成后才执行（不阻塞流式输出），
                 # 失败降级为仅结构信号，绝不影响问答主流程
-                if st.session_state.get("answer_eval", True):
+                if (st.session_state.get("answer_eval", True)
+                        and (result.evidence_meta or {}).get("generation_status") != "invalidated"):
                     eval_ph = st.empty()
                     eval_ph.markdown(f"⏳ {t('eval.pending')}")
                     try:

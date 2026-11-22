@@ -52,8 +52,6 @@ _RERANK_LINE_RE = re.compile(r"^C\d+\s+.+?\s+(-?\d+(?:\.\d+)?)\s*分", re.MULTIL
 _SPLIT_COUNT_RE = re.compile(r"拆分为\s*(\d+)\s*个子查询")
 # 拆分节点候选池形如 "18 条（上限 20 条）"
 _POOL_RE = re.compile(r"(\d+)\s*条")
-# 答案中的引用编号 [1] [2] …
-_CITE_RE = re.compile(r"\[(\d{1,2})\]")
 
 
 @dataclass
@@ -131,9 +129,12 @@ def compute_signals(result) -> dict:
 
     # 引用覆盖率：答案中实际出现的引用编号占入选卡片的比例
     answer = result.answer or ""
-    cited = {int(x) for x in _CITE_RE.findall(answer)}
-    cited = {c for c in cited if 1 <= c <= len(result.sources or [])}
-    cite = {"cited": len(cited), "total": len(result.sources or [])}
+    from src.answer_format import answer_citations
+
+    ranks = {source.get("rank") for source in (result.sources or [])}
+    cited = answer_citations(answer)
+    invalid = (cited - ranks) | set((getattr(result, "evidence_meta", None) or {}).get("invalid_citations", ()))
+    cite = {"cited": len(cited & ranks), "total": len(result.sources or []), "invalid": sorted(invalid)}
 
     # 拒答一致性：回答称"没有相关内容"但上下文其实有卡片 → 可疑信号
     lowered = answer.lower()
