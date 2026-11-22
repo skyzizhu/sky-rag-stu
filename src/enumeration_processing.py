@@ -297,6 +297,46 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
         if on_progress:
             on_progress(text)
 
+    # 预算感知的文档提交（R9-C08）：调用预算的职责是防失控，不是腰斩已选文档集的
+    # 提取——宽候选（12 篇文档 ≈ 12 批提取）恰好填满 max_calls 时，规划补查一次
+    # 都发不出，目标文档缺召回就永远补不回来（R8 过/R9 挂的波动根源）。
+    # 规则：首轮提交按「代表排名优先 + 预算内可完整提取」裁剪，恒为规划补查保留
+    # enum_max_rounds × enum_queries_per_round + 1 次调用；被裁文档计入
+    # selection_truncated（coverage=partial 的既有诚实提示）。提取中段不再因
+    # call_budget 腰斩（时间/token/卡片/条目四道护栏不变，它们才是失控防线）。
+    planning_reserve = cfg.enum_max_rounds * cfg.enum_queries_per_round + 1
+
+    def _estimate_batches(doc) -> int:
+        """按该文档卡片数估批次数（每批 ≤ max_materials 个材料）。轻量：一次元数据翻页。"""
+        scoped = {**filters, 'document_id': doc['document_id']}
+        if doc.get('version'):
+            scoped['version'] = doc['version']
+        try:
+            page, _next = store.card_page(scoped, limit=cfg.enum_doc_cards)
+        except Exception:
+            return 1
+        fresh = len(page) or 1
+        max_materials = max(1, min(8, cfg.enum_output_tokens // 384))
+        return max(1, -(-fresh // max_materials))
+
+    def commit_within_budget(documents):
+        """按序提交文档，直到用尽提取配额（max_calls - 规划预留）；其余明确裁剪。"""
+        allowance = max(1, cfg.enum_max_calls - planning_reserve)
+        committed, used, dropped = [], 0, 0
+        for doc in documents:
+            key = (doc.get('document_id'), doc.get('version'))
+            if not key[0] or key in seen_docs:
+                continue
+            need = _estimate_batches(doc)
+            if committed and used + need > allowance:
+                dropped += 1
+                continue
+            committed.append(doc)
+            used += need
+        if dropped:
+            state['selection_truncated'] = True
+        return committed
+
     def document_fragments(documents):
         queue = deque()
         for doc in documents:
@@ -367,7 +407,8 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
     def read_documents(documents):
         # Allow enough response space per fragment and split when the model still truncates.
         max_materials = max(1, min(8, cfg.enum_output_tokens // 384))
-        for batch in batches(document_fragments(documents), cfg.enum_batch_tokens, max_materials):
+        for batch in batches(document_fragments(commit_within_budget(documents)),
+                             cfg.enum_batch_tokens, max_materials):
             extract_batch(batch)
         if state['card_budget_hit']:
             raise BudgetExceeded('card_budget')

@@ -77,8 +77,12 @@ class EnumerationRouteTests(IngestHarness):
         with mock.patch('src.pipeline.understand_query', return_value=qu), \
              mock.patch('src.pipeline.get_llm_client'):
             result, meta = query_evidence('这份合同有哪些付款条件', use_llm=True, config=self.cfg)
-        self.assertEqual(meta['coverage'], 'not_found')
-        self.assertFalse(result.retrieved)
+        # R9 前定稿的 document 路由对齐：QU 推断的点名文档 0 召回不再硬空——
+        # 放宽为全库语义检索并附 source_relaxed 提示（手动/MCP 指定 source 仍不放宽，
+        # 见 tests/test_query_scope.test_document_route_relaxes_inferred_source_with_notice）。
+        self.assertEqual((meta.get('scope_fallback') or {}).get('issue'), 'source_relaxed')
+        self.assertTrue(result.retrieved)  # 语义兜底召回其他文档的付款条件
+        self.assertNotEqual(meta.get('coverage'), 'not_found')
 
     def test_cross_document_reranks_documents_without_normal_topk_cut(self):
         for i in range(3):
