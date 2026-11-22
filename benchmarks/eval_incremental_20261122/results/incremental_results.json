@@ -1,0 +1,177 @@
+[
+  {
+    "check": "版本=1.0",
+    "ok": true,
+    "detail": "{'1.0': {'status': 'active', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}}"
+  },
+  {
+    "check": "状态=active",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "台账已记指纹+版本",
+    "ok": true,
+    "detail": "hash=True ver=1.0"
+  },
+  {
+    "check": "出现 1.1 active",
+    "ok": true,
+    "detail": "{'1.0': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.1': {'status': 'active', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}}"
+  },
+  {
+    "check": "旧 1.0 转 expired",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "默认检索只见 1.1",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "台账版本=1.1",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "1.2 active / 1.1+1.0 expired",
+    "ok": true,
+    "detail": "{'1.0': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.1': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.2': {'status': 'active', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}}"
+  },
+  {
+    "check": "历史检索（直查全部）见三代",
+    "ok": true,
+    "detail": "{'1.1', '1.0', '1.2'}"
+  },
+  {
+    "check": "版本仍 1.2（不 +0.1）",
+    "ok": true,
+    "detail": "{'1.0': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.1': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.2': {'status': 'active', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}} → {'1.0': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.1': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.2': {'status': 'active', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}}"
+  },
+  {
+    "check": "无新增版本（仍是 1.0/1.1/1.2 三键）",
+    "ok": true,
+    "detail": "{'1.0': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.1': {'status': 'expired', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}, '1.2': {'status': 'active', 'chunks': 1, 'groups': ['all'], 'docver': '', 'docver_status': 'undeclared'}}"
+  },
+  {
+    "check": "1.2 仍 active 且无第二份 active",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "skipped 包含本文档",
+    "ok": true,
+    "detail": "['archive/星海旧版员工手册_2022.md', 'archive/星海旧版差旅制度_2023.md', 'archive/星海旧版考勤制度_2021.md']"
+  },
+  {
+    "check": "状态无变化",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "新文件 version=2.0",
+    "ok": true,
+    "detail": "（文档名已变更，见 T06b 专项校验）"
+  },
+  {
+    "check": "T06b 文件名版本 2.0 生效",
+    "ok": true,
+    "detail": "{'2.0'}"
+  },
+  {
+    "check": "T06b 旧文档（原名）已被清理",
+    "ok": true,
+    "detail": "旧 id 残留版本: set()"
+  },
+  {
+    "check": "版本仍=2.0",
+    "ok": true,
+    "detail": "{'2.0': {'active'}}"
+  },
+  {
+    "check": "同一版本不残留 expired 旧卡",
+    "ok": true,
+    "detail": "{'2.0': {'active'}}"
+  },
+  {
+    "check": "FM 版本 3.0 生效",
+    "ok": true,
+    "detail": "{'3.0'}"
+  },
+  {
+    "check": "规则确认：default_groups 仅首次生效（台账权限优先，二次上传默认被忽略）",
+    "ok": true,
+    "detail": "{('all',)}"
+  },
+  {
+    "check": "版本不变（仍 1.0）",
+    "ok": true,
+    "detail": "{'1.0'}"
+  },
+  {
+    "check": "向量已清理",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "台账已移除",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "cleaned_files 包含本文档",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "恢复后可重新入库",
+    "ok": true,
+    "detail": "无卡片"
+  },
+  {
+    "check": "版本从 1.0 重新开始",
+    "ok": true,
+    "detail": "{'1.0'}"
+  },
+  {
+    "check": "解析失败被记录",
+    "ok": true,
+    "detail": "[\"解析失败：增量检测_损坏.docx（PackageNotFoundError: Package not found at 'C:\\\\Users\\\\skyzi\\\\sky-rag-stu\\\\knowledge\\\\work\\\\增量检测_损坏.docx'）\"]"
+  },
+  {
+    "check": "失败文件不记指纹",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "修复后重试成功",
+    "ok": true,
+    "detail": "无卡片"
+  },
+  {
+    "check": "document_version=1.3",
+    "ok": true,
+    "detail": "got '1.3'"
+  },
+  {
+    "check": "版本核对=已确认",
+    "ok": true,
+    "detail": "got 'declared'"
+  },
+  {
+    "check": "内容变化后重核对（确认状态重置或待确认）",
+    "ok": true,
+    "detail": "docver='1.3' status='declared'"
+  },
+  {
+    "check": "改版前答 111",
+    "ok": true,
+    "detail": "根据资料，增量检测_缓存文档中的预算金额为111万元。[1]"
+  },
+  {
+    "check": "改版后答 222（缓存未串旧答案）",
+    "ok": true,
+    "detail": "根据《增量检测_缓存.md》的「缓存检测」章节，预算金额为222万元[1]。"
+  }
+]
