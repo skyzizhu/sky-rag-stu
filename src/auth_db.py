@@ -204,6 +204,7 @@ CREATE TABLE IF NOT EXISTS qa_logs (
     top_k INTEGER NOT NULL DEFAULT 0,
     elapsed REAL NOT NULL DEFAULT 0,
     usage TEXT NOT NULL DEFAULT '{}',  -- V3.9 JSON：tokens 输入/命中缓存/输出 + calls + estimated
+    mcp_context TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_qa_logs_time ON qa_logs(created_at DESC);
@@ -291,13 +292,14 @@ def init_db() -> None:
         conn.execute(_RETRIEVAL_ACL_SCHEMA)
         ensure_ingest_log_schema(conn)
         _init_department_permissions(conn)
-        # V3.9 存量迁移：qa_logs 补 usage 列（老行默认 '{}'）
+        # Add optional diagnostics to existing logs without rewriting old rows.
         qa_cols = {r["name"] for r in conn.execute("PRAGMA table_info(qa_logs)")}
-        if "usage" not in qa_cols:
-            try:
-                conn.execute("ALTER TABLE qa_logs ADD COLUMN usage TEXT NOT NULL DEFAULT '{}'")
-            except sqlite3.OperationalError:
-                pass
+        for column in ("usage", "mcp_context"):
+            if column not in qa_cols:
+                try:
+                    conn.execute(f"ALTER TABLE qa_logs ADD COLUMN {column} TEXT NOT NULL DEFAULT '{{}}'")
+                except sqlite3.OperationalError:
+                    pass
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(users)")}
         if "is_admin" in cols:  # 旧库：管理员还在 users 表里
             admins_rows = conn.execute(
@@ -1053,7 +1055,8 @@ def count_login_logs(username: str = "", action: str = "",
 def log_qa_event(username: str, department: str, entry: str, question: str,
                  answer: str = "", sources: list | None = None,
                  filters: dict | None = None, top_k: int = 0,
-                 elapsed: float = 0.0, usage: dict | None = None) -> None:
+                 elapsed: float = 0.0, usage: dict | None = None,
+                 *, mcp_context: dict | None = None) -> None:
     """记录一次 RAG 使用（问答/检索/总结）。失败不抛出，不影响回答主流程。
 
     usage（V3.9）：云端 LLM 消耗 {"input","input_cached","output","calls","estimated"}。
@@ -1067,13 +1070,14 @@ def log_qa_event(username: str, department: str, entry: str, question: str,
         with _connect() as conn:
             conn.execute(
                 "INSERT INTO qa_logs(username, department, entry, question, answer,"
-                " sources, filters, top_k, elapsed, usage, created_at)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                " sources, filters, top_k, elapsed, usage, mcp_context, created_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                 (username or "", department or "", entry or "", question or "",
                  answer or "", json.dumps(slim_sources, ensure_ascii=False),
                  json.dumps(filters or {}, ensure_ascii=False),
                  int(top_k or 0), float(elapsed or 0),
-                 json.dumps(usage or {}, ensure_ascii=False), _now()),
+                 json.dumps(usage or {}, ensure_ascii=False),
+                 json.dumps(mcp_context or {}, ensure_ascii=False), _now()),
             )
     except (sqlite3.Error, TypeError, ValueError):
         pass
@@ -1124,7 +1128,7 @@ def list_qa_logs(limit: int = 100, username: str = "",
     where_sql, params = _qa_logs_where(username, entry, department)
     sql = ("SELECT id, username, department, entry, question,"
            " substr(answer, 1, 3000) AS answer, sources, filters, top_k, elapsed,"
-           " usage, created_at FROM qa_logs" + where_sql)
+           " usage, mcp_context, created_at FROM qa_logs" + where_sql)
     sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
     params.extend([max(1, min(int(limit), 300)), max(0, int(offset))])
     with _connect() as conn:
@@ -1140,10 +1144,11 @@ def list_qa_logs(limit: int = 100, username: str = "",
             item["filters"] = json.loads(item.get("filters") or "{}")
         except (json.JSONDecodeError, TypeError):
             item["filters"] = {}
-        try:
-            item["usage"] = json.loads(item.get("usage") or "{}")
-        except (json.JSONDecodeError, TypeError):
-            item["usage"] = {}
+        for field in ("usage", "mcp_context"):
+            try:
+                item[field] = json.loads(item.get(field) or "{}")
+            except (json.JSONDecodeError, TypeError):
+                item[field] = {}
         out.append(item)
     return out
 

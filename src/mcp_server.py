@@ -112,7 +112,8 @@ def _current_username() -> str:
 
 
 def _log_qa(question: str, result, top_k: int, elapsed: float,
-            username: str | None = None, department: str | None = None) -> None:
+            username: str | None = None, department: str | None = None,
+            *, mcp_context: dict | None = None) -> None:
     """RAG 使用记录：MCP 调用同样落 SQLite。日志失败不影响回答。
 
     username/department：调用方从 ctx 逐次验出的身份（V3.9）；缺省回退 contextvar。
@@ -130,6 +131,7 @@ def _log_qa(question: str, result, top_k: int, elapsed: float,
         sources=result.sources, filters=result.filters,
         top_k=top_k, elapsed=elapsed,
         usage=usage_for_log(result),
+        mcp_context=mcp_context,
     )
 
 
@@ -175,7 +177,7 @@ def _filters(domain: str | None, status: str | None, *,
     if project is not None or business_direction is not None:
         from src.projects import resolve_project_filter
 
-        project_ids = resolve_project_filter(project, business_direction)
+        project_ids = resolve_project_filter(project, business_direction, allow_name_variants=True)
         if project_ids is not None:
             filters["project_id"] = project_ids
     return filters or None
@@ -209,6 +211,63 @@ def _history(history: list[dict] | None) -> list[dict]:
         if isinstance(m, dict) and m.get("role") in ("user", "assistant")
         and isinstance(m.get("content"), str) and m["content"].strip()
     ][-24:]
+
+
+def _run_context_query(question, top_k, domain, status, doc_type, department, project,
+                       business_direction, history, ctx, *, tool, use_llm):
+    from src.pipeline import QAResult
+    from src.query_scope import conversation_project, project_reference, selected_project_text
+
+    started = time.monotonic()
+    groups, username, user = _identity_from_ctx(ctx)
+    recent = _history(history)
+    has_project = bool(project.strip()) if isinstance(project, str) else project is not None
+    is_reference = bool(project_reference(question))
+    mode = ("project_and_history" if recent else "project") if has_project else (
+        "history" if recent else "missing" if is_reference else "question")
+    diagnostics = {"tool": tool, "input_mode": mode, "history_count": len(recent), "project_source": "none"}
+
+    def log(result):
+        details = result.evidence_meta or {}
+        issue = details.get("scope_issue") or (details.get("scope_fallback") or {}).get("issue")
+        if issue:
+            diagnostics["scope_issue"] = issue
+        _log_qa(question, result, top_k, time.monotonic() - started,
+                username=username, department=str(user.get("department") or ""), mcp_context=diagnostics)
+
+    try:
+        filters = _filters(domain, status, doc_type=doc_type, department=department,
+                           project=project, business_direction=business_direction)
+    except ValueError as exc:
+        log(QAResult(question, None, [], "", [], evidence_meta={"scope_issue": "invalid_filter"}))
+        return None, str(exc)
+
+    selected = (filters or {}).get("project_id")
+    latest = next((m["content"] for m in reversed(recent) if m["role"] == "user"), "")
+    if has_project and selected and is_reference and selected_project_text(latest) is not None:
+        corrected_id = conversation_project(question, [{"role": "user", "content": latest}]).get("project_id")
+        if corrected_id and corrected_id not in selected:
+            notice = "最近一条用户消息已切换项目，与传入的 project 不一致。请核对并更新 project 后重试。"
+            result = QAResult(question, notice, [], "", [], filters=filters,
+                              evidence_meta={"coverage": "not_found", "scope_issue": "conflict",
+                                             "scope_notice": notice})
+            diagnostics["project_source"] = "project_argument"
+            log(result)
+            return result, None
+
+    result = _answer_in_scope(question, top_k=top_k, filters=filters, history=recent,
+                              user_groups=groups, username=username, use_llm=use_llm)
+    details = result.evidence_meta or {}
+    if has_project:
+        diagnostics["project_source"] = "project_argument"
+    elif (details.get("metadata_scope") or {}).get("project"):
+        diagnostics["project_source"] = "history" if is_reference else "question"
+    elif selected is not None:
+        diagnostics["project_source"] = "business_direction"
+    elif result.filters.get("project_id"):
+        diagnostics["project_source"] = "question"
+    log(result)
+    return result, None
 
 
 def _sources_payload(sources: list[dict]) -> list[dict]:
