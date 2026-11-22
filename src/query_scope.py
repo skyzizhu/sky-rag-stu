@@ -69,6 +69,12 @@ _PRESENTATION_FOLLOWUP = re.compile(
     r"|(?:用|按)表格(?:展示|呈现|呈現)?|用中文(?:回答)?|用英文(?:回答)?)\s*"
 )
 _OTHER_REFERENT = re.compile(r"(?:这份|這份|该份|該份)(?:文件|报告|報告|合同)|(?:这个|這個|该|該)(?:产品|產品|供应商|供應商|型号|型號)")
+_PROJECT_SELECTION = re.compile(
+    r"(?:^|[，,。；;！？?!\n])\s*(?:请|請)?\s*(?:(?:现在|現在|接下来|接下來|这次|這次)\s*)?"
+    r"(?:(?:只|仅|僅)\s*(?:查询|查詢|查看|查找|检索|檢索|查|看|找)"
+    r"|(?:更正为|更正為|改为|改為|改成|改查|切换到|切換到|换成|換成)"
+    r"\s*(?:查询|查詢|查看|查|看)?)\s*"
+)
 
 
 def _in_content(text: str, start: int) -> bool:
@@ -179,8 +185,18 @@ def extract_scope(question: str, proposed: dict | None = None) -> dict[str, str]
     return scope
 
 
+def selected_project_text(text: str) -> str | None:
+    """Isolate the target of one explicit focus change, preserving the quoted project name."""
+    masked = re.sub(_QUOTED, lambda match: "@" * len(match[0]), text)
+    selections = list(_PROJECT_SELECTION.finditer(masked))
+    return text[selections[0].end():] if len(selections) == 1 else None
+
+
 def _project_turn(text: str, catalog: list[dict]) -> dict:
     """Find literal master-data names in a user turn, including names without a 项目 suffix."""
+    selected = selected_project_text(text)
+    if selected is not None:
+        text = selected
     text_nfkc = unicodedata.normalize("NFKC", text)
     spans = []
     identities = set()
@@ -196,7 +212,7 @@ def _project_turn(text: str, catalog: list[dict]) -> dict:
             identities.add(project["id"])
     explicit = extract_scope(text).get("project")
     if not identities and not explicit:
-        return {}
+        return {"issue": "project_reference"} if selected is not None else {}
     issue = unsupported_scope(text)
     if len(identities) > 1 or issue == "multiple":
         return {"issue": "project_reference_ambiguous"}
@@ -227,10 +243,11 @@ def conversation_project(question: str, history: list[dict], saved: dict | None 
             text = message.get("content")
         if not isinstance(text, str) or not text:
             continue
-        if turn < len(history) and nearest and _OTHER_REFERENT.search(text):
+        if turn < len(history) and nearest and _OTHER_REFERENT.search(selected_project_text(text) or text):
             return {"issue": "project_reference"}
         signature = hashlib.sha256(text.encode()).hexdigest()
-        if saved and turn < len(history) and saved.get("turn") == turn and saved.get("digest") == signature:
+        if (saved and type(saved.get("project_id")) is int and saved["project_id"] in names and turn < len(history)
+                and saved.get("turn") == turn and saved.get("digest") == signature):
             record = saved
         else:
             record = _project_turn(text, catalog)

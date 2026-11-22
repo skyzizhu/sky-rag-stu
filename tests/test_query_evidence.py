@@ -12,6 +12,7 @@ import io
 import json
 import unittest
 from dataclasses import replace
+from types import SimpleNamespace
 from unittest import mock
 
 from src.pipeline import query_evidence
@@ -44,6 +45,120 @@ class QueryEvidenceTests(IngestHarness):
                                       use_query_understanding=False, use_rerank=False)
         self.assertEqual(len(result.retrieved), 0)
         self.assertEqual(meta["coverage"], "not_found")
+
+    def test_answers_remove_invalid_citations_and_report_them(self):
+        from src.answer_evaluator import compute_signals
+        from src.pipeline import answer_question
+
+        def generate(_messages, usage_out):
+            usage_out["finish_reason"] = "stop"
+            yield "支持降噪 [1]，另一说法 [99]。示例代码 `arr[42]`。"
+
+        with mock.patch("src.pipeline.get_llm_client", return_value=SimpleNamespace(chat_stream=generate)):
+            result = answer_question("Xtools 怎么降噪？", use_query_understanding=False, use_rerank=False)
+        self.assertIn("[1]", result.answer)
+        self.assertNotIn("[99]", result.answer)
+        self.assertIn("`arr[42]`", result.answer)
+        self.assertEqual(compute_signals(result)["cite"], {"cited": 1, "total": 1, "invalid": [99]})
+
+    def test_revoke_during_generation_withholds_new_deltas_and_clears_output(self):
+        from src import mcp_server
+        from src.manage import update_metadata
+        from src.pipeline import answer_stream
+
+        path = "learning/general/xtools.md"
+
+        def generate(_messages, usage_out):
+            yield "可见时已发出的片段。"
+            update_metadata(path, {"allowed_groups": [], "allowed_users": []})
+            usage_out["finish_reason"] = "stop"
+            yield "撤权后生成的片段 [1]。"
+
+        with mock.patch("src.pipeline.get_llm_client", return_value=SimpleNamespace(chat_stream=generate)):
+            result, deltas = answer_stream("Xtools 怎么降噪？", use_query_understanding=False,
+                                           use_rerank=False, user_groups=[], username="alice")
+            self.assertEqual(list(deltas), ["可见时已发出的片段。"])
+            self.assertEqual(result.evidence_meta["generation_status"], "invalidated")
+            self.assertEqual((result.sources, result.retrieved, result.context, result.trace), ([], [], "", []))
+            self.assertNotIn("片段", result.answer)
+            update_metadata(path, {"allowed_groups": ["all"], "allowed_users": []})
+            with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=([], "alice", {})), \
+                 mock.patch("src.config.get_config", return_value=replace(self.cfg, query_understanding=False,
+                                                                        rerank_enabled=False)):
+                response = json.loads(mcp_server._tool_knowledge_qa_impl("Xtools 怎么降噪？"))
+            self.assertTrue(response["refused"])
+            self.assertEqual(response["sources"], [])
+            self.assertEqual(response["coverage_details"]["generation_status"], "invalidated")
+
+    def test_mcp_answer_serializes_citations_without_raw_grants(self):
+        from src import mcp_server
+        from src.pipeline import QAResult
+
+        result = QAResult("query", "Entry [1]", [], "", [], filters={"__viewer__": {"username": "alice"}})
+        result.enumerated_items = [{
+            "name": "Entry", "citations": [1], "evidence": [{
+                "source_id": "p", "quote": "Entry appears in the source",
+                "metadata": {"document_id": "d", "page": "13", "allowed_users": ["alice", "bob"]},
+            }],
+        }]
+        with mock.patch.object(mcp_server, "_answer_in_scope", return_value=result):
+            response = json.loads(mcp_server._tool_knowledge_qa_impl("query"))
+        self.assertEqual(response["items"][0]["evidence"][0]["metadata"], {"document_id": "d", "page": "13"})
+        self.assertEqual(response["filters_applied"], {})
+
+    def test_mcp_uses_generated_evidence_state_with_sources_and_hides_status_line(self):
+        from src import mcp_server
+        from src.pipeline import answer_stream
+
+        def generate(_messages, usage_out):
+            usage_out["finish_reason"] = "stop"
+            yield "[[answer_"
+            yield "status:insufficient_evidence]]\n"
+            yield "现有 Xtools 文档不足以确认实际降噪效果。"
+
+        with mock.patch("src.pipeline.get_llm_client", return_value=SimpleNamespace(chat_stream=generate)):
+            result, deltas = answer_stream("Xtools 的降噪效果如何？", use_query_understanding=False,
+                                           use_rerank=False)
+            self.assertEqual("".join(deltas), "现有 Xtools 文档不足以确认实际降噪效果。")
+            self.assertTrue(result.sources)
+            self.assertEqual(result.evidence_meta["answer_status"], "insufficient_evidence")
+            with mock.patch.object(mcp_server, "_answer_in_scope", return_value=result):
+                response = json.loads(mcp_server._tool_knowledge_qa_impl("Xtools 的降噪效果如何？"))
+        self.assertTrue(response["refused"])
+        self.assertEqual(response["answer_status"], "insufficient_evidence")
+        self.assertTrue(response["sources"])
+
+    def test_answer_keeps_verified_deadline_boundary(self):
+        from src.evidence_support import deadline_constraint, preserve_deadline_wording
+        from src.pipeline import answer_question
+
+        question = "华信合同约定的设备交付截止日期是什么？实际何时完成交付？"
+        reference = "The vendor shall deliver all equipment before 2024-09-30."
+        self.ingest([self.write_note(reference, "华信合同.md")])
+
+        def generate(_messages, usage_out):
+            usage_out["finish_reason"] = "stop"
+            yield "[[answer_status:partial]]\n设备应不迟于 2024-09-30 交付 [1]。实际交付日期无法确认。"
+
+        with mock.patch("src.pipeline.get_llm_client", return_value=SimpleNamespace(chat_stream=generate)):
+            result = answer_question(question, filters={"source": "华信合同.md"},
+                                     use_query_understanding=False, use_rerank=False)
+        self.assertIn("2024-09-30之前", result.answer)
+        self.assertIn("实际交付日期无法确认", result.answer)
+        self.assertTrue(result.evidence_meta["deadline_wording_corrected"])
+        self.assertEqual(result.evidence_meta["answer_status"], "partial")
+
+        inclusive = deadline_constraint(question, [{"rank": 1, "text": reference.replace("before", "by")}])
+        self.assertIn("2024-09-30当日及之前", preserve_deadline_wording("应在 2024-09-30前交付。", inclusive))
+        self.assertEqual(preserve_deadline_wording("付款不得晚于2024-09-30。", result.evidence_meta["deadline_constraint"]),
+                         "付款不得晚于2024-09-30。")
+        self.assertFalse(deadline_constraint(question, [
+            {"rank": 1, "text": reference}, {"rank": 2, "text": reference.replace("before", "by")}]))
+        self.assertFalse(deadline_constraint(question, [
+            {"rank": 1, "text": "The vendor delivered all equipment before 2024-09-30."}]))
+        english = deadline_constraint(question, [{"rank": 1, "text": reference.replace("2024-09-30", "September 30, 2024")}])
+        self.assertEqual(preserve_deadline_wording("Deliver by September 30, 2024.", english),
+                         "Deliver before September 30, 2024.")
 
     def test_factual_gate_rejects_unsupported_candidates_on_web_and_mcp(self):
         from src import mcp_server

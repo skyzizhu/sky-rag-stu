@@ -27,6 +27,7 @@ from pathlib import Path
 
 from src import index_epoch
 from src.answer_evaluator import merge_usage
+from src.answer_format import answer_citations, remove_invalid_citations, split_answer_status
 from src.enumeration_processing import process_enumeration, render_records
 from src.conversation_context import prepare_context
 from src.console import console_print
@@ -34,7 +35,7 @@ from src.chunker import clean_and_chunk
 from src.config import AppConfig, get_config
 from src.context import build_context, estimate_tokens
 from src.embedding import EmbeddingClient, get_embedding_client
-from src.evidence_support import assess_evidence
+from src.evidence_support import assess_evidence, deadline_constraint, preserve_deadline_wording
 from src.document_department import normalize_department, resolve_department
 from src.document_type import normalize_doc_type, resolve_doc_type
 from src.enumeration import (enumeration_route, is_staff_total_question, catalog_time, document_representatives,
@@ -55,11 +56,12 @@ from src.prompt import build_messages
 from src.query_understanding import understand_query
 from src.query_scope import (
     conversation_project, extract_scope, is_scope_listing, name_project_in_followup,
-    project_reference, resolve_scope, unsupported_scope,
+    project_reference, resolve_scope, selected_project_text, unsupported_scope,
 )
 from src.reranker import rerank as rerank_items, rerank_local as rerank_documents_local
 from src.retriever import RetrievedItem, effective_filters, get_retriever
-from src.retrieval_intent import VERSION_SIDES, compares_versions, comparison_statuses, explicit_file_dates
+from src.retrieval_intent import (VERSION_SIDES, compares_versions, comparison_statuses,
+                                  enumerated_sub_queries, explicit_file_dates)
 from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
 
@@ -692,6 +694,131 @@ def expand_dominant_documents(items: list[RetrievedItem], filters: dict | None,
     return expanded, notes
 
 
+def expand_facts_dominant_documents(items: list[RetrievedItem], filters: dict | None,
+                                    top_k: int, cfg: AppConfig, multi_fact: bool
+                                    ) -> tuple[list[RetrievedItem], int, set[str], list[str]]:
+    """多事实问答的主导文档扩展（R2-b）：把枚举通道已验证的 Small-to-Big 下沉到普通问答。
+
+    触发条件（满足其一）：
+    - multi_fact：Query 理解把问题拆成了 ≥2 个子查询（复合问题的事实分散多卡）；
+    - 精排后前 Top-K 里同一文档出现 ≥2 张卡片（多事实集中在同一文档，
+      如长演示文稿的日期/价格/渠道分居不同页）。
+    行为：候选池内卡片数 ≥2、且全文总卡数不超过 expand_doc_max_cards 的文档
+    （复合问题最多 3 篇、其余 2 篇——拆分后的子问题常各自对应一篇小文档，
+    实测三代产品价格题需要第 3 篇），把全文卡片补进候选——前排 Top-K 名次不动，
+    补入卡片按序号排在其后，其余候选殿后；补卡沿用当前过滤条件（权限 / 状态 / 版本一致）。
+    上下文层的 token 总预算不变——扩展只是增加"可供选择"的卡片，
+    由组装规则在预算内取舍（配合 unlimited_docs 放开被扩展文档的单文档配额）。
+    返回 (新候选池, 补入卡片数, 展开的 document_id 集合, 展开说明)。
+    """
+    limit = cfg.expand_doc_max_cards
+    if limit <= 0 or not items:
+        return items, 0, set(), []
+    counts = Counter(it.metadata.get("document_id") for it in items
+                     if it.metadata.get("document_id"))
+    head_docs = {it.metadata.get("document_id") for it in items[:top_k]}
+    dominant = [doc for doc, n in counts.most_common()
+                if n >= 2 and (doc in head_docs or multi_fact)][:3 if multi_fact else 2]
+    if not dominant:
+        return items, 0, set(), []
+
+    store = get_vector_store()
+    seen = {it.metadata.get("chunk_id") for it in items}
+    head_ids = {id(it) for it in items[:top_k]}
+    middle: list[RetrievedItem] = []
+    notes: list[str] = []
+    doc_ids: set[str] = set()
+    for doc_id in dominant:
+        in_pool = [it for it in items if it.metadata.get("document_id") == doc_id]
+        source = in_pool[0].metadata.get("source", "?")
+        cards = store.get_all_cards(filters={**(filters or {}), "document_id": doc_id},
+                                    limit=limit + 1)
+        if len(cards) > limit:
+            notes.append(f"{source}：全文超过 {limit} 张、扩展装不下，不展开")
+            continue
+        added: list[RetrievedItem] = []
+        for card in sorted(cards, key=lambda c: str(c["payload"].get("chunk_id") or "")):
+            payload = card["payload"]
+            if payload.get("chunk_id") in seen:
+                continue
+            seen.add(payload.get("chunk_id"))
+            added.append(RetrievedItem(rank=0, score=0.0, text=payload.get("text", ""),
+                                       metadata={k: v for k, v in payload.items() if k != "text"},
+                                       channels="文档展开"))
+        middle += [it for it in in_pool if id(it) not in head_ids] + added
+        doc_ids.add(doc_id)
+        notes.append(f"{source}：候选池 {counts[doc_id]} 张 → 补入其余 {len(added)} 张"
+                     f"（全文 {len(cards)} 张进入候选）")
+    if not middle:
+        return items, 0, set(), notes
+    placed = head_ids | {id(it) for it in middle}
+    expanded = items[:top_k] + middle + [it for it in items if id(it) not in placed]
+    for i, it in enumerate(expanded, start=1):
+        it.rank = i
+    return expanded, len(middle), doc_ids, notes
+
+
+_SOURCE_EXT_TAIL = re.compile(r"\.[a-z0-9]{1,6}$")
+_SOURCE_VERSION_TAIL = re.compile(r"[_\-][vｖ][0-9][0-9._]*$")
+
+
+def _source_dice(left: str, right: str) -> float:
+    """字符二元组 Dice 相似度：词序无关、容忍缺词/多词（"昆仑需求说明书" vs
+    "昆仑项目需求说明书" 高重合；比对前先剥扩展名与 _v2.0 类版本尾巴）。"""
+    def bigrams(value: str) -> Counter:
+        value = re.sub(r"\s+", "", value)
+        return Counter(value[i:i + 2] for i in range(len(value) - 1))
+
+    a, b = bigrams(left), bigrams(right)
+    if not a or not b:
+        return 0.0
+    return 2 * sum((a & b).values()) / (sum(a.values()) + sum(b.values()))
+
+
+def resolve_spoken_source(spoken: str, store: VectorStore | None = None) -> str | None:
+    """把用户口述的文件名归一到库内真实 source（N-A：精确 → 前缀 → 包含 → 变体，唯一命中才替换）。
+
+    病灶（实测 M07）：Query 理解点名文件时可能输出短名——「昆仑项目需求说明书」
+    缺 `_v2.0.docx` 后缀；source 过滤是精确匹配，短名直接筛空，且 document 路由
+    不做放宽重试，整题空手而归。
+    变体层（R-1，实测 S16）：口述名与库内名存在词序/缺词差异（「昆仑需求说明书」
+    vs「昆仑项目需求说明书」），前缀/包含都不命中——按字符二元组 Dice 相似度
+    匹配。仅当口述名 ≥4 字符、最高分 ≥0.6 且显著高于第二名（领先 ≥0.1）时替换；
+    多个相近候选（如两版员工手册）保持歧义不猜。归一在任何层级都只在唯一命中
+    时生效；未命中保持原值（精确匹配的既有行为不变）。同名不同目录的文档共享
+    同一 source 值，归一按「去重后的 source 值集合」判唯一，不受多目录同名影响。
+    """
+    import unicodedata
+
+    text = unicodedata.normalize("NFKC", (spoken or "").strip()).casefold()
+    if not text:
+        return None
+    store = store or get_vector_store()
+    catalog = store.document_catalog({}, 500, 50000, "updated_at", None)
+    folded: dict[str, str] = {}
+    for doc in catalog.get("documents") or []:
+        source = doc.get("source")
+        if source:
+            folded.setdefault(unicodedata.normalize("NFKC", source).casefold(), source)
+    if text in folded:
+        return folded[text]
+    prefix = {orig for norm, orig in folded.items() if norm.startswith(text)}
+    if len(prefix) == 1:
+        return next(iter(prefix))
+    contains = {orig for norm, orig in folded.items() if text in norm}
+    if len(contains) == 1:
+        return next(iter(contains))
+    if len(text) >= 4:
+        scored = sorted(
+            ((_source_dice(text, _SOURCE_VERSION_TAIL.sub("", _SOURCE_EXT_TAIL.sub("", norm))), orig)
+             for norm, orig in folded.items()),
+            key=lambda pair: pair[0], reverse=True)
+        if (scored and scored[0][0] >= 0.6
+                and (len(scored) == 1 or scored[0][0] - scored[1][0] >= 0.1)):
+            return scored[0][1]
+    return None
+
+
 def _cache_key(question: str, top_k: int, filters: dict, qu: bool, hybrid: bool, rerank: bool,
                history: list[dict] | None = None) -> str:
     # 对话历史参与键：同样的短追问（"继续""展开讲讲"）在不同上下文里答案完全不同，
@@ -866,9 +993,10 @@ def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison
                 [project_id] = resolve_project_filter(name, None, allow_name_variants=True)
                 projects.append((name, project_id))
         except ValueError:
-            if not comparison.explicit_scope:
-                return None
-            issue = "unresolved"
+            # 未登记的项目名与 scope 未解析同族（R6-C02：比较句式里混入只在台账/正文
+            # 出现、未登记主档的项目名）——回退普通检索（后续范围回退会给出全库语义
+            # 检索与提示行），而不是拦截。仅保留显式筛选冲突 / 数量不符的诚实引导。
+            return None
         if not issue:
             ids = [project_id for _, project_id in projects]
             selected = base.get("project_id")
@@ -1111,8 +1239,21 @@ def query_evidence(
             items=[("输入 / 输出", question)],
         ))
 
-    scope_issue = unsupported_scope(question)
-    comparison = parse_project_comparison(question) if scope_issue != "negated" else None
+    selected_text = selected_project_text(question)
+    scope_question = selected_text if selected_text and extract_scope(selected_text).get("project") else question
+    # N-A 点名文件归一：QU 输出的文件短名（缺版本后缀/扩展名）先归一到库内真实
+    # source，再进入过滤与路由——否则 source 精确匹配筛空，document 路由空手而归。
+    if qu_filters.get("source"):
+        resolved_source = resolve_spoken_source(qu_filters["source"])
+        if resolved_source and resolved_source != qu_filters["source"]:
+            trace.append(make_node(
+                "📎", "点名文件归一", time_str=now_str(),
+                summary="问题点名的文件名与库内不完全一致，已按唯一命中归一为真实文件名。",
+                items=[("口述文件名", qu_filters["source"]), ("归一为", resolved_source)],
+            ))
+            qu_filters["source"] = resolved_source
+    scope_issue = unsupported_scope(scope_question)
+    comparison = parse_project_comparison(scope_question) if scope_issue != "negated" else None
     if comparison:
         compared = _project_comparison_evidence(result, comparison, {**date_filters, **(filters or {})},
                                                 top_k, cfg, use_hybrid, use_rerank,
@@ -1128,11 +1269,18 @@ def query_evidence(
         qu_filters.pop("source", None)
         enumeration_mode = False
     spoken_scope = {} if scope_issue else extract_scope(
-        question, getattr(qu, "metadata_scope", None) if qu and qu.ok else None)
+        scope_question, getattr(qu, "metadata_scope", None) if qu and qu.ok else None)
+    # 推断类范围注入的过滤键（渐进式放宽的剥离范围）：resolve_scope 从问句推断
+    # 注入的 project_id/department/doc_type 与 LLM 的 qu_filters 同属"推断"，
+    # 0 召回时一并放宽；界面手动设置的键不在此列（保持"手动设置不放宽"规则）。
+    pre_scope_filters = dict(filters or {})
+    scope_injected_keys: set[str] = set()
     if spoken_scope:
         if qu_filters.get("source") in spoken_scope.values():
             qu_filters.pop("source")
-        filters, scope_issue = resolve_scope(question, spoken_scope, filters)
+        filters, scope_issue = resolve_scope(scope_question, spoken_scope, filters)
+        scope_injected_keys = {key for key, value in (filters or {}).items()
+                               if key not in pre_scope_filters or pre_scope_filters[key] != value}
     reference = project_reference(question) if "project" not in spoken_scope else ""
     if reference and not scope_issue:
         if bare_reference:
@@ -1144,6 +1292,9 @@ def query_evidence(
             if project_id := context_project.get("project_id"):
                 filters, scope_issue = resolve_scope(question, {"project": project_id}, filters)
                 if not scope_issue:
+                    scope_injected_keys |= {key for key, value in (filters or {}).items()
+                                            if key not in pre_scope_filters
+                                            or pre_scope_filters[key] != value}
                     spoken_scope["project"] = context_project["name"]
                     if not bare_reference and not (qu and qu.ok):
                         search_query = f"{context_project['name']} {search_query}"
@@ -1162,12 +1313,36 @@ def query_evidence(
             "project_reference": "请先选择项目，或在问题里写明要查询的项目名称。",
             "project_reference_ambiguous": "这段对话里最近提到了多个项目，请写明这次要查哪一个。",
         }
-        result.answer = messages[scope_issue]
-        result.filters = effective_filters(filters)
-        meta = {**scope_meta, "scope_issue": scope_issue, "scope_notice": result.answer,
-                "coverage": "not_found"}
-        result.evidence_meta = meta
-        return result, meta
+        if scope_issue in ("unresolved", "multiple"):
+            # 回退而非拦截：范围词解析失败（主档未登记 / 同字段多值）不代表内容不存在——
+            # 丢弃该元数据过滤，回退全库语义检索；权限、日期与手动设置不受影响。
+            # 答案顶部会注明「未按该条件过滤」，不静默忽略用户给定的条件。
+            attempted = "、".join(str(value) for value in spoken_scope.values())
+            if len(attempted) > 30:
+                attempted = attempted[:30] + "…"
+            notice = (f"「{attempted}」未匹配到已登记的项目、业务方向、归属部门或文档类型，"
+                      "本次未按该条件过滤，以下为全库语义检索结果。" if attempted
+                      else "问题在同一筛选字段出现了多个值，本次未按该条件过滤，以下为全库语义检索结果。")
+            trace.append(make_node(
+                "🔄", "范围解析回退", time_str=now_str(), status=f"已回退（{scope_issue}）",
+                summary="问句中的范围词无法解析为元数据过滤条件（主档未登记或同字段多值）。"
+                        "已丢弃该过滤并回退为全库语义检索，答案顶部注明未按该条件过滤。",
+                items=[("回退原因", messages[scope_issue]),
+                       ("提取到的范围", str(spoken_scope) or "（同字段多个值）"),
+                       ("保留的条件", "权限、日期与手动筛选设置不受影响")],
+            ))
+            scope_meta = {"scope_fallback": {"issue": scope_issue,
+                                             "attempted": dict(spoken_scope),
+                                             "notice": notice}}
+            spoken_scope = {}
+            scope_issue = ""
+        else:
+            result.answer = messages[scope_issue]
+            result.filters = effective_filters(filters)
+            meta = {**scope_meta, "scope_issue": scope_issue, "scope_notice": result.answer,
+                    "coverage": "not_found"}
+            result.evidence_meta = meta
+            return result, meta
 
     listing_scope = {**spoken_scope, "project": reference} if reference else spoken_scope
     if is_scope_listing(question, listing_scope):
@@ -1215,6 +1390,23 @@ def query_evidence(
     # 由 Query 理解拆成多个子查询，逐个独立检索后合并去重。
     # 不拆分时走原始单查询检索；两种路径产出统一为 result.retrieved 供精排。
     sub_q_lists = [s for s in ((qu.sub_queries if (qu and qu.ok) else []) or []) if s and s.strip()][:4]
+    _sub_top_keys: list[str] = []  # 每个子查询的 Top-1 证据（拆分分支填充，精排后前置）
+    if len(sub_q_lists) < 2:
+        # 确定性拆分兜底（V3.4 的离线补充）：LLM 未拆分时，「A、B、C…的 X 分别…」
+        # 高置信并列句按固定规则拆出子查询——实测该句式 LLM 拆分存在波动，不拆时
+        # 各文档事实在候选池互相稀释。LLM 已拆分（≥2 个子查询）时以 LLM 结果为准。
+        fallback_queries = enumerated_sub_queries(question)
+        if len(fallback_queries) >= 2:
+            sub_q_lists = fallback_queries
+            trace.append(make_node(
+                "🔀", "确定性查询拆分", time_str=now_str(),
+                status="已执行（LLM 未拆分，离线规则兜底）",
+                summary="问题含「并列实体 + 字段 + 分别/各自」的高置信句式，按固定规则拆为"
+                        "逐实体子查询，各自独立检索后由保底配额合并——避免各实体事实在"
+                        "单一查询的候选池里互相稀释。",
+                items=[("拆分结果", "；".join(sub_q_lists)),
+                       ("兜底原因", "Query 理解本次未输出 sub_queries")],
+            ))
 
     if version_scopes is not None:
         for key, label, _ in VERSION_SIDES:
@@ -1257,6 +1449,16 @@ def query_evidence(
         # 枚举模式（列举/计数）合并池放宽到上下文名额，避免拆分后列举不全
         _pool_cap = max(20, ctx_max_items) if enumeration_mode else 20
         pool, _quota = merge_sub_query_results(per_sq_results, _pool_cap)
+        # 最终组装保底（V3.5 候选池配额在组装层的延伸）：记录每个子查询的
+        # Top-1 证据，精排后把它们提到候选池最前——多文档对比题里单文档的
+        # 全量扩展可能把弱势子问题的关键卡挤出最终名额（实测三文档密码题：
+        # 手册的无关章节挤掉了安全制度卡与规格书关键卡）。池配额只保证
+        # "进候选池"，这里保证"进上下文"。
+        for sub_items in per_sq_results:
+            if sub_items:
+                key = sub_items[0].metadata.get("chunk_id") or sub_items[0].text[:40]
+                if key not in _sub_top_keys:
+                    _sub_top_keys.append(key)
         result.retrieved = pool
 
         trace.append(make_node(
@@ -1285,27 +1487,99 @@ def query_evidence(
 
     # 渐进式放宽（检索容错）：LLM 推断的过滤条件猜错时可能把正确答案挡在门外——
     # 如果「带推断条件」检索为 0 条，自动去掉推断条件（保留手动设置）重试一次。
-    # 重试保留权限、手动设置和已确认的范围（含日期）。
-    if not result.retrieved and qu_filters and route != "document":
+    # 重试保留权限、手动设置和已确认的范围（含日期）——口头/显式范围在一级放宽中
+    # 始终保留（R2 既定规则，tests/test_query_scope 有断言）。
+    # 二级回退（R6-M09）：一级仍 0 召回且带有问句推断的范围键（project_id/
+    # department/doc_type）时——跨项目文档（如全公司台账不挂单个项目）会被项目
+    # 过滤筛空——去掉范围键再试一次，并在答案顶部注明「已放宽」（不静默忽略
+    # 用户指定的范围）。界面手动选择的键从不参与任何一级放宽。
+    # document 路由对齐（R6-M09 残余）：QU 推断的点名文档（source 在 qu_filters）
+    # 0 召回时同样放宽——归一失败/版本筛空不该让整题空手；手动/MCP 指定的
+    # source（在 filters 里）仍不放宽，与"手动设置不放宽"规则一致。
+    relaxed_doc_source = str(qu_filters.get("source") or "") if route == "document" else ""
+    if (not result.retrieved and (qu_filters or scope_injected_keys)
+            and (route != "document" or relaxed_doc_source)):
         relax_start = now_str()
         t_relax = time.time()
-        manual_filters = filters or {}
-        result.retrieved = retriever.retrieve(
-            search_query, top_k=recall_k, filters=manual_filters, trace=None,
-            keyword_query=(qu.keyword_query if qu and qu.ok else None),
-            use_hybrid=use_hybrid,
-            diagnostics=retrieval_diagnostics,
-        )
-        result.filters = effective_filters(manual_filters)
+        base_filters = filters or {}
+        relax_steps: list[str] = []
+        if qu_filters:  # 一级：去 LLM 推断 filters（document 路由含推断 source）
+            result.retrieved = retriever.retrieve(
+                search_query, top_k=recall_k, filters=base_filters, trace=None,
+                keyword_query=(qu.keyword_query if qu and qu.ok else None),
+                use_hybrid=use_hybrid,
+                diagnostics=retrieval_diagnostics,
+            )
+            result.filters = effective_filters(base_filters)
+            relax_steps.append(f"一级（去 LLM filters）→ 召回 {len(result.retrieved)} 条")
+        if not result.retrieved and relaxed_doc_source and result.filters.get("source"):
+            # document 路由的 source 也可能由范围解析写入 filters（如点名+范围叠加）：
+            # 推断意图已被一级剥离，这里兜底去掉 filters 残留的推断 source 再试一次。
+            no_source_filters = {k: v for k, v in (filters or {}).items() if k != "source"}
+            result.retrieved = retriever.retrieve(
+                search_query, top_k=recall_k, filters=no_source_filters, trace=None,
+                keyword_query=(qu.keyword_query if qu and qu.ok else None),
+                use_hybrid=use_hybrid,
+                diagnostics=retrieval_diagnostics,
+            )
+            result.filters = effective_filters(no_source_filters)
+            relax_steps.append(f"一级补充（去推断 source）→ 召回 {len(result.retrieved)} 条")
+        if relaxed_doc_source and result.retrieved and "scope_fallback" not in scope_meta:
+            scope_meta["scope_fallback"] = {
+                "issue": "source_relaxed",
+                "attempted": {"source": relaxed_doc_source},
+                "notice": (f"按文档「{relaxed_doc_source[:30]}」过滤未找到资料，"
+                           "已放宽为全库语义检索结果。"),
+            }
+        if not result.retrieved and scope_injected_keys:
+            # 二级前置校验：项目范围 0 召回且主档在库中无任何关联文档时，尊重范围
+            # 诚实空（此时全库捞回的都是无关项目的内容，提示行也救不回语义）——
+            # 只有项目确有关联文档、目标事实可能落在未挂项目的跨项目文档（如全公司
+            # 台账）时，才值得去范围键找一次（R6-M09 场景）。
+            scope_project_ids = base_filters.get("project_id")
+            if "project_id" in scope_injected_keys and scope_project_ids:
+                pid = (scope_project_ids[0] if isinstance(scope_project_ids, (list, tuple))
+                       else scope_project_ids)
+                linked = get_vector_store().get_all_cards(
+                    filters={"project_id": [pid] if isinstance(pid, int) else pid,
+                             "status": "active"}, limit=1)
+                if not linked:
+                    relax_steps.append("二级跳过：该项目在库中无任何关联文档，保持范围诚实空")
+                    scope_injected_keys = set()
+            if scope_injected_keys:
+                # 二级：口头范围 0 召回，去范围键重试（保留权限/手动/日期）
+                relaxed_filters = {key: value for key, value in base_filters.items()
+                                   if key not in scope_injected_keys}
+                result.retrieved = retriever.retrieve(
+                    search_query, top_k=recall_k, filters=relaxed_filters, trace=None,
+                    keyword_query=(qu.keyword_query if qu and qu.ok else None),
+                    use_hybrid=use_hybrid,
+                    diagnostics=retrieval_diagnostics,
+                )
+                result.filters = effective_filters(relaxed_filters)
+                relax_steps.append(f"二级（去范围键 {sorted(scope_injected_keys)}）→ 召回 {len(result.retrieved)} 条")
+                if result.retrieved and "scope_fallback" not in scope_meta:
+                    # 范围放宽不静默：答案顶部注明（复用 scope_fallback 提示链路）
+                    attempted_names = "、".join(str(v) for v in spoken_scope.values()) or "指定范围"
+                    if len(attempted_names) > 30:
+                        attempted_names = attempted_names[:30] + "…"
+                    scope_meta["scope_fallback"] = {
+                        "issue": "relaxed_empty",
+                        "attempted": dict(spoken_scope),
+                        "notice": (f"按「{attempted_names}」过滤未找到资料，"
+                                   "已放宽为全库语义检索结果。"),
+                    }
         trace.append(make_node(
             "🔄", "过滤放宽重试", time_str=relax_start, elapsed=time.time() - t_relax,
             status="已触发",
             summary="带推断过滤条件的检索召回了 0 条——推断的条件可能过严，把正确答案挡在了门外。"
-                    "自动去掉 LLM 推断的条件（保留手动设置）重试了一次；"
-                    "这是检索系统的常见容错策略：宁可范围大一点，也不能漏掉答案",
+                    "一级去掉 LLM 推断的条件（保留口头范围与手动设置）重试；仍为 0 且带有"
+                    "问句推断的范围键时二级去范围键重试并在答案顶部注明——"
+                    "宁可范围大一点，也不能漏掉答案，且绝不静默丢弃用户指定的范围",
             items=[
                 ("首检条件（0 条召回）", str(effective_filters(merged_filters))),
-                ("放宽后条件", str(result.filters)),
+                ("放宽步骤", "；".join(relax_steps)),
+                ("最终条件", str(result.filters)),
                 ("重试结果", f"召回 {len(result.retrieved)} 条"),
             ],
         ))
@@ -1450,15 +1724,62 @@ def query_evidence(
                            f"约 {ENUM_CTX_TOKENS} tokens，同文档不限条数")],
         ))
 
+    # 子查询证据保底：精排重排后，把每个子查询的 Top-1 证据提到候选池最前。
+    # 精排按原始整题打分，弱势子问题的最佳证据可能被其他主题的高分卡压到
+    # 名额之外；前置后组装层按顺序选取，各子需求的关键证据必进上下文。
+    if _sub_top_keys and result.retrieved:
+        by_key: dict[str, object] = {}
+        for it in result.retrieved:
+            by_key.setdefault(it.metadata.get("chunk_id") or it.text[:40], it)
+        front = [by_key[key] for key in _sub_top_keys if key in by_key]
+        front_ids = {id(it) for it in front}
+        ordered = front + [it for it in result.retrieved if id(it) not in front_ids]
+        if len(front) == len(_sub_top_keys) and ordered is not result.retrieved \
+                and [id(x) for x in ordered[:len(front)]] != [id(x) for x in result.retrieved[:len(front)]]:
+            result.retrieved = ordered
+            for i, it in enumerate(ordered, start=1):
+                it.rank = i
+            trace.append(make_node(
+                "📌", "子查询证据保底", time_str=now_str(),
+                summary=f"已把 {len(front)} 个子查询各自的 Top-1 证据提到候选池最前——"
+                        "精排按整题打分时弱势子问题的关键证据可能被挤出最终名额。",
+                items=[("保底证据", "\n".join(
+                    f"{it.metadata.get('source')} | {it.metadata.get('section') or '-'}" for it in front))],
+            ))
+
     _p("📦 整理资料中…")
-    # 节点 ⑧ 合并 / 去重 + 节点 ⑨ 上下文组装（V2.6：文档多样性 + 相邻补全）
+    # R2-b 多事实主导文档扩展：复合问题（子查询 ≥2）或前 Top-K 同文档 ≥2 张时，
+    # 把小文档（≤ expand_doc_max_cards 张）的全文卡片补进候选——多事实题的事实
+    # 常分散在同文档不同页/章节（长演示文稿、多章手册），单文档 3 卡配额会把
+    # 部分事实卡挤出上下文。扩展不改变前排名次，token 总预算仍由组装层把关。
+    facts_expansion_added = 0
+    facts_expansion_docs: set[str] = set()
+    if not enumeration_mode and version_scopes is None and result.retrieved:
+        result.retrieved, facts_expansion_added, facts_expansion_docs, facts_notes = (
+            expand_facts_dominant_documents(
+                result.retrieved, result.filters, top_k, cfg,
+                multi_fact=len(sub_q_lists) >= 2))
+        if facts_expansion_docs:
+            enum_stats["doc_expansion"] = {"documents": sorted(facts_expansion_docs),
+                                           "added": facts_expansion_added}
+            trace.append(make_node(
+                "📚", "多事实文档扩展", time_str=now_str(),
+                summary=(f"复合/多事实提问，把 {len(facts_expansion_docs)} 篇主导文档的全文卡片"
+                         f"补进候选（新增 {facts_expansion_added} 张）；前排名次不动，"
+                         "token 总预算不变，被扩展文档豁免单文档配额。"),
+                items=[("展开明细", "\n".join(facts_notes))],
+            ))
+    # 节点 ⑧ 合并 / 去重 + 节点 ⑨ 上下文组装（V2.6：多样性 + 相邻补全）
     # 精排后不再截断候选池，由组装规则在全部候选中选出最终进入回答的 Top K
     merge_start = now_str()
     t1 = time.time()
     missing_sides = []
     if version_scopes is None:
         context, used, dropped, merge_notes = build_context(
-            result.retrieved, enum_ctx_cfg, max_items=ctx_max_items, max_per_doc=ctx_max_per_doc,
+            result.retrieved, enum_ctx_cfg,
+            max_items=ctx_max_items + facts_expansion_added,
+            max_per_doc=ctx_max_per_doc,
+            unlimited_docs=facts_expansion_docs or None,
         )
     else:
         context, used, dropped, merge_notes, missing_sides = _version_context(
@@ -1600,6 +1921,62 @@ def query_evidence(
     return result, evidence_meta
 
 
+# 明确的求和意图词（"分别是多少"这类不触发——只认问总数的问法）
+_SUM_ASK = re.compile(r"合计|合共|总共|总和|加起来|总计|一共.*(多少|几)")
+_SUM_MONEY = re.compile(r"(\d+(?:,\d{3})*(?:\.\d+)?)\s*(万|亿)?元")
+
+
+def _enumeration_sum_note(question: str, records) -> str | None:
+    """列举记录的确定性求和（R6-C05）：每条已验证记录取原文首个金额，Decimal 求和。
+
+    触发条件从严：问题含明确求和词、记录 ≥2 条、每条都能从已验证 quote（或条目名）
+    提到金额且单位可换算——任一不满足即返回 None（不做任何猜测性计算）。
+    展示算式与各条目金额，引用见上方各记录行；不改变 coverage 判定。
+    """
+    from decimal import Decimal, InvalidOperation
+
+    if not records or len(records) < 2 or not _SUM_ASK.search(question or ""):
+        return None
+    parts: list[str] = []
+    values: list[Decimal] = []
+    for record in records:
+        quote = ""
+        if record.get("evidence"):
+            quote = str(record["evidence"][0].get("quote") or "")
+        match = _SUM_MONEY.search(quote) or _SUM_MONEY.search(str(record.get("name") or ""))
+        if not match:
+            return None
+        try:
+            value = Decimal(match.group(1).replace(",", ""))
+        except InvalidOperation:
+            return None
+        unit = match.group(2)
+        values.append(value * (Decimal(100_000_000) if unit == "亿"
+                               else Decimal(10_000) if unit == "万" else Decimal(1)))
+        parts.append(match.group(0).replace(" ", ""))
+    total = sum(values, Decimal(0))
+    if total >= 10_000:
+        total_text = f"{(total / 10_000).normalize():f} 万元"
+    else:
+        total_text = f"{total.normalize():f} 元"
+    return ("**合计**：" + " + ".join(parts) + f" = **{total_text}**"
+            f"（由以上 {len(values)} 条已验证记录逐项求和）")
+
+
+def _prepend_scope_fallback_notice(result) -> None:
+    """范围回退提示：解析失败回退全库检索时，在答案顶部注明未按该条件过滤（不静默忽略）。
+
+    fallback 状态记录在 evidence_meta["scope_fallback"]（含 issue/attempted/notice）；
+    applied 标记防止在多个答案落点重复 prepend。evidence 模式（无答案）由调用方
+    从 evidence_meta 透出，MCP coverage_details 同样可见。
+    """
+    fallback = (result.evidence_meta or {}).get("scope_fallback")
+    if not fallback or fallback.get("applied") or not result.answer:
+        return
+    fallback["applied"] = True
+    result.answer = f"> ℹ️ {fallback['notice']}\n\n{result.answer}"
+
+
 def answer_stream(
     question: str,
     top_k: int | None = None,
@@ -1639,6 +2016,21 @@ def answer_stream(
     filters = scope_filters(filters, user_groups, username)
     epoch_at_start = (index_epoch.current(), retrieval_acl_revision())
 
+    def _invalidate_changed_output(result):
+        revision = (index_epoch.current(), retrieval_acl_revision())
+        if revision == epoch_at_start and (user_groups is None or revision[1] is not None):
+            return False
+        result.answer = "检索期间资料或权限发生变化，请重新查询。"
+        result.context = ""
+        result.sources.clear()
+        result.retrieved.clear()
+        result.enumerated_items.clear()
+        result.trace.clear()
+        result.evidence_meta.clear()
+        result.evidence_meta.update(coverage="not_found", scope_issue="index_changed",
+                                    scope_notice=result.answer, generation_status="invalidated")
+        return True
+
     archive_history = history or []
     prepared = None
     memory_text = ""
@@ -1677,6 +2069,8 @@ def answer_stream(
 
     if enumeration_route(question, True) == "catalog":
         result, _ = _catalog_evidence(question, filters, cfg)
+        if _invalidate_changed_output(result):
+            return result, iter(())
         return _attach_conversation(result), iter(())
 
     # Q→A 缓存：同一问题+同一配置+同一对话上下文直接返回上次结果；
@@ -1787,6 +2181,8 @@ def answer_stream(
     result.trace[:0] = trace   # 早期节点（就绪/提问/会话记忆）并入时间线头部
     trace = result.trace
     context = result.context  # 生成半程需要的组装资料（Evidence 已含四道检查）
+    if _invalidate_changed_output(result):
+        return result, iter(())
     if result.answer is not None:
         return result, iter(())
     if evidence_meta.get("metadata_scope") and not result.retrieved:
@@ -1794,6 +2190,7 @@ def answer_stream(
         return result, iter(())
     if use_llm and not result.retrieved:
         result.answer = "知识库中没有找到可用于回答这个问题的资料。"
+        _prepend_scope_fallback_notice(result)
         return result, iter(())
     if not use_llm:
         if result.enumeration:
@@ -1826,6 +2223,8 @@ def answer_stream(
         for index, usage in enumerate(outcome.calls, 1):
             record_stage_usage(result, f"enumeration_{index}", usage)
         result.elapsed["enumeration"] = outcome.stats["elapsed"]
+        if _invalidate_changed_output(result):
+            return result, iter(())
         evidence_meta["stage2"] = {"status": "executed", **outcome.stats}
         evidence_meta["candidate_documents"] = outcome.stats["candidate_documents"]
         evidence_meta["processed_documents"] = outcome.stats["processed_documents"]
@@ -1849,14 +2248,20 @@ def answer_stream(
             result.context = "\n\n".join(f"[{s['rank']}] {s.get('source')} | {s.get('section') or '-'}\n{s['text']}" for s in outcome.sources)
             result.answer = render_records(outcome, resolve_answer_language(question, history),
                                            coverage=evidence_meta["coverage"])
+            # 确定性求和（R6-C05）：问题明确要合计、且每条已验证记录的原文里都有
+            # 金额时，代码层 Decimal 求和并附算式——不靠 LLM 心算，任一条缺金额
+            # 或单位不可比就不算（宁缺毋滥，不猜）。
+            sum_note = _enumeration_sum_note(question, outcome.records)
+            if sum_note:
+                result.answer = f"{result.answer}\n\n{sum_note}"
+                evidence_meta["enumeration_sum"] = True
+            _prepend_scope_fallback_notice(result)
             result.elapsed["llm"] = 0.0  # 提取/规划的模型用量与耗时单列在 enumeration。
             result.elapsed["total"] = sum(result.elapsed.get(k, 0.0) for k in
                                           ("query_understanding", "retrieval_only", "rerank", "assembly", "enumeration", "conversation"))
-            if (index_epoch.current(), retrieval_acl_revision()) != epoch_at_start:
-                evidence_meta["coverage"] = "partial"
-                evidence_meta["stage2"]["index_changed"] = True
-                result.answer += "\n\n处理期间知识库发生变化，本次结果可能不一致，请重新查询。"
-            elif not limited and cache_allowed and not evidence_meta.get("metadata_scope"):
+            if _invalidate_changed_output(result):
+                return result, iter(())
+            if not limited and cache_allowed and not evidence_meta.get("metadata_scope"):
                 _remember_answer(cache_key, result, username)
             return result, iter(())
         # 提取未成功时保留首轮检索证据，回退普通生成并提示不完整。
@@ -1867,7 +2272,12 @@ def answer_stream(
 
     # 节点 ⑩⑪：LLM 调用（Prompt 组装 + 生成回答，合并展示）
     t2 = time.time()
-    messages = build_messages(context, question, history=history,
+    deadline = deadline_constraint(question, result.sources)
+    if deadline:
+        evidence_meta["deadline_constraint"] = deadline
+    bound_project = (evidence_meta.get("metadata_scope") or {}).get("project")
+    generation_question = name_project_in_followup(question, bound_project) if bound_project else question
+    messages = build_messages(context, generation_question, history=history,
                               enumerate_mode=result.enumeration, evidence_meta=evidence_meta,
                               conversation_context=memory_text)
     llm = get_llm_client()
@@ -1875,28 +2285,86 @@ def answer_stream(
     result.elapsed["retrieval"] = sum(result.elapsed[key] for key in ("retrieval_only", "rerank", "assembly"))
 
     def _generate():
+        if _invalidate_changed_output(result):
+            return
         _p("✍️ 生成回答中…")
         llm_start = now_str()
         t3 = time.time()
         text = ""
+        pending = []
+        header = ""
+        answer_status = None
+        last_emit = float("-inf")
         completed = False
+        invalidated = False
         gen_usage = new_usage()
+        stream = llm.chat_stream(messages, usage_out=gen_usage)
         try:
-            for delta in llm.chat_stream(messages, usage_out=gen_usage):
-                text += delta
-                yield delta
-            completed = True  # 正常跑完才会置 True；异常/用户中断都不会
+            for delta in stream:
+                if answer_status is None:
+                    answer_status, delta = split_answer_status(header + delta)
+                    if answer_status is None:
+                        header = delta
+                        continue
+                    header = ""
+                if not delta:
+                    continue
+                pending.append(delta)
+                # 每次对外发布前检查权限，短时间内到达的增量合并成一批。
+                now = time.monotonic()
+                if now - last_emit < 0.08:
+                    continue
+                if invalidated := _invalidate_changed_output(result):
+                    break
+                visible = "".join(pending)
+                pending.clear()
+                text += visible
+                last_emit = now
+                yield visible
+            else:
+                if not (invalidated := _invalidate_changed_output(result)):
+                    completed = True
+                    if answer_status is None:
+                        answer_status, tail = split_answer_status(header, final=True)
+                        if tail:
+                            pending.append(tail)
+                    if pending:
+                        visible = "".join(pending)
+                        text += visible
+                        yield visible
+        except Exception:
+            if not (invalidated := _invalidate_changed_output(result)):
+                raise
         finally:
+            if close := getattr(stream, "close", None):
+                close()
             record_stage_usage(result, "generation", gen_usage)
-            # 思考标签跨 chunk 边界时逐段清洗会漏，回答定稿前对全文再清一次
-            cleaned = strip_think_tags(text).strip()
-            truncated = gen_usage.get("finish_reason") == "length"
-            if truncated and cleaned:
-                # 达到输出上限被掐断（思考模型的内部思考也计入上限，枚举模式最易触发）：
-                # 静默展示半截答案会让人以为是完整回答——在末尾追加可见提示
-                cleaned += (f"\n\n> ⚠️ 回答因达到模型输出上限（{cfg.llm_max_tokens} tokens）被截断，内容不完整。"
-                            "可在 .env 调大 `LLM_MAX_TOKENS`，或换更聚焦的问法。")
-            result.answer = cleaned or None
+            invalidated = invalidated or _invalidate_changed_output(result)
+            finish_reason = gen_usage.get("finish_reason")
+            truncated = finish_reason == "length"
+            complete = completed and finish_reason in (None, "stop")
+            if not invalidated:
+                cleaned = strip_think_tags(text).strip()
+                if answer_status:
+                    evidence_meta["answer_status"] = answer_status
+                corrected = preserve_deadline_wording(cleaned, deadline)
+                if corrected != cleaned:
+                    evidence_meta["deadline_wording_corrected"] = True
+                    cleaned = corrected
+                ranks = {source["rank"] for source in result.sources}
+                if invalid := sorted(answer_citations(cleaned) - ranks):
+                    evidence_meta["invalid_citations"] = invalid
+                    cleaned = remove_invalid_citations(cleaned, ranks).rstrip()
+                    cleaned += "\n\n> 部分引用无法对应本次来源，已移除。"
+                evidence_meta["generation_status"] = (
+                    "truncated" if truncated else "complete" if complete and cleaned else "interrupted")
+                if truncated:
+                    cleaned += (f"\n\n> ⚠️ 回答因达到模型输出上限（{cfg.llm_max_tokens} tokens）被截断，内容不完整。"
+                                "可在 .env 调大 `LLM_MAX_TOKENS`，或换更聚焦的问法。")
+                elif not complete or not cleaned:
+                    cleaned += "\n\n> 回答未完整生成，请重试。"
+                result.answer = cleaned.strip()
+                _prepend_scope_fallback_notice(result)
             result.elapsed["llm"] = time.time() - t3
             # 五个独立阶段求和；retrieval 保留为旧接口的聚合值，不能再次重复相加。
             result.elapsed["query_understanding"] = float(result.elapsed.get("query_understanding", 0.0) or 0.0)
@@ -1908,39 +2376,41 @@ def answer_stream(
                               f"（命中缓存 {result.usage['input_cached']}）"
                               f" / {result.usage['output']} tokens 输出"
                               f"{'（部分为估算）' if result.usage.get('estimated') else ''}")
-            trace.append(make_node(
-                "🤖", "LLM 调用（Prompt 组装 + 生成回答）",
-                time_str=llm_start, elapsed=result.elapsed["llm"],
-                summary="把「任务说明书 + 资料附页 + 用户问题」组装成消息发给大模型，"
-                        f"大模型基于资料流式生成回答{usage_line}",
-                items=[
-                    ("模型", cfg.llm_model or "-"),
-                    ("输入 · System Prompt（任务说明书）", messages[0]["content"]),
-                    ("输入 · User Prompt（资料附页 + 问题）", messages[-1]["content"]),
-                    ("输出 · LLM 生成的回答", result.answer or "（空）"),
-                    ("Token 消耗（全部调用合计）",
-                     f"输入 {result.usage.get('input', 0)}（命中缓存 {result.usage.get('input_cached', 0)}）"
-                     f" / 输出 {result.usage.get('output', 0)}"
-                     f"{' · 部分为本地估算' if result.usage.get('estimated') else ''}"
-                     if result.usage.get("calls") else "（本次未捕获到用量）"),
-                ] + ([("⚠️ 截断", f"finish_reason=length：输出达到 max_tokens 上限（{cfg.llm_max_tokens}），"
-                                   "回答不完整；思考模型的内部思考同样计入该上限")] if truncated else []),
-            ))
-            trace.append(make_node(
-                "🎁", "后处理", time_str=now_str(),
-                summary="答案收尾：提取回答文本、组装参考来源列表并对应引用编号、统计总耗时",
-                items=[
-                    ("做了什么", "提取答案文本 → 组装来源列表（编号/文件/领域/章节/页码/相关度）→ 统计总耗时"),
-                    ("输出", f"答案 {len(result.answer or '')} 字 · 来源 {len(result.sources)} 条 · "
-                     f"总耗时 {result.elapsed.get('total', 0):.2f} 秒"),
-                ],
-            ))
+            if not invalidated:
+                trace.append(make_node(
+                    "🤖", "LLM 调用（Prompt 组装 + 生成回答）",
+                    time_str=llm_start, elapsed=result.elapsed["llm"],
+                    summary="把「任务说明书 + 资料附页 + 用户问题」组装成消息发给大模型，"
+                            f"大模型基于资料流式生成回答{usage_line}",
+                    items=[
+                        ("模型", cfg.llm_model or "-"),
+                        ("输入 · System Prompt（任务说明书）", messages[0]["content"]),
+                        ("输入 · User Prompt（资料附页 + 问题）", messages[-1]["content"]),
+                        ("输出 · LLM 生成的回答", result.answer or "（空）"),
+                        ("Token 消耗（全部调用合计）",
+                         f"输入 {result.usage.get('input', 0)}（命中缓存 {result.usage.get('input_cached', 0)}）"
+                         f" / 输出 {result.usage.get('output', 0)}"
+                         f"{' · 部分为本地估算' if result.usage.get('estimated') else ''}"
+                         if result.usage.get("calls") else "（本次未捕获到用量）"),
+                    ] + ([("⚠️ 截断", f"finish_reason=length：输出达到 max_tokens 上限（{cfg.llm_max_tokens}），"
+                                       "回答不完整；思考模型的内部思考同样计入该上限")] if truncated else []),
+                ))
+                trace.append(make_node(
+                    "🎁", "后处理", time_str=now_str(),
+                    summary="核对引用编号，记录回答状态和总耗时。",
+                    items=[
+                        ("回答状态", evidence_meta["generation_status"]),
+                        ("无效引用", str(evidence_meta.get("invalid_citations", []))),
+                        ("输出", f"答案 {len(result.answer or '')} 字 · 来源 {len(result.sources)} 条 · "
+                         f"总耗时 {result.elapsed.get('total', 0):.2f} 秒"),
+                    ],
+                ))
             # 只缓存「完整且非空」的回答：LLM 失败（异常）或用户中断（半截答案）不缓存，
             # 否则之后同样的问题永远命中这份坏结果
             # V3.8：生成期间知识库被改过（纪元变了）→ 这份答案基于旧数据，不能缓存
             # 自然语言范围依赖实时项目关系及方向名称，主数据变更不经过索引纪元。
-            if (completed and result.answer and cache_allowed and not evidence_meta.get("metadata_scope")
-                    and (index_epoch.current(), retrieval_acl_revision()) == epoch_at_start):
+            if (not invalidated and complete and text.strip() and cache_allowed
+                    and not (evidence_meta.get("metadata_scope") or evidence_meta.get("invalid_citations"))):
                 _remember_answer(cache_key, result, username)
 
     return result, _generate()

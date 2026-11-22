@@ -105,6 +105,7 @@ def build_context(
     items: list[RetrievedItem], config: AppConfig | None = None,
     max_items: int | None = None, max_per_doc: int | None = None, *,
     rank_offset: int = 0, show_version: bool = False,
+    unlimited_docs: set[str] | None = None,
 ) -> tuple[str, list[RetrievedItem], list[dict], list[str]]:
     """组装最终发给大模型的资料文本（V2.6：多样性 + 相邻补全）。
 
@@ -116,6 +117,9 @@ def build_context(
 
     相邻补全：同文档、卡片序号连续的已选卡片自动拼接（Overlap 去重），
     让被切片切断的上下文恢复完整。
+
+    unlimited_docs（R2-b）：豁免单文档配额的 document_id 集合——多事实问答触发
+    主导文档扩展时传入，被扩展文档不受 max_per_doc 限制（其余文档规则不变）。
 
     返回：(资料全文, 实际采用的资料, 丢弃明细, 相邻补全说明)
     """
@@ -142,7 +146,8 @@ def build_context(
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
                             "reason": f"已满采用条数上限（Top {max_items}）"})
             break
-        if per_doc.get(doc_id, 0) >= max_per_doc:
+        if (per_doc.get(doc_id, 0) >= max_per_doc
+                and doc_id not in (unlimited_docs or ())):
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
                             "reason": f"同一文档最多采用 {max_per_doc} 条（保持来源多样性）"})
             continue
@@ -186,7 +191,10 @@ def build_context(
         runs: list[list[RetrievedItem]] = []
         for it in group:
             seq = _chunk_seq(it)
-            if runs and seq is not None and _chunk_seq(runs[-1][-1]) == seq - 1:
+            previous = runs[-1][-1] if runs else None
+            if (previous is not None and seq is not None and _chunk_seq(previous) == seq - 1
+                    and all(previous.metadata.get(key) == it.metadata.get(key)
+                            for key in ("page", "section", "section_path"))):
                 runs[-1].append(it)
             else:
                 runs.append([it])

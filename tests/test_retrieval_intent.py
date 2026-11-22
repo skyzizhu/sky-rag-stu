@@ -8,7 +8,7 @@ from src import mcp_server, pipeline
 from src.prompt import build_messages
 from src.query_scope import extract_scope
 from src.query_understanding import QueryUnderstanding
-from src.retrieval_intent import compares_versions, explicit_file_dates
+from src.retrieval_intent import compares_versions, enumerated_sub_queries, explicit_file_dates
 from tests._helpers import IngestHarness
 
 
@@ -67,6 +67,34 @@ class RetrievalIntentTests(IngestHarness):
         result, _ = self.evidence("今天入库的项目预算", use_llm=False)
         self.assertEqual(result.filters["indexed_at"], {"from": date.today().isoformat(), "to": date.today().isoformat()})
         self.assertEqual({s["source"] for s in result.sources}, {"today.md"})
+
+
+    def test_year_version_counts_as_current_side_reference(self):
+        """年份版本引用（"2025 版"）视为现行侧指称；历史侧仍需旧版/历史字样。
+
+        病灶（实测 C15）：「2025 版…比 2022 年旧版手册涨了多少」有明确历史侧
+        （旧版），却因缺"现在/最新"不触发版本对比通道。两个现行版的并列对比
+        （如 2025 版 vs 2024 版）没有历史侧字样，仍不走该通道。
+        """
+        self.assertTrue(compares_versions("2025 版员工手册的住宿标准比 2022 年旧版手册涨了多少？"))
+        self.assertTrue(compares_versions("2025版方案与旧版方案相比变化在哪里"))
+        # 两个现行版并列：无历史侧指称，不触发（保持既有路由）
+        self.assertFalse(compares_versions("2025 版员工手册和 2024 版手册的一线城市住宿标准分别是多少钱？发生了什么变化？"))
+        self.assertFalse(compares_versions("2024 年度和 2025 年度的公司预算总额分别是多少？"))
+
+    def test_enumerated_sub_queries_split_parallel_entities(self):
+        """确定性拆分兜底：「A、B、C（三份…）的 X 分别…」逐实体生成子查询。"""
+        self.assertEqual(
+            enumerated_sub_queries("2025 版员工手册、信息安全管理制度、招标规格书三份文档的密码要求分别是多少？是否完全一致？"),
+            ["2025 版员工手册 密码要求", "信息安全管理制度 密码要求", "招标规格书 密码要求"])
+        self.assertEqual(
+            enumerated_sub_queries("研发部和财务部的预算分别是多少万元？"),
+            ["研发部 预算", "财务部 预算"])
+        # 保守边界：无"分别/各自"、无"的+字段"结构、单实体——一律不拆
+        self.assertEqual(enumerated_sub_queries("员工手册里试用期和年假是怎么规定的"), [])
+        self.assertEqual(enumerated_sub_queries("X-1000 和 X-2000 的电池续航分别是多少？"),
+                         ["X-1000 电池续航", "X-2000 电池续航"])
+        self.assertEqual(enumerated_sub_queries("报销流程有哪些步骤"), [])
 
     def test_version_comparison_reserves_both_sides_and_keeps_citations_distinct(self):
         self.assertTrue(compares_versions("现在的住宿标准与《2022 年旧版员工手册》相比有什么变化？"))

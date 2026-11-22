@@ -87,15 +87,34 @@ def group_documents(items: list[RetrievedItem]) -> dict:
     return grouped
 
 
+_SOURCE_PREFIX_LINE = re.compile(r"^来源文档：[^\n]*\n?")
+
+
 def document_representatives(items: list[RetrievedItem]) -> list[RetrievedItem]:
     reps = []
     for cards in group_documents(items).values():
         meta = dict(cards[0].metadata)
         # 三个代表性片段均留出空间，避免标题或第一张卡独占精排器输入。
+        # 片段取正文前先剥掉「来源文档：…｜章节：…」前缀行（R2-c 引入）——
+        # 前 55 字符若被前缀占满，文档精排只看得到文件名，看不到内容。
         snippets = []
         for card in cards[:3]:
-            snippets.append(f"{str(card.metadata.get('section') or '')[:20]}: {card.text[:55]}")
-        text = f"{str(meta.get('title') or meta.get('source') or '')[:65]}\n" + "\n".join(snippets)
+            body = _SOURCE_PREFIX_LINE.sub("", card.text or "", count=1)
+            snippets.append(f"{str(card.metadata.get('section') or '')[:20]}: {body[:55]}")
+        # 混合大卡的章节名列表一并暴露：拆卡后"哪篇文档涉及 X"类问题往往
+        # 靠章节名（如「四、安全要求」）而不是代表卡正文命中。
+        # 取池内各卡 sections 的并集（cards[0] 的列表只覆盖它那张混合卡）。
+        sections: list[str] = []
+        for card in cards[:3]:
+            names = card.metadata.get("sections") or (
+                [card.metadata.get("section")] if card.metadata.get("section") else [])
+            for name in names:
+                text_name = str(name)
+                if text_name not in sections:
+                    sections.append(text_name)
+        sections = sections[:8]
+        header = str(meta.get("title") or meta.get("source") or "")[:65]
+        text = header + (f"\n章节：{'、'.join(sections)}" if sections else "") + "\n" + "\n".join(snippets)
         reps.append(RetrievedItem(rank=len(reps) + 1, score=cards[0].score,
                                   text=text, metadata=meta, channels="文档候选"))
     return reps

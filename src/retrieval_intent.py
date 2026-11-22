@@ -19,7 +19,10 @@ _DATE_PATTERNS = (
     re.compile(rf"(?P<event>{_MUTATION})(?:时间|時間|日期)\s*(?:在|为|為|是|[:：])?\s*(?P<period>{_RANGE})"),
 )
 _QUOTED = re.compile(r'「[^」]*」|『[^』]*』|“[^”]*”|《[^》]*》|"[^"]*"')
-_CURRENT = re.compile(r"现在|現在|现行|現行|当前|當前|新版|最新|生效版")
+# 现行侧指称：直译词 + 年份版本引用（"2025 版"）——点名某年版为比较基准时，
+# 该版即用户眼中的"现行侧"；"2022 年旧版"中的"旧"字阻断年份版匹配，不会误入现行侧，
+# 历史侧仍严格要求旧版/历史类字样（两个现行版的并列对比不走该通道）。
+_CURRENT = re.compile(r"现在|現在|现行|現行|当前|當前|新版|最新|生效版|20\d{2}\s*年?\s*版")
 _HISTORY = re.compile(r"旧版|舊版|历史版|歷史版|归档版|歸檔版|原版|上一版|最初(?:立项|立項|版本)|旧版本|舊版本")
 _COMPARE = re.compile(r"对比|對比|比较|比較|相比|相较|相較|比|差异|差異|异同|異同|变化|變化|分别|分別|涨了|漲了|降了")
 _ONLY_ONE = re.compile(r"(?:只|仅|僅)(?:想)?(?:查|看|找|比较|比較)(?:一下)?(?:现行|現行|最新|旧版|舊版|归档|歸檔|历史|歷史)"
@@ -88,6 +91,52 @@ def compares_versions(question: str) -> bool:
     return bool(_COMPARE.search(wording) and not _ONLY_ONE.search(wording)
                 and (_CURRENT.search(text) and _HISTORY.search(text)
                      or re.search(r"新[旧舊](?:两|兩)?版", wording)))
+
+
+# —— 确定性查询拆分（V3.4 查询拆分的离线兜底）——
+# 两段式切分：先按顿号/逗号（高精度）；单个实体且含裸"和/与/及"时再用连词切
+# （与 project_comparison 的 _JOIN 同哲学——裸连词可能切开含"和"的名称，
+# 靠逐项长度校验兜底）。
+_ENUM_JOIN_STRONG = re.compile(r"\s*(?:、|，|,|；|;)\s*")
+_ENUM_JOIN_WEAK = re.compile(r"\s*(?:、|，|,|；|;|(?:和|与|與|及|以及|或者))\s*")
+# 只剥「三份文档 / 两个项目」这类带数量词的枚举尾巴（数量词必须出现）；
+# 实体名里的类型词（"员工手册"的"手册"、"A 制度"的"制度"）是名称的一部分，保留。
+_ENUM_COUNTER = re.compile(
+    r"(?:[一二两兩三四五六七八九十\d]+)\s*(?:份|个|個|篇|家|种|種|类|類)"
+    r"(?:\s*(?:文档|文檔|制度|手册|手冊|合同|方案|项目|項目|报表|報表|办法|辦法|规定|規定|标准|標準|版本|表格))?\s*$")
+
+
+def enumerated_sub_queries(question: str) -> list[str]:
+    """「A、B、C（三份…）的 X 分别…」句式的确定性拆分。
+
+    为什么需要：查询拆分（V3.4）由 LLM 语义判断，实测「三份文档的密码要求分别是
+    多少」这类高置信并列句存在拆分波动——不拆时各文档事实在候选池互相稀释。
+    本函数以固定规则兜底：句中含「分别/各自」+「…的 字段」+ ≥2 个并列实体时，
+    逐实体生成「实体 + 字段」子查询（每个子查询独立检索，由既有保底配额机制
+    保证各实体证据进入候选池）。LLM 已拆分时调用方应以 LLM 结果为准（不重复拆）。
+
+    刻意保守：找不到明确「的+字段」结构（如"试用期和年假分别…"无"的"）即不拆，
+    交回 LLM/单查询路径，避免错误拆分改变单文档问题的语义。
+    """
+    text = unicodedata.normalize("NFKC", question or "")
+    for clause in re.split(r"[。；;！？?!]", text):
+        idx = max(clause.find("分别"), clause.find("各自"))
+        if idx <= 0:
+            continue
+        head = clause[:idx]
+        pos = head.rfind("的")
+        if pos <= 0:
+            continue
+        field = head[pos + 1:].strip(" \u3000，,")
+        items_text = _ENUM_COUNTER.sub("", head[:pos].strip(" \u3000，,"), count=1).strip(" \u3000，,")
+        items = [item.strip(" \u3000") for item in _ENUM_JOIN_STRONG.split(items_text)]
+        if len(items) < 2:
+            items = [item.strip(" \u3000") for item in _ENUM_JOIN_WEAK.split(items_text)]
+        items = [item for item in items if 2 <= len(item) <= 30]
+        if len(items) < 2 or not 2 <= len(field) <= 24:
+            continue
+        return [f"{item} {field}" for item in items[:4]]
+    return []
 
 
 def comparison_statuses(filters: dict | None) -> dict[str, tuple[str, ...]]:

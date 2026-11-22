@@ -146,6 +146,10 @@ class AppConfig:
     # V2.6：上下文组装的来源多样性（同一文档最多进入回答的卡片数）
     context_max_per_doc: int = field(default_factory=lambda: _env_int("CONTEXT_MAX_PER_DOC", 3))
 
+    # R2-b 多事实问答的主导文档扩展：复合问题/多事实集中同一文档时，把该文档
+    # 全部卡片补进候选（前排名次不动，token 总预算不变）。0 = 关闭该机制。
+    expand_doc_max_cards: int = field(default_factory=lambda: _env_int("EXPAND_DOC_MAX_CARDS", 12))
+
     # V3.3：入库时 LLM 自动补全 topic/tags（每个新入库/有变化的文件多用一次 LLM 调用）
     auto_tag: bool = field(default_factory=lambda: _env_bool("AUTO_TAG", True))
 

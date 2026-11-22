@@ -69,16 +69,91 @@ class QueryScopeTests(IngestHarness):
         self.assertNotIn("source", result.filters)
         self.assertEqual(result.filters["__viewer__"]["username"], "alice")
 
-    def test_unresolved_or_conflicting_scope_does_not_search(self):
+    def test_unresolved_scope_falls_back_but_conflict_does_not_search(self):
         with mock.patch("src.pipeline.get_retriever") as retriever:
+            retriever.return_value.retrieve.return_value = []
             unresolved, meta = self.evidence("查「不存在」项目的验收资料", use_llm=False)
-            self.assertEqual(meta["scope_issue"], "unresolved")
+            self.assertEqual(meta["scope_fallback"]["issue"], "unresolved")
+            self.assertNotIn("scope_issue", meta)
             self.assertEqual(unresolved.retrieved, [])
             conflict, meta = self.evidence("查低空监管平台项目的验收资料", use_llm=False,
                                            filters={"doc_type": "技术方案"})
             self.assertEqual(meta["scope_issue"], "conflict")
             self.assertEqual(conflict.retrieved, [])
-            retriever.assert_not_called()
+            # 仅回退的那一次检索；conflict 不触发检索
+            retriever.return_value.retrieve.assert_called_once()
+
+    def test_project_scope_relaxes_when_linked_docs_miss_the_fact(self):
+        """R6-M09：项目范围 0 召回的两级放宽。
+
+        项目主档存在且库中有关联文档，但目标事实在未挂项目的跨项目文档
+        （全公司台账）——二级去掉范围键重试并给出 relaxed_empty 提示；
+        主档无任何关联文档时不放宽（诚实空）。
+        """
+        ledger = self.write_note("凤凰项目 M1 2026-04-30 M2 2026-06-30 M3 2026-09-15。",
+                                 "ledger.md", "reference/general")
+        self.ingest([ledger])  # 台账不挂项目
+        phoenix = projects.save_project(projects.ProjectFields("凤凰项目", None, None, [], ""))["id"]
+        charter = self.write_note("凤凰项目章程正文。", "charter.md")
+        self.ingest([charter], default_project_id=phoenix)
+
+        # 一级（保留 project_id）召回章程卡但问题问里程碑 → 模拟 0 召回：
+        # 用 mock：首次（含范围）返回空，二级（无范围）返回台账卡。
+        from src.retriever import RetrievedItem
+        def fake_retrieve(query, top_k=None, filters=None, **kwargs):
+            if filters and filters.get("project_id"):
+                return []
+            return [RetrievedItem(rank=1, score=0.5, text="凤凰项目 M1 2026-04-30。",
+                                  metadata={"chunk_id": "c1", "source": "ledger.md",
+                                            "document_id": "d_ledger", "version": "1.0"})]
+        with mock.patch("src.pipeline.get_retriever") as retriever:
+            retriever.return_value.retrieve.side_effect = fake_retrieve
+            result, meta = self.evidence("凤凰项目的三个里程碑分别计划什么时候完成？", use_llm=False)
+        self.assertEqual(meta["scope_fallback"]["issue"], "relaxed_empty")
+        self.assertEqual([s["source"] for s in result.sources], ["ledger.md"])
+        self.assertNotIn("project_id", result.filters)
+
+    def test_comparison_with_unregistered_project_falls_back(self):
+        """R6-C02：比较句式含未登记项目名 → 回退普通检索而非拦截。"""
+        projects.save_project(projects.ProjectFields("天枢项目", None, None, [], ""))
+        with mock.patch("src.pipeline.get_retriever") as retriever:
+            retriever.return_value.retrieve.return_value = []
+            result, meta = self.evidence(
+                "天枢项目、不存在的项目、星云二期三个项目里预算最高的是哪个？", use_llm=False)
+        self.assertNotEqual(result.answer, "无法确认所有要比较的项目，请核对项目名称。")
+        self.assertNotIn("scope_notice", meta)  # 后续链路接管（multiple 回退或普通检索）
+        retriever.return_value.retrieve.assert_called()
+
+    def test_document_route_relaxes_inferred_source_with_notice(self):
+        """R6-M09 残余：document 路由 QU 推断 source 0 召回 → 放宽重试 + 提示行。
+
+        手动/MCP 指定的 source（在 filters 里）不放宽——与"手动设置不放宽"一致。
+        """
+        from src.retriever import RetrievedItem
+        question = "三个里程碑的完成日期是什么时候？"
+        qu = QueryUnderstanding(original=question, vector_query=question, ok=True,
+                                enumeration=True,
+                                filters={"source": "不存在的里程碑文档.md"})
+        target = RetrievedItem(rank=1, score=0.5, text="凤凰项目 M1 2026-04-30。",
+                               metadata={"chunk_id": "c1", "source": "ledger.md",
+                                         "document_id": "d_ledger", "version": "1.0"})
+
+        def fake_retrieve(query, top_k=None, filters=None, **kwargs):
+            return [] if (filters or {}).get("source") else [target]
+        with mock.patch("src.pipeline.understand_query", return_value=qu), \
+             mock.patch("src.pipeline.get_llm_client"), \
+             mock.patch("src.pipeline.get_retriever") as retriever:
+            retriever.return_value.retrieve.side_effect = fake_retrieve
+            result, meta = self.evidence(question)
+        self.assertEqual(meta["scope_fallback"]["issue"], "source_relaxed")
+        self.assertEqual([s["source"] for s in result.sources], ["ledger.md"])
+        # 手动 source（filters 传入）0 召回不放宽：只检索一次、诚实空
+        with mock.patch("src.pipeline.get_retriever") as retriever:
+            retriever.return_value.retrieve.return_value = []
+            result, meta = self.evidence("查凤凰项目的里程碑", use_llm=False,
+                                         filters={"source": "不存在.md"})
+        retriever.return_value.retrieve.assert_called_once()
+        self.assertEqual(result.retrieved, [])
 
     def test_registered_project_suffix_and_charter_scope_keep_acl(self):
         full = projects.save_project(projects.ProjectFields("天枢项目", None, None, [], ""))["id"]
@@ -121,10 +196,14 @@ class QueryScopeTests(IngestHarness):
         with self.assertRaises(ValueError):
             projects.resolve_project_filter("天枢", None)
         projects.save_project(projects.ProjectFields("天枢專案", None, None, [], ""))
+        # 多个主档匹配「天枢」变体 → unresolved：回退全库语义检索（带 scope_fallback 标记），
+        # 不再拦截；retrieve 必须被调用且不携带任何 project_id 过滤。
         with mock.patch("src.pipeline.get_retriever") as retrieve:
+            retrieve.return_value.retrieve.return_value = []
             result, meta = self.evidence("查「天枢」项目的预算", use_llm=False)
-            retrieve.assert_not_called()
-        self.assertEqual(meta["scope_issue"], "unresolved")
+            retrieve.return_value.retrieve.assert_called_once()
+            self.assertNotIn("project_id", retrieve.return_value.retrieve.call_args.kwargs["filters"])
+        self.assertEqual(meta["scope_fallback"]["issue"], "unresolved")
         self.assertFalse(result.sources)
 
     def test_project_reference_uses_selected_project_and_keeps_acl(self):
@@ -180,6 +259,28 @@ class QueryScopeTests(IngestHarness):
         self.assertEqual(result.filters["project_id"], [self.regulatory])
         result, _ = self.evidence("查验收资料", history=history, use_llm=False)
         self.assertNotIn("project_id", result.filters)
+
+    def test_explicit_project_switch_and_correction_update_shared_scope(self):
+        histories = (
+            "现在只看低空预警平台项目的里程碑。",
+            "我刚才说的是低空监管平台项目，现在只查低空预警平台项目。",
+        )
+        target = projects.resolve_project_filter("低空预警平台", None)
+        for latest in histories:
+            with self.subTest(latest=latest):
+                history = [{"role": "user", "content": "先看低空监管平台项目。"},
+                           {"role": "user", "content": latest}]
+                result, meta = self.evidence("它的验收资料有哪些？", history=history, use_llm=False)
+                self.assertEqual(result.filters["project_id"], target)
+                self.assertNotIn("scope_issue", meta)
+                self.assertEqual({s["source"] for s in result.sources}, {"warning.md"})
+        result, meta = self.evidence("我之前说的是低空监管平台项目，现在只查低空预警平台项目的验收资料",
+                                     use_llm=False)
+        self.assertEqual(result.filters["project_id"], target)
+        self.assertNotIn("scope_issue", meta)
+        ambiguous = [{"role": "user", "content": "现在只看低空监管平台和低空预警平台两个项目。"}]
+        _, meta = self.evidence("它的验收资料有哪些？", history=ambiguous, use_llm=False)
+        self.assertEqual(meta["scope_issue"], "project_reference_ambiguous")
 
     def test_bare_project_followup_shares_acl_and_stops_after_topic_change(self):
         question = "它的验收资料有哪些？"
@@ -282,25 +383,34 @@ class QueryScopeTests(IngestHarness):
         self.assertEqual(extract_scope("查正文提到研发部的文件，文档类型为验收报告"),
                          {"doc_type": "验收报告"})
 
-    def test_negative_and_multiple_values_prompt_without_retrieving(self):
-        cases = {
+    def test_negated_scope_prompts_and_multiple_values_fall_back(self):
+        negated = {
             "列出不归属研发部的文件": "negated",
             "不要查低空监管平台项目的验收报告": "negated",
-            "查「低空监管平台」项目或「低空预警平台」项目的验收报告": "multiple",
-            "查「低空监管平台」项目、「低空预警平台」项目的验收报告": "multiple",
-            "查「低空监管平台」项目，查「低空预警平台」项目的验收报告": "multiple",
-            "查低空监管平台或低空预警平台项目的验收报告": "multiple",
-            "查归属研发部和采购部的验收报告": "multiple",
-            "查低空监管平台项目的技术方案和验收报告": "multiple",
         }
         with mock.patch("src.pipeline.get_retriever") as retriever:
-            for question, issue in cases.items():
+            for question, issue in negated.items():
                 with self.subTest(question=question):
                     result, meta = self.evidence(question, use_llm=False)
                     self.assertEqual(meta["scope_issue"], issue)
                     self.assertTrue(meta["scope_notice"])
                     self.assertFalse(result.retrieved)
             retriever.assert_not_called()
+        multiple = {
+            "查「低空监管平台」项目或「低空预警平台」项目的验收报告",
+            "查「低空监管平台」项目、「低空预警平台」项目的验收报告",
+            "查「低空监管平台」项目，查「低空预警平台」项目的验收报告",
+            "查低空监管平台或低空预警平台项目的验收报告",
+            "查归属研发部和采购部的验收报告",
+            "查低空监管平台项目的技术方案和验收报告",
+        }
+        for question in multiple:
+            with self.subTest(question=question), mock.patch("src.pipeline.get_retriever") as retriever:
+                retriever.return_value.retrieve.return_value = []
+                result, meta = self.evidence(question, use_llm=False)
+                self.assertEqual(meta["scope_fallback"]["issue"], "multiple")
+                self.assertNotIn("scope_issue", meta)
+                retriever.return_value.retrieve.assert_called_once()
 
     def test_invalid_model_fields_keep_valid_understanding(self):
         for raw_filters, time_range in (
@@ -333,10 +443,21 @@ class QueryScopeTests(IngestHarness):
             retrieve = get_retriever.return_value.retrieve
             retrieve.return_value = []
             result, _ = self.evidence(question)
-        first, retry = (call.kwargs["filters"] for call in retrieve.call_args_list)
-        self.assertEqual(first, {**retry, "source": "missing.md"})
-        self.assertEqual(retry["updated_at"], dates)
-        self.assertEqual(retry["project_id"], [self.regulatory])
-        self.assertEqual(retry["doc_type"], "验收报告")
-        self.assertEqual(retry["__viewer__"]["username"], "alice")
+        # 两级放宽（R6-M09）：一级去 LLM filters 保留口头范围（既有规则）；
+        # 仍 0 召回且项目在库中确有关联文档时，二级去范围键重试。
+        # 日期与权限身份在全部重试中始终保留。
+        calls = [call.kwargs["filters"] for call in retrieve.call_args_list]
+        self.assertEqual(len(calls), 3)
+        first, level_one, level_two = calls
+        self.assertEqual(first, {**level_one, "source": "missing.md"})
+        # 一级：保留日期 + 项目 + 类型 + 权限
+        self.assertEqual(level_one["updated_at"], dates)
+        self.assertEqual(level_one["project_id"], [self.regulatory])
+        self.assertEqual(level_one["doc_type"], "验收报告")
+        self.assertEqual(level_one["__viewer__"]["username"], "alice")
+        # 二级：范围键（project_id/doc_type）被剥离，日期与权限保留
+        self.assertNotIn("project_id", level_two)
+        self.assertNotIn("doc_type", level_two)
+        self.assertEqual(level_two["updated_at"], dates)
+        self.assertEqual(level_two["__viewer__"]["username"], "alice")
         self.assertEqual(result.filters["updated_at"], dates)
