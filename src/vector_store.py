@@ -31,6 +31,7 @@ INDEXED_FIELDS = [
 ]
 # 时间字段：建立 datetime 索引，支持范围过滤（如"最近三个月的笔记"）
 INDEXED_DATETIME_FIELDS = ["created_at", "updated_at", "indexed_at"]
+INGEST_PENDING = "_ingest_pending"
 
 
 class VectorStoreError(Exception):
@@ -104,7 +105,8 @@ class VectorStore:
         """馆里一共有多少张卡片。"""
         if not self.collection_exists():
             return 0
-        return self.client.count(self.cfg.qdrant_collection, exact=True).count
+        return self.client.count(self.cfg.qdrant_collection,
+                                 count_filter=self.published_filter(None), exact=True).count
 
     # ---------- 存卡 ----------
     def upsert_chunks(self, chunks: list[Chunk], vectors: list[list[float]], batch_size: int = 128) -> int:
@@ -168,7 +170,7 @@ class VectorStore:
             collection_name=self.cfg.qdrant_collection,
             query=query_vector,
             limit=top_k,
-            query_filter=self.build_filter(filters),
+            query_filter=self.published_filter(filters),
             with_payload=True,
             **({"timeout": max(1, math.ceil(timeout))} if timeout is not None else {}),
         )
@@ -268,6 +270,14 @@ class VectorStore:
             )
         return models.Filter(must=conditions) if conditions else None
 
+    @classmethod
+    def published_filter(cls, filters: dict | None) -> models.Filter:
+        base = cls.build_filter(filters)
+        return models.Filter(
+            must=[base] if base else None,
+            must_not=[models.FieldCondition(key=INGEST_PENDING,
+                                            match=models.MatchValue(value=True))])
+
     # ---------- 按 source 查看 / 管理 ----------
     def list_sources(self) -> dict[str, int]:
         """盘点：每个文件各存了多少张卡片。"""
@@ -280,6 +290,7 @@ class VectorStore:
                 collection_name=self.cfg.qdrant_collection,
                 limit=256,
                 offset=offset,
+                scroll_filter=self.published_filter(None),
                 with_payload=["source"],
             )
             for point in points:
@@ -295,9 +306,7 @@ class VectorStore:
             return []
         points, _ = self.client.scroll(
             collection_name=self.cfg.qdrant_collection,
-            scroll_filter=models.Filter(
-                must=[models.FieldCondition(key="source", match=models.MatchValue(value=source))]
-            ),
+            scroll_filter=self.published_filter({"source": source}),
             limit=limit,
             with_payload=True,
         )
@@ -350,7 +359,7 @@ class VectorStore:
         from src.permissions import classify_visibility
         docs: dict[tuple, dict] = {}
         offset = None
-        scroll_filter = self.build_filter(filters)
+        scroll_filter = self.published_filter(filters)
         while True:
             points, offset = self.client.scroll(
                 collection_name=self.cfg.qdrant_collection,
@@ -415,7 +424,7 @@ class VectorStore:
             while scanned < max_points:
                 points, offset = self.client.scroll(
                     collection_name=self.cfg.qdrant_collection,
-                    scroll_filter=self.build_filter(filters), offset=offset,
+                    scroll_filter=self.published_filter(filters), offset=offset,
                     limit=min(256, max_points - scanned), with_vectors=False,
                     with_payload=["document_id", "source", "path", "title", "domain", "doc_type",
                                   "department", "project_id", "version", "status", "indexed_at", "updated_at",
@@ -453,7 +462,7 @@ class VectorStore:
         if not self.collection_exists():
             return [], None
         points, next_offset = self.client.scroll(
-            collection_name=self.cfg.qdrant_collection, scroll_filter=self.build_filter(filters),
+            collection_name=self.cfg.qdrant_collection, scroll_filter=self.published_filter(filters),
             offset=offset, limit=limit, with_vectors=False, with_payload=True,
             **({"timeout": max(1, math.ceil(timeout))} if timeout is not None else {}),
         )
@@ -468,7 +477,7 @@ class VectorStore:
         while len(cards) < limit:
             points, offset = self.client.scroll(
                 collection_name=self.cfg.qdrant_collection,
-                scroll_filter=self.build_filter(filters),
+                scroll_filter=self.published_filter(filters),
                 limit=min(256, limit - len(cards)),
                 offset=offset,
                 with_payload=True,
@@ -485,7 +494,7 @@ class VectorStore:
             return []
         points, _ = self.client.scroll(
             collection_name=self.cfg.qdrant_collection,
-            scroll_filter=self.build_filter({**(filters or {}), "document_id": document_id}),
+            scroll_filter=self.published_filter({**(filters or {}), "document_id": document_id}),
             limit=limit,
             with_payload=True,
         )

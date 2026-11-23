@@ -646,7 +646,7 @@ def document_user_revocations() -> dict[str, str]:
 
 
 @contextmanager
-def document_acl_write():
+def document_acl_write(*, retain_if=None):
     """Serialize ACL writes and invalidate cross-process readers before changing Qdrant."""
     from contextlib import closing
 
@@ -657,11 +657,13 @@ def document_acl_write():
         conn.commit()
         conn.execute("BEGIN IMMEDIATE")
         try:
-            yield
+            yield token, lambda previous: conn.execute(
+                "DELETE FROM retrieval_acl_epoch WHERE key=?", (previous,))
         finally:
             # Even a partially failed Qdrant write must retire the old cache generation.
             conn.execute("INSERT OR REPLACE INTO retrieval_acl_epoch VALUES ('revision', ?)", (token,))
-            conn.execute("DELETE FROM retrieval_acl_epoch WHERE key=?", (token,))
+            if retain_if is None or not retain_if(token):
+                conn.execute("DELETE FROM retrieval_acl_epoch WHERE key=?", (token,))
             conn.commit()
 
 

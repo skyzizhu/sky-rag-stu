@@ -44,7 +44,7 @@ def _indexed_projects(store, epoch: str, refresh_window: int) -> tuple[int | Non
         return ()
     documents: dict[str, int | None] = {}
     offset = None
-    active = store.build_filter({"status": "active"})
+    active = store.published_filter({"status": "active"})
     while True:
         points, offset = store.client.scroll(
             collection_name=store.cfg.qdrant_collection, scroll_filter=active,

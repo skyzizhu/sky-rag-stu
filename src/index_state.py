@@ -46,13 +46,15 @@ def carry_doc_types(values: dict, department_values: dict | None = None, *,
 
 def visibility_info_for(state: dict, relative_path: str) -> dict:
     entry = state.get(relative_path, {})
-    info = dict(_visibility_carry.get().get(relative_path, entry.get('visibility_info', {})))
+    info = dict(entry.get('visibility_info') or {})
     old = entry.get('overrides', {})
-    if not info and ('allowed_groups' in old or 'allowed_users' in old):
+    if 'manual' not in info and ('allowed_groups' in old or 'allowed_users' in old):
         from src.permissions import normalize_visibility
 
-        info['manual'] = normalize_visibility(old.get('allowed_groups'), old.get('allowed_users'))
-    return info
+        legacy = normalize_visibility(old.get('allowed_groups'), old.get('allowed_users'))
+        if legacy != info.get('value'):
+            info['manual'] = legacy
+    return info or dict(_visibility_carry.get().get(relative_path, {}))
 
 
 def doc_type_info_for(state: dict, relative_path: str) -> dict:
@@ -95,14 +97,18 @@ def file_hash(path: Path) -> str:
     return hashlib.md5(Path(path).read_bytes()).hexdigest()
 
 
-def load_state() -> dict:
+def load_state(*, strict: bool = False) -> dict:
     """读取台账：{相对路径: {"hash", "document_id", "chunks", "indexed_at"}}。"""
     if not STATE_PATH.exists():
         return {}
     try:
         data = json.loads(STATE_PATH.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {}
-    except (json.JSONDecodeError, OSError) as exc:
+        if not isinstance(data, dict):
+            raise ValueError("入库台账格式无效")
+        return data
+    except (ValueError, OSError) as exc:
+        if strict:
+            raise
         # 台账损坏时回退空账本，但必须大声警告：此时全部文件会被当新文件，
         # 库里的旧版本卡片不会走 expire，可能出现新旧两代同时 active
         console_print(f"❌ 入库台账损坏（{exc}），已按空台账处理。"
@@ -114,11 +120,18 @@ def save_state(state: dict, *, strict: bool = False) -> None:
     try:
         STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
         # 先写临时文件再原子替换：避免写一半崩溃/并发写留下半截 JSON
-        tmp_path = STATE_PATH.with_suffix(".json.tmp")
-        tmp_path.write_text(
-            json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        tmp_path.replace(STATE_PATH)
+        from tempfile import NamedTemporaryFile
+
+        with NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".tmp",
+                                dir=STATE_PATH.parent, delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+            try:
+                json.dump(state, tmp, ensure_ascii=False, indent=2)
+                tmp.close()
+                tmp_path.replace(STATE_PATH)
+            finally:
+                tmp.close()
+                tmp_path.unlink(missing_ok=True)
     except OSError as exc:
         if strict:
             raise

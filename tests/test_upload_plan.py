@@ -87,6 +87,27 @@ class PlanTests(_KnowledgeDirCase):
 
 
 class ExecuteTests(_KnowledgeDirCase):
+    def test_same_name_versions_do_not_overwrite_each_other(self):
+        rel = "work/pm/a.md"
+        ledger = {rel: self._existing(rel, note("旧"))}
+        files = [("a.md", note("第一份")), ("a.md", note("第二份"))]
+        plan = plan_uploads(files, "learning/general", ledger, self.kdir)
+        paths, _ = execute_uploads(plan, files, self.kdir)
+        self.assertEqual([path.read_bytes() for path in paths], [data for _, data in files])
+        self.assertEqual(paths[0], self.kdir / rel)
+        self.assertNotEqual(paths[1], paths[0])
+
+    def test_user_cannot_select_the_same_existing_target_twice(self):
+        rel = "work/pm/a.md"
+        ledger = {rel: self._existing(rel, note("旧")),
+                  "life/a.md": self._existing("life/a.md", note("另一个版本"))}
+        files = [("a.md", note("第一份")), ("a.md", note("第二份"))]
+        # 两份独立预检结果都允许用户选择同一现有文件。
+        plan = [plan_uploads([file], "learning/general", ledger, self.kdir)[0] for file in files]
+        with self.assertRaisesRegex(ValueError, "同一个入库位置"):
+            execute_uploads(plan, files, self.kdir, {0: VERSION_OF + rel, 1: VERSION_OF + rel})
+        self.assertEqual((self.kdir / rel).read_bytes(), note("旧"))
+
     def test_actions_write_to_the_right_places(self):
         ledger = {
             "learning/general/same.md": self._existing("learning/general/same.md", note("旧")),

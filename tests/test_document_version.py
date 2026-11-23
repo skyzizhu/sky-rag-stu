@@ -76,9 +76,9 @@ class DocumentVersionIngestTests(IngestHarness):
         docs = self.store.list_documents()
         self.assertEqual(docs[0]["document_version"], "3.2")
         self.assertEqual(docs[0]["version"], "1.0")
-        before = {str(c["id"]) for c in self.store.get_all_cards()}
+        before = {c["payload"]["chunk_id"] for c in self.store.get_all_cards()}
         self.ingest([path])
-        after = {str(c["id"]) for c in self.store.get_all_cards()}
+        after = {c["payload"]["chunk_id"] for c in self.store.get_all_cards()}
         self.assertEqual(before, after)
         self.assertEqual(first.file_rows[0]["document_version_status"], "declared")
         from src import index_state

@@ -198,7 +198,8 @@ def _ingest_files_impl(
     vector_store = store or get_vector_store()
     from src.auth_db import (document_acl_write, document_user_revocations, list_users,
                              normalize_department_groups)
-    from src.ingest_publication import publish, publication_pending, recover_publication
+    from src.ingest_publication import (publish, publication_owns_token, publication_pending,
+                                        recover_publication)
     from src.vector_store import VectorStoreError
 
     summary = IngestSummary(rebuilt=rebuild)
@@ -257,13 +258,11 @@ def _ingest_files_impl(
                    for rel in previous_state}
     department_inputs = {rel: istate.department_info_for(previous_state, rel)
                          for rel in previous_state}
-    visibility_inputs = {rel: istate.visibility_info_for(previous_state, rel)
-                         for rel in previous_state}
     state = {} if rebuild else previous_state
     paths_to_process: list[Path] = []
     processed: list[tuple[Path, str, str]] = []  # (路径, 相对路径, 哈希)
     explicit = bool(paths)
-    observed: dict | None = None
+    candidates = []
     for path in files:
         rel = path.name
         try:
@@ -280,21 +279,28 @@ def _ingest_files_impl(
             summary.failed_files.append(f"{rel}（无法读取文件）")
             summary.file_errors[rel] = "file_unreadable"
             continue
+        candidates.append((path, rel, current_hash))
+
+    skip_candidates = {rel for _, rel, digest in candidates
+                       if (not explicit or skip_unchanged) and state.get(rel, {}).get("hash") == digest}
+    observed: dict[tuple[str, str], int] = {}
+    skipped_ids = [state[rel].get("document_id") or document_id_for(rel) for rel in sorted(skip_candidates)]
+    for start_index in range(0, len(skipped_ids), 256):
+        for row in vector_store.list_documents({"document_id": skipped_ids[start_index:start_index + 256]}):
+            key = (row["path"], row["version"])
+            entry = state.get(row["path"], {})
+            if (row["status"] == entry.get("indexed_status", "active")
+                    or ("indexed_status" not in entry and row["status"] == "archive")):
+                if row.get("version_content_hash") in ("", None, entry.get("hash")):
+                    observed[key] = observed.get(key, 0) + row["chunks"]
+
+    for path, rel, current_hash in candidates:
         known = "hash" in state.get(rel, {})
         unchanged = known and state[rel].get("hash") == current_hash
-        if unchanged and (not explicit or skip_unchanged):
-            if observed is None:
-                observed = {}
-                for row in vector_store.list_documents():
-                    key = (row["path"], row["version"])
-                    entry = state.get(row["path"], {})
-                    if (row["status"] == entry.get("indexed_status", "active")
-                            or ("indexed_status" not in entry and row["status"] == "archive")):
-                        if row.get("version_content_hash") in ("", None, entry.get("hash")):
-                            observed[key] = observed.get(key, 0) + row["chunks"]
-            if observed.get((rel, state[rel].get("version"))) == state[rel].get("chunks", 0):
-                summary.skipped_files.append(rel)
-                continue
+        if (rel in skip_candidates
+                and observed.get((rel, state[rel].get("version"))) == state[rel].get("chunks", 0)):
+            summary.skipped_files.append(rel)
+            continue
         if unchanged:
             # 强制重跑或修复缺失卡片：沿用现有版本。
             summary.new_files.append(rel)
@@ -403,6 +409,8 @@ def _ingest_files_impl(
         for key, value in overrides.items():
             if key in ("title", "category", "topic", "tags", "status") and value:
                 parsed.metadata[key] = value
+        if overrides.get("version") and rel not in summary.updated_files:
+            parsed.metadata["version"] = overrides["version"]
         parsed.metadata["version_content_hash"] = current_hash
         parsed.metadata.update(apply_confirmation(
             declared, state.get(rel, {}).get("version_confirmation"),
@@ -420,6 +428,7 @@ def _ingest_files_impl(
     # V3.9：入库人写入文档元数据（切片继承 → 进卡片 payload），供审计与溯源
     for doc in docs:
         doc.metadata["owner"] = (owner or "").strip()
+    front_matter_by_rel = {doc.metadata["path"]: doc.front_matter for doc in docs}
     cleaned_docs, chunks = clean_and_chunk(docs)
     summary.total_chunks = len(chunks)
     chunks_by_file: dict[str, int] = {}
@@ -439,7 +448,7 @@ def _ingest_files_impl(
             "project_id": meta.get("project_id"),
             "classification": meta["classification"],
             "allowed_groups": meta["allowed_groups"],
-            "allowed_users": meta["allowed_users"],
+            "allowed_users": meta.get("allowed_users", []),
             "status": meta["status"],
             "chunks": chunks_by_file.get(meta["path"], 0),
             "document_version": meta["document_version"],
@@ -449,88 +458,122 @@ def _ingest_files_impl(
     console_print(f"   共切出 {len(chunks)} 张知识卡片")
     # 空文本文件（0 卡片，如无文字的扫描件/图片）：显式警告并跳过台账指纹——
     # 记了指纹会永久跳过，之后再开启 OCR 也不会重试；不记则开启后可重新入库
-    zero_card_files = [d.metadata["source"] for d in cleaned_docs
+    zero_card_files = [d.metadata["path"] for d in cleaned_docs
                        if chunks_by_file.get(d.metadata["path"], 0) == 0]
     if zero_card_files:
+        summary.failed_files.extend(f"{rel}（未提取到可入库的文字）" for rel in zero_card_files)
         console_print(f"   ⚠️ {len(zero_card_files)} 个文件未解析出文字（扫描件未开 OCR 或内容为空）："
                       f"{'、'.join(zero_card_files[:5])}{'…' if len(zero_card_files) > 5 else ''}；"
                       "这些文件本次不会入向量库，开启 OCR 后重新入库即可")
+    docs_by_rel = {d.metadata["path"]: d for d in cleaned_docs if d.metadata["path"] in chunks_by_file}
+    summary.ok_files = len(docs_by_rel)
+    summary.new_files = [rel for rel in summary.new_files if rel in docs_by_rel]
+    summary.updated_files = [rel for rel in summary.updated_files if rel in docs_by_rel]
     if not chunks:
         return summary
 
     # ⑦ 台账记录函数：只为「解析且切片成功」的文件记录指纹。
     # 解析失败的文件刻意不记——旧向量保持原状，下次入库自动重试；
     # 若记录了失败文件的新指纹，新内容会被增量判断永久跳过。
-    versions_by_rel = {d.metadata["path"]: d.metadata.get("version", "1.0") for d in cleaned_docs}
-    project_links = {d.metadata["path"]: {"project_id": d.metadata["project_id"]}
-                     for d in cleaned_docs if "project_id" in d.metadata}
-
-    def _record_ledger() -> None:
-        for path, rel, file_hash_value in processed:
-            if rel not in versions_by_rel:
-                continue
-            doc_id = next(
-                (c.metadata["document_id"] for c in chunks if c.metadata["path"] == rel),
-                document_id_for(rel),
-            )
-            chunk_count = sum(1 for c in chunks if c.metadata["path"] == rel)
-            version_info = next(({key: d.metadata[key] for key in
-                                  ("document_version", "document_version_status", "document_version_source", "document_version_evidence")}
-                                 for d in cleaned_docs if d.metadata["path"] == rel), {})
-            istate.update_entry(state, rel, doc_id, chunk_count, file_hash_value,
-                                version=versions_by_rel[rel], version_info=version_info,
-                                version_detection=detection_by_rel[rel],
-                                doc_type_info=doc_types_by_rel[rel] if chunk_count else None,
-                                department_info=departments_by_rel[rel] if chunk_count else None,
-                                project_link=project_links.get(rel) if chunk_count else None,
-                                visibility_info=visibility_by_rel[rel])
-
-    if not chunks:
-        # 全部文件都没有切出卡片（空文件等）：也记台账（0 卡片），
-        # 否则这些文件每次入库都重跑、重复花 LLM 标签的钱
-        _record_ledger()
-        istate.save_state(state)
-        return summary
+    def without_acl(entry: dict) -> dict:
+        return {**{key: value for key, value in entry.items()
+                   if key not in ("overrides", "visibility_info")},
+                "overrides": {key: value for key, value in entry.get("overrides", {}).items()
+                              if key not in ("allowed_groups", "allowed_users", "classification")}}
 
     # ⑤ 向量化
     console_print(f"⑤ 向量化（模型：{cfg.embedding_model}）")
     summary.vector_dimension = embedding.dimension()
     console_print(f"   向量维度：{summary.vector_dimension}")
+    grant_snapshot = document_user_revocations() if default_allowed_users else {}
     vectors = embedding.embed_texts([chunk.text for chunk in chunks])
 
     # ⑥ 存入向量库
-    from src.auth_db import document_acl_write, document_user_revocations, list_users
+    with document_acl_write(retain_if=publication_owns_token) as acl_guard:
+        recover_publication(vector_store, acl_guard[1])
+        latest = istate.load_state(strict=not rebuild)
+        if rebuild and latest != previous_state:
+            raise VectorStoreError("重建期间文档台账已变化，请重试。")
+        for path, rel, digest in processed:
+            if rel not in docs_by_rel:
+                continue
+            if without_acl(latest.get(rel, {})) != without_acl(previous_state.get(rel, {})):
+                raise VectorStoreError(f"{rel}：准备入库期间文档档案或版本已变化，请重试。")
+            try:
+                stable = istate.file_hash(path) == digest
+            except OSError:
+                stable = False
+            if not stable:
+                raise VectorStoreError(f"{rel}：准备入库期间文件内容已变化，请重试。")
 
-    personal = {rel: info for rel, info in visibility_by_rel.items() if info['value']['allowed_users']}
-    with document_acl_write():
-        if personal:
-            # 向量化期间可能发生停用，发布前重新验证授权代次和员工状态。
-            revocations = document_user_revocations()
-            active = {u['username'] for u in list_users() if u['status'] == 'active'}
-            for info in personal.values():
-                prune_user_grants(info['value'], info.get('granted_revocations', {}), revocations, active)
-            for chunk in chunks:
-                if info := personal.get(chunk.metadata['path']):
-                    chunk.metadata.update(info['value'])
-            for row in summary.file_rows:
-                if info := personal.get(row['path']):
-                    row.update(info['value'])
+        # 旧台账可能只记了指纹。此时从现存当前卡片继承权限，缺少可验证权限则保持受限。
+        legacy_paths = {rel for rel in docs_by_rel if rel in latest
+                        and not istate.visibility_info_for(latest, rel)}
+        legacy_acl = {}
+        if legacy_paths:
+            for row in vector_store.list_documents({"document_id": [document_id_for(rel)
+                                                                    for rel in legacy_paths]}):
+                if (row["path"] in legacy_paths and row["status"] in ("active", "archive")
+                        and row["version"] == latest[row["path"]].get("version")):
+                    legacy_acl[row["path"]] = {"value": normalize_visibility(
+                        row["allowed_groups"], row["allowed_users"], legacy_default=False)}
+
+        revocations = document_user_revocations()
+        active = None
+        state = {} if rebuild else latest.copy()
+        previous_versions = {}
+        for _, rel, digest in processed:
+            if rel not in docs_by_rel:
+                continue
+            doc = docs_by_rel[rel]
+            meta = doc.metadata
+            entry = latest.get(rel, {})
+            previous_acl = istate.visibility_info_for(latest, rel) or legacy_acl.get(rel)
+            if not previous_acl and rel in legacy_paths:
+                previous_acl = {"value": normalize_visibility([], [], legacy_default=False)}
+            acl, info = resolve_visibility(
+                previous_acl, front_matter_by_rel[rel], default_groups=default_groups,
+                default_allowed_users=default_allowed_users, legacy_overrides=entry.get("overrides"))
+            acl["allowed_groups"] = normalize_department_groups(acl["allowed_groups"])
+            if acl["allowed_users"]:
+                if active is None:
+                    active = {u["username"] for u in list_users() if u["status"] == "active"}
+                if default_allowed_users is not None and not previous_acl:
+                    info["granted_revocations"] = {u: grant_snapshot.get(u) for u in acl["allowed_users"]}
+                prune_user_grants(acl, info.get("granted_revocations", {}), revocations, active)
+            acl["classification"] = classify_visibility(acl["allowed_groups"], acl["allowed_users"])
+            info["value"] = dict(acl)
+            visibility_by_rel[rel] = info
+            version_info = {key: meta[key] for key in ("document_version", "document_version_status",
+                            "document_version_source", "document_version_evidence")}
+            previous_versions[rel] = entry.get("version") or ("1.0" if entry.get("hash") else None)
+            istate.update_entry(
+                state, rel, meta["document_id"], chunks_by_file[rel], digest, version=meta["version"],
+                version_info=version_info, version_detection=detection_by_rel[rel],
+                doc_type_info=doc_types_by_rel[rel], department_info=departments_by_rel[rel],
+                project_link={"project_id": meta["project_id"]} if "project_id" in meta else None,
+                visibility_info=info)
+            state[rel]["indexed_status"] = meta["status"]
+            if entry.get("hash") != digest:
+                state[rel]["overrides"].pop("version", None)
+        for chunk in chunks:
+            chunk.metadata.update(visibility_by_rel[chunk.metadata["path"]]["value"])
+        for row in summary.file_rows:
+            if row["path"] in visibility_by_rel:
+                row.update(visibility_by_rel[row["path"]]["value"])
+
         if rebuild:
             console_print("⑥ 重建模式：先清空向量库")
             vector_store.clear()
         vector_store.ensure_collection(summary.vector_dimension)
-        if not rebuild:
-            for doc in cleaned_docs:
-                rel = doc.metadata["path"]
-                if rel in state:
-                    vector_store.expire_document(doc.metadata["document_id"])
-                elif rel in summary.new_files:
-                    vector_store.delete_documents([doc.metadata["document_id"]])
         console_print("⑥ 存入 Qdrant 向量库")
-        stored = vector_store.upsert_chunks(chunks, vectors)
-        # 只有向量写入成功才提交指纹，失败后仍可重试。
-        _record_ledger()
-        istate.save_state(state, strict=True)
+        if rebuild:
+            stored = vector_store.upsert_chunks(chunks, vectors)
+            istate.save_state(state, strict=True)
+        else:
+            documents = {doc.metadata["document_id"]: (rel, doc.metadata["version"])
+                         for rel, doc in docs_by_rel.items()}
+            stored = publish(vector_store, chunks, vectors, state, documents, previous_versions, acl_guard)
     # 入库后清空 BM25 缓存和 Q→A 缓存
     from src.keyword_search import invalidate_cache
     invalidate_cache()

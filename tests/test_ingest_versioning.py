@@ -78,7 +78,7 @@ class IngestVersioningTests(_IngestCase):
         before = self.store.count()
         self.ingest([path])  # 「重新入库」按钮语义：强制重跑但不升版本
         self.assertEqual(self.versions(), {"1.0": "active"})
-        self.assertEqual(self.store.count(), before)  # 同 point_id 原地覆盖，无重复卡片
+        self.assertEqual(self.store.count(), before)  # 替换当前卡片后无重复
 
     def test_full_scan_skips_unchanged(self):
         self.ingest([self.write_note("内容")])
@@ -107,7 +107,7 @@ class IngestVersioningTests(_IngestCase):
         self.assertEqual(istate.load_state(), {})
 
     def test_failed_ingest_leaves_old_version_intact(self):
-        """expire 在写入新卡片之前、台账在写入成功后才落盘：失败时零脏数据。"""
+        """写入失败时，上一版仍参与检索，台账仍可驱动安全重试。"""
         path = self.write_note("第一版")
         self.ingest([path])
         self.write_note("第二版")
@@ -116,6 +116,7 @@ class IngestVersioningTests(_IngestCase):
                 self.ingest([path])
         # 台账仍是旧指纹 → 下次入库会重新识别为 updated 并完整重做
         self.assertEqual(istate.load_state()["learning/general/note.md"]["version"], "1.0")
+        self.assertEqual(self.versions(), {"1.0": "active"})
         retry = self.ingest([path])
         self.assertEqual(retry.updated_files, ["learning/general/note.md"])
         self.assertEqual(self.versions()["1.1"], "active")

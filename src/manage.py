@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import shutil
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 from src.config import AppConfig, get_config
@@ -97,14 +98,24 @@ def _stage_moved_visibility(state, source: str, target: str, store) -> None:
         index_state.save_state(state, strict=True)
 
 
+@contextmanager
+def _document_write():
+    from src.auth_db import document_acl_write
+    from src.ingest_publication import recover_publication
+    from src.pipeline import _ingest_lock
+
+    with _ingest_lock, document_acl_write() as (_, retire_token):
+        recover_publication(get_vector_store(), retire_token)
+        yield
+
+
 def revoke_document_user(username: str) -> int:
     """移除所有版本中的个人授权，支持停用后重试；空名单继续封闭。"""
     from qdrant_client import models
     from src import index_epoch, index_state
-    from src.auth_db import document_acl_write
     from src.keyword_search import invalidate_cache
     from src.permissions import normalize_visibility
-    from src.pipeline import _ingest_lock, clear_qa_cache
+    from src.pipeline import clear_qa_cache
 
     def remove(acl: dict) -> bool:
         users = acl.get("allowed_users") or []
@@ -116,8 +127,8 @@ def revoke_document_user(username: str) -> int:
         return True
 
     changed_documents = set()
-    with _ingest_lock, document_acl_write():
-        state = index_state.load_state()
+    with _document_write():
+        state = index_state.load_state(strict=True)
         changed_ledger = False
         for entry in state.values():
             info = entry.get("visibility_info") or {}
@@ -177,18 +188,15 @@ def archive(relative_path: str, owner: str | None = None) -> dict:
         stamp = time.strftime("%Y%m%d_%H%M%S")
         dest = dest.with_name(f"{dest.stem}_{stamp}{dest.suffix}")
     from src import index_state as istate
-    state = istate.load_state()
-    type_info = istate.snapshot_doc_type(state, relative_path)
-    department_info = istate.snapshot_department(state, relative_path)
-    store = get_vector_store()
-    _stage_moved_visibility(state, relative_path, dest.relative_to(knowledge_dir).as_posix(), store)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(path), str(dest))
-
-    # 文件换路径 = 换 document_id：先删旧知识，再按新路径入库（新路径自动 status=archive）
-    from src.metadata import document_id_for
-
-    store.delete_documents([document_id_for(relative_path)])
+    with _document_write():
+        state = istate.load_state(strict=True)
+        type_info = istate.snapshot_doc_type(state, relative_path)
+        department_info = istate.snapshot_department(state, relative_path)
+        store = get_vector_store()
+        _stage_moved_visibility(state, relative_path, dest.relative_to(knowledge_dir).as_posix(), store)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(path), str(dest))
+        store.delete_documents([document_id_for(relative_path)])
     with istate.carry_doc_types({dest.relative_to(knowledge_dir).as_posix(): type_info},
                                 department_values={dest.relative_to(knowledge_dir).as_posix():
                                                    department_info},
@@ -228,17 +236,15 @@ def restore(archived_relative_path: str, owner: str | None = None) -> dict:
         stamp = time.strftime("%Y%m%d_%H%M%S")
         target = target.with_name(f"{target.stem}_{stamp}{target.suffix}")
     from src import index_state as istate
-    state = istate.load_state()
-    type_info = istate.snapshot_doc_type(state, archived_relative_path)
-    department_info = istate.snapshot_department(state, archived_relative_path)
-    store = get_vector_store()
-    _stage_moved_visibility(state, archived_relative_path, target.relative_to(knowledge_dir).as_posix(), store)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(path), str(target))
-
-    from src.metadata import document_id_for
-
-    store.delete_documents([document_id_for(archived_relative_path)])
+    with _document_write():
+        state = istate.load_state(strict=True)
+        type_info = istate.snapshot_doc_type(state, archived_relative_path)
+        department_info = istate.snapshot_department(state, archived_relative_path)
+        store = get_vector_store()
+        _stage_moved_visibility(state, archived_relative_path, target.relative_to(knowledge_dir).as_posix(), store)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(path), str(target))
+        store.delete_documents([document_id_for(archived_relative_path)])
     with istate.carry_doc_types({target.relative_to(knowledge_dir).as_posix(): type_info},
                                 department_values={target.relative_to(knowledge_dir).as_posix():
                                                    department_info},
@@ -255,6 +261,12 @@ def restore(archived_relative_path: str, owner: str | None = None) -> dict:
 def confirm_document_version(relative_path: str, value: str, revision: str,
                              expected_hash: str) -> dict:
     """显式确认当前入库文件的正式版本，不改源文件与历史修订。"""
+    with _document_write():
+        return _confirm_document_version(relative_path, value, revision, expected_hash)
+
+
+def _confirm_document_version(relative_path: str, value: str, revision: str,
+                              expected_hash: str) -> dict:
     from src import index_state as istate, index_epoch
     from src.document_version import normalize_version, apply_confirmation
     from src.keyword_search import invalidate_cache
@@ -265,7 +277,7 @@ def confirm_document_version(relative_path: str, value: str, revision: str,
     if not normalized:
         raise ManageError("请填写明确的文档版本，例如 1.2 或 V1.2")
     path, _, cfg = _resolve(relative_path)
-    state = istate.load_state()
+    state = istate.load_state(strict=True)
     entry = state.get(relative_path)
     if not entry or entry.get("version") != revision:
         raise ManageError("当前入库版本已变化，请刷新文件列表后重新确认")
@@ -294,7 +306,7 @@ def confirm_document_version(relative_path: str, value: str, revision: str,
     )
     entry["version_confirmation"] = decision
     entry["version_info"] = metadata
-    istate.save_state(state)
+    istate.save_state(state, strict=True)
     index_epoch.bump()
     invalidate_cache()
     clear_qa_cache()
@@ -303,10 +315,7 @@ def confirm_document_version(relative_path: str, value: str, revision: str,
 
 def update_metadata(relative_path: str, updates: dict) -> dict:
     """保存档案，与入库串行写入台账。"""
-    from src.pipeline import _ingest_lock
-    from src.auth_db import document_acl_write
-
-    with _ingest_lock, document_acl_write():
+    with _document_write():
         return _update_metadata(relative_path, updates)
 
 
@@ -352,7 +361,7 @@ def _update_metadata(relative_path: str, updates: dict) -> dict:
     document_id = document_id_for(relative_path)
     from src import index_state as istate
 
-    state = istate.load_state()
+    state = istate.load_state(strict=True)
     entry = state.setdefault(relative_path, {})
     acl_info = None
     if 'allowed_groups' in clean or 'allowed_users' in clean:
@@ -388,6 +397,8 @@ def _update_metadata(relative_path: str, updates: dict) -> dict:
             store.ensure_allowed_users_index()
         conditions = [models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id))]
         if revision_changed:
+            if store.list_documents({"document_id": document_id, "version": clean["version"]}):
+                raise ManageError("该版本号已在历史记录中使用，请选择其他版本号")
             conditions.extend([
                 models.FieldCondition(key="version", match=models.MatchValue(value=entry.get("version", ""))),
                 models.FieldCondition(key="status", match=models.MatchAny(any=["active", "archive"])),
@@ -441,11 +452,13 @@ def _update_metadata(relative_path: str, updates: dict) -> dict:
         else:
             overrides.pop(key, None)
     entry["overrides"] = overrides
+    if "status" in clean:
+        entry["indexed_status"] = clean["status"]
     if acl_info is not None:
         entry['visibility_info'] = acl_info
         entry['overrides'].update(acl_info['value'])
     entry["document_id"] = document_id
-    istate.save_state(state, strict=acl_info is not None)
+    istate.save_state(state, strict=True)
     return {"message": f"已更新档案：{relative_path}（{len(clean)} 个字段）"}
 
 
@@ -455,6 +468,11 @@ def remove_documents(relative_paths: list[str], delete_files: bool = False) -> d
     所有路径会在执行前完成安全校验。索引移除后清掉指纹，保留磁盘文件的内部或受限授权，
     以免重入库时默认成为公开文件。
     """
+    with _document_write():
+        return _remove_documents(relative_paths, delete_files)
+
+
+def _remove_documents(relative_paths: list[str], delete_files: bool) -> dict:
     paths = list(dict.fromkeys(str(path).strip() for path in relative_paths if str(path).strip()))
     if not paths:
         raise ManageError("没有选择需要移除的知识文件。")
@@ -473,7 +491,7 @@ def remove_documents(relative_paths: list[str], delete_files: bool = False) -> d
     document_ids = [document_id_for(relative_path) for relative_path in paths]
     from src import index_state as istate
 
-    state = istate.load_state()
+    state = istate.load_state(strict=True)
     visibility = {relative_path: _visibility_snapshot(state, relative_path, store)
                   for relative_path in paths}
     store.delete_documents(document_ids)

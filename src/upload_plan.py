@@ -79,6 +79,7 @@ def plan_uploads(files: list[tuple[str, bytes]], target_dir: str,
     decisions: list[UploadDecision] = []
     batch_hashes: set[str] = set()
     batch_targets: set[str] = set()  # 本批次将写到「表单目标位置」的文件
+    version_targets: set[Path] = set()
     for name, data in files:
         digest = content_hash(data)
         target = f"{target_dir}/{name}" if target_dir else name
@@ -93,6 +94,9 @@ def plan_uploads(files: list[tuple[str, bytes]], target_dir: str,
         if same_content:
             # 同一位置同内容：只能跳过（再入库也是原样）；别处同内容：可强制作为新文档
             options = [SKIP] if target in same_content else [SKIP, NEW]
+            if (target not in same_content and Path(target) not in blocked_paths
+                    and Path(target) not in version_targets and target in ledger):
+                options.append(NEW_VERSION)
             decisions.append(UploadDecision(name, target, digest, KIND_DUPLICATE,
                                             SKIP, options, same_content))
             continue
@@ -111,16 +115,20 @@ def plan_uploads(files: list[tuple[str, bytes]], target_dir: str,
             decisions.append(UploadDecision(name, target, digest, KIND_SAME_PATH,
                                             NEW_VERSION, [NEW_VERSION, COPY], [target]))
             batch_targets.add(target)
+            version_targets.add(Path(target))
             continue
 
         others = sorted(r for r in by_name.get(name, []) if r != target)
         if others:
-            options = [VERSION_OF + r for r in others] + [NEW]
-            default = options[0] if len(others) == 1 else NEW
+            candidates = [r for r in others if Path(r) not in version_targets]
+            options = [VERSION_OF + r for r in candidates] + [NEW]
+            default = options[0] if len(others) == 1 and candidates else NEW
             decisions.append(UploadDecision(name, target, digest, KIND_SAME_NAME,
                                             default, options, others))
             if default == NEW:
                 batch_targets.add(target)
+            else:
+                version_targets.add(Path(default[len(VERSION_OF):]))
             continue
 
         decisions.append(UploadDecision(name, target, digest, KIND_NEW, NEW, [NEW]))
@@ -128,15 +136,15 @@ def plan_uploads(files: list[tuple[str, bytes]], target_dir: str,
     return decisions
 
 
-def available_path(parent: Path, stem: str, suffix: str = "") -> Path:
+def available_path(parent: Path, stem: str, suffix: str = "", *,
+                   reserved: AbstractSet[Path] = frozenset()) -> Path:
     """不覆盖任何已有文件/目录的落盘位置：已存在时依次尝试 stem-2、stem-3 …"""
     candidate = parent / f"{stem}{suffix}"
-    if not candidate.exists():
-        return candidate
     index = 2
-    while (parent / f"{stem}-{index}{suffix}").exists():
+    while candidate.exists() or candidate.is_symlink() or candidate in reserved:
+        candidate = parent / f"{stem}-{index}{suffix}"
         index += 1
-    return parent / f"{stem}-{index}{suffix}"
+    return candidate
 
 
 def execute_uploads(decisions: list[UploadDecision], files: list[tuple[str, bytes]],
@@ -151,6 +159,8 @@ def execute_uploads(decisions: list[UploadDecision], files: list[tuple[str, byte
     """
     to_ingest: list[Path] = []
     skipped: list[UploadDecision] = []
+    reserved: set[Path] = set()
+    writes: list[tuple[int, Path, bytes]] = []
     for index, (decision, (_name, data)) in enumerate(zip(decisions, files)):
         action = (choices or {}).get(index, decision.action)
         if action not in decision.options:
@@ -166,12 +176,17 @@ def execute_uploads(decisions: list[UploadDecision], files: list[tuple[str, byte
         elif action.startswith(VERSION_OF):
             dest = knowledge_dir / action[len(VERSION_OF):]
         else:  # NEW / COPY：都不覆盖已有文件；NEW 在目标空闲时就用原名
-            dest = available_path(target.parent, target.stem, target.suffix)
+            dest = available_path(target.parent, target.stem, target.suffix, reserved=reserved)
         relative = dest.relative_to(knowledge_dir)
         if relative in blocked_paths:
             raise ValueError("当前账号无权覆盖已有文档")
         if dest.resolve() != knowledge_dir.resolve() / relative:
             raise ValueError("文件路径不能通过符号链接访问")
+        if dest in reserved:
+            raise ValueError("多个文件选择了同一个入库位置，请改用独立入库或另存副本")
+        reserved.add(dest)
+        writes.append((index, dest, data))
+    for index, dest, data in writes:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
         to_ingest.append(dest)
@@ -197,6 +212,7 @@ def write_directory_import(grouped: dict[str, list[tuple[tuple[str, ...], bytes]
     saved: list[Path] = []
     roots: list[str] = []
     writes: list[tuple[Path, bytes]] = []
+    file_targets: set[Path] = set()
     for root_name, entries in grouped.items():
         root = domain_dir / root_name
         if not merge:
@@ -216,6 +232,9 @@ def write_directory_import(grouped: dict[str, list[tuple[tuple[str, ...], bytes]
                 raise ValueError("目录中有当前账号无权覆盖的文档，请改用另存副本")
             if dest.resolve() != knowledge_dir.resolve() / relative:
                 raise ValueError("文件路径不能通过符号链接访问")
+            if dest in file_targets:
+                raise ValueError("目录中有多个文件指向同一个入库位置")
+            file_targets.add(dest)
             writes.append((dest, content))
     for dest, content in writes:
         dest.parent.mkdir(parents=True, exist_ok=True)
