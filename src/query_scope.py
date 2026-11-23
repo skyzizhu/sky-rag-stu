@@ -269,6 +269,38 @@ def conversation_project(question: str, history: list[dict], saved: dict | None 
     return {}
 
 
+# —— 领域文件夹（R6-M09 延伸）：「项目文件夹 / 学习目录」等 = 领域范围的口头说法——
+# 知识库一级目录即领域，问句点名文件夹时应映射为 domain 过滤并走零 LLM 目录通道，
+# 而不是把「项目文件夹」当成未知实体落进 LLM 枚举。
+_FOLDER_DOMAINS = (
+    ("项目", "projects"), ("工作", "work"), ("学习", "learning"),
+    ("生活", "life"), ("参考", "reference"), ("参考资料", "reference"),
+    ("归档", "archive"),
+)
+_FOLDER_SUFFIX = re.compile(r"(?:文件夹|目录|资料夹|文件夾|目錄)")
+_LISTING_HINT = re.compile(r"哪些|多少|列出|列举|列舉|有什么|有什麼|都有|清单|清單")
+_FOLDER_NEGATED = re.compile(r"当前|當前|默认|默認|系统|系統|程序|切换|切換")  # 「当前工作目录」是程序概念，不是知识库领域
+
+
+def domain_folder_scope(question: str) -> str | None:
+    """识别「<领域>文件夹/目录」的口头领域范围，返回领域枚举（projects 等）。
+
+    保守门槛：问句需含列举意图词（哪些/多少/列出…），且文件夹词前紧邻处不含
+    「当前/默认/系统」等程序语境词（避免把「当前工作目录」这类技术含义误判为
+    领域范围）。不匹配返回 None。
+    """
+    text = unicodedata.normalize("NFKC", question or "")
+    if not _LISTING_HINT.search(text):
+        return None
+    for prefix, domain in _FOLDER_DOMAINS:
+        for match in re.finditer(re.escape(prefix) + _FOLDER_SUFFIX.pattern, text):
+            start = match.start()
+            if _FOLDER_NEGATED.search(text[max(0, start - 6):start]):
+                continue
+            return domain
+    return None
+
+
 def resolve_scope(question: str, scope: dict[str, str | int], filters: dict | None) -> tuple[dict, str]:
     """Intersect spoken and manually selected scopes, leaving identity filters intact."""
     combined = dict(filters or {})

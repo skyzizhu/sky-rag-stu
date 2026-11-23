@@ -346,7 +346,10 @@ class McpDocumentToolsTests(IngestHarness):
         for i in range(1, 7):
             self.assertIn(f"功能 {i:02d}", payload["full_text"], i)
         self.assertEqual(payload["full_text"].count("来源文档："), 1)  # 仅首卡保留来源前缀
-        self.assertEqual(len(payload["sections"]), 6)                # 章节名清单供 Agent 定位
+        # 章节清单供 Agent 定位（R9 起 = 叶子名 ∪ 完整路径并集，路径用于消歧）
+        section_names = {s for s in payload["sections"] if ">" not in s}
+        self.assertEqual(section_names, {f"功能 {i:02d}" for i in range(1, 7)})
+        self.assertTrue(all("功能" in s for s in payload["sections"]))
 
     def test_get_document_fragments_paginates(self):
         payload = self._call("get_document", [self.document_id], page=2, page_size=2,
@@ -362,7 +365,8 @@ class McpDocumentToolsTests(IngestHarness):
                              section="功能 03")
         self.assertIn("功能 03", payload["full_text"])
         self.assertNotIn("功能 04", payload["full_text"])
-        self.assertEqual(payload["sections"], ["功能 03"])
+        # 章节过滤命中后：清单含该节叶子名（完整路径形式可并存，均含"功能 03"）
+        self.assertIn("功能 03", " ".join(payload["sections"]))
 
     def test_get_document_multi_and_not_found(self):
         """多文档一次取全：可见的返回全文；不可见的归入 not_found（不泄露存在性）。"""

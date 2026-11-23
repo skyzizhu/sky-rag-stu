@@ -41,7 +41,7 @@ from src.document_type import normalize_doc_type, resolve_doc_type
 from src.enumeration import (enumeration_route, is_staff_total_question, catalog_time, document_representatives,
                              document_key, group_documents, expand_documents, coverage_notice)
 from src.llm import LLMClient, get_llm_client, new_usage, strip_think_tags
-from src.metadata import build_document_metadata, document_id_for, version_from_filename
+from src.metadata import build_document_metadata, chunk_sequence, document_id_for, version_from_filename
 from src.permissions import classify_visibility, normalize_visibility
 from src.document_visibility import prune_user_grants, resolve_visibility
 from src.parser import ParsedDocument, SUPPORTED_EXTENSIONS, parse_file
@@ -245,28 +245,24 @@ def _ingest_files_impl(
         with document_acl_write() as (_, retire_token):
             recover_publication(vector_store, retire_token)
             previous_state = istate.load_state(strict=True)
-            for rel, entry in list(previous_state.items()):
-                if not (cfg.knowledge_dir / rel).exists():
-                    vector_store.delete_documents([entry.get("document_id") or document_id_for(rel)])
+            missing = {rel: entry.get("document_id") or document_id_for(rel)
+                       for rel, entry in previous_state.items() if not (cfg.knowledge_dir / rel).exists()}
+            if missing:
+                vector_store.delete_documents(list(missing.values()))
+                for rel in missing:
                     istate.remove_entry(previous_state, rel)
-                    summary.cleaned_files.append(rel)
-            if summary.cleaned_files:
+                summary.cleaned_files.extend(missing)
                 istate.save_state(previous_state, strict=True)
                 console_print(f"   已同步清理 {len(summary.cleaned_files)} 个已删除文件的向量数据")
-    # 重建继承类型、归属部门与项目关联，其他档案/版本保持原有重建语义。
-    type_inputs = {rel: istate.doc_type_info_for(previous_state, rel)
-                   for rel in previous_state}
-    department_inputs = {rel: istate.department_info_for(previous_state, rel)
-                         for rel in previous_state}
     state = {} if rebuild else previous_state
-    paths_to_process: list[Path] = []
     processed: list[tuple[Path, str, str]] = []  # (路径, 相对路径, 哈希)
     explicit = bool(paths)
     candidates = []
+    knowledge_dir = cfg.knowledge_dir.resolve()
     for path in files:
         rel = path.name
         try:
-            rel = path.resolve().relative_to(cfg.knowledge_dir.resolve()).as_posix()
+            rel = path.resolve().relative_to(knowledge_dir).as_posix()
         except ValueError:
             pass
         if not path.exists():
@@ -283,33 +279,39 @@ def _ingest_files_impl(
 
     skip_candidates = {rel for _, rel, digest in candidates
                        if (not explicit or skip_unchanged) and state.get(rel, {}).get("hash") == digest}
-    observed: dict[tuple[str, str], int] = {}
+    observed: Counter[str] = Counter()
+    mismatched: set[str] = set()
     skipped_ids = [state[rel].get("document_id") or document_id_for(rel) for rel in sorted(skip_candidates)]
     for start_index in range(0, len(skipped_ids), 256):
-        for row in vector_store.list_documents({"document_id": skipped_ids[start_index:start_index + 256]}):
-            key = (row["path"], row["version"])
-            entry = state.get(row["path"], {})
-            if (row["status"] == entry.get("indexed_status", "active")
-                    or ("indexed_status" not in entry and row["status"] == "archive")):
-                if row.get("version_content_hash") in ("", None, entry.get("hash")):
-                    observed[key] = observed.get(key, 0) + row["chunks"]
+        rows = vector_store.iter_payloads(
+            {"document_id": skipped_ids[start_index:start_index + 256]},
+            ["path", "version", "status", "version_content_hash"])
+        for row in rows:
+            rel = row.get("path")
+            if rel not in skip_candidates:
+                continue
+            entry = state[rel]
+            if row.get("version") != entry.get("version"):
+                continue
+            if (row.get("status") == entry.get("indexed_status", "active")
+                    or ("indexed_status" not in entry and row.get("status") == "archive")):
+                observed[rel] += 1
+                if row.get("version_content_hash") not in ("", None, entry.get("hash")):
+                    mismatched.add(rel)
 
     for path, rel, current_hash in candidates:
         known = "hash" in state.get(rel, {})
         unchanged = known and state[rel].get("hash") == current_hash
-        if (rel in skip_candidates
-                and observed.get((rel, state[rel].get("version"))) == state[rel].get("chunks", 0)):
+        if (rel in skip_candidates and rel not in mismatched
+                and observed.get(rel) == state[rel].get("chunks", 0)):
             summary.skipped_files.append(rel)
             continue
         if unchanged:
             # 强制重跑或修复缺失卡片：沿用现有版本。
             summary.new_files.append(rel)
         else:
-            # 分类必须无条件进行：updated_files 驱动旧版本 expire，
-            # 漏分类会导致新旧两代卡片同时 active 参与检索
             (summary.updated_files if known else summary.new_files).append(rel)
         processed.append((path, rel, current_hash))
-        paths_to_process.append(path)
 
     if summary.cleaned_files:
         # 删除了知识就必须清问答缓存：否则同问题命中缓存返回已删除知识的答案
@@ -320,9 +322,8 @@ def _ingest_files_impl(
         console_print(f"   ⏭️ {len(summary.skipped_files)} 个文件内容未变化，跳过（省时省钱）")
         for rel in summary.skipped_files:
             console_print(f"      ⏭️ {rel}")
-    files = paths_to_process
-    summary.total_files = len(files)
-    if not files:
+    summary.total_files = len(processed)
+    if not processed:
         console_print("✅ 增量入库完成：没有需要处理的文件")
         return summary
 
@@ -334,7 +335,8 @@ def _ingest_files_impl(
     departments_by_rel: dict[str, dict] = {}
     visibility_by_rel: dict[str, dict] = {}
     llm = get_llm_client() if cfg.auto_tag else None
-    registered_directories = managed_directory_names() if files else set()
+    registered_directories = managed_directory_names()
+    updated_paths = set(summary.updated_files)
     for path, rel, current_hash in processed:
         try:
             parsed = parse_file(path)
@@ -362,14 +364,14 @@ def _ingest_files_impl(
         )
         doc_types_by_rel[rel] = resolve_doc_type(
             path.name, parsed.front_matter,
-            istate.doc_type_info_for(state, rel) or type_inputs.get(rel),
+            istate.doc_type_info_for(previous_state, rel),
             default_doc_type=default_doc_type,
-            original_path=(doc_type_paths or {}).get(str(path.resolve())),
+            original_path=doc_type_paths.get(str(path.resolve())) if doc_type_paths else None,
             is_web=(parsed.front_matter or {}).get("source_type") == "web",
         )
         parsed.metadata["doc_type"] = doc_types_by_rel[rel]["value"]
         departments_by_rel[rel] = resolve_department(
-            istate.department_info_for(state, rel) or department_inputs.get(rel),
+            istate.department_info_for(previous_state, rel),
             parsed.front_matter,
             default_department=default_department,
         )
@@ -388,8 +390,8 @@ def _ingest_files_impl(
         explicit_version = version_from_filename(path.name) or str(
             (parsed.front_matter or {}).get("version") or ""
         ).strip()
-        if prev_version and (not explicit_version or rel not in summary.updated_files):
-            if rel in summary.updated_files:
+        if prev_version and (not explicit_version or rel not in updated_paths):
+            if rel in updated_paths:
                 from src.metadata import bump_version
                 parsed.metadata["version"] = bump_version(prev_version)
             else:
@@ -409,7 +411,7 @@ def _ingest_files_impl(
         for key, value in overrides.items():
             if key in ("title", "category", "topic", "tags", "status") and value:
                 parsed.metadata[key] = value
-        if overrides.get("version") and rel not in summary.updated_files:
+        if overrides.get("version") and rel not in updated_paths:
             parsed.metadata["version"] = overrides["version"]
         parsed.metadata["version_content_hash"] = current_hash
         parsed.metadata.update(apply_confirmation(
@@ -429,7 +431,7 @@ def _ingest_files_impl(
     for doc in docs:
         doc.metadata["owner"] = (owner or "").strip()
     front_matter_by_rel = {doc.metadata["path"]: doc.front_matter for doc in docs}
-    cleaned_docs, chunks = clean_and_chunk(docs)
+    cleaned_docs, chunks = clean_and_chunk(docs, cfg)
     summary.total_chunks = len(chunks)
     chunks_by_file: dict[str, int] = {}
     for chunk in chunks:
@@ -518,8 +520,9 @@ def _ingest_files_impl(
                     legacy_acl[row["path"]] = {"value": normalize_visibility(
                         row["allowed_groups"], row["allowed_users"], legacy_default=False)}
 
-        revocations = document_user_revocations()
+        revocations = {}
         active = None
+        normalized_groups: dict[tuple[str, ...], list[str]] = {}
         state = {} if rebuild else latest.copy()
         previous_versions = {}
         for _, rel, digest in processed:
@@ -534,9 +537,13 @@ def _ingest_files_impl(
             acl, info = resolve_visibility(
                 previous_acl, front_matter_by_rel[rel], default_groups=default_groups,
                 default_allowed_users=default_allowed_users, legacy_overrides=entry.get("overrides"))
-            acl["allowed_groups"] = normalize_department_groups(acl["allowed_groups"])
+            groups = tuple(acl["allowed_groups"])
+            if groups not in normalized_groups:
+                normalized_groups[groups] = normalize_department_groups(acl["allowed_groups"])
+            acl["allowed_groups"] = normalized_groups[groups].copy()
             if acl["allowed_users"]:
                 if active is None:
+                    revocations = document_user_revocations()
                     active = {u["username"] for u in list_users() if u["status"] == "active"}
                 if default_allowed_users is not None and not previous_acl:
                     info["granted_revocations"] = {u: grant_snapshot.get(u) for u in acl["allowed_users"]}
@@ -669,98 +676,18 @@ def merge_sub_query_results(per_sq_results: list[list[RetrievedItem]],
     return pool, quota
 
 
-def expand_dominant_documents(items: list[RetrievedItem], filters: dict | None,
-                              min_cards: int = 4, max_docs: int = 2,
-                              max_doc_cards: int = 40, keep_top: int = 10
-                              ) -> tuple[list[RetrievedItem], list[str]]:
-    """枚举模式的文档展开（父文档检索思路）：列举题要的是「某一文档的全部条目」。
-
-    按相关度召回（哪怕 50 条）只能接近、不能保证全量——跨语言时（中文问英文网页）
-    部分条目卡片会排到召回上限之外（实测 Xtools 15 项功能有 2~3 项落在 50 名外）。
-    规则：
-    - 在整个候选池里卡片数 ≥ min_cards、且在前 keep_top 名里出现过的文档（同版本）中，取卡片
-      最多的 max_docs 篇视为「被列举的文档」——数量按整池统计：跨语言时目标文档名次偏后，
-      但数量依然最多；同时要求进过前排，排除小知识库里凑巧卡片多、实则无关的文档；
-    - 只展开装得下的文档（全文 ≤ max_doc_cards 张，即上下文名额）：装不下的长文档谈不上
-      「补齐全部」，展开只会把噪声塞满名额（实测 79 张的长文档被展开后，把只有 1 张卡片的
-      「心得」从前排挤到第 94 位而落选）；
-    - 候选池原有的前 keep_top 名位置不动，展开文档的其余卡片排在其后（已召回的保持原顺序，
-      补入的按卡片序号），其余候选随后——最相关的证据永远不被展开挤掉；
-    - 补卡沿用本次检索的过滤条件（权限 / 状态，不越权），再加 document_id + version。
-
-    返回 (新候选池, 展开说明)；没有满足条件的文档时原样返回。
-    """
-    def doc_key(it: RetrievedItem) -> tuple:
-        return (it.metadata.get("document_id"), it.metadata.get("version"))
-
-    counts = Counter(doc_key(it) for it in items if it.metadata.get("document_id"))
-    top_docs = {doc_key(it) for it in items[:keep_top]}
-    # 还要在前 keep_top 名里出现过：只展开「确实最相关」的文档，而不是小知识库里凑巧卡片多的文档
-    dominant = [key for key, n in counts.most_common() if n >= min_cards and key in top_docs][:max_docs]
-    if not dominant:
-        return items, []
-
-    store = get_vector_store()
-    seen = {it.metadata.get("chunk_id") for it in items}
-    head = items[:keep_top]                      # 原有前排：位置不动
-    head_ids = {id(it) for it in head}
-    middle: list[RetrievedItem] = []             # 展开文档的其余卡片
-    notes: list[str] = []
-    for doc_id, version in dominant:
-        in_pool = [it for it in items if doc_key(it) == (doc_id, version)]
-        source = in_pool[0].metadata.get("source", "?")
-        doc_filters = {**(filters or {}), "document_id": doc_id}
-        if version:
-            doc_filters["version"] = version
-        cards = store.get_all_cards(filters=doc_filters, limit=max_doc_cards + 1)
-        if len(cards) > max_doc_cards:
-            notes.append(f"{source}：全文超过 {max_doc_cards} 张、上下文装不下，不展开")
-            continue
-        added: list[RetrievedItem] = []
-        for card in sorted(cards, key=lambda c: str(c["payload"].get("chunk_id") or "")):
-            payload = card["payload"]
-            if payload.get("chunk_id") in seen:
-                continue
-            seen.add(payload.get("chunk_id"))
-            added.append(RetrievedItem(rank=0, score=0.0, text=payload.get("text", ""),
-                                       metadata={k: v for k, v in payload.items() if k != "text"},
-                                       channels="文档展开"))
-        middle += [it for it in in_pool if id(it) not in head_ids] + added
-        notes.append(f"{source}：候选池中 {counts[(doc_id, version)]} 张 → "
-                     f"补入其余 {len(added)} 张（全文 {len(cards)} 张进入候选）")
-
-    placed = head_ids | {id(it) for it in middle}
-    expanded = head + middle + [it for it in items if id(it) not in placed]
-    for i, it in enumerate(expanded, start=1):
-        it.rank = i
-    return expanded, notes
-
-
 def expand_facts_dominant_documents(items: list[RetrievedItem], filters: dict | None,
                                     top_k: int, cfg: AppConfig, multi_fact: bool
                                     ) -> tuple[list[RetrievedItem], int, set[str], list[str]]:
-    """多事实问答的主导文档扩展（R2-b）：把枚举通道已验证的 Small-to-Big 下沉到普通问答。
-
-    触发条件（满足其一）：
-    - multi_fact：Query 理解把问题拆成了 ≥2 个子查询（复合问题的事实分散多卡）；
-    - 精排后前 Top-K 里同一文档出现 ≥2 张卡片（多事实集中在同一文档，
-      如长演示文稿的日期/价格/渠道分居不同页）。
-    行为：候选池内卡片数 ≥2、且全文总卡数不超过 expand_doc_max_cards 的文档
-    （复合问题最多 3 篇、其余 2 篇——拆分后的子问题常各自对应一篇小文档，
-    实测三代产品价格题需要第 3 篇），把全文卡片补进候选——前排 Top-K 名次不动，
-    补入卡片按序号排在其后，其余候选殿后；补卡沿用当前过滤条件（权限 / 状态 / 版本一致）。
-    上下文层的 token 总预算不变——扩展只是增加"可供选择"的卡片，
-    由组装规则在预算内取舍（配合 unlimited_docs 放开被扩展文档的单文档配额）。
-    返回 (新候选池, 补入卡片数, 展开的 document_id 集合, 展开说明)。
-    """
+    """Keep initial head order and expand short versions or bounded neighborhoods."""
     limit = cfg.expand_doc_max_cards
     if limit <= 0 or not items:
         return items, 0, set(), []
-    counts = Counter(it.metadata.get("document_id") for it in items
-                     if it.metadata.get("document_id"))
-    head_docs = {it.metadata.get("document_id") for it in items[:top_k]}
-    dominant = [doc for doc, n in counts.most_common()
-                if n >= 2 and (doc in head_docs or multi_fact)][:3 if multi_fact else 2]
+    groups = group_documents(it for it in items if it.metadata.get("document_id"))
+    head_keys = {document_key(it) for it in items[:top_k]}
+    dominant = [key for key, in_pool in sorted(groups.items(), key=lambda entry: -len(entry[1]))
+                if (len(in_pool) >= 2 and (key in head_keys or multi_fact))
+                or (multi_fact and key in head_keys)][:3 if multi_fact else 2]
     if not dominant:
         return items, 0, set(), []
 
@@ -770,34 +697,50 @@ def expand_facts_dominant_documents(items: list[RetrievedItem], filters: dict | 
     middle: list[RetrievedItem] = []
     notes: list[str] = []
     doc_ids: set[str] = set()
-    for doc_id in dominant:
-        in_pool = [it for it in items if it.metadata.get("document_id") == doc_id]
+    added_count = 0
+    for doc_id, version in dominant:
+        in_pool = groups[doc_id, version]
         source = in_pool[0].metadata.get("source", "?")
-        cards = store.get_all_cards(filters={**(filters or {}), "document_id": doc_id},
-                                    limit=limit + 1)
-        if len(cards) > limit:
-            notes.append(f"{source}：全文超过 {limit} 张、扩展装不下，不展开")
-            continue
+        scoped = {**(filters or {}), "document_id": doc_id}
+        if version is not None:
+            scoped["version"] = version
+        if in_pool[0].metadata.get("status"):
+            scoped["status"] = in_pool[0].metadata["status"]
+        cards = store.ordered_document_cards(scoped, limit + 1) if len(in_pool) > 1 else []
+        neighbors = not cards or len(cards) > limit
+        if neighbors:
+            anchors = [seq for hit in in_pool[:3] if (seq := chunk_sequence(hit.metadata)) is not None]
+            wanted = {position for anchor in anchors for position in (anchor - 1, anchor + 1)
+                      if position >= 0 and position not in anchors}
+            cards = store.ordered_document_cards(scoped, len(wanted), indices=wanted) if wanted else []
+            cards = sorted(cards, key=lambda card: next(
+                (rank for rank, anchor in enumerate(anchors)
+                 if chunk_sequence(card["payload"]) in (anchor - 1, anchor + 1)), len(anchors)))
         added: list[RetrievedItem] = []
-        for card in sorted(cards, key=lambda c: str(c["payload"].get("chunk_id") or "")):
+        for card in cards:
             payload = card["payload"]
-            if payload.get("chunk_id") in seen:
+            if not payload.get("chunk_id") or payload["chunk_id"] in seen:
                 continue
             seen.add(payload.get("chunk_id"))
             added.append(RetrievedItem(rank=0, score=0.0, text=payload.get("text", ""),
                                        metadata={k: v for k, v in payload.items() if k != "text"},
                                        channels="文档展开"))
+            if neighbors and len(added) >= min(2, limit):
+                break
+        if not added:
+            continue
         middle += [it for it in in_pool if id(it) not in head_ids] + added
+        added_count += len(added)
         doc_ids.add(doc_id)
-        notes.append(f"{source}：候选池 {counts[doc_id]} 张 → 补入其余 {len(added)} 张"
-                     f"（全文 {len(cards)} 张进入候选）")
+        mode = "邻卡" if neighbors else "短文档"
+        notes.append(f"{source}：候选池 {len(in_pool)} 张，{mode}净补入 {len(added)} 张")
     if not middle:
         return items, 0, set(), notes
     placed = head_ids | {id(it) for it in middle}
     expanded = items[:top_k] + middle + [it for it in items if id(it) not in placed]
     for i, it in enumerate(expanded, start=1):
         it.rank = i
-    return expanded, len(middle), doc_ids, notes
+    return expanded, added_count, doc_ids, notes
 
 
 _SOURCE_EXT_TAIL = re.compile(r"\.[a-z0-9]{1,6}$")
@@ -1184,6 +1127,14 @@ def query_evidence(
 
     from src.permissions import scope_filters, classify_visibility
     filters = scope_filters(filters, user_groups, username)
+
+    # 领域文件夹语义（R6-M09 延伸）：「项目文件夹/学习目录…」= 领域范围的口头
+    # 说法——注入 domain 过滤让这类问法走零 LLM 目录通道拿完整清单；用户手动
+    # 选了领域时以手动为准。import 置于函数内与其他 scope 引入一致。
+    from src.query_scope import domain_folder_scope
+    folder_domain = domain_folder_scope(question)
+    if folder_domain and not (filters or {}).get("domain"):
+        filters = {**(filters or {}), "domain": folder_domain}
 
     if enumeration_route(question, True) == "catalog":
         return _catalog_evidence(question, filters, cfg)
@@ -1655,6 +1606,9 @@ def query_evidence(
             items=[("提及通道", "挂接 ∪ 正文提及")],
         ))
 
+    recalled_cards = len(result.retrieved)
+    enumerated_additions = 0
+    reranked_cards = 0
     # 文档定位/跨文档精排与普通问答的卡片精排分开，避免 Top K 截掉列举条目。
     if enumeration_mode and result.retrieved:
         if len(sub_q_lists) >= 2:
@@ -1688,6 +1642,8 @@ def query_evidence(
         enum_truncated |= len(selected) < len(reps)
         expanded, expansion_truncated = expand_documents(
             get_vector_store(), selected, result.retrieved, result.filters, cfg.enum_doc_cards)
+        recalled_ids = {hit.metadata.get("chunk_id") for hit in result.retrieved}
+        enumerated_additions = sum(hit.metadata.get("chunk_id") not in recalled_ids for hit in expanded)
         result.retrieved = expanded
         enum_truncated |= expansion_truncated
         enum_stats.update(candidate_documents=candidate_documents,
@@ -1722,6 +1678,7 @@ def query_evidence(
         # 注意：不能按 Rerank 分数过滤 0 分卡片——实测发现 Rerank 可能误判
         # （给含答案的卡片打 0 分），过滤后反而丢失正确内容
         result.retrieved = outcome.items
+        reranked_cards = len(outcome.scores)
         rr_backend = getattr(outcome, "backend", "llm")
         rr_status = ("已执行" if outcome.ok else f"回退（粗排顺序：{outcome.error[:50]}）")
         if getattr(outcome, "fallback_reason", ""):
@@ -1823,25 +1780,21 @@ def query_evidence(
             ))
 
     _p("📦 整理资料中…")
-    # R2-b 多事实主导文档扩展：复合问题（子查询 ≥2）或前 Top-K 同文档 ≥2 张时，
-    # 把小文档（≤ expand_doc_max_cards 张）的全文卡片补进候选——多事实题的事实
-    # 常分散在同文档不同页/章节（长演示文稿、多章手册），单文档 3 卡配额会把
-    # 部分事实卡挤出上下文。扩展不改变前排名次，token 总预算仍由组装层把关。
     facts_expansion_added = 0
     facts_expansion_docs: set[str] = set()
+    multi_fact = len(sub_q_lists) >= 2
     if not enumeration_mode and version_scopes is None and result.retrieved:
         result.retrieved, facts_expansion_added, facts_expansion_docs, facts_notes = (
             expand_facts_dominant_documents(
                 result.retrieved, result.filters, top_k, cfg,
-                multi_fact=len(sub_q_lists) >= 2))
+                multi_fact=multi_fact))
         if facts_expansion_docs:
             enum_stats["doc_expansion"] = {"documents": sorted(facts_expansion_docs),
                                            "added": facts_expansion_added}
             trace.append(make_node(
                 "📚", "多事实文档扩展", time_str=now_str(),
-                summary=(f"复合/多事实提问，把 {len(facts_expansion_docs)} 篇主导文档的全文卡片"
-                         f"补进候选（新增 {facts_expansion_added} 张）；前排名次不动，"
-                         "token 总预算不变，被扩展文档豁免单文档配额。"),
+                summary=(f"在 {len(facts_expansion_docs)} 篇候选文档中净补入 {facts_expansion_added} 张卡片。"
+                         "普通问答沿用 Top K，复合题按上下文预算采用补片。"),
                 items=[("展开明细", "\n".join(facts_notes))],
             ))
     # 节点 ⑧ 合并 / 去重 + 节点 ⑨ 上下文组装（V2.6：多样性 + 相邻补全）
@@ -1852,7 +1805,7 @@ def query_evidence(
     if version_scopes is None:
         context, used, dropped, merge_notes = build_context(
             result.retrieved, enum_ctx_cfg,
-            max_items=ctx_max_items + facts_expansion_added,
+            max_items=ctx_max_items + (facts_expansion_added if multi_fact else 0),
             max_per_doc=ctx_max_per_doc,
             unlimited_docs=facts_expansion_docs or None,
         )
@@ -1917,7 +1870,10 @@ def query_evidence(
             "chunk_ids": item.metadata.get("chunk_ids") or [],
             "section": item.metadata.get("section"),
             "section_path": item.metadata.get("section_path"),
+            "sections": item.metadata.get("sections", []),
+            "section_paths": item.metadata.get("section_paths", []),
             "page": item.metadata.get("page"),
+            "page_kind": item.metadata.get("page_kind"),
             "domain": item.metadata.get("domain"),
             "doc_type": item.metadata.get("doc_type") or "",
             "department": item.metadata.get("department") or "",
@@ -1984,7 +1940,12 @@ def query_evidence(
                      "coverage": coverage, "dropped": len(dropped or []),
                      "enumeration": enumeration_mode,
                      "intent": (qu.intent or "") if (use_query_understanding and use_llm and qu) else "",
-                     "ctx_max_items": ctx_max_items, "recall_k": recall_k}
+                     "ctx_max_items": ctx_max_items, "recall_k": recall_k,
+                     "evidence_counts": {"requested_top_k": top_k, "recalled_cards": recalled_cards,
+                                         "reranked_cards": reranked_cards,
+                                         "added_cards": facts_expansion_added + enumerated_additions,
+                                         "adopted_cards": sum(len(row["chunk_ids"]) or 1 for row in result.sources),
+                                         "citation_entries": len(result.sources)}}
     if enumeration_mode:
         trace.append(make_node("📋", "列举覆盖范围", time_str=now_str(),
                                summary=coverage_notice(evidence_meta),
@@ -2143,6 +2104,12 @@ def answer_stream(
     from src.permissions import scope_filters
     from src.auth_db import retrieval_acl_revision
     filters = scope_filters(filters, user_groups, username)
+    # 领域文件夹语义（R6-M09 延伸，与 query_evidence 注入点一致）：answer_stream 有
+    # 自己的早退目录检查，domain 注入必须在此之前完成，两个出口行为才一致。
+    from src.query_scope import domain_folder_scope
+    folder_domain = domain_folder_scope(question)
+    if folder_domain and not (filters or {}).get("domain"):
+        filters = {**(filters or {}), "domain": folder_domain}
     epoch_at_start = (index_epoch.current(), retrieval_acl_revision())
 
     def _invalidate_changed_output(result):

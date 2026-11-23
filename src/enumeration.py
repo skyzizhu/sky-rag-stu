@@ -33,6 +33,8 @@ def enumeration_route(question: str, enumeration: bool, source=None, hint: str =
     remaining = question
     catalog_words = (
         "知识库里", "知识库中", "知识库里面", "知识库", "文档库", "库里", "库中",
+        "项目文件夹", "项目目录", "文件夹", "目录", "资料夹",  # 领域文件夹说法（R6-M09 延伸）
+        "里", "内", "中",
         "请", "帮我", "现在", "目前", "到底", "一共", "总共", "共有", "有", "多少", "几份",
         "哪些", "列出", "列举", "所有", "全部", "一下", "的", "文件", "文档", "资料", "份", "个",
         "上传", "入库", "今年", "去年", "上个月", "本月", "这个月", "吗", "呢", "？", "?", "。", "，",
@@ -135,12 +137,12 @@ def expand_documents(store, representatives, original, filters, max_cards: int):
         doc_filters = {**filters, "document_id": m["document_id"]}
         if m.get("version"):
             doc_filters["version"] = m["version"]
-        rows = store.get_all_cards(filters=doc_filters, limit=max_cards + 1)
+        rows = store.ordered_document_cards(doc_filters, max_cards + 1)
         truncated |= len(rows) > max_cards
         # 优先保留原始命中卡片，再按章节序号补充；截断时不会丢掉原本找到的证据。
         candidates = list(groups.get(key, []))
         seen = {c.metadata.get("chunk_id") for c in candidates}
-        for row in sorted(rows, key=lambda r: str(r['payload'].get('chunk_id') or '')):
+        for row in rows:
             payload = row['payload']
             if payload.get('chunk_id') in seen:
                 continue

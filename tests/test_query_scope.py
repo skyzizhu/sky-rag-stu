@@ -69,6 +69,35 @@ class QueryScopeTests(IngestHarness):
         self.assertNotIn("source", result.filters)
         self.assertEqual(result.filters["__viewer__"]["username"], "alice")
 
+    def test_domain_folder_scope_maps_folder_words_to_domains(self):
+        """R6-M09 延伸：「项目文件夹/学习目录」= 领域范围的口头说法 → domain 过滤。
+
+        病灶：「项目文件夹里有哪些文档？」被当成未知实体落进 LLM 枚举；
+        正确行为是映射 domain=projects 并走零 LLM 目录通道。
+        """
+        from src.query_scope import domain_folder_scope
+        self.assertEqual(domain_folder_scope("项目文件夹里有哪些文档？"), "projects")
+        self.assertEqual(domain_folder_scope("项目目录里有哪些文件？"), "projects")
+        self.assertEqual(domain_folder_scope("学习目录下的资料都有什么？"), "learning")
+        self.assertEqual(domain_folder_scope("归档目录里的文件都有哪些？"), "archive")
+        self.assertIsNone(domain_folder_scope("当前工作目录是什么？"))      # 程序语境
+        self.assertIsNone(domain_folder_scope("知识库里有哪些文档？"))      # 无文件夹词
+
+    def test_folder_listing_question_routes_catalog_with_domain(self):
+        from src.enumeration import enumeration_route
+        self.assertEqual(enumeration_route("项目文件夹里有哪些文档？", True), "catalog")
+        self.assertEqual(enumeration_route("知识库里有哪些文档？", True), "catalog")
+        # 夹具默认在 learning 域；补一份 projects 域文档以验证 domain 过滤生效
+        self.ingest([self.write_note("项目域的说明文档。", "proj_doc.md", folder="projects/general")])
+        result, meta = self.evidence("项目文件夹里有哪些文档？", use_llm=False)
+        self.assertEqual(meta["route"], "catalog")
+        self.assertEqual(result.filters.get("domain"), "projects")
+        self.assertEqual(meta.get("coverage"), "complete")
+        self.assertTrue(result.sources)
+        self.assertIn("proj_doc.md", {s["source"] for s in result.sources})
+        for source in result.sources:
+            self.assertEqual(source.get("domain"), "projects")
+
     def test_unresolved_scope_falls_back_but_conflict_does_not_search(self):
         with mock.patch("src.pipeline.get_retriever") as retriever:
             retriever.return_value.retrieve.return_value = []
