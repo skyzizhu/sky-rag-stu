@@ -842,10 +842,18 @@ async function runServiceAction(key, action) {
     toast(action === 'start' ? '开启指令已发出，正在等待服务就绪…' : '停止指令已发出，正在等待状态更新…');
     const reached = await pollServices(list => {
       const service = list.find(s => s.key === key);
-      return service && service.ok === (action === 'start');
+      return service && (action === 'start' ? service.ok : !(service.running ?? service.ok));
     });
     if (current === 'services') await renderServices();
-    toast(reached ? (action === 'start' ? '服务已开启' : '服务已停止') : '服务状态尚未达到预期，请查看日志或稍后刷新', reached);
+    let statusDetail = '';
+    if (!reached) {
+      try {
+        const latest = await fetchServices();
+        statusDetail = latest.services.find(service => service.key === key)?.detail || '';
+      } catch (e) {}
+    }
+    toast(reached ? (action === 'start' ? '服务已开启' : '服务已停止')
+      : `${statusDetail || '服务状态尚未达到预期'}；请查看 storage/service_script_control.log 及该服务日志`, reached);
   } catch (e) {
     toast(e.message || '操作失败，请检查后台连接', false);
   } finally {
