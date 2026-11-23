@@ -196,12 +196,17 @@ def _ingest_files_impl(
         validate_project_id(default_project_id)
     embedding = embedding_client or get_embedding_client()
     vector_store = store or get_vector_store()
+    from src.auth_db import (document_acl_write, document_user_revocations, list_users,
+                             normalize_department_groups)
+    from src.ingest_publication import publish, publication_pending, recover_publication
+    from src.vector_store import VectorStoreError
+
     summary = IngestSummary(rebuilt=rebuild)
     start = time.time()
 
     # ① 收集文件
     if paths:
-        files = [Path(p) for p in paths]
+        files = list({Path(p).resolve(): Path(p) for p in paths}.values())
     else:
         files = sorted(
             p for p in cfg.knowledge_dir.rglob("*")
@@ -213,12 +218,17 @@ def _ingest_files_impl(
     summary.total_files = len(files)
     from src import index_state as istate
 
+    if publication_pending():
+        with document_acl_write() as (_, retire_token):
+            recover_publication(vector_store, retire_token)
+
     if not files:
         console_print(f"⚠️ 没有找到可入库的文件（知识目录：{cfg.knowledge_dir}）")
         if rebuild:
             # 重建 + 空目录 = 清空知识库：否则旧卡片永远留在检索里
-            vector_store.clear()
-            istate.save_state({})
+            with document_acl_write():
+                vector_store.clear()
+                istate.save_state({}, strict=True)
             clear_qa_cache()
             from src.keyword_search import invalidate_cache
             invalidate_cache()
@@ -229,7 +239,19 @@ def _ingest_files_impl(
         console_print(f"① 找到 {len(files)} 个待入库文件")
 
     # ①.5 增量判断（V3.1）：内容指纹没变的文件跳过；台账里有但文件已删除的，向量同步清理
-    previous_state = istate.load_state()
+    previous_state = istate.load_state(strict=not rebuild)
+    if not rebuild and any(not (cfg.knowledge_dir / rel).exists() for rel in previous_state):
+        with document_acl_write() as (_, retire_token):
+            recover_publication(vector_store, retire_token)
+            previous_state = istate.load_state(strict=True)
+            for rel, entry in list(previous_state.items()):
+                if not (cfg.knowledge_dir / rel).exists():
+                    vector_store.delete_documents([entry.get("document_id") or document_id_for(rel)])
+                    istate.remove_entry(previous_state, rel)
+                    summary.cleaned_files.append(rel)
+            if summary.cleaned_files:
+                istate.save_state(previous_state, strict=True)
+                console_print(f"   已同步清理 {len(summary.cleaned_files)} 个已删除文件的向量数据")
     # 重建继承类型、归属部门与项目关联，其他档案/版本保持原有重建语义。
     type_inputs = {rel: istate.doc_type_info_for(previous_state, rel)
                    for rel in previous_state}
@@ -241,6 +263,7 @@ def _ingest_files_impl(
     paths_to_process: list[Path] = []
     processed: list[tuple[Path, str, str]] = []  # (路径, 相对路径, 哈希)
     explicit = bool(paths)
+    observed: dict | None = None
     for path in files:
         rel = path.name
         try:
@@ -251,14 +274,29 @@ def _ingest_files_impl(
             summary.failed_files.append(f"{rel}（文件不存在）")
             summary.file_errors[rel] = "file_missing"
             continue
-        current_hash = istate.file_hash(path)
+        try:
+            current_hash = istate.file_hash(path)
+        except OSError:
+            summary.failed_files.append(f"{rel}（无法读取文件）")
+            summary.file_errors[rel] = "file_unreadable"
+            continue
         known = "hash" in state.get(rel, {})
         unchanged = known and state[rel].get("hash") == current_hash
         if unchanged and (not explicit or skip_unchanged):
-            summary.skipped_files.append(rel)
-            continue
+            if observed is None:
+                observed = {}
+                for row in vector_store.list_documents():
+                    key = (row["path"], row["version"])
+                    entry = state.get(row["path"], {})
+                    if (row["status"] == entry.get("indexed_status", "active")
+                            or ("indexed_status" not in entry and row["status"] == "archive")):
+                        if row.get("version_content_hash") in ("", None, entry.get("hash")):
+                            observed[key] = observed.get(key, 0) + row["chunks"]
+            if observed.get((rel, state[rel].get("version"))) == state[rel].get("chunks", 0):
+                summary.skipped_files.append(rel)
+                continue
         if unchanged:
-            # 强制重跑且内容未变：沿用现有版本，同 point_id 更新当前卡片。
+            # 强制重跑或修复缺失卡片：沿用现有版本。
             summary.new_files.append(rel)
         else:
             # 分类必须无条件进行：updated_files 驱动旧版本 expire，
@@ -267,15 +305,7 @@ def _ingest_files_impl(
         processed.append((path, rel, current_hash))
         paths_to_process.append(path)
 
-    for rel in list(state.keys()):
-        if not (cfg.knowledge_dir / rel).exists():
-            document_id = state[rel].get("document_id") or document_id_for(rel)
-            vector_store.delete_documents([document_id])
-            istate.remove_entry(state, rel)
-            summary.cleaned_files.append(rel)
     if summary.cleaned_files:
-        console_print(f"   🧹 已同步清理 {len(summary.cleaned_files)} 个已删除文件的向量数据")
-        istate.save_state(state)  # 清理结果立即落盘（该路径可能提前返回）
         # 删除了知识就必须清问答缓存：否则同问题命中缓存返回已删除知识的答案
         clear_qa_cache()
         from src.keyword_search import invalidate_cache
@@ -290,17 +320,6 @@ def _ingest_files_impl(
         console_print("✅ 增量入库完成：没有需要处理的文件")
         return summary
 
-    # 旧版本台账可能只有指纹，部门可见范围只在 Qdrant 中。重跑前继承当前权限。
-    legacy_paths = {rel for _, rel, _ in processed
-                    if rel in previous_state and not visibility_inputs.get(rel)}
-    if legacy_paths:
-        legacy_ids = [document_id_for(rel) for rel in sorted(legacy_paths)]
-        for doc in vector_store.list_documents({"document_id": legacy_ids}):
-            if doc["path"] in legacy_paths and doc["status"] in ("active", "archive"):
-                acl = normalize_visibility(doc.get("allowed_groups"), doc.get("allowed_users"),
-                                           legacy_default=False)
-                visibility_inputs[doc["path"]] = {"value": acl}
-
     # ② 解析 + 生成统一 Metadata（目录推断 → Front Matter 覆盖 → 系统兜底）
     console_print("② 解析文件 → 统一文本 + Metadata")
     docs: list[ParsedDocument] = []
@@ -310,17 +329,20 @@ def _ingest_files_impl(
     visibility_by_rel: dict[str, dict] = {}
     llm = get_llm_client() if cfg.auto_tag else None
     registered_directories = managed_directory_names() if files else set()
-    for path in files:
-        # 相对路径决定 domain / topic；knowledge 目录外的文件按根目录规则处理
-        try:
-            rel = path.resolve().relative_to(cfg.knowledge_dir.resolve()).as_posix()
-        except ValueError:
-            rel = path.name
+    for path, rel, current_hash in processed:
         try:
             parsed = parse_file(path)
         except Exception as exc:
             summary.failed_files.append(str(exc))
             summary.file_errors[rel] = "parse_failed"
+            continue
+        try:
+            stable = istate.file_hash(path) == current_hash
+        except OSError:
+            stable = False
+        if not stable:
+            summary.failed_files.append(f"{rel}（解析期间文件内容已变化，请重试）")
+            summary.file_errors[rel] = "file_changed"
             continue
         parsed.metadata = build_document_metadata(
             relative_path=rel,
@@ -360,7 +382,7 @@ def _ingest_files_impl(
         explicit_version = version_from_filename(path.name) or str(
             (parsed.front_matter or {}).get("version") or ""
         ).strip()
-        if prev_version and not explicit_version:
+        if prev_version and (not explicit_version or rel not in summary.updated_files):
             if rel in summary.updated_files:
                 from src.metadata import bump_version
                 parsed.metadata["version"] = bump_version(prev_version)
@@ -379,35 +401,12 @@ def _ingest_files_impl(
         # V3.4 档案编辑：台账里的覆盖设置优先级最高（高于 Front Matter 与目录推断）
         overrides = state.get(rel, {}).get("overrides", {})
         for key, value in overrides.items():
-            if key in ("title", "category", "topic", "tags", "version", "status") and value:
+            if key in ("title", "category", "topic", "tags", "status") and value:
                 parsed.metadata[key] = value
-        current_hash = next(h for _p, r, h in processed if r == rel)
         parsed.metadata["version_content_hash"] = current_hash
         parsed.metadata.update(apply_confirmation(
             declared, state.get(rel, {}).get("version_confirmation"),
             current_hash, str(parsed.metadata["version"])))
-        previous_acl = istate.visibility_info_for(state, rel) or visibility_inputs.get(rel) or {}
-        acl, acl_info = resolve_visibility(
-            previous_acl, parsed.front_matter,
-            default_groups=default_groups, default_allowed_users=default_allowed_users,
-            legacy_overrides=overrides)
-        from src.auth_db import normalize_department_groups
-        acl['allowed_groups'] = normalize_department_groups(acl['allowed_groups'])
-        # 停用过的员工不因文件声明、旧默认值或重新启用而恢复授权。
-        if acl['allowed_users']:
-            from src.auth_db import document_user_revocations, list_users
-            revocations = document_user_revocations()
-            granted = acl_info.get('granted_revocations', {})
-            # 新的显式签授权记录当时撤权代次；旧文件声明/旧默认不能自动复活。
-            if default_allowed_users is not None and not previous_acl and 'manual' not in acl_info:
-                granted = {u: revocations.get(u) for u in acl['allowed_users']}
-                acl_info['granted_revocations'] = granted
-            active = {u['username'] for u in list_users() if u['status'] == 'active'}
-            prune_user_grants(acl, granted, revocations, active)
-        acl['classification'] = classify_visibility(acl['allowed_groups'], acl['allowed_users'])
-        acl_info['value'] = dict(acl)
-        visibility_by_rel[rel] = acl_info
-        parsed.metadata.update(acl)
         docs.append(parsed)
     summary.ok_files = len(docs)
     console_print(f"   成功 {len(docs)} 个，失败 {len(summary.failed_files)} 个")
@@ -1124,6 +1123,18 @@ def query_evidence(
     def _p(msg):
         if on_progress:
             on_progress(msg)
+
+    # 入口守卫（R9-NAC11）：空/纯空白问题直接诚实拒绝，不进 QU/向量化——
+    # 否则 EmbeddingError("问题不能为空") 以异常形态抛出，属可预期的输入问题。
+    if not (question or "").strip():
+        guarded = QAResult(question=question or "",
+                           answer="问题内容为空，请输入具体问题后再试。",
+                           retrieved=[], context="", sources=[],
+                           trace=[make_node("⚠️", "空问题守卫", time_str=now_str(),
+                                            summary="问题为空或仅空白，未执行检索。",
+                                            items=[("输入", repr(question)[:40])])])
+        guarded.evidence_meta = {"coverage": "not_found", "empty_question": True}
+        return guarded, guarded.evidence_meta
 
     cfg = config or get_config()
     top_k = top_k or cfg.top_k
