@@ -1,0 +1,77 @@
+[08:49:06] MCP 临时 PAT 已签发 prefix=mcp_pat_Or25lvDD（评测结束后吊销）
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+Building prefix dict from the default dictionary ...
+Loading model from cache C:\Users\skyzi\AppData\Local\Temp\jieba.cache
+Loading model cost 0.812 seconds.
+Prefix dict has been built successfully.
+    检索耗时 1.41 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:49:19] [MCP 1/20] MC01 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 3.6 秒
+    检索耗时 0.49 秒，召回 5 条，过滤条件：{'status': 'active', 'source': '星海项目管理手册_v1.0.docx', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:49:28] [MCP 2/20] MC02 ✅ top1_same=True jaccard@5=0.5 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 6.0 秒
+    检索耗时 0.37 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.32 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:49:43] [MCP 3/20] MC03 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 16.0 秒
+    检索耗时 0.57 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:50:10] [MCP 4/20] MC04 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 2.0 秒
+    检索耗时 0.41 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:50:18] [MCP 5/20] MC05 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 4.4 秒
+    检索耗时 0.45 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:50:32] [MCP 6/20] MC06 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 3.4 秒
+    检索耗时 0.45 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.34 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:50:45] [MCP 7/20] MC07 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 2.1 秒
+    检索耗时 0.43 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.36 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:50:51] [MCP 8/20] MC08 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    检索耗时 0.49 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.46 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:50:59] [MCP 9/20] MC09 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 4.4 秒
+    检索耗时 0.52 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:51:11] [MCP 10/20] MC10 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 3.1 秒
+    检索耗时 0.48 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:51:20] [MCP 11/20] MC11 ✅ top1_same=True jaccard@5=0.5 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 2.5 秒
+    检索耗时 0.29 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.28 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:51:27] [MCP 12/20] MC12 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 4.5 秒
+    检索耗时 0.84 秒，召回 10 条，过滤条件：{'status': ['active'], 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.79 秒，召回 10 条，过滤条件：{'status': ['archive', 'expired'], 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:51:51] [MCP 13/20] MC13 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 4.6 秒
+    检索耗时 0.45 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.45 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:52:06] [MCP 14/20] MC14 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 5.8 秒
+    检索耗时 0.70 秒，召回 10 条，过滤条件：{'status': ['active'], 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.74 秒，召回 10 条，过滤条件：{'status': ['archive', 'expired'], 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:52:29] [MCP 15/20] MC15 ✅ top1_same=True jaccard@5=0.2 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 2.9 秒
+    检索耗时 0.40 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:52:38] [MCP 16/20] MC16 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 2.0 秒
+    检索耗时 0.51 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.50 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:52:46] [MCP 17/20] MC17 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 4.5 秒
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.36 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:52:56] [MCP 18/20] MC18 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 1.9 秒
+    检索耗时 0.34 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+    检索耗时 0.36 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:53:02] [MCP 19/20] MC19 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    检索耗时 0.59 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '系统工程事业部'], '__viewer__': {'groups': ['all', '系统工程事业部'], 'username': 'liqiang'}}
+[08:53:14] [MCP 20/20] MC20 ✅ top1_same=True jaccard@5=0.67 exp_in_mcp=True
+[08:53:14] MCP 一致性汇总：{'total': 20, 'consistent': 20, 'top1_same_rate': 100.0, 'jaccard_avg': 0.73, 'expected_in_mcp_rate': 100.0, 'errors': []}

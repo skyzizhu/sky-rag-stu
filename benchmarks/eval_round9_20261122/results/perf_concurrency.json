@@ -1,0 +1,254 @@
+{
+  "summary": {
+    "runs": 30,
+    "workers": 5,
+    "rounds": 3,
+    "errors": [],
+    "wall_avg": 9.9,
+    "wall_p50": 0.0,
+    "wall_p95": 30.9,
+    "wall_max": 56.7
+  },
+  "records": [
+    {
+      "id": "MC01",
+      "wall_seconds": 11.2,
+      "answer_chars": 50,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC07",
+      "wall_seconds": 15.2,
+      "answer_chars": 93,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC08",
+      "wall_seconds": 17.8,
+      "answer_chars": 46,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC11",
+      "wall_seconds": 20.8,
+      "answer_chars": 207,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC17",
+      "wall_seconds": 16.7,
+      "answer_chars": 58,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC14",
+      "wall_seconds": 26.7,
+      "answer_chars": 70,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC18",
+      "wall_seconds": 24.7,
+      "answer_chars": 142,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC13",
+      "wall_seconds": 35.1,
+      "answer_chars": 345,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC20",
+      "wall_seconds": 17.0,
+      "answer_chars": 112,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC10",
+      "wall_seconds": 56.7,
+      "answer_chars": 181,
+      "ok": true,
+      "error": null,
+      "round": 1
+    },
+    {
+      "id": "MC07",
+      "wall_seconds": 0.0,
+      "answer_chars": 93,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC11",
+      "wall_seconds": 0.0,
+      "answer_chars": 207,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC13",
+      "wall_seconds": 0.0,
+      "answer_chars": 345,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC01",
+      "wall_seconds": 0.0,
+      "answer_chars": 50,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC14",
+      "wall_seconds": 0.0,
+      "answer_chars": 70,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC17",
+      "wall_seconds": 0.0,
+      "answer_chars": 58,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC18",
+      "wall_seconds": 0.0,
+      "answer_chars": 142,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC08",
+      "wall_seconds": 0.1,
+      "answer_chars": 46,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC20",
+      "wall_seconds": 0.0,
+      "answer_chars": 112,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC10",
+      "wall_seconds": 25.5,
+      "answer_chars": 181,
+      "ok": true,
+      "error": null,
+      "round": 2
+    },
+    {
+      "id": "MC08",
+      "wall_seconds": 0.0,
+      "answer_chars": 46,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC11",
+      "wall_seconds": 0.0,
+      "answer_chars": 207,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC01",
+      "wall_seconds": 0.0,
+      "answer_chars": 50,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC07",
+      "wall_seconds": 0.0,
+      "answer_chars": 93,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC17",
+      "wall_seconds": 0.0,
+      "answer_chars": 58,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC14",
+      "wall_seconds": 0.0,
+      "answer_chars": 70,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC20",
+      "wall_seconds": 0.0,
+      "answer_chars": 112,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC13",
+      "wall_seconds": 0.0,
+      "answer_chars": 345,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC18",
+      "wall_seconds": 0.0,
+      "answer_chars": 142,
+      "ok": true,
+      "error": null,
+      "round": 3
+    },
+    {
+      "id": "MC10",
+      "wall_seconds": 30.9,
+      "answer_chars": 195,
+      "ok": true,
+      "error": null,
+      "round": 3
+    }
+  ]
+}

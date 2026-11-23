@@ -1,0 +1,263 @@
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+Building prefix dict from the default dictionary ...
+Loading model from cache C:\Users\skyzi\AppData\Local\Temp\jieba.cache
+Loading model cost 0.961 seconds.
+Prefix dict has been built successfully.
+    检索耗时 1.52 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 1.5 秒
+    检索耗时 0.49 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.0 秒
+[08:32:30] [new 1/40] NAC01（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=5 wall=12.3s
+    LLM 调用完成：deepseek-flash，耗时 2.8 秒
+    检索耗时 0.69 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 2.5 秒
+    检索耗时 0.40 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.3 秒
+[08:32:44] [new 2/40] NAC02（adversarial）asker=wangfang ❌ checks={'retrieval_hit': True, 'answer_must': False} failed=['answer_must'] rank=1 wall=14.7s
+    LLM 调用完成：deepseek-flash，耗时 3.4 秒
+    检索耗时 0.25 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.23 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 2.7 秒
+    检索耗时 0.23 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    检索耗时 0.21 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.9 秒
+[08:32:55] [new 3/40] NAC03（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=10.6s
+    LLM 调用完成：deepseek-flash，耗时 3.0 秒
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 7.5 秒
+    检索耗时 0.44 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 5.7 秒
+    LLM 调用完成：deepseek-flash，耗时 18.0 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    LLM 调用完成：deepseek-flash，耗时 11.3 秒
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+    LLM 调用完成：deepseek-flash，耗时 6.9 秒
+    LLM 调用完成：deepseek-flash，耗时 2.5 秒
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+    LLM 调用完成：deepseek-flash，耗时 1.0 秒
+    LLM 调用完成：deepseek-flash，耗时 5.0 秒
+    检索耗时 0.87 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+    LLM 调用完成：deepseek-flash，耗时 0.6 秒
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+[08:34:11] [new 4/40] NAC04（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=76.5s
+    LLM 调用完成：deepseek-flash，耗时 1.5 秒
+    检索耗时 0.46 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+    检索耗时 0.45 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.1 秒
+[08:34:23] [new 5/40] NAC05（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.2s
+    LLM 调用完成：deepseek-flash，耗时 5.0 秒
+    检索耗时 0.40 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.34 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 3.4 秒
+    检索耗时 0.37 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.34 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.3 秒
+[08:34:40] [new 6/40] NAC06（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=17.6s
+    LLM 调用完成：deepseek-flash，耗时 2.4 秒
+    检索耗时 0.27 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+    检索耗时 0.26 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.6 秒
+[08:34:50] [new 7/40] NAC07（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=9.7s
+    LLM 调用完成：deepseek-flash，耗时 3.4 秒
+    检索耗时 0.40 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 5.3 秒
+    检索耗时 0.54 秒，召回 5 条，过滤条件：{'status': 'active', 'source': '星海项目管理手册_v1.0.docx', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.0 秒
+[08:35:03] [new 8/40] NAC08（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=13.5s
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    检索耗时 0.50 秒，召回 4 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [2]}
+    LLM 调用完成：deepseek-flash，耗时 4.1 秒
+    检索耗时 0.46 秒，召回 4 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [2]}
+    LLM 流式调用完成：deepseek-flash，耗时 2.0 秒
+[08:35:18] [new 9/40] NAC09（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.6s
+    LLM 调用完成：deepseek-flash，耗时 4.7 秒
+    检索耗时 0.46 秒，召回 5 条，过滤条件：{'status': 'active', 'source': '华信运维服务合同_2025_v1.0.pdf', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 5.8 秒
+    检索耗时 0.45 秒，召回 5 条，过滤条件：{'status': 'active', 'source': '华信运维服务合同_2025_v1.0.pdf', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.4 秒
+[08:35:32] [new 10/40] NAC10（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.5s
+    LLM 调用完成：deepseek-flash，耗时 1.1 秒
+[08:35:34] [new 11/40] NAC11（adversarial）asker=zhaocai ❌ checks={'refuse': False} failed=['refuse'] rank=None wall=1.1s ERROR=EmbeddingError: 问题不能为空。
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    检索耗时 0.42 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    检索耗时 0.42 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.3 秒
+[08:35:49] [new 12/40] NAC12（adversarial）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=15.8s
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    检索耗时 1.82 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+    检索耗时 0.92 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.5 秒
+[08:36:05] [new 13/40] NAC13（adversarial）asker=zhaocai ❌ checks={'refuse': False} failed=['refuse'] rank=None wall=15.9s
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    检索耗时 0.34 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+    检索耗时 0.39 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 3.1 秒
+[08:36:20] [new 14/40] NAC14（adversarial）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=14.6s
+    LLM 调用完成：deepseek-flash，耗时 0.9 秒
+    检索耗时 0.35 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    检索耗时 0.32 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.6 秒
+[08:36:35] [new 15/40] NAC15（adversarial）asker=zhaocai ✅ checks={'must_not': True, 'refuse': True} rank=None wall=14.9s
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+    检索耗时 0.30 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    检索耗时 0.30 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.7 秒
+[08:36:49] [new 16/40] NAC16（adversarial）asker=zhaocai ✅ checks={'must_not': True, 'refuse': True} rank=None wall=14.0s
+    LLM 调用完成：deepseek-flash，耗时 6.9 秒
+    检索耗时 0.41 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 4.1 秒
+    检索耗时 0.44 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.9 秒
+[08:37:12] [new 17/40] NAC17（adversarial）asker=zhaocai ❌ checks={'must_not': False, 'refuse': True} failed=['must_not'] rank=None wall=23.0s
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+    检索耗时 0.31 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 3.1 秒
+    检索耗时 0.39 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 4.3 秒
+[08:37:28] [new 18/40] NAC18（adversarial）asker=zhaocai ✅ checks={'refuse': True, 'not_exact': True} rank=None wall=16.5s
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    检索耗时 0.41 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 1.9 秒
+    检索耗时 0.45 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.5 秒
+[08:37:40] [new 19/40] NAC19（adversarial）asker=zhaocai ✅ checks={'refuse': True, 'leak_guard': True} rank=None wall=11.3s
+    LLM 调用完成：deepseek-flash，耗时 1.5 秒
+    检索耗时 0.43 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+    检索耗时 0.35 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.0 秒
+[08:37:49] [new 20/40] NAC20（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=9.5s
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+    检索耗时 0.38 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    LLM 调用完成：deepseek-flash，耗时 1.2 秒
+    检索耗时 0.28 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [7]}
+    LLM 流式调用完成：deepseek-flash，耗时 0.8 秒
+[08:37:56] [new 21/40] NMU01（multiturn）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=7.1s
+    LLM 调用完成：deepseek-flash，耗时 1.9 秒
+    检索耗时 0.20 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 2.8 秒
+    检索耗时 0.25 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.5 秒
+[08:38:06] [new 22/40] NMU02（multiturn）asker=wangfang ❌ checks={'retrieval_hit': False, 'answer_must': True} failed=['retrieval_hit'] rank=None wall=9.7s
+    LLM 调用完成：deepseek-flash，耗时 7.1 秒
+    检索耗时 0.46 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 3.1 秒
+    检索耗时 0.53 秒，召回 50 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 3.1 秒
+    LLM 调用完成：deepseek-flash，耗时 7.2 秒
+[08:38:30] [new 23/40] NMU03（multiturn）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=6 wall=24.6s
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+    检索耗时 0.32 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 2.5 秒
+    检索耗时 0.64 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.8 秒
+[08:38:41] [new 24/40] NMU04（multiturn）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=8 wall=10.1s
+    LLM 调用完成：deepseek-flash，耗时 2.3 秒
+    检索耗时 0.42 秒，召回 4 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [2]}
+    LLM 调用完成：deepseek-flash，耗时 2.8 秒
+    检索耗时 0.44 秒，召回 4 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}, 'project_id': [2]}
+    LLM 流式调用完成：deepseek-flash，耗时 3.2 秒
+[08:38:55] [new 25/40] NMU05（multiturn）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.6s
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+    检索耗时 0.27 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 1.8 秒
+    检索耗时 0.39 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.3 秒
+[08:39:03] [new 26/40] NMU06（multiturn）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=7.8s
+    LLM 调用完成：deepseek-flash，耗时 2.9 秒
+    检索耗时 0.66 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 调用完成：deepseek-flash，耗时 3.7 秒
+    检索耗时 0.50 秒，召回 4 条，过滤条件：{'status': 'active', 'source': '星海员工手册_2025版_v3.0.md', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.4 秒
+[08:39:18] [new 27/40] NMU07（multiturn）asker=lili ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.9s
+    LLM 调用完成：deepseek-flash，耗时 1.3 秒
+    检索耗时 0.25 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 调用完成：deepseek-flash，耗时 3.6 秒
+    检索耗时 0.47 秒，召回 1 条，过滤条件：{'status': 'active', 'source': '星海员工手册_2024版.md', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.4 秒
+[08:39:27] [new 28/40] NMU08（multiturn）asker=lili ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=2 wall=9.3s
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+    检索耗时 0.40 秒，召回 5 条，过滤条件：{'status': 'active', 'source': '华信运维服务合同_2025_v1.0.pdf', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 6.2 秒
+    检索耗时 0.43 秒，召回 5 条，过滤条件：{'status': 'active', 'source': '华信运维服务合同_2025_v1.0.pdf', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.8 秒
+[08:39:38] [new 29/40] NMU09（multiturn）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.2s
+    LLM 调用完成：deepseek-flash，耗时 1.5 秒
+    检索耗时 0.29 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 1.6 秒
+    检索耗时 0.47 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.4 秒
+[08:39:49] [new 30/40] NMU10（multiturn）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=10.4s
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+    检索耗时 0.66 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 调用完成：deepseek-flash，耗时 0.8 秒
+    检索耗时 0.44 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.0 秒
+[08:39:54] [new 31/40] NMU11（multiturn）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=5.9s
+    LLM 调用完成：deepseek-flash，耗时 1.1 秒
+    检索耗时 0.27 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    检索耗时 0.40 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.9 秒
+[08:40:03] [new 32/40] NMU12（multiturn）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=5 wall=8.6s
+    LLM 调用完成：deepseek-flash，耗时 2.9 秒
+    检索耗时 0.37 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 调用完成：deepseek-flash，耗时 3.9 秒
+    检索耗时 0.39 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.5 秒
+[08:40:18] [new 33/40] NPR01（permission）asker=lili ✅ checks={'refuse': True} rank=None wall=15.3s
+    LLM 调用完成：deepseek-flash，耗时 1.9 秒
+    检索耗时 0.50 秒，召回 0 条，过滤条件：{'status': 'active', 'source': '华信运维服务合同_2025_v1.0.pdf', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    检索耗时 0.43 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 调用完成：deepseek-flash，耗时 2.6 秒
+    检索耗时 0.48 秒，召回 0 条，过滤条件：{'status': 'active', 'source': '华信运维服务合同_2025_v1.0.pdf', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    检索耗时 0.47 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.3 秒
+[08:40:31] [new 34/40] NPR02（permission）asker=liuye ✅ checks={'refuse': True} rank=None wall=12.4s
+    LLM 调用完成：deepseek-flash，耗时 2.7 秒
+    检索耗时 0.48 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 2.0 秒
+    检索耗时 0.44 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 0.9 秒
+[08:40:42] [new 35/40] NPR03（permission）asker=wangfang ✅ checks={'refuse': True} rank=None wall=11.4s
+    LLM 调用完成：deepseek-flash，耗时 4.9 秒
+    检索耗时 0.25 秒，召回 6 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [5]}
+    检索耗时 0.26 秒，召回 6 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [5]}
+    LLM 调用完成：deepseek-flash，耗时 9.7 秒
+    检索耗时 0.24 秒，召回 6 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [5]}
+    检索耗时 0.25 秒，召回 6 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [5]}
+    LLM 流式调用完成：deepseek-flash，耗时 0.7 秒
+[08:41:01] [new 36/40] NPR04（permission）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=18.9s
+    LLM 调用完成：deepseek-flash，耗时 3.5 秒
+    检索耗时 0.50 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 调用完成：deepseek-flash，耗时 3.4 秒
+    检索耗时 0.54 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '人力资源部'], '__viewer__': {'groups': ['all', '人力资源部'], 'username': 'lili'}}
+    LLM 流式调用完成：deepseek-flash，耗时 2.1 秒
+[08:41:17] [new 37/40] NPR05（permission）asker=lili ✅ checks={'refuse': True} rank=None wall=16.2s
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+    检索耗时 0.46 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    检索耗时 0.47 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '财务部'], '__viewer__': {'groups': ['all', '财务部'], 'username': 'zhaocai'}}
+[08:41:26] [new 38/40] NPR06（permission）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=8.6s
+    LLM 调用完成：deepseek-flash，耗时 4.1 秒
+    检索耗时 0.33 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 调用完成：deepseek-flash，耗时 1.7 秒
+    检索耗时 0.37 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '研发部'], '__viewer__': {'groups': ['all', '研发部'], 'username': 'wangfang'}}
+    LLM 流式调用完成：deepseek-flash，耗时 1.2 秒
+[08:41:37] [new 39/40] NPR07（permission）asker=wangfang ✅ checks={'refuse': True} rank=None wall=11.5s
+    LLM 调用完成：deepseek-flash，耗时 2.2 秒
+    检索耗时 0.37 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [7]}
+    LLM 调用完成：deepseek-flash，耗时 1.4 秒
+    检索耗时 0.30 秒，召回 10 条，过滤条件：{'status': 'active', 'allowed_groups': ['all', '市场部'], '__viewer__': {'groups': ['all', '市场部'], 'username': 'liuye'}, 'project_id': [7]}
+    LLM 流式调用完成：deepseek-flash，耗时 1.0 秒
+[08:41:46] [new 40/40] NPR08（permission）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=8.2s
+[08:41:46] new 汇总：{'total': 40, 'graded': 39, 'passed': 35, 'accuracy': 89.7, 'errors': ['NAC11'], 'wall_avg': 14.5, 'wall_p50': 12.4, 'failed_ids': ['NAC02', 'NAC13', 'NAC17', 'NMU02']}

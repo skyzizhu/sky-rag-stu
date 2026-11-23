@@ -1,0 +1,1655 @@
+{
+  "summary": {
+    "total": 60,
+    "graded": 60,
+    "passed": 59,
+    "accuracy": 98.3,
+    "errors": [],
+    "wall_avg": 21.2,
+    "wall_p50": 15.4,
+    "failed_ids": [
+      "C08"
+    ]
+  },
+  "records": [
+    {
+      "id": "S01",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "公司 2026 年的营业收入目标是多少？",
+      "asker": "zhaocai",
+      "answer": "公司 2026 年的营业收入目标为 **3.2 亿元**（2025 年目标为 2.5 亿元）[1]。",
+      "sources": [
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2025年度规划汇报.pptx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 9.8,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S02",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "凤凰项目的负责人是谁？",
+      "asker": "wangfang",
+      "answer": "凤凰项目的负责人是沈青 [4]。",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026年度经营计划.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx"
+      ],
+      "hit_rank": 3,
+      "wall_seconds": 9.6,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S03",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "公司数据分为哪四级？",
+      "asker": "wangfang",
+      "answer": "公司数据分为四级：公开、内部、秘密、机密 [1]。\n\n- 公开级：可对外发布的产品资料、新闻稿 [1]。\n- 内部级：日常经营数据，限员工访问 [1]。\n- 秘密级：财务明细、客户名单、未发布产品规划 [1]。\n- 机密级：核心算法、定价成本、并购信息 [1]。",
+      "sources": [
+        "星海数据治理管理制度_v2.0.md",
+        "星海信息安全管理制度.md",
+        "星海供应商管理办法_2026修订.md",
+        "20260915 CGW_BHF_总体V1.2.pptx",
+        "天枢项目立项报告.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 11.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S04",
+      "dimension": "事实-编号BM25",
+      "difficulty": "simple",
+      "question": "需求编号 REQ-FH-015 是什么规则？",
+      "asker": "wangfang",
+      "answer": "REQ-FH-015 是**告警联动规则**，隶属告警联动模块 [3]。\n\n具体内容：同一设备同一告警类型在 30 分钟内触发 2 次的，系统自动生成工单并派发给责任班组 [3]。\n\n同一章节还列出了配套的工单超时升级规则：工单 4 小时未响应自动升级至班长，8 小时未响应升级至租户管理员 [3]。",
+      "sources": [
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 8.1,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S05",
+      "dimension": "事实-英文PDF",
+      "difficulty": "simple",
+      "question": "Phoenix 技术方案的文档编号是什么？",
+      "asker": "wangfang",
+      "answer": "> ℹ️ 「Phoenix」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\nPhoenix 技术方案的文档编号是 **PHX-PROP-2026-007** [1]。",
+      "sources": [
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 11.9,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S06",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "X-4000 旗舰版的售价是多少元？续航多久？",
+      "asker": "liuye",
+      "answer": "X-4000 旗舰版的价格和续航信息如下：\n\n- 售价：25999 元 [3]\n- 电池续航：48 小时 [3]",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海X-2000发布会纪要.pptx",
+        "星海X-2000发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 11.0,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S07",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "项目管理手册里 CPI 低于多少触发红色预警？",
+      "asker": "wangfang",
+      "answer": "根据手册，CPI 低于 0.8 会触发红色预警，并强制制定纠偏计划；此外，CPI 低于 0.9 会触发黄色预警 [3]。",
+      "sources": [
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 14.4,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S08",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "按供应商管理办法，货款统一月结多少天？质保金比例是多少？",
+      "asker": "zhaocai",
+      "answer": "- 货款统一月结 60 天 [1]。\n- 质保金比例为合同金额的 5%，质保期满且无质量问题后退还 [1]。",
+      "sources": [
+        "星海供应商管理办法_2026修订.md",
+        "星海合同管理制度_v1.1.md",
+        "星海合同管理制度_v1.1.md",
+        "华信运维服务合同_2025_v1.0.pdf",
+        "星海付款审批细则.md",
+        "华信数据采购合同_2024.pdf",
+        "华信数据采购合同_2024.pdf",
+        "星海IT资产管理办法.txt",
+        "星海供应商名录.xlsx",
+        "蓝鲸维保服务合同_2025.pdf"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 12.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S09",
+      "dimension": "事实-台账行组",
+      "difficulty": "simple",
+      "question": "2026 年台账里灯塔项目的状态是什么？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 「2026 年台账里灯塔」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n灯塔项目在 2026 年台账中的状态是**已暂停**，负责人为孙倩，预算 90 万元，周期备注为“需求重大变更” [3]。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海项目台账_2025.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 12.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S10",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "数据脱敏规则里手机号怎么处理？",
+      "asker": "wangfang",
+      "answer": "根据制度中的静态脱敏规则，手机号需要**保留前 3 位与后 4 位，中间 4 位用 * 替代** [1]。\n\n此外，动态脱敏会在查询出口按角色生效，普通员工看不到完整手机号与证件号 [1]。\n\n（补充：测试与开发环境一律使用脱敏副本，禁止在生产数据上直接调试 [1]。）",
+      "sources": [
+        "星海数据治理管理制度_v2.0.md",
+        "星海信息安全管理制度.md",
+        "20260915 CGW_BHF_总体V1.2.pptx",
+        "20260915 CGW_BHF_总体V1.2.pptx",
+        "星海RAG技术培训笔记.md"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 10.6,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S11",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "2025 版员工手册的一线城市住宿标准是多少钱一晚？",
+      "asker": "wangfang",
+      "answer": "2025 版《员工手册》正文写的一线城市（北京、上海、广州、深圳）住宿标准是 **每晚 500 元** [2]。\n\n但需要注意：2025 修订的《星海差旅管理办法》规定一线城市为 **每晚 450 元** [5]；并且员工手册附则明确，差旅事项与《星海差旅管理办法（2025 修订）》冲突时，以该办法为准 [4]。因此实际执行标准应为 **450 元/晚**。",
+      "sources": [
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海差旅管理办法_2025修订.md",
+        "星海员工手册_2024版.md"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 20.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S12",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "凤凰项目的投资回收期是几年？",
+      "asker": "wangfang",
+      "answer": "凤凰项目的投资回收期为 2.2 年 [6]。",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026年度经营计划.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx"
+      ],
+      "hit_rank": 3,
+      "wall_seconds": 9.3,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S13",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "跨部门数据导出的审批时限是多久？",
+      "asker": "wangfang",
+      "answer": "跨部门数据导出的审批时限为 **1 个工作日**。\n\n- 审批要求：跨部门数据导出须由数据 Owner 与安全组双审批 [1]。\n- 留痕要求：数据提供方负责记录谁、在何时、导出了什么、给了谁 [1]。",
+      "sources": [
+        "星海数据治理管理制度_v2.0.md",
+        "星海合同管理制度_v1.1.md",
+        "星海财务报销制度_v2.1.md",
+        "星海项目管理手册_v1.0.docx",
+        "星云项目招标技术规格书_v1.2.md"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 11.3,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S14",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "项目管理手册要求项目周报什么时候提交？",
+      "asker": "wangfang",
+      "answer": "项目周报须在每周五 17:00 前提交至 PMO；周报内容包括进度、风险和下周计划 [3]。",
+      "sources": [
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "昆仑项目需求说明书_v2.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 16.5,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S15",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "2024 年员工手册规定的试用期是几个月？",
+      "asker": "wangfang",
+      "answer": "根据 2024 版员工手册，新员工试用期为 **6 个月**，试用期表现合格者按期转正 [1]。",
+      "sources": [
+        "星海员工手册_2024版.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海新员工入职培训手册_v2.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 11.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S16",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "昆仑项目的负责人是谁？预算多少万元？",
+      "asker": "wangfang",
+      "answer": "- 项目负责人：林岚 [1]\n- 项目预算：300 万元 [1]",
+      "sources": [
+        "昆仑项目立项报告.md",
+        "昆仑项目启动新闻.html",
+        "星海2026年度经营计划.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 13.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S17",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "星云项目章程的立项预算是多少万元？",
+      "asker": "wangfang",
+      "answer": "知识库中关于星云项目立项预算存在两份不一致的记录，无法确定唯一金额：\n\n- 一份《星云项目章程》记载立项预算为 **120 万元** [1]\n- 另一份《星云项目章程》记载立项预算为 **135 万元** [6]\n\n两份资料的其他信息也有差异（如核心成员是否包含刘洋、是否有 M4 项目验收里程碑），建议以正式发布的最新版章程为准核实。",
+      "sources": [
+        "星云项目章程.md",
+        "星海X-2000发布会纪要.pptx",
+        "星海X-2000发布会纪要.pptx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星云项目章程.md"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 13.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S18",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "华信运维合同 P1 级故障的响应时限是多少？",
+      "asker": "zhaocai",
+      "answer": "根据华信运维服务合同（OCEAN-OPS-2025-112）的 SLA 条款，P1（关键）级故障需在 **2 小时内** 完成现场或远程响应，并在 **24 小时内** 提交恢复方案 [2]。",
+      "sources": [
+        "华信运维服务合同_2025_v1.0.pdf",
+        "华信运维服务合同_2025_v1.0.pdf",
+        "华信运维服务合同_2025_v1.0.pdf",
+        "示例_产品需求.docx",
+        "蓝鲸维保服务合同_2025.pdf"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 10.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S19",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "公司 2026 年计划新增多少名员工？核心人才流失率控制在多少以内？",
+      "asker": "zhaocai",
+      "answer": "- 2026 年全年计划新增员工 200 人，其中研发序列占比 60% [1]\n- 核心人才年流失率控制在 12% 以内 [1]",
+      "sources": [
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2025年度规划汇报.pptx",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 15.4,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "S20",
+      "dimension": "事实-单点",
+      "difficulty": "simple",
+      "question": "X-3000 旗舰版的售价和续航分别是多少？",
+      "asker": "liuye",
+      "answer": "X-3000 旗舰版的售价为 **19999 元**，电池续航为 **36 小时** [3]。",
+      "sources": [
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 8.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M01",
+      "dimension": "跨文档对比",
+      "difficulty": "medium",
+      "question": "X-4000 旗舰版和 X-3000 旗舰版的价格分别是多少元？哪个更贵？",
+      "asker": "liuye",
+      "answer": "- X-4000 旗舰版售价为 25999 元 [3]。\n- X-3000 旗舰版售价为 19999 元 [10]。\n- 因此，X-4000 旗舰版更贵，比 X-3000 旗舰版高 6000 元。",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 11.8,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M02",
+      "dimension": "双台账时效",
+      "difficulty": "medium",
+      "question": "2024 年台账里天枢项目的状态和 2026 年台账里的状态分别是什么？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 「2024 年台账里天枢」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n- 2024 年台账：知识库中没有 2024 年台账的资料，因此无法确认天枢项目在 2024 年台账中的状态。\n- 2026 年台账：天枢项目状态为“已结项” [1]。\n\n补充说明：知识库中另有一份《星海项目台账_2025.xlsx》，其中天枢项目状态为“进行中” [6]；但该文件属于 2025 年台账，并非您所问的 2024 年台账。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海项目台账_2025.xlsx",
+        "2024年度部门预算表.xlsx",
+        "星海2026年度经营计划.docx",
+        "星海合同管理制度_v1.1.md",
+        "20260915 CGW_BHF_总体V1.2.pptx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 28.1,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M03",
+      "dimension": "行组列举",
+      "difficulty": "medium",
+      "question": "2026 年台账里状态为已暂停的项目有哪两个？原因分别是什么？",
+      "asker": "zhaocai",
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。\n\n1. **磐石项目**：磐石项目 | 吴刚 | 220 | 已暂停 | 资金冻结 [1]\n\n2. **灯塔项目**：灯塔项目 | 孙倩 | 90 | 已暂停 | 需求重大变更 [2]\n\n处理范围：1 份文档、5 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 26.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M04",
+      "dimension": "行组筛选",
+      "difficulty": "medium",
+      "question": "2026 年台账里预算超过 200 万的项目有哪些？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 「2026 年台账里预算超过 200 万的」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **4 条带原文证据的记录**；这不是全库确定总数。\n\n⚠️ 语义复审未完成（调用失败），以上记录未经相关性把关，可能包含仅字面关联的无关条目。\n\n1. **磐石项目**：磐石项目 | 吴刚 | 220 | 已暂停 | 资金冻结 [1]\n\n2. **低空预警系统**：低空预警系统 | 李强 | 500 | 进行中 | 2024-05~2026-04 [1]\n\n3. **昆仑项目**：昆仑项目 | 林岚 | 300 | 进行中 | 2025-03~2026-02 [2]\n\n4. **凤凰项目**：凤凰项目 | 沈青 | 260 | 进行中 | 2026-01~2026-09 [3]\n\n处理范围：1 份文档、5 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 34.9,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M05",
+      "dimension": "一致性核验",
+      "difficulty": "medium",
+      "question": "X-4000 需求规格的非功能指标和凤凰可研报告一致吗？分别是什么？",
+      "asker": "wangfang",
+      "answer": "一致。\n\n- X-4000 需求规格的非功能指标：支持 2000 台设备并发接入；核心接口响应时间不超过 300 毫秒（95 分位）；系统可用性不低于 99.9%；并明确说明与《凤凰项目可行性研究报告》保持一致 [4]。\n- 凤凰项目可行性研究报告的关键技术指标：支持 2000 台设备并发接入；核心接口响应时间不超过 300 毫秒（95 分位）；系统可用性不低于 99.9% [8]。\n\n三项指标完全相同。",
+      "sources": [
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 17.8,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M06",
+      "dimension": "表格聚合",
+      "difficulty": "medium",
+      "question": "2026 年部门预算最高的两个部门是哪两个？分别是多少万元？",
+      "asker": "zhaocai",
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。\n\n1. **研发部**：部门 | 2026 预算（万元） 研发部 | 800 市场部 | 300 人力资源部 | 150 财务部 | 100 行政部 | 90 合计 | 1440 [1]\n\n2. **市场部**：部门 | 2026 预算（万元） 研发部 | 800 市场部 | 300 人力资源部 | 150 财务部 | 100 行政部 | 90 合计 | 1440 [1]\n\n处理范围：17 份文档、57 张卡片、11 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "2025年度部门预算表.xlsx",
+        "2025年度部门预算表.xlsx",
+        "2024年度部门预算表.xlsx",
+        "2024年度部门预算表.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 40.1,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M07",
+      "dimension": "确定性求和",
+      "difficulty": "medium",
+      "question": "2026 年三大重点投入项目的预算合计是多少万元？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 「2026 年三大重点投入」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n2026 年三大重点投入项目的预算合计为 **590 万元**：\n\n- 凤凰项目：260 万元 [4]\n- 星云二期：180 万元 [4]\n- 昆仑二期：150 万元 [4]\n\n计算方式：260 + 180 + 150 = 590 万元。",
+      "sources": [
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 8.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M08",
+      "dimension": "版本对比",
+      "difficulty": "medium",
+      "question": "现在的差旅住宿一线标准和 2023 年旧版差旅制度相比涨了多少？",
+      "asker": "lili",
+      "answer": "可确认的是：2023 旧版差旅制度的一线城市住宿标准为每晚 300 元 [3]。现行资料对一线标准存在两种写法：\n\n- 《星海差旅管理办法（2025 修订）》规定一线城市每晚 450 元 [1]；按此口径，较 2023 旧版上涨 150 元/晚，涨幅 50% [1][3]。\n- 《星海员工手册（2025版）》规定一线城市每晚 500 元 [2]；按此口径，上涨 200 元/晚，约 66.7% [2][3]。\n\n由于 [1] 明确写明自 2025-01-01 施行并“取代《员工手册》中的差旅报销标准条款” [1]，通常应优先采用 450 元口径；但两份现行资料仍存在文本冲突，因此无法唯一确认一个涨幅。",
+      "sources": [
+        "星海差旅管理办法_2025修订.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海旧版差旅制度_2023.md",
+        "星海旧版员工手册_2022.md"
+      ],
+      "hit_rank": 2,
+      "wall_seconds": 35.8,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M09",
+      "dimension": "版本对比",
+      "difficulty": "medium",
+      "question": "2024 版员工手册和 2025 版的试用期分别规定几个月？",
+      "asker": "wangfang",
+      "answer": "- 2024 版员工手册规定：新员工试用期为 **6 个月** [5]。\n- 2025 版员工手册规定：新员工试用期缩短为 **3 个月** [1]。",
+      "sources": [
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2024版.md",
+        "星海新员工入职培训手册_v2.0.docx",
+        "星海新员工入职培训手册_v2.0.docx",
+        "星海新员工入职培训手册_v2.0.docx",
+        "星海新员工入职培训手册_v2.0.docx",
+        "星海新员工入职培训手册_v2.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 14.8,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M10",
+      "dimension": "跨项目表格（方案A）",
+      "difficulty": "medium",
+      "question": "凤凰项目的三个里程碑分别计划什么时候完成？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 按「凤凰」过滤未找到资料，已放宽为全库语义检索结果。\n\n**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **M1 核心接入**：凤凰项目 | M1 核心接入 | 2026-04-30 [1]\n\n2. **M2 告警联动**：凤凰项目 | M2 告警联动 | 2026-06-30 [1]\n\n3. **M3 看板与GA**：凤凰项目 | M3 看板与GA | 2026-09-15 [1]\n\n处理范围：16 份文档、55 张卡片、11 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 30.3,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M11",
+      "dimension": "双事实",
+      "difficulty": "medium",
+      "question": "数据操作数据的在线保留和归档保留分别是多少年？",
+      "asker": "wangfang",
+      "answer": "根据《星海数据治理管理制度（V2.0）》中的数据生命周期规定：\n\n- 业务操作数据在线保留 **2 年** [1]\n- 期满后转入归档库，再保留 **5 年** [1]\n- 到期后由数据 Owner 评估销毁或延期；涉及诉讼的数据按法务要求冻结 [1]",
+      "sources": [
+        "星海数据治理管理制度_v2.0.md",
+        "星海数据备份与恢复管理办法_v1.1.md",
+        "星云项目招标技术规格书_v1.2.md",
+        "星云项目招标技术规格书_v1.2.md",
+        "星云项目招标技术规格书_v1.2.md",
+        "星海合同管理制度_v1.1.md"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 13.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M12",
+      "dimension": "跨文档对比",
+      "difficulty": "medium",
+      "question": "项目管理手册的立项审批门槛和合同管理制度的金额审批门槛分别是多少万元？",
+      "asker": "zhaocai",
+      "answer": "**项目管理手册——立项审批门槛**（预算金额）：\n- 预算 100 万元及以上的项目，须经经营管理会议批准 [1]\n- 预算 100 万元以下的项目，由分管副总经理批准 [1]\n\n**合同管理制度——金额审批门槛**：\n- 单笔金额达到 50 万元及以上的合同，须经分管副总经理审批；涉外合同一律须由法务部会签 [6]\n- 与同一供应商年度累计签约金额超过 100 万元的，须报经营管理会议审议 [6]\n\n可以看出，两套制度的金额门槛并不同一：立项按 100 万元划分，合同单笔审批门槛为 50 万元，累计签约门槛为 100 万元。",
+      "sources": [
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "星海项目管理手册_v1.0.docx",
+        "星海合同管理制度_v1.1.md",
+        "星海合同管理制度_v1.1.md",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 24.3,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M13",
+      "dimension": "多事实",
+      "difficulty": "medium",
+      "question": "Phoenix 方案的总报价、团队规模和总工作量分别是多少？",
+      "asker": "wangfang",
+      "answer": "- 总报价：固定总价为 **260 万元人民币（2,600,000 元）** [4]。\n- 团队规模：技术方案写明核心团队由 **8 名工程师**组成 [2]；但可行性研究报告记载项目团队规模为 **12 人** [7]，两处资料不一致。\n- 总工作量：**120 人月** [2]；预算也按“120 人月 × 2 万元 + 20 万元缓冲”计算 [4]。",
+      "sources": [
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 16.8,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M14",
+      "dimension": "跨文档对比",
+      "difficulty": "medium",
+      "question": "华信运维合同和蓝鲸维保合同的 SLA 响应时限分别是多少？",
+      "asker": "zhaocai",
+      "answer": "- 华信运维服务合同：P1（严重）事件需在 2 小时内响应，并在 24 小时内提交恢复方案；P2（高）事件需在 8 小时内响应；P3（普通）事件需在下一工作日响应 [2]。\n- 蓝鲸维保服务合同：对于关键故障，需在 4 小时内提供现场响应 [7]。",
+      "sources": [
+        "华信运维服务合同_2025_v1.0.pdf",
+        "华信运维服务合同_2025_v1.0.pdf",
+        "华信运维服务合同_2025_v1.0.pdf",
+        "华信运维服务合同_2025_v1.0.pdf",
+        "华信运维服务合同_2025_v1.0.pdf",
+        "蓝鲸维保服务合同_2025.pdf",
+        "蓝鲸维保服务合同_2025.pdf",
+        "星海合同管理制度_v1.1.md",
+        "星海合同管理制度_v1.1.md",
+        "华信数据采购合同_2024.pdf"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 16.9,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M15",
+      "dimension": "跨文档对比",
+      "difficulty": "medium",
+      "question": "2024 年度和 2025 年度研发部的预算分别是多少万元？",
+      "asker": "zhaocai",
+      "answer": "- 2024 年度研发部预算为 520 万元 [1]。\n- 2025 年度研发部预算为 600 万元 [3]。",
+      "sources": [
+        "2024年度部门预算表.xlsx",
+        "2024年度部门预算表.xlsx",
+        "2025年度部门预算表.xlsx",
+        "2025年度部门预算表.xlsx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 12.5,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M16",
+      "dimension": "章节定位",
+      "difficulty": "medium",
+      "question": "数据治理制度规定的四级分类里，秘密级外发需要谁签批？",
+      "asker": "wangfang",
+      "answer": "秘密级数据外发需要由**数据 Owner 与部门负责人双签**（即双方共同签署审批）[1]。\n\n补充参考：同一制度中，机密级数据外发须经 CTO 审批；对外合作需要提供秘密级及以上数据时，一律使用脱敏副本并签订保密协议 [1]。",
+      "sources": [
+        "星海数据治理管理制度_v2.0.md",
+        "20260915 CGW_BHF_总体V1.2.pptx",
+        "20260915 CGW_BHF_总体V1.2.pptx",
+        "Phoenix技术方案建议书_2026.pdf",
+        "星海供应商管理办法_2026修订.md"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 14.9,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M17",
+      "dimension": "跨年对比",
+      "difficulty": "medium",
+      "question": "2026 年的营收目标比 2025 年的目标增长了多少？",
+      "asker": "zhaocai",
+      "answer": "2026 年营业收入目标是 3.2 亿元 [1]，2025 年的目标营业收入是 2.5 亿元 [7]。\n\n- 增长额：3.2 − 2.5 = 0.7 亿元，即 7000 万元\n- 增幅：0.7 ÷ 2.5 = 28%",
+      "sources": [
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2025年度规划汇报.pptx",
+        "星海2025年度规划汇报.pptx",
+        "星海2025年度规划汇报.pptx",
+        "星海2025年度规划汇报.pptx",
+        "星海2025年中发布会纪要.pptx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 10.3,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M18",
+      "dimension": "行组筛选",
+      "difficulty": "medium",
+      "question": "2026 年台账里筹备中的项目有哪两个？负责人分别是谁？",
+      "asker": "zhaocai",
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星云二期**：星云二期 | 陈明 | 180 | 筹备中 | 2026-03 启动 [1]\n\n2. **昆仑二期**：昆仑二期 | 林岚 | 150 | 筹备中 | 2026-04 启动 [1]\n\n处理范围：1 份文档、5 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 15.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M19",
+      "dimension": "角色列举",
+      "difficulty": "medium",
+      "question": "X-4000 需求规格定义了哪四类用户角色？",
+      "asker": "wangfang",
+      "answer": "X-4000 需求规格定义了以下四类用户角色 [1]：\n\n- 巡检员\n- 班长\n- 运维工程师\n- 租户管理员",
+      "sources": [
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 11.0,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "M20",
+      "dimension": "多事实",
+      "difficulty": "medium",
+      "question": "凤凰项目的预算、周期和团队规模分别是多少？",
+      "asker": "wangfang",
+      "answer": "- 预算：260 万元 [2][4][7]\n- 周期：2026-01 至 2026-09 [2]\n- 团队规模：12 人 [2]",
+      "sources": [
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026年度经营计划.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 12.4,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C01",
+      "dimension": "比较通道",
+      "difficulty": "complex",
+      "question": "凤凰和星云两个项目的负责人分别是谁？这两个项目的预算加起来是多少万元？",
+      "asker": "wangfang",
+      "answer": "- 凤凰：负责人 沈青 [2]，预算 260 万元 [2]。\n- 星云：负责人 陈明 [11]，预算 135 万元 [11]。\n\n**预算合计 395 万元** [2][11]。",
+      "sources": [
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 14.5,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C02",
+      "dimension": "比较通道",
+      "difficulty": "complex",
+      "question": "昆仑、凤凰、星云二期三个项目里预算最高的是哪个？是多少万元？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 问题在同一筛选字段出现了多个值，本次未按该条件过滤，以下为全库语义检索结果。\n\n在昆仑、凤凰、星云二期这三个项目中，预算最高的是**昆仑项目**，其预算是 **300 万元**。\n\n- 昆仑项目：300 万元 [1]\n- 凤凰项目：260 万元 [3][9]\n- 星云二期：180 万元 [3][9]",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026年度经营计划.docx",
+        "星海项目台账_2025.xlsx",
+        "2025年度部门预算表.xlsx",
+        "2025年度部门预算表.xlsx",
+        "2024年度部门预算表.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 23.8,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C03",
+      "dimension": "行组聚合",
+      "difficulty": "complex",
+      "question": "2026 年台账里预算排名前三的项目和金额分别是什么？",
+      "asker": "zhaocai",
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **6 条带原文证据的记录**；这不是全库确定总数。\n\n⚠️ 语义复审未完成（调用失败），以上记录未经相关性把关，可能包含仅字面关联的无关条目。\n\n部分同名记录尚不能确认是同一实体，已分别保留，当前记录数不等于去重后的实体总数。\n\n1. **凤凰项目**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n2. **星云二期**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n3. **昆仑二期**：2026 年三大重点投入项目：凤凰项目（预算 260 万元，X-4000 软件平台）、星云二期（预算 180 万元，数据平台商业化改造）、昆仑二期（预算 150 万元，设备管理平台增强）。 [1]\n\n4. **低空预警系统**：低空预警系统 | 李强 | 500 | 进行中 | 2024-05~2026-04 [2]\n\n5. **昆仑项目**：昆仑项目 | 林岚 | 300 | 进行中 | 2025-03~2026-02 [3]\n",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 70.6,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C04",
+      "dimension": "跨年增量",
+      "difficulty": "complex",
+      "question": "研发部 2026 年的预算比 2025 年增加了多少万元？增幅大约多少？",
+      "asker": "zhaocai",
+      "answer": "- 研发部 2026 年预算为 800 万元 [5]，2025 年预算为 600 万元 [1]。\n- 增加金额：800 − 600 = **200 万元**。\n- 增幅：200 ÷ 600 ≈ **33.3%**（约三分之一）。",
+      "sources": [
+        "2025年度部门预算表.xlsx",
+        "2025年度部门预算表.xlsx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 18.9,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C05",
+      "dimension": "版本对比",
+      "difficulty": "complex",
+      "question": "2025 版员工手册的住宿标准比 2022 年旧版手册涨了多少？",
+      "asker": "lili",
+      "answer": "两份资料讨论的是同一件事——国内出差住宿报销标准，但两版的档次设置不同，因此不能只给出一个涨幅数字。\n\n- 2022 旧版：住宿报销不分城市等级，统一为每晚 350 元 [3]。\n- 2025 版：住宿标准按城市分档，一线城市（北京、上海、广州、深圳）每晚 500 元，二线城市每晚 400 元，其他城市每晚 300 元 [1]。\n\n按档对比：\n\n- 一线城市：500 − 350 = **上涨 150 元/晚**\n- 二线城市：400 − 350 = **上涨 50 元/晚**\n- 其他城市：300 − 350 = **下降 50 元/晚**（即其他城市标准反而比旧版统一标准低）\n- 如果按最高档与旧版统一标准比较，最多上涨 150 元/晚；如果按最低档比较，则减少 50 元/晚。\n\n另外，2025 版手册中“上调差旅住宿标准”的表述，是针对其上一版（2024 版）而言，并非针对 2022 版 [1][3]；资料中也没有给出 2022 版与 2025 版之间单一的“整体涨幅”口径。",
+      "sources": [
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海旧版员工手册_2022.md",
+        "星海旧版差旅制度_2023.md"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 34.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C06",
+      "dimension": "scope回退",
+      "difficulty": "complex",
+      "question": "台账里预算超过 200 万的项目有哪些？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 「台账里预算超过 200 万的」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **4 条带原文证据的记录**；这不是全库确定总数。\n\n1. **磐石项目**：磐石项目 | 吴刚 | 220 | 已暂停 | 资金冻结 [1]\n\n2. **低空预警系统**：低空预警系统 | 李强 | 500 | 进行中 | 2024-05~2026-04 [1]\n\n3. **昆仑项目**：昆仑项目 | 林岚 | 300 | 进行中 | 2025-03~2026-02 [2]\n\n4. **凤凰项目**：凤凰项目 | 沈青 | 260 | 进行中 | 2026-01~2026-09 [3]\n\n处理范围：1 份文档、5 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 17.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C07",
+      "dimension": "确定性求和",
+      "difficulty": "complex",
+      "question": "2026 年三大重点投入项目分别是哪些？预算合计是多少万元？",
+      "asker": "zhaocai",
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **凤凰项目**：凤凰项目（预算 260 万元，X-4000 软件平台） [1]\n\n2. **星云二期**：星云二期（预算 180 万元，数据平台商业化改造） [1]\n\n3. **昆仑二期**：昆仑二期（预算 150 万元，设备管理平台增强） [1]\n\n处理范围：12 份文档、35 张卡片、9 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。\n\n**合计**：260万元 + 180万元 + 150万元 = **590 万元**（由以上 3 条已验证记录逐项求和）",
+      "sources": [
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 78.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C08",
+      "dimension": "跨文档保留时长",
+      "difficulty": "complex",
+      "question": "知识库里哪些文档规定了数据或日志的保留时长？分别保留多久？",
+      "asker": "wangfang",
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **星海数据备份与恢复管理办法**：备份介质保留 90 天，超期备份经数据负责人确认后方可销毁。 [1]\n\n2. **示例\\_产品需求.docx**：3. 回收站内容保留 30 天，到期自动清空。 [2]\n\n3. **audit logs**：audit logs retained for 7 years. [3]\n\n处理范围：19 份文档、55 张卡片、11 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海数据备份与恢复管理办法_v1.1.md",
+        "星海IT资产管理办法.txt",
+        "沧海项目验收报告.docx",
+        "沧海项目验收报告.docx",
+        "沧海项目验收报告.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx",
+        "昆仑项目需求说明书_v2.0.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 57.5,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": false
+      },
+      "passed": false,
+      "failed": [
+        "answer_must"
+      ]
+    },
+    {
+      "id": "C09",
+      "dimension": "多事实画像",
+      "difficulty": "complex",
+      "question": "X-4000 是什么时候发布的？标准版和旗舰版分别多少钱？旗舰版续航多久？",
+      "asker": "liuye",
+      "answer": "- X-4000 于 2026 年 3 月 18 日在星海科技 2026 春季新品发布会上正式发布 [1][2]。\n- 标准版售价为 21999 元 [2]。\n- 旗舰版售价为 25999 元 [3]。\n- 旗舰版电池续航为 48 小时 [3]。",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海X-2000发布会纪要.pptx",
+        "星海X-2000发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 15.4,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C10",
+      "dimension": "多跳",
+      "difficulty": "complex",
+      "question": "凤凰项目的财务测算：总投入和三年累计创收分别是多少万元？内部收益率是多少？",
+      "asker": "wangfang",
+      "answer": "根据知识库资料，凤凰项目的财务测算如下：\n\n- 总投入：260 万元 [4]\n- 投产后 3 年累计创收：1200 万元 [4]\n- 内部收益率：约 31% [4]",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026年度经营计划.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx"
+      ],
+      "hit_rank": 3,
+      "wall_seconds": 16.2,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C11",
+      "dimension": "权限感知",
+      "difficulty": "complex",
+      "question": "我是市场部的员工，凤凰项目有哪些资料我能查到？",
+      "asker": "liuye",
+      "answer": "本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。\n\n1. **凤凰项目可行性研究报告.docx**：来源文档：凤凰项目可行性研究报告.docx｜章节：一、项目背景 凤凰项目可行性研究报告 版本：V1.0　编制：研发部　日期：2025-12-20 [1][2]\n\n2. **X-4000需求规格\\_v1.0.docx**：来源文档：X-4000需求规格\\_v1.0.docx｜章节：一、用户角色 X-4000 需求规格说明书 版本：V1.0　编制：研发部　日期：2026-01-05　隶属：凤凰项目 [3]\n\n处理范围：2 份文档、10 张卡片、3 批有效提取，补查 2 轮。\n\n停止原因：连续补查没有新增有效条目。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026年度经营计划.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx"
+      ],
+      "hit_rank": 3,
+      "wall_seconds": 60.5,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "must_not_sources": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C12",
+      "dimension": "权限拒答",
+      "difficulty": "complex",
+      "question": "2026 年台账里凤凰项目的预算执行情况怎么样？已经花了多少钱？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 「2026 年台账里凤凰」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n关于凤凰项目的**已花金额和预算执行进度**，知识库中没有相关内容：台账里只有预算金额和项目状态，没有实际支出、已用预算或执行率的数据，因此无法回答\"已经花了多少钱\"。\n\n资料中能确认的相关信息如下：\n\n- 预算为 260 万元，负责人是沈青，状态为\"进行中\"，周期为 2026-01～2026-09 [3]\n- 该项目属于 2026 年三大重点投入项目之一，定位是 X-4000 软件平台，预算 260 万元 [9]\n- 计划里程碑有三个：M1 核心接入（2026-04-30）、M2 告警联动（2026-06-30）、M3 看板与GA（2026-09-15）[4]\n\n如果需要了解预算执行率或实际支出，需要查阅财务或费用报销类台账，当前资料未包含这类数据。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx"
+      ],
+      "hit_rank": null,
+      "wall_seconds": 24.8,
+      "error": null,
+      "checks": {
+        "must_not": true,
+        "refuse": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C13",
+      "dimension": "拒答陷阱",
+      "difficulty": "complex",
+      "question": "凤凰项目的最终验收报告编号是什么？",
+      "asker": "wangfang",
+      "answer": "知识库中没有关于凤凰项目最终验收报告编号的内容。\n\n资料中仅能找到与验收相关的以下信息，但不涉及报告编号：\n- 验收标准为试运行 60 天无 P1 级故障方可申请验收，Phase 3 交付物需在 2026-09-15 前完成验收 [12]\n- 项目周期为 2026-01 至 2026-09，项目负责人为沈青 [4]\n\n如需报告编号，建议查阅验收阶段单独出具的验收报告文档。",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026年度经营计划.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "凤凰项目可行性研究报告.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx",
+        "X-4000需求规格_v1.0.docx"
+      ],
+      "hit_rank": null,
+      "wall_seconds": 10.1,
+      "error": null,
+      "checks": {
+        "refuse": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C14",
+      "dimension": "跨Sheet关联",
+      "difficulty": "complex",
+      "question": "2026 年台账里两个已暂停项目的负责人分别是谁？各自需要先解决什么问题？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 「2026 年台账里两个已暂停」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **2 条带原文证据的记录**；这不是全库确定总数。\n\n1. **磐石项目**：磐石项目 | 吴刚 | 220 | 已暂停 | 资金冻结 [1]\n\n2. **灯塔项目**：灯塔项目 | 孙倩 | 90 | 已暂停 | 需求重大变更 [2]\n\n处理范围：1 份文档、5 张卡片、1 批有效提取，补查 0 轮。\n\n停止原因：已读完本次选定文档。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 30.6,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C15",
+      "dimension": "三文档对比",
+      "difficulty": "complex",
+      "question": "2025 版员工手册、信息安全管理制度、招标规格书三份文档的密码要求分别是多少位？",
+      "asker": "wangfang",
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **员工办公账号的登录密码**：员工办公账号的登录密码长度不得少于 12 位，且须定期更换， 具体要求按《星海信息安全管理制度》执行。 [1]\n\n2. **公司所有业务系统的登录密码**：公司所有业务系统的登录密码长度不得少于 12 位， 且必须同时包含大写字母、小写字母、数字和特殊符号。 [2]\n\n3. **星云项目招标技术规格书**：4.1 用户登录密码长度不得少于 14 位，且必须包含大小写字母、数字与特殊符号， 连续错误登录 5 次须锁定账户 30 分钟。 [3]\n\n处理范围：16 份文档、54 张卡片、11 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+      "sources": [
+        "星海员工手册_2024版.md",
+        "星海信息安全管理制度.md",
+        "星云项目招标技术规格书_v1.2.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海员工手册_2025版_v3.0.md",
+        "星海新员工入职培训手册_v2.0.docx"
+      ],
+      "hit_rank": 2,
+      "wall_seconds": 60.0,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C16",
+      "dimension": "行组+关联",
+      "difficulty": "complex",
+      "question": "2026 年台账里进行中的项目里预算最高的是哪个？负责人是谁？",
+      "asker": "zhaocai",
+      "answer": "> ℹ️ 「2026 年台账里进行中的」未匹配到已登记的项目、业务方向、归属部门或文档类型，本次未按该条件过滤，以下为全库语义检索结果。\n\n2026 年台账中，状态为“进行中”且预算最高的项目是**低空预警系统**，预算为 **500 万元**，负责人是**李强** [2]。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海项目台账_2025.xlsx",
+        "星海2026年度经营计划.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 19.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C17",
+      "dimension": "跨文档数学",
+      "difficulty": "complex",
+      "question": "Phoenix 方案的 RPO 和 RTO 分别是多少分钟？星云招标规格书的容灾切换时间要求是多少分钟？",
+      "asker": "wangfang",
+      "answer": "- Phoenix 方案的 RPO 为 5 分钟，RTO 为 30 分钟 [1]。\n- 星云招标规格书要求：异地容灾切换时间目标不超过 30 分钟 [8]。",
+      "sources": [
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "Phoenix技术方案建议书_2026.pdf",
+        "星云项目招标技术规格书_v1.2.md",
+        "星云项目招标技术规格书_v1.2.md",
+        "星云项目招标技术规格书_v1.2.md",
+        "星海数据备份与恢复管理办法_v1.1.md",
+        "凤凰项目可行性研究报告.docx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 22.7,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "sources_min_count": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C18",
+      "dimension": "多子问题",
+      "difficulty": "complex",
+      "question": "星海 2026 春季发布会是哪天开的？发布了几款产品？合作媒体有几家？下一代产品叫什么？",
+      "asker": "liuye",
+      "answer": "- 发布时间：2026-03-18 [1]\n- 发布产品：资料显示为 1 款，即 X-4000 便携式智能检测仪，包含标准版和旗舰版 [2][3]\n- 合作媒体：8 家 [5]\n- 下一代产品：X-5000 概念机 [7]",
+      "sources": [
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2026春季发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx",
+        "星海2025年中发布会纪要.pptx"
+      ],
+      "hit_rank": 1,
+      "wall_seconds": 25.1,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C19",
+      "dimension": "scope回退+列举",
+      "difficulty": "complex",
+      "question": "未登记的银河项目在台账里的状态是什么？",
+      "asker": "zhaocai",
+      "answer": "知识库中没有“银河项目”的相关内容，因此无法确认它在台账里的状态。\n\n台账中出现过的项目包括：星云项目、天枢项目、北斗项目、昆仑项目、沧海项目、星辰项目、磐石项目、低空预警系统、凤凰项目、星云二期、昆仑二期、灯塔项目 [1][2][3]，其中没有“银河项目”。",
+      "sources": [
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海项目台账_2025.xlsx"
+      ],
+      "hit_rank": null,
+      "wall_seconds": 19.4,
+      "error": null,
+      "checks": {
+        "refuse": true
+      },
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "C20",
+      "dimension": "跨项目语义补全",
+      "difficulty": "complex",
+      "question": "星云二期计划什么时候启动？筹备中的另一个项目是什么？",
+      "asker": "zhaocai",
+      "answer": "- 星云二期计划 **2026-03 启动**，目前状态为“筹备中”，负责人陈明，预算 180 万元 [8]。\n- 同时处于“筹备中”的另一个项目是 **昆仑二期**，计划 **2026-04 启动**，负责人林岚，预算 150 万元 [8]。\n\n需要说明的是，在较早的《星海项目台账_2025.xlsx》中，“星辰项目”也标注为“筹备中”，周期为 2025-09 启动；而在 2026 项目总台账中，该项目的状态为“已启动” [11][7]。若按 2026 年台账的当前状态看，“筹备中”的另一项目为昆仑二期。",
+      "sources": [
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "星海2026年度经营计划.docx",
+        "项目说明.md",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx",
+        "星海2026项目总台账.xlsx"
+      ],
+      "hit_rank": 7,
+      "wall_seconds": 11.0,
+      "error": null,
+      "checks": {
+        "retrieval_hit": true,
+        "answer_must": true
+      },
+      "passed": true,
+      "failed": []
+    }
+  ],
+  "rerun_note": {
+    "rerun_ids": [
+      "C14",
+      "C15",
+      "C16",
+      "C17",
+      "C18",
+      "C19",
+      "C20"
+    ],
+    "reason": "首轮 402 LLMError（账户余额不足），余额恢复后重跑",
+    "backup": "regression_results.json.bak"
+  }
+}

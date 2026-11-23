@@ -1,0 +1,191 @@
+[13:22:59] [regression 1/2] S01（simple）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=10.9s
+[13:23:07] [regression 2/2] S02（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=7.8s
+[13:23:07] regression 汇总：{'total': 2, 'graded': 2, 'passed': 2, 'accuracy': 100.0, 'errors': [], 'wall_avg': 9.3, 'wall_p50': 10.9, 'failed_ids': []}
+[13:23:24] [regression 1/60] S01（simple）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=9.8s
+[13:23:33] [regression 2/60] S02（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=9.6s
+[13:23:45] [regression 3/60] S03（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.7s
+[13:23:53] [regression 4/60] S04（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=8.1s
+[13:24:05] [regression 5/60] S05（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.9s
+[13:24:16] [regression 6/60] S06（simple）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.0s
+[13:24:30] [regression 7/60] S07（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.4s
+[13:24:43] [regression 8/60] S08（simple）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=12.2s
+[13:24:55] [regression 9/60] S09（simple）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=12.2s
+[13:25:05] [regression 10/60] S10（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=10.6s
+[13:25:26] [regression 11/60] S11（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=20.2s
+[13:25:35] [regression 12/60] S12（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=9.3s
+[13:25:46] [regression 13/60] S13（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.3s
+[13:26:03] [regression 14/60] S14（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=16.5s
+[13:26:14] [regression 15/60] S15（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.7s
+[13:26:28] [regression 16/60] S16（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=13.7s
+[13:26:41] [regression 17/60] S17（simple）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=13.2s
+[13:26:52] [regression 18/60] S18（simple）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=10.7s
+[13:27:07] [regression 19/60] S19（simple）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=15.4s
+[13:27:15] [regression 20/60] S20（simple）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=8.2s
+[13:27:27] [regression 21/60] M01（medium）asker=liuye ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=11.8s
+[13:27:55] [regression 22/60] M02（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=28.1s
+[13:28:22] [regression 23/60] M03（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=26.2s
+[13:28:57] [regression 24/60] M04（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=34.9s
+[13:29:14] [regression 25/60] M05（medium）asker=wangfang ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=17.8s
+[13:29:54] [regression 26/60] M06（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=40.1s
+[13:30:03] [regression 27/60] M07（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=8.7s
+[13:30:39] [regression 28/60] M08（medium）asker=lili ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=2 wall=35.8s
+[13:30:54] [regression 29/60] M09（medium）asker=wangfang ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=14.8s
+[13:31:24] [regression 30/60] M10（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=30.3s
+[13:31:37] [regression 31/60] M11（medium）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=13.2s
+[13:32:02] [regression 32/60] M12（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=24.3s
+[13:32:18] [regression 33/60] M13（medium）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=16.8s
+[13:32:35] [regression 34/60] M14（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=16.9s
+[13:32:48] [regression 35/60] M15（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=12.5s
+[13:33:03] [regression 36/60] M16（medium）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.9s
+[13:33:13] [regression 37/60] M17（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=10.3s
+[13:33:28] [regression 38/60] M18（medium）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=15.2s
+[13:33:39] [regression 39/60] M19（medium）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.0s
+[13:33:52] [regression 40/60] M20（medium）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=12.4s
+[13:34:06] [regression 41/60] C01（complex）asker=wangfang ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=14.5s
+[13:34:30] [regression 42/60] C02（complex）asker=zhaocai ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=23.8s
+[13:35:40] [regression 43/60] C03（complex）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=70.6s
+[13:35:59] [regression 44/60] C04（complex）asker=zhaocai ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=18.9s
+[13:36:34] [regression 45/60] C05（complex）asker=lili ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=34.7s
+[13:36:52] [regression 46/60] C06（complex）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=17.7s
+[13:38:10] [regression 47/60] C07（complex）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=78.2s
+[13:39:08] [regression 48/60] C08（complex）asker=wangfang ❌ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': False} failed=['answer_must'] rank=1 wall=57.5s
+[13:39:23] [regression 49/60] C09（complex）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=15.4s
+[13:39:39] [regression 50/60] C10（complex）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=16.2s
+[13:40:40] [regression 51/60] C11（complex）asker=liuye ✅ checks={'retrieval_hit': True, 'must_not_sources': True} rank=3 wall=60.5s
+[13:41:05] [regression 52/60] C12（complex）asker=zhaocai ✅ checks={'must_not': True, 'refuse': True} rank=None wall=24.8s
+[13:41:15] [regression 53/60] C13（complex）asker=wangfang ✅ checks={'refuse': True} rank=None wall=10.1s
+[13:41:21] [regression 54/60] C14（complex）asker=zhaocai ❌ checks={'retrieval_hit': False, 'answer_must': False} failed=['retrieval_hit', 'answer_must'] rank=None wall=6.4s ERROR=LLMError: 账户余额不足（402）。请充值后重试，或更换 .env 里的 LLM 服务商。
+[13:41:40] [regression 55/60] C15（complex）asker=wangfang ❌ checks={'retrieval_hit': False, 'sources_min_count': False, 'answer_must': False} failed=['retrieval_hit', 'sources_min_count', 'answer_must'] rank=None wall=18.4s ERROR=LLMError: 账户余额不足（402）。请充值后重试，或更换 .env 里的 LLM 服务商。
+[13:41:46] [regression 56/60] C16（complex）asker=zhaocai ❌ checks={'retrieval_hit': False, 'answer_must': False} failed=['retrieval_hit', 'answer_must'] rank=None wall=6.3s ERROR=LLMError: 账户余额不足（402）。请充值后重试，或更换 .env 里的 LLM 服务商。
+[13:41:54] [regression 57/60] C17（complex）asker=wangfang ❌ checks={'retrieval_hit': False, 'sources_min_count': False, 'answer_must': False} failed=['retrieval_hit', 'sources_min_count', 'answer_must'] rank=None wall=8.6s ERROR=LLMError: 账户余额不足（402）。请充值后重试，或更换 .env 里的 LLM 服务商。
+[13:42:03] [regression 58/60] C18（complex）asker=liuye ❌ checks={'retrieval_hit': False, 'answer_must': False} failed=['retrieval_hit', 'answer_must'] rank=None wall=8.8s ERROR=LLMError: 账户余额不足（402）。请充值后重试，或更换 .env 里的 LLM 服务商。
+[13:42:09] [regression 59/60] C19（complex）asker=zhaocai ❌ checks={'refuse': False} failed=['refuse'] rank=None wall=5.8s ERROR=LLMError: 账户余额不足（402）。请充值后重试，或更换 .env 里的 LLM 服务商。
+[13:42:14] [regression 60/60] C20（complex）asker=zhaocai ❌ checks={'retrieval_hit': False, 'answer_must': False} failed=['retrieval_hit', 'answer_must'] rank=None wall=4.6s ERROR=LLMError: 账户余额不足（402）。请充值后重试，或更换 .env 里的 LLM 服务商。
+[13:42:14] regression 汇总：{'total': 60, 'graded': 53, 'passed': 52, 'accuracy': 98.1, 'errors': ['C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20'], 'wall_avg': 20.4, 'wall_p50': 14.8, 'failed_ids': ['C08']}
+[13:42:47] MCP 临时 PAT 已签发 prefix=mcp_pat_nGo-MGUe（评测结束后吊销）
+[13:42:53] [MCP 1/20] MC01 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:42:54] [MCP 2/20] MC02 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:42:55] [MCP 3/20] MC03 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:42:56] [MCP 4/20] MC04 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:42:57] [MCP 5/20] MC05 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:42:58] [MCP 6/20] MC06 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:42:59] [MCP 7/20] MC07 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:00] [MCP 8/20] MC08 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:01] [MCP 9/20] MC09 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:02] [MCP 10/20] MC10 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:03] [MCP 11/20] MC11 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:04] [MCP 12/20] MC12 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:05] [MCP 13/20] MC13 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:06] [MCP 14/20] MC14 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:07] [MCP 15/20] MC15 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:08] [MCP 16/20] MC16 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:09] [MCP 17/20] MC17 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:10] [MCP 18/20] MC18 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:11] [MCP 19/20] MC19 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:12] [MCP 20/20] MC20 ❌ top1_same=False jaccard@5=None exp_in_mcp=False ERROR=ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+[13:43:12] MCP 一致性汇总：{'total': 20, 'consistent': 0, 'top1_same_rate': 0.0, 'jaccard_avg': 0.0, 'expected_in_mcp_rate': 0.0, 'errors': ['MC01', 'MC02', 'MC03', 'MC04', 'MC05', 'MC06', 'MC07', 'MC08', 'MC09', 'MC10', 'MC11', 'MC12', 'MC13', 'MC14', 'MC15', 'MC16', 'MC17', 'MC18', 'MC19', 'MC20']}
+[20:51:17] MCP 临时 PAT 已签发 prefix=mcp_pat_6m7y-bqx（评测结束后吊销）
+[20:52:04] MCP 临时 PAT 已签发 prefix=mcp_pat_hfZ3tgmZ（评测结束后吊销）
+[20:52:14] [MCP 1/20] MC01 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[20:52:20] [MCP 2/20] MC02 ✅ top1_same=True jaccard@5=0.67 exp_in_mcp=True
+[20:52:26] [MCP 3/20] MC03 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:52:35] [MCP 4/20] MC04 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:52:40] [MCP 5/20] MC05 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[20:52:46] [MCP 6/20] MC06 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:52:54] [MCP 7/20] MC07 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:52:58] [MCP 8/20] MC08 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:53:04] [MCP 9/20] MC09 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:53:09] [MCP 10/20] MC10 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[20:53:15] [MCP 11/20] MC11 ✅ top1_same=True jaccard@5=0.5 exp_in_mcp=True
+[20:53:20] [MCP 12/20] MC12 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:53:36] [MCP 13/20] MC13 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[20:53:43] [MCP 14/20] MC14 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:53:59] [MCP 15/20] MC15 ✅ top1_same=True jaccard@5=0.2 exp_in_mcp=True
+[20:54:05] [MCP 16/20] MC16 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:54:10] [MCP 17/20] MC17 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:54:15] [MCP 18/20] MC18 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:54:20] [MCP 19/20] MC19 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:54:28] [MCP 20/20] MC20 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[20:54:28] MCP 一致性汇总：{'total': 20, 'consistent': 20, 'top1_same_rate': 100.0, 'jaccard_avg': 0.78, 'expected_in_mcp_rate': 100.0, 'errors': []}
+[08:25:15] [rerun 1/7] C14（complex）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=30.6s
+[08:26:15] [rerun 2/7] C15（complex）asker=wangfang ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=2 wall=60.0s
+[08:26:35] [rerun 3/7] C16（complex）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=19.7s
+[08:26:58] [rerun 4/7] C17（complex）asker=wangfang ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=22.7s
+[08:27:23] [rerun 5/7] C18（complex）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=25.1s
+[08:27:42] [rerun 6/7] C19（complex）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=19.4s
+[08:27:53] [rerun 7/7] C20（complex）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=7 wall=11.0s
+[08:27:53] rerun 汇总：{'total': 60, 'graded': 60, 'passed': 59, 'accuracy': 98.3, 'errors': [], 'wall_avg': 21.2, 'wall_p50': 15.4, 'failed_ids': ['C08']}
+[08:30:24] [c08-fix-verify 1/1] C08（complex）asker=wangfang ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=74.1s
+[08:32:05] [c08-postfix 1/1] C08（complex）asker=wangfang ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=71.0s
+[08:32:30] [new 1/40] NAC01（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=5 wall=12.3s
+[08:32:44] [new 2/40] NAC02（adversarial）asker=wangfang ❌ checks={'retrieval_hit': True, 'answer_must': False} failed=['answer_must'] rank=1 wall=14.7s
+[08:32:55] [new 3/40] NAC03（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=10.6s
+[08:34:11] [new 4/40] NAC04（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=76.5s
+[08:34:23] [new 5/40] NAC05（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.2s
+[08:34:40] [new 6/40] NAC06（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'sources_min_count': True, 'answer_must': True} rank=1 wall=17.6s
+[08:34:50] [new 7/40] NAC07（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=9.7s
+[08:35:03] [new 8/40] NAC08（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=13.5s
+[08:35:18] [new 9/40] NAC09（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.6s
+[08:35:32] [new 10/40] NAC10（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.5s
+[08:35:34] [new 11/40] NAC11（adversarial）asker=zhaocai ❌ checks={'refuse': False} failed=['refuse'] rank=None wall=1.1s ERROR=EmbeddingError: 问题不能为空。
+[08:35:49] [new 12/40] NAC12（adversarial）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=15.8s
+[08:36:05] [new 13/40] NAC13（adversarial）asker=zhaocai ❌ checks={'refuse': False} failed=['refuse'] rank=None wall=15.9s
+[08:36:20] [new 14/40] NAC14（adversarial）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=14.6s
+[08:36:35] [new 15/40] NAC15（adversarial）asker=zhaocai ✅ checks={'must_not': True, 'refuse': True} rank=None wall=14.9s
+[08:36:49] [new 16/40] NAC16（adversarial）asker=zhaocai ✅ checks={'must_not': True, 'refuse': True} rank=None wall=14.0s
+[08:37:12] [new 17/40] NAC17（adversarial）asker=zhaocai ❌ checks={'must_not': False, 'refuse': True} failed=['must_not'] rank=None wall=23.0s
+[08:37:28] [new 18/40] NAC18（adversarial）asker=zhaocai ✅ checks={'refuse': True, 'not_exact': True} rank=None wall=16.5s
+[08:37:40] [new 19/40] NAC19（adversarial）asker=zhaocai ✅ checks={'refuse': True, 'leak_guard': True} rank=None wall=11.3s
+[08:37:49] [new 20/40] NAC20（adversarial）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=9.5s
+[08:37:56] [new 21/40] NMU01（multiturn）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=7.1s
+[08:38:06] [new 22/40] NMU02（multiturn）asker=wangfang ❌ checks={'retrieval_hit': False, 'answer_must': True} failed=['retrieval_hit'] rank=None wall=9.7s
+[08:38:30] [new 23/40] NMU03（multiturn）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=6 wall=24.6s
+[08:38:41] [new 24/40] NMU04（multiturn）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=8 wall=10.1s
+[08:38:55] [new 25/40] NMU05（multiturn）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.6s
+[08:39:03] [new 26/40] NMU06（multiturn）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=7.8s
+[08:39:18] [new 27/40] NMU07（multiturn）asker=lili ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=14.9s
+[08:39:27] [new 28/40] NMU08（multiturn）asker=lili ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=2 wall=9.3s
+[08:39:38] [new 29/40] NMU09（multiturn）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=11.2s
+[08:39:49] [new 30/40] NMU10（multiturn）asker=zhaocai ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=10.4s
+[08:39:54] [new 31/40] NMU11（multiturn）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=5.9s
+[08:40:03] [new 32/40] NMU12（multiturn）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=5 wall=8.6s
+[08:40:18] [new 33/40] NPR01（permission）asker=lili ✅ checks={'refuse': True} rank=None wall=15.3s
+[08:40:31] [new 34/40] NPR02（permission）asker=liuye ✅ checks={'refuse': True} rank=None wall=12.4s
+[08:40:42] [new 35/40] NPR03（permission）asker=wangfang ✅ checks={'refuse': True} rank=None wall=11.4s
+[08:41:01] [new 36/40] NPR04（permission）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=18.9s
+[08:41:17] [new 37/40] NPR05（permission）asker=lili ✅ checks={'refuse': True} rank=None wall=16.2s
+[08:41:26] [new 38/40] NPR06（permission）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=8.6s
+[08:41:37] [new 39/40] NPR07（permission）asker=wangfang ✅ checks={'refuse': True} rank=None wall=11.5s
+[08:41:46] [new 40/40] NPR08（permission）asker=liuye ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=3 wall=8.2s
+[08:41:46] new 汇总：{'total': 40, 'graded': 39, 'passed': 35, 'accuracy': 89.7, 'errors': ['NAC11'], 'wall_avg': 14.5, 'wall_p50': 12.4, 'failed_ids': ['NAC02', 'NAC13', 'NAC17', 'NMU02']}
+[08:47:09] [recal 1/5] NAC02（adversarial）asker=wangfang ✅ checks={'retrieval_hit': True, 'answer_must': True} rank=1 wall=19.2s
+[08:47:10] [recal 2/5] NAC11（adversarial）asker=zhaocai ❌ checks={'refuse': False} failed=['refuse'] rank=None wall=0.1s
+[08:47:27] [recal 3/5] NAC13（adversarial）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=17.4s
+[08:47:46] [recal 4/5] NAC17（adversarial）asker=zhaocai ✅ checks={'refuse': True} rank=None wall=18.7s
+[08:47:54] [recal 5/5] NMU02（multiturn）asker=wangfang ❌ checks={'retrieval_hit': False, 'answer_must': True} failed=['retrieval_hit'] rank=None wall=8.1s
+[08:49:06] MCP 临时 PAT 已签发 prefix=mcp_pat_Or25lvDD（评测结束后吊销）
+[08:49:19] [MCP 1/20] MC01 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[08:49:28] [MCP 2/20] MC02 ✅ top1_same=True jaccard@5=0.5 exp_in_mcp=True
+[08:49:43] [MCP 3/20] MC03 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[08:50:10] [MCP 4/20] MC04 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:50:18] [MCP 5/20] MC05 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[08:50:32] [MCP 6/20] MC06 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:50:45] [MCP 7/20] MC07 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:50:51] [MCP 8/20] MC08 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:50:59] [MCP 9/20] MC09 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:51:11] [MCP 10/20] MC10 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[08:51:20] [MCP 11/20] MC11 ✅ top1_same=True jaccard@5=0.5 exp_in_mcp=True
+[08:51:27] [MCP 12/20] MC12 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:51:51] [MCP 13/20] MC13 ✅ top1_same=True jaccard@5=0.33 exp_in_mcp=True
+[08:52:06] [MCP 14/20] MC14 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:52:29] [MCP 15/20] MC15 ✅ top1_same=True jaccard@5=0.2 exp_in_mcp=True
+[08:52:38] [MCP 16/20] MC16 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:52:46] [MCP 17/20] MC17 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:52:56] [MCP 18/20] MC18 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:53:02] [MCP 19/20] MC19 ✅ top1_same=True jaccard@5=1.0 exp_in_mcp=True
+[08:53:14] [MCP 20/20] MC20 ✅ top1_same=True jaccard@5=0.67 exp_in_mcp=True
+[08:53:14] MCP 一致性汇总：{'total': 20, 'consistent': 20, 'top1_same_rate': 100.0, 'jaccard_avg': 0.73, 'expected_in_mcp_rate': 100.0, 'errors': []}
+[08:55:17] [PERF round1] 10 题/5 并发 批次耗时 56.8s 错误 0
+[08:55:42] [PERF round2] 10 题/5 并发 批次耗时 25.5s 错误 0
+[08:56:13] [PERF round3] 10 题/5 并发 批次耗时 30.9s 错误 0
+[08:56:13] PERF 汇总：{'runs': 30, 'workers': 5, 'rounds': 3, 'errors': [], 'wall_avg': 9.9, 'wall_p50': 0.0, 'wall_p95': 30.9, 'wall_max': 56.7}

@@ -1,0 +1,26 @@
+{
+  "name": "R9 MCP 通道一致性题集（20 题，全部指向 all 可见文档；身份=liqiang）",
+  "identity_note": "liqiang 部门=系统工程事业部，语料中无该部门名单 → 仅可见 allowed_groups=[all] 的文档；本集 20 题的事实来源全部为 all 可见文档（含 archive 两份，直问可召回）",
+  "questions": [
+    {"id": "MC01", "question": "公司 2026 年的营业收入目标是多少？", "expected_source": "星海2026年度经营计划"},
+    {"id": "MC02", "question": "项目管理手册里 CPI 低于多少触发红色预警？", "expected_source": "星海项目管理手册"},
+    {"id": "MC03", "question": "按供应商管理办法，货款统一月结多少天？质保金比例是多少？", "expected_source": "星海供应商管理办法"},
+    {"id": "MC04", "question": "2025 版员工手册的一线城市住宿标准是多少钱一晚？", "expected_source": "星海员工手册_2025版"},
+    {"id": "MC05", "question": "项目管理手册要求项目周报什么时候提交？", "expected_source": "星海项目管理手册"},
+    {"id": "MC06", "question": "2024 年员工手册规定的试用期是几个月？", "expected_source": "星海员工手册_2024版"},
+    {"id": "MC07", "question": "公司 2026 年计划新增多少名员工？核心人才流失率控制在多少以内？", "expected_source": "星海2026年度经营计划"},
+    {"id": "MC08", "question": "X-3000 旗舰版的售价和续航分别是多少？", "expected_source": "星海2025年中发布会纪要"},
+    {"id": "MC09", "question": "X-4000 旗舰版的售价是多少元？续航多久？", "expected_source": "星海2026春季发布会纪要"},
+    {"id": "MC10", "question": "2026 年部门预算最高的两个部门是哪两个？分别是多少万元？", "expected_source": "星海2026年度经营计划"},
+    {"id": "MC11", "question": "2026 年三大重点投入项目的预算合计是多少万元？", "expected_source": "星海2026年度经营计划"},
+    {"id": "MC12", "question": "2026 年的营收目标比 2025 年的目标增长了多少？", "expected_source": "星海2026年度经营计划"},
+    {"id": "MC13", "question": "现在的差旅住宿一线标准和 2023 年旧版差旅制度相比涨了多少？", "expected_source": "星海差旅管理办法_2025修订"},
+    {"id": "MC14", "question": "2024 版员工手册和 2025 版的试用期分别规定几个月？", "expected_source": "星海员工手册_2025版"},
+    {"id": "MC15", "question": "2025 版员工手册的住宿标准比 2022 年旧版手册涨了多少？", "expected_source": "星海员工手册_2025版"},
+    {"id": "MC16", "question": "按供应商管理办法，质保金的比例是多少？", "expected_source": "星海供应商管理办法"},
+    {"id": "MC17", "question": "X-4000 旗舰版和 X-3000 旗舰版的价格分别是多少元？", "expected_source": "星海2026春季发布会纪要"},
+    {"id": "MC18", "question": "星海 2026 春季发布会是哪天开的？发布了几款产品？", "expected_source": "星海2026春季发布会纪要"},
+    {"id": "MC19", "question": "X-4000 是什么时候发布的？标准版多少钱？", "expected_source": "星海2026春季发布会纪要"},
+    {"id": "MC20", "question": "2024 版员工手册规定会议室预约要提前几个工作日申请？", "expected_source": "星海员工手册_2024版"}
+  ]
+}
