@@ -1012,7 +1012,6 @@ def api_llm_costs(_: dict = Depends(require_admin_api),
     改单价后历史记录按新价重算。days：最近 N 天（0=全部）；username：按用户过滤。
     汇总（totals）始终覆盖全部符合条件的数据，分页只影响明细行（rows）。
     """
-    import math
     from datetime import datetime, timedelta
 
     from src.app_settings import PRICE_DEFAULTS, load_app_settings
@@ -1023,43 +1022,19 @@ def api_llm_costs(_: dict = Depends(require_admin_api),
                                       PRICE_DEFAULTS["llm_price_input_cached"]))
     price_out = float(settings.get("llm_price_output", PRICE_DEFAULTS["llm_price_output"]))
 
-    def _cost(u: dict) -> float:
-        uncached = max(0, int(u.get("input", 0)) - int(u.get("input_cached", 0)))
-        return (uncached / 1_000_000 * price_in
-                + int(u.get("input_cached", 0)) / 1_000_000 * price_cached
-                + int(u.get("output", 0)) / 1_000_000 * price_out)
+    def _cost(uncached: int, cached: int, output: int) -> float:
+        return (uncached * price_in + cached * price_cached + output * price_out) / 1_000_000
 
-    rows = []
-    totals = {"calls": 0, "input": 0, "input_cached": 0, "output": 0, "cost": 0.0}
-    logs = auth_db.list_qa_logs(limit=300, username=username)
     cutoff = (datetime.now() - timedelta(days=days)).strftime(
         "%Y-%m-%dT%H:%M:%S") if days else ""
-    for log in logs:
-        usage = log.get("usage") or {}
-        if not usage.get("calls"):
-            continue  # 老（换制前）记录无 usage：不计入
-        if cutoff and log["created_at"] < cutoff:
-            continue
-        cost = _cost(usage)
-        totals["calls"] += int(usage.get("calls", 0))
-        totals["input"] += int(usage.get("input", 0))
-        totals["input_cached"] += int(usage.get("input_cached", 0))
-        totals["output"] += int(usage.get("output", 0))
-        totals["cost"] += cost
-        rows.append({"created_at": log["created_at"], "username": log["username"],
-                     "entry": log["entry"], "question": log["question"][:80],
-                     "input": int(usage.get("input", 0)),
-                     "input_cached": int(usage.get("input_cached", 0)),
-                     "output": int(usage.get("output", 0)),
-                     "calls": int(usage.get("calls", 0)),
-                     "estimated": bool(usage.get("estimated")),
-                     "cost": round(cost, 4)})
-    totals["cost"] = round(totals["cost"], 2)
-    total_items = len(rows)
-    total_pages = max(1, math.ceil(total_items / page_size))
-    page = min(page, total_pages)
-    paged = rows[(page - 1) * page_size: page * page_size]
-    return {"ok": True, "totals": totals, "rows": paged,
+    totals, rows, page, total_pages = auth_db.llm_usage_page(username, cutoff, page, page_size)
+    total_items = totals.pop("total_rows")
+    totals["cost"] = round(_cost(totals.pop("uncached"), totals["input_cached"], totals["output"]), 2)
+    for row in rows:
+        row["estimated"] = bool(row["estimated"])
+        row["cost"] = round(_cost(max(0, row["input"] - row["input_cached"]),
+                                  row["input_cached"], row["output"]), 4)
+    return {"ok": True, "totals": totals, "rows": rows,
             "page": page, "page_size": page_size,
             "total_rows": total_items, "total_pages": total_pages,
             "prices": {"input": price_in, "input_cached": price_cached,

@@ -1,0 +1,160 @@
+{
+  "indexed": 29,
+  "cards": 47,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "configuration": {
+    "model": "deepseek-flash",
+    "embedding": null,
+    "rerank": null,
+    "project_linked": true,
+    "keyword_only": true
+  },
+  "questions": [
+    {
+      "id": "SN02",
+      "scoped_agent_policy": true,
+      "scenarios": [
+        {
+          "case": "stale_argument_recovery",
+          "identity": "wangfang",
+          "expected_project": "天枢项目",
+          "turns": [
+            {
+              "question": "先看星云项目。",
+              "answer": "已调出星云项目章程中的项目概况部分，先给你该项目的当前情况：\n\n**星云项目 = X-2000 量产与数据平台建设**\n- 立项预算：135 万元；项目周期为 2024-01 至 2024-09 [1]\n- 项目负责人：陈明；核心成员包括陈明（负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）[1]\n- 里程碑：M1 需求确认（2024-03）、M2 开发完成（2024-06）、M3 系统上线（2024-09）、M4 项目验收（2024-12）[1]\n- 协作关系：与天枢项目共享测试环境；北斗项目为其前置预研项目，其遗留的设计文档问题在星云项目内整改 [1]\n- 数据安全：项目数据平台按等级保护三级标准建设，数据安全测评费用已列入预算 [1]\n\n补充说明：本次检索只命中 1 份文档（章程中的「项目概况」章节），覆盖情况未知，因此「项目当前实际进展到哪一步」无法从现有证据确认，不能等同于上面列出的计划里程碑。\n\n接下来想先看哪一块？例如：预算与费用明细、进度与里程碑执行情况、测试环境与协作约定、数据安全合规，或成员分工。你指定方向后，我再针对星云项目深入检索。",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "星云项目的基本情况、目标与当前进展",
+                    "project": "星云项目",
+                    "top_k": 8
+                  },
+                  "log": {
+                    "id": 1,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "星云项目章程.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    1
+                  ],
+                  "matches": [
+                    {
+                      "source": "星云项目章程.md",
+                      "project_id": 1,
+                      "version": "1.1",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "星云项目章程.md",
+                  "project_id": 1,
+                  "text": "来源文档：星云项目章程.md｜章节：星云项目章程 > 项目概况\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+                }
+              }
+            },
+            {
+              "question": "现在只查天枢项目。",
+              "answer": "我已切换到天枢项目，只查了这个项目，没有混入星云项目的资料。当前查到的内容来自《天枢项目立项报告.docx》：\n\n**基本信息**（一、项目基本信息）\n- 项目负责人：周红；项目预算：200 万元；项目周期：2024-02 至 2025-01 [1]\n- 参与部门：研发部、市场部 [1]\n- 协作关系：与星云项目共享测试环境与设备台账 [1]\n\n**里程碑**（四、里程碑）\n- M1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12 [3]\n\n**数据安全要求**（三、数据安全要求）\n- 按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算 [2]\n\n以下是两点证据边界说明：\n- 本轮覆盖情况为 partial，且这份立项报告中有一个片段未被纳入，因此「二、」章节（推测涉及项目目标或建设内容）以及其他文档的内容尚未取得；要查这些内容，需要再检索一次。\n- 目前只能确认计划层面的安排：M3 只到 2024-12 试运行，没有检索到验收节点或实际执行进度的记录 [1][3]。\n\n需要我继续做哪一项？例如：查天枢项目的项目目标或建设内容章节、预算构成与测评费用明细、实际进度与验收安排，或者它与星云项目在共享测试环境上的分工边界。",
+              "calls": [
+                {
+                  "arguments": {
+                    "project": "天枢项目",
+                    "question": "天枢项目的基本情况、项目目标、预算与当前进展",
+                    "top_k": 8
+                  },
+                  "log": {
+                    "id": 2,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument",
+                      "scope_issue": "multiple"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                }
+              }
+            }
+          ],
+          "error": "BadRequestError",
+          "http_status": 400,
+          "seconds": 10.58
+        }
+      ]
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}

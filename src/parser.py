@@ -128,20 +128,43 @@ def _read_txt(path: Path) -> tuple[str, str, dict]:
     return text, "", {"_version_regions": _version_region(text, "开头文本", include_empty=True)}
 
 
+def markdown_lines(text: str):
+    """Yield source lines and their headings, excluding fenced code from heading detection."""
+    lines = text.split("\n")
+    fence = ""
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        index += 1
+        marker = re.match(r"^ {0,3}(\x60{3,}|~{3,})(.*)$", line)
+        if marker:
+            token, suffix = marker.groups()
+            if not fence:
+                fence = token
+            elif token[0] == fence[0] and len(token) >= len(fence) and not suffix.strip():
+                fence = ""
+            yield line, 0, ""
+            continue
+        if not fence:
+            heading = re.match(r"^ {0,3}(#{1,6})[ \t]+(\S.*?)\s*$", line)
+            if heading:
+                yield line, len(heading[1]), re.sub(r"\s+#+$", "", heading[2])
+                continue
+            underline = re.fullmatch(r" {0,3}(=+|-+)\s*", lines[index]) if index < len(lines) else None
+            if (underline and line.strip() and not line.startswith(("    ", "\t"))
+                    and not re.match(r"\s*(?:[-+*>]|\d+[.)])\s", line)):
+                index += 1
+                level = 1 if underline[1][0] == "=" else 2
+                yield f"{'#' * level} {line.strip()}", level, line.strip()
+                continue
+        yield line, 0, ""
+
+
 def _read_markdown(path: Path) -> tuple[str, str, dict]:
     """Markdown：先拆 Front Matter（人工声明的分类信息），标题取正文的第一个一级标题。"""
     raw = _read_text_smart(path)
     front_matter, text = parse_front_matter(raw)
-    # 标题取第一个非代码块的 # 行（``` 围栏内的 # 是注释，不是标题）
-    title = ""
-    in_code = False
-    for line in text.splitlines():
-        if line.startswith("```"):
-            in_code = not in_code
-            continue
-        if not in_code and re.match(r"#\s+\S", line):
-            title = line.lstrip("#").strip()
-            break
+    title = next((label for _, level, label in markdown_lines(text) if level == 1), "")
     front_matter["_version_regions"] = _version_region(text, "开头文本", include_empty=True)
     return text, title, front_matter
 
@@ -539,6 +562,27 @@ def _docx_paragraph_line(para, title_state: dict, opening: dict | None = None) -
     return line
 
 
+def _docx_page_segments(para, line: str) -> list[str]:
+    """Split explicit Word page breaks without inferring pagination from layout."""
+    from docx.oxml.ns import qn
+
+    if not para._p.xpath(".//w:br[@w:type='page']"):
+        return [line]
+    parts = [""]
+    for node in para._p.xpath(".//w:r/*"):
+        if node.tag == qn("w:br") and node.get(qn("w:type")) == "page":
+            parts.append("")
+        elif node.tag == qn("w:t"):
+            parts[-1] += node.text or ""
+        elif node.tag == qn("w:tab"):
+            parts[-1] += "\t"
+        elif node.tag in (qn("w:br"), qn("w:cr")):
+            parts[-1] += "\n"
+    if (heading := re.match(r"^#{1,6} ", line)) and parts[0].strip():
+        parts[0] = heading[0] + parts[0]
+    return parts
+
+
 def _docx_table_text(table, title_state: dict, opening: dict | None = None) -> str:
     """表格 → 管道分隔文本；嵌套表递归读出（V3.9：此前嵌套表内容静默丢失）。"""
     rows: list[str] = []
@@ -586,6 +630,7 @@ def _read_docx(path: Path) -> tuple[str, str, dict]:
     parts: list[str] = []
     title_state: dict = {"title": ""}
     opening: dict = {"parts": [], "remaining": 4000, "stopped": False}
+    page_segment = 1
     # 阅读顺序：iter_inner_content 按文档流产出段落与表格（python-docx ≥1.1）
     for item in doc.iter_inner_content():
         if hasattr(item, "rows"):  # Table
@@ -594,7 +639,11 @@ def _read_docx(path: Path) -> tuple[str, str, dict]:
                 parts.append(table_text)
             continue
         line = _docx_paragraph_line(item, title_state, opening)
-        parts.append(line)
+        for index, text in enumerate(_docx_page_segments(item, line)):
+            if index or item.paragraph_format.page_break_before:
+                page_segment += 1
+                parts.append(PAGE_MARKER_TEMPLATE.format(page=page_segment))
+            parts.append(text)
     title = title_state.get("title", "")
 
     # 页眉 / 页脚：每节的页眉页脚文字（通常为文档名、页码说明等辅助信息）
@@ -625,7 +674,9 @@ def _read_docx(path: Path) -> tuple[str, str, dict]:
         parts.append("\n\n".join(ocr_blocks))
 
     regions = _version_region("".join(opening["parts"]), "文档开头")
-    return "\n".join(parts), title, {"_version_regions": regions}
+    if page_segment > 1:
+        parts.insert(0, PAGE_MARKER_TEMPLATE.format(page=1))
+    return "\n\n".join(parts), title, {"_version_regions": regions}
 
 
 def _read_pdf(path: Path) -> tuple[str, str, dict]:

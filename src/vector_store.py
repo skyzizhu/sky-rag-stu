@@ -12,14 +12,19 @@ from __future__ import annotations
 
 import sys
 import math
+from collections import Counter
+from heapq import nsmallest
 from functools import lru_cache
+from itertools import chain
 
 from qdrant_client import QdrantClient, models
+from qdrant_client.http.exceptions import UnexpectedResponse
 
 from src import index_epoch
 from src.console import console_print
 from src.config import AppConfig, get_config
 from src.chunker import Chunk
+from src.metadata import chunk_sequence
 
 # 建立 Payload Index 的字段：给 Metadata Filter 查询提速
 # （topic / tags / allowed_groups 是列表字段，Qdrant 的 keyword 索引对「任一元素匹配」生效）
@@ -52,9 +57,21 @@ class VectorStore:
     def collection_exists(self) -> bool:
         return self.client.collection_exists(self.cfg.qdrant_collection)
 
+    def _missing_collection(self, exc: Exception) -> bool:
+        if isinstance(exc, UnexpectedResponse):
+            return exc.status_code == 404
+        # QdrantLocal reports a missing collection with ValueError.
+        return isinstance(exc, ValueError) and not self.collection_exists()
+
     def ensure_collection(self, vector_dimension: int) -> None:
         """确保档案馆存在、「指纹规格」与模型一致，并为过滤字段建好索引。"""
-        if not self.collection_exists():
+        try:
+            info = self.client.get_collection(self.cfg.qdrant_collection)
+        except (UnexpectedResponse, ValueError) as exc:
+            if not self._missing_collection(exc):
+                raise
+            info = None
+        if info is None:
             self.client.create_collection(
                 collection_name=self.cfg.qdrant_collection,
                 vectors_config=models.VectorParams(
@@ -71,21 +88,20 @@ class VectorStore:
                     f"集合里旧数据是 {existing_dim} 维，当前模型算出来是 {vector_dimension} 维，对不上。"
                     "这说明你换过向量化模型，需要重建知识库（界面点「重建知识库」或运行 python ingest.py --rebuild）。"
                 )
-        for field in INDEXED_FIELDS:
+        existing = (info.payload_schema or {}) if info is not None else {}
+        required = {**dict.fromkeys(INDEXED_FIELDS, models.PayloadSchemaType.KEYWORD),
+                    **dict.fromkeys(INDEXED_DATETIME_FIELDS, models.PayloadSchemaType.DATETIME),
+                    "project_id": models.PayloadSchemaType.INTEGER,
+                    "chunk_index": models.PayloadSchemaType.INTEGER}
+        for field, schema in required.items():
+            if field in existing and existing[field].data_type == schema:
+                continue
             self.client.create_payload_index(
                 collection_name=self.cfg.qdrant_collection,
                 field_name=field,
-                field_schema=models.PayloadSchemaType.KEYWORD,
+                field_schema=schema,
                 wait=True,
             )
-        for field in INDEXED_DATETIME_FIELDS:
-            self.client.create_payload_index(
-                collection_name=self.cfg.qdrant_collection,
-                field_name=field,
-                field_schema=models.PayloadSchemaType.DATETIME,
-                wait=True,
-            )
-        self.ensure_project_index()
 
     def ensure_project_index(self) -> None:
         self.client.create_payload_index(
@@ -103,10 +119,17 @@ class VectorStore:
 
     def count(self) -> int:
         """馆里一共有多少张卡片。"""
-        if not self.collection_exists():
-            return 0
-        return self.client.count(self.cfg.qdrant_collection,
-                                 count_filter=self.published_filter(None), exact=True).count
+        return self.count_existing() or 0
+
+    def count_existing(self) -> int | None:
+        """Count published cards, distinguishing an empty collection from a missing one."""
+        try:
+            return self.client.count(self.cfg.qdrant_collection,
+                                     count_filter=self.published_filter(None), exact=True).count
+        except (UnexpectedResponse, ValueError) as exc:
+            if self._missing_collection(exc):
+                return None
+            raise
 
     # ---------- 存卡 ----------
     def upsert_chunks(self, chunks: list[Chunk], vectors: list[list[float]], batch_size: int = 128) -> int:
@@ -162,18 +185,21 @@ class VectorStore:
         filters 形如 {"domain": "learning", "topic": ["RAG", "Agent"], "status": "active"}。
         返回 [{score, payload}, ...]，分数越高越相关。
         """
-        if not self.collection_exists():
+        try:
+            result = self.client.query_points(
+                collection_name=self.cfg.qdrant_collection,
+                query=query_vector,
+                limit=top_k,
+                query_filter=self.published_filter(filters),
+                with_payload=True,
+                **({"timeout": max(1, math.ceil(timeout))} if timeout is not None else {}),
+            )
+        except (UnexpectedResponse, ValueError) as exc:
+            if not self._missing_collection(exc):
+                raise
             raise VectorStoreError(
                 "知识库还是空的，请先入库（运行 python ingest.py 或在界面里上传文档）。"
-            )
-        result = self.client.query_points(
-            collection_name=self.cfg.qdrant_collection,
-            query=query_vector,
-            limit=top_k,
-            query_filter=self.published_filter(filters),
-            with_payload=True,
-            **({"timeout": max(1, math.ceil(timeout))} if timeout is not None else {}),
-        )
+            ) from exc
         return [{"score": point.score, "payload": point.payload or {}} for point in result.points]
 
     @staticmethod
@@ -279,25 +305,30 @@ class VectorStore:
                                             match=models.MatchValue(value=True))])
 
     # ---------- 按 source 查看 / 管理 ----------
-    def list_sources(self) -> dict[str, int]:
-        """盘点：每个文件各存了多少张卡片。"""
-        sources: dict[str, int] = {}
-        if not self.collection_exists():
-            return sources
+    def _point_pages(self, selector, *, fields=True, limit: int | None = None):
         offset = None
-        while True:
+        while limit is None or limit > 0:
             points, offset = self.client.scroll(
-                collection_name=self.cfg.qdrant_collection,
-                limit=256,
-                offset=offset,
-                scroll_filter=self.published_filter(None),
-                with_payload=["source"],
+                collection_name=self.cfg.qdrant_collection, scroll_filter=selector,
+                limit=256 if limit is None else min(256, limit), offset=offset,
+                with_vectors=False, with_payload=fields,
             )
-            for point in points:
-                source = (point.payload or {}).get("source") or "(未知来源)"
-                sources[source] = sources.get(source, 0) + 1
+            yield points, offset
             if offset is None:
                 break
+            if limit is not None:
+                limit -= len(points)
+
+    def iter_payloads(self, filters: dict | None, fields: list[str]):
+        """Stream a projected view of published cards under the supplied filters."""
+        if self.collection_exists():
+            for points, _ in self._point_pages(self.published_filter(filters), fields=fields):
+                yield from (point.payload or {} for point in points)
+
+    def list_sources(self) -> dict[str, int]:
+        """盘点：每个文件各存了多少张卡片。"""
+        sources = Counter(payload.get("source") or "(未知来源)"
+                          for payload in self.iter_payloads(None, ["source"]))
         return dict(sorted(sources.items()))
 
     def sample_payloads_by_source(self, source: str, limit: int = 20) -> list[dict]:
@@ -354,60 +385,30 @@ class VectorStore:
 
     def list_documents(self, filters: dict | None = None) -> list[dict]:
         """按 document_id 盘点入库文件，可在扫描前限定元数据范围。"""
-        if not self.collection_exists():
-            return []
         from src.permissions import classify_visibility
         docs: dict[tuple, dict] = {}
-        offset = None
-        scroll_filter = self.published_filter(filters)
-        while True:
-            points, offset = self.client.scroll(
-                collection_name=self.cfg.qdrant_collection,
-                scroll_filter=scroll_filter,
-                limit=256,
-                offset=offset,
-                with_payload=["document_id", "source", "path", "domain", "category", "doc_type",
-                              "department", "project_id", "topic", "version", "status", "allowed_groups", "allowed_users", "file_type",
-                              "indexed_at", "owner", "title", "effective_date",
-                              "classification", "document_version", "document_version_status",
-                              "document_version_source", "document_version_evidence", "version_content_hash"],
-            )
-            for point in points:
-                payload = point.payload or {}
-                key = (payload.get("document_id") or "(未知)",
-                       payload.get("version") or "?",
-                       payload.get("status") or "?")
-                if key not in docs:
-                    docs[key] = {
-                        "document_id": key[0],
-                        "source": payload.get("source") or "?",
-                        "path": payload.get("path") or "?",
-                        "domain": payload.get("domain") or "?",
-                        "category": payload.get("category") or "",
-                        "doc_type": payload.get("doc_type") or "",
-                        "department": payload.get("department") or "",
-                        "project_id": payload.get("project_id"),
-                        "topic": payload.get("topic") or [],
-                        "allowed_groups": payload.get("allowed_groups", []),
-                        "allowed_users": payload.get("allowed_users") or [],
-                        "file_type": payload.get("file_type") or "",
-                        "indexed_at": payload.get("indexed_at") or "",
-                        "owner": payload.get("owner") or "",
-                        "title": payload.get("title") or "",
-                        "effective_date": payload.get("effective_date") or "",
-                        "classification": classify_visibility(payload.get("allowed_groups"), payload.get("allowed_users")),
-                        "document_version": payload.get("document_version") or "",
-                        "document_version_status": payload.get("document_version_status") or "unavailable",
-                        "document_version_source": payload.get("document_version_source") or "",
-                        "document_version_evidence": payload.get("document_version_evidence") or [],
-                        "version_content_hash": payload.get("version_content_hash") or "",
-                        "version": key[1],
-                        "status": key[2],
-                        "chunks": 0,
-                    }
-                docs[key]["chunks"] += 1
-            if offset is None:
-                break
+        defaults = {"source": "?", "path": "?", "domain": "?", "category": "",
+                    "doc_type": "", "department": "",
+                    "file_type": "", "indexed_at": "", "owner": "", "title": "", "effective_date": "",
+                    "document_version": "", "document_version_status": "unavailable",
+                    "document_version_source": "",
+                    "version_content_hash": ""}
+        array_fields = ("topic", "allowed_users", "document_version_evidence")
+        fields = ["document_id", "version", "status", "project_id", "allowed_groups",
+                  *defaults, *array_fields]
+        for payload in self.iter_payloads(filters, fields):
+            key = (payload.get("document_id") or "(未知)",
+                   payload.get("version") or "?", payload.get("status") or "?")
+            if key not in docs:
+                docs[key] = {
+                    **{field: payload.get(field) or default for field, default in defaults.items()},
+                    **{field: payload.get(field) or [] for field in array_fields},
+                    "document_id": key[0], "version": key[1], "status": key[2], "chunks": 0,
+                    "project_id": payload.get("project_id"),
+                    "allowed_groups": payload.get("allowed_groups", []),
+                    "classification": classify_visibility(payload.get("allowed_groups"), payload.get("allowed_users")),
+                }
+            docs[key]["chunks"] += 1
         return sorted(docs.values(), key=lambda d: d["path"])
 
     def document_catalog(self, filters: dict | None = None, max_documents: int = 200,
@@ -421,36 +422,32 @@ class VectorStore:
         scanned = 0
         unknown_dates = set()
         if self.collection_exists():
-            while scanned < max_points:
-                points, offset = self.client.scroll(
-                    collection_name=self.cfg.qdrant_collection,
-                    scroll_filter=self.published_filter(filters), offset=offset,
-                    limit=min(256, max_points - scanned), with_vectors=False,
-                    with_payload=["document_id", "source", "path", "title", "domain", "doc_type",
-                                  "department", "project_id", "version", "status", "indexed_at", "updated_at",
-                                  "allowed_groups", "allowed_users"],
-                )
+            for points, offset in self._point_pages(
+                self.published_filter(filters), limit=max_points,
+                fields=["document_id", "source", "path", "title", "domain", "doc_type",
+                        "department", "project_id", "version", "status", "indexed_at", "updated_at",
+                        "allowed_groups", "allowed_users"],
+            ):
                 scanned += len(points)
                 for point in points:
                     meta = point.payload or {}
                     if select_document is not None and not select_document(meta):
                         continue
+                    key = meta.get("document_id") or meta.get("path")
+                    if dates:
+                        date = str(meta.get(date_field) or "")[:10]
+                        if not date:
+                            unknown_dates.add(key)
+                            continue
+                        if not (dates.get("from", "") <= date <= dates.get("to", "9999-12-31")):
+                            continue
+                    if not key or key in documents:
+                        continue
                     meta["doc_type"] = meta.get("doc_type") or ""
                     meta["department"] = meta.get("department") or ""
                     meta["classification"] = classify_visibility(
                         meta.pop("allowed_groups", None), meta.pop("allowed_users", None))
-                    if dates:
-                        date = str(meta.get(date_field) or "")[:10]
-                        if not date:
-                            unknown_dates.add(meta.get("document_id") or meta.get("path"))
-                            continue
-                        if not (dates.get("from", "") <= date <= dates.get("to", "9999-12-31")):
-                            continue
-                    key = meta.get("document_id") or meta.get("path")
-                    if key:
-                        documents.setdefault(key, meta)
-                if offset is None:
-                    break
+                    documents[key] = meta
         ordered = sorted(documents.values(), key=lambda m: m.get("path") or m.get("source") or "")
         return {"documents": ordered[:max_documents], "matched_documents": len(ordered),
                 "scan_truncated": offset is not None, "scanned_points": scanned,
@@ -472,20 +469,48 @@ class VectorStore:
         """拉取（可按 Metadata 过滤的）全部卡片：[{"id", "payload"}, ...]。供 BM25 通道建索引用。"""
         if not self.collection_exists():
             return []
-        cards: list[dict] = []
-        offset = None
-        while len(cards) < limit:
-            points, offset = self.client.scroll(
-                collection_name=self.cfg.qdrant_collection,
-                scroll_filter=self.published_filter(filters),
-                limit=min(256, limit - len(cards)),
-                offset=offset,
-                with_payload=True,
-            )
-            cards.extend({"id": point.id, "payload": point.payload or {}} for point in points)
-            if offset is None:
-                break
-        return cards
+        return [{"id": point.id, "payload": point.payload or {}}
+                for points, _ in self._point_pages(self.published_filter(filters), limit=limit)
+                for point in points]
+
+    def ordered_document_cards(self, filters: dict, limit: int, *,
+                               indices: set[int] | None = None) -> list[dict]:
+        """Read a specific document version by source ordinal, including legacy cards."""
+        if limit <= 0 or indices == set() or not self.collection_exists():
+            return []
+        predicate = self.published_filter(filters)
+        missing = models.IsEmptyCondition(is_empty=models.PayloadField(key="chunk_index"))
+        collection = self.cfg.qdrant_collection
+
+        if indices is not None:
+            current = self.get_all_cards({**filters, "chunk_index": sorted(indices)}, limit=len(indices))
+        else:
+            # Existing collections may predate the integer index. Only use order_by
+            # when this version contains cards written with the indexed field.
+            indexed_filter = models.Filter(must=[predicate], must_not=[missing])
+            probe, _ = self.client.scroll(collection, limit=1, scroll_filter=indexed_filter,
+                                          with_payload=False, with_vectors=False)
+            points = []
+            if probe:
+                points, _ = self.client.scroll(collection, limit=limit, scroll_filter=indexed_filter,
+                                               order_by="chunk_index", with_vectors=False)
+            current = [{"id": point.id, "payload": point.payload or {}} for point in points]
+        if indices is not None and len(current) == len(indices):
+            return sorted(current, key=lambda row: chunk_sequence(row["payload"]))
+
+        def legacy_cards():
+            for points, _ in self._point_pages(models.Filter(must=[predicate, missing])):
+                for point in points:
+                    payload = point.payload or {}
+                    if indices is None or chunk_sequence(payload) in indices:
+                        yield {"id": point.id, "payload": payload}
+
+        def order(row):
+            payload = row["payload"]
+            number = chunk_sequence(payload)
+            return number is None, number if number is not None else 0, str(row["id"])
+
+        return nsmallest(limit, chain(current, legacy_cards()), key=order)
 
     def chunks_by_document(self, document_id: str, limit: int = 50, *,
                            filters: dict | None = None) -> list[dict]:

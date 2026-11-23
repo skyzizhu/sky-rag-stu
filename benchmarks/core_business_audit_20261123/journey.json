@@ -1,0 +1,101 @@
+{
+  "observations": {
+    "storage": {
+      "active_documents": 5,
+      "ledger_files": 5,
+      "project_paths_separate": true
+    },
+    "acl": {
+      "audit_alice": [
+        "acceptance.md",
+        "internal.md",
+        "restricted.md"
+      ],
+      "audit_bob": [
+        "acceptance.md",
+        "internal.md"
+      ],
+      "audit_carol": [
+        "acceptance.md"
+      ]
+    },
+    "answer_citations": {
+      "web": [
+        1
+      ],
+      "mcp": [
+        1
+      ]
+    },
+    "revision": {
+      "current": "1.1",
+      "historical": "1.0",
+      "historical_acl_updated": true
+    },
+    "audit": {
+      "ingest_rows": 7,
+      "project_events": [
+        [
+          "ingested",
+          "indexed"
+        ],
+        [
+          "ingested",
+          "new_revision"
+        ],
+        [
+          "skipped",
+          "duplicate"
+        ]
+      ],
+      "dashboard_documents": 5
+    },
+    "archive_restore": {
+      "before": [
+        [
+          "1.0",
+          "expired"
+        ],
+        [
+          "1.1",
+          "active"
+        ]
+      ],
+      "archived": [
+        [
+          "1.0",
+          "expired"
+        ],
+        [
+          "1.1",
+          "archive"
+        ]
+      ],
+      "restored": [
+        [
+          "1.0",
+          "expired"
+        ],
+        [
+          "1.1",
+          "active"
+        ]
+      ],
+      "content_metadata_and_acl_visible": true
+    },
+    "organization": {
+      "direction_change_visible": true,
+      "disabled_token_denied": true,
+      "reactivation_does_not_restore_grant": true
+    },
+    "docx": {
+      "declared_version": "2.3",
+      "repository_revision": "1.0",
+      "cited_page": "2",
+      "page_kind": "explicit_break"
+    }
+  },
+  "tests": 4,
+  "failures": [],
+  "errors": []
+}

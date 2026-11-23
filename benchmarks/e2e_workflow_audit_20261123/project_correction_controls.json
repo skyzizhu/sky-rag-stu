@@ -1,0 +1,62 @@
+[
+  {
+    "correction": "不，我说的是天枢项目。",
+    "selection": null,
+    "last_explicit_project": {
+      "project": "我说的是天枢"
+    },
+    "chosen_name": null,
+    "issue": "project_reference",
+    "turn": 1
+  },
+  {
+    "correction": "更正为天枢项目。",
+    "selection": "天枢项目。",
+    "last_explicit_project": {
+      "project": "更正为天枢"
+    },
+    "chosen_name": "天枢项目",
+    "issue": null,
+    "turn": 1
+  },
+  {
+    "correction": "改查天枢项目。",
+    "selection": "天枢项目。",
+    "last_explicit_project": {
+      "project": "改查天枢"
+    },
+    "chosen_name": "天枢项目",
+    "issue": null,
+    "turn": 1
+  },
+  {
+    "correction": "不，是天枢项目。",
+    "selection": null,
+    "last_explicit_project": {
+      "project": "是天枢"
+    },
+    "chosen_name": null,
+    "issue": "project_reference",
+    "turn": 1
+  },
+  {
+    "correction": "先查天枢项目。",
+    "selection": null,
+    "last_explicit_project": {
+      "project": "先查天枢"
+    },
+    "chosen_name": "天枢项目",
+    "issue": null,
+    "turn": 1
+  },
+  {
+    "correction": "天枢项目。",
+    "selection": null,
+    "last_explicit_project": {
+      "project": "天枢"
+    },
+    "chosen_name": "天枢项目",
+    "issue": null,
+    "turn": 1
+  }
+]

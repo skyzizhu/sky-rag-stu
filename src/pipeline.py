@@ -55,8 +55,9 @@ from src.answer_language import resolve_answer_language
 from src.prompt import build_messages
 from src.query_understanding import understand_query
 from src.query_scope import (
-    conversation_project, extract_scope, is_scope_listing, name_project_in_followup,
-    project_reference, resolve_scope, selected_project_text, unsupported_scope,
+    conversation_project, extract_scope, inventory_domain_scope, inventory_needs_content,
+    inventory_question_text, is_scope_listing, name_project_in_followup,
+    project_reference, recover_inventory_project, resolve_scope, selected_project_text, unsupported_scope,
 )
 from src.reranker import rerank as rerank_items, rerank_local as rerank_documents_local
 from src.retriever import RetrievedItem, effective_filters, get_retriever
@@ -204,6 +205,11 @@ def _ingest_files_impl(
 
     summary = IngestSummary(rebuilt=rebuild)
     start = time.time()
+    from src import index_state as istate
+
+    if publication_pending():
+        with document_acl_write() as (_, retire_token):
+            recover_publication(vector_store, retire_token)
 
     # ① 收集文件
     if paths:
@@ -217,11 +223,6 @@ def _ingest_files_impl(
         )
     files = [path for path in files if not is_generated_info(path)]
     summary.total_files = len(files)
-    from src import index_state as istate
-
-    if publication_pending():
-        with document_acl_write() as (_, retire_token):
-            recover_publication(vector_store, retire_token)
 
     if not files:
         console_print(f"⚠️ 没有找到可入库的文件（知识目录：{cfg.knowledge_dir}）")
@@ -561,6 +562,8 @@ def _ingest_files_impl(
                 project_link={"project_id": meta["project_id"]} if "project_id" in meta else None,
                 visibility_info=info)
             state[rel]["indexed_status"] = meta["status"]
+            if "archive_origin" in entry:
+                state[rel]["archive_origin"] = entry["archive_origin"]
             if entry.get("hash") != digest:
                 state[rel]["overrides"].pop("version", None)
         for chunk in chunks:
@@ -852,10 +855,11 @@ def _remember_answer(key: str, result: QAResult, username: str | None) -> None:
 
 
 # ---------------------------------------------------------------- 问答
-def _catalog_evidence(question, filters, cfg):
+def _catalog_evidence(question, filters, cfg, *, file_dates=None):
     """精确目录查询：服务端权限过滤后扫描元数据，不调用向量化/生成模型。"""
     start = time.time()
-    date_field, dates = catalog_time(question)
+    date_field, dates = (next(iter(file_dates.items()), ("updated_at", {}))
+                         if file_dates is not None else catalog_time(question))
     effective = effective_filters(filters)
     catalog = get_vector_store().document_catalog(
         effective, cfg.enum_catalog_docs, cfg.enum_catalog_points, date_field, dates)
@@ -1206,12 +1210,14 @@ def query_evidence(
             enumeration_mode = True
         elif qu.ok and not _enum_strong:
             enumeration_mode = False
-        # 返回字段逐项解析：B3 规范的 7 个字段全部展示（未输出 = LLM 按规范省略，取默认值）
+        # 展示用于改写、路由和筛选的字段。
         fields_dump = (
             f"intent（意图概括）: {qu.intent or '（未输出）'}\n"
             f"vector_query（改写后检索语句）: {qu.vector_query}\n"
             f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '（未输出）'}\n"
             f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}\n"
+            f"inventory_intent（文件盘点）: {qu.inventory_intent}\n"
+            f"inventory_domain（明确点名的领域）: {qu.inventory_domain or '（未输出）'}\n"
             f"sub_queries（复合问题拆分，逐子查询检索）: {('；'.join(qu.sub_queries)) if qu.sub_queries else '（未输出，单信息需求）'}\n"
             f"time_range（模型识别的时间范围）: {qu.time_range or '（未输出）'}\n"
             f"文件日期过滤（按问句和手动选择确定）: {date_filters or '（无）'}\n"
@@ -1224,14 +1230,13 @@ def query_evidence(
         trace.append(make_node(
             "🧠", "Query 理解 / 改写", time_str=qu_start, elapsed=qu.elapsed,
             status="已执行" if qu.ok else "回退（解析失败，使用原始问题检索）",
-            summary="用一次 LLM 调用完成问题理解：改写查询 + 提关键词 + 推断过滤 + "
-                    "计数意图判定 + 复合问题拆分；失败自动回退为原始问题",
+            summary="用一次 LLM 调用完成查询改写、筛选推断、文件盘点与列举识别、复合问题拆分；失败时回退为原始问题",
             items=[
                 ("① 调用参数（发给 LLM 的完整请求）", request_dump),
                 ("② System Prompt（任务说明书全文）", qu.system_prompt),
                 ("③ User Prompt（时间+领域枚举+历史+原始问题）", qu.user_prompt),
                 ("④ LLM 原始输出（返回的 JSON 全文）", qu.raw_output or qu.error),
-                ("⑤ 返回字段逐项解析（未输出 = 按规范省略）", fields_dump),
+                ("⑤ 返回字段逐项解析", fields_dump),
             ],
         ))
     else:
@@ -1265,7 +1270,8 @@ def query_evidence(
                                                 user_groups, username, on_progress)
         if compared is not None:
             return compared
-    if is_staff_total_question(question):
+    staff_total = is_staff_total_question(question)
+    if staff_total:
         enumeration_mode = False
     version_scopes = comparison_statuses(filters) if compares_versions(question) else None
     if version_scopes is not None:
@@ -1275,6 +1281,7 @@ def query_evidence(
         enumeration_mode = False
     spoken_scope = {} if scope_issue else extract_scope(
         scope_question, getattr(qu, "metadata_scope", None) if qu and qu.ok else None)
+    model_inventory = bool(qu and qu.ok and qu.inventory_intent)
     # 推断类范围注入的过滤键（渐进式放宽的剥离范围）：resolve_scope 从问句推断
     # 注入的 project_id/department/doc_type 与 LLM 的 qu_filters 同属"推断"，
     # 0 召回时一并放宽；界面手动设置的键不在此列（保持"手动设置不放宽"规则）。
@@ -1284,6 +1291,13 @@ def query_evidence(
         if qu_filters.get("source") in spoken_scope.values():
             qu_filters.pop("source")
         filters, scope_issue = resolve_scope(scope_question, spoken_scope, filters)
+        if scope_issue == "unresolved" and model_inventory and not (qu.sub_queries or qu.enumeration_scope):
+            project = recover_inventory_project(scope_question, qu.metadata_scope.get("project"))
+            if project and project != spoken_scope.get("project"):
+                corrected_scope = {**spoken_scope, "project": project}
+                corrected_filters, corrected_issue = resolve_scope(scope_question, corrected_scope, pre_scope_filters)
+                if corrected_issue != "unresolved":
+                    filters, scope_issue, spoken_scope = corrected_filters, corrected_issue, corrected_scope
         scope_injected_keys = {key for key, value in (filters or {}).items()
                                if key not in pre_scope_filters or pre_scope_filters[key] != value}
     reference = project_reference(question) if "project" not in spoken_scope else ""
@@ -1348,9 +1362,47 @@ def query_evidence(
             return result, meta
 
     listing_scope = {**spoken_scope, "project": reference} if reference else spoken_scope
-    if is_scope_listing(question, listing_scope):
-        catalog_result, meta = _catalog_evidence(question, filters, cfg)
+    deterministic_listing = is_scope_listing(question, listing_scope)
+    inventory_requested = False
+    inventory_filters = None
+    if model_inventory:
+        inventory_text = inventory_question_text(scope_question, spoken_scope)
+        pure_inventory = not (staff_total or version_scopes is not None or inventory_needs_content(inventory_text))
+        inventory_requested = pure_inventory and not (qu.sub_queries or qu.enumeration_scope or qu_filters.get("source"))
+        domain, domain_issue = inventory_domain_scope(inventory_text, qu.inventory_domain) if pure_inventory else (None, "")
+        selected_domain = (filters or {}).get("domain")
+        if domain and selected_domain not in (None, "all", domain):
+            domain_issue = "inventory_domain_conflict"
+        domain_notices = {
+            "inventory_domain_negated": "文件清单暂不支持按排除条件筛选领域，请指定要盘点的领域。",
+            "inventory_domain_multiple": "这次列举涉及多个领域，请指定其中一个领域，或分别查询。",
+            "inventory_domain_unresolved": "未找到问句指定的领域，请核对领域名称后再查询文件清单。",
+            "inventory_domain_conflict": "问句指定的领域与当前筛选不一致，请调整领域后再查询文件清单。",
+        }
+        if domain_issue in domain_notices:
+            result.answer = domain_notices[domain_issue]
+            result.filters = effective_filters(filters)
+            meta = {**scope_meta, "scope_issue": domain_issue, "scope_notice": result.answer,
+                    "coverage": "not_found"}
+            result.evidence_meta = meta
+            return result, meta
+        if (inventory_requested and "scope_fallback" not in scope_meta
+                and not (qu.metadata_scope.keys() - listing_scope.keys())
+                and len(date_filters) <= 1 and (not qu.time_range or date_filters)
+                and not domain_issue):
+            inventory_filters = dict(filters or {})
+            if qu_filters.get("status"):
+                inventory_filters.setdefault("status", qu_filters["status"])
+            if domain:
+                inventory_filters["domain"] = domain
+    if deterministic_listing or inventory_filters is not None:
+        semantic_listing = inventory_filters is not None
+        catalog_result, meta = _catalog_evidence(
+            question, inventory_filters if semantic_listing else filters, cfg,
+            file_dates=date_filters if semantic_listing else None)
         meta.update(scope_meta)
+        if semantic_listing:
+            meta["inventory_intent"] = True
         catalog_result.trace[:0] = trace
         catalog_result.usage = result.usage
         elapsed = result.elapsed.get("query_understanding", 0.0)
@@ -1364,6 +1416,8 @@ def query_evidence(
                               source=(filters or {}).get("source") or qu_filters.get("source"),
                               hint=getattr(qu, "enumeration_scope", "") if qu and qu.ok else "")
     enum_stats = {"route": "version_comparison" if version_scopes is not None else route}
+    if inventory_requested:
+        enum_stats["inventory_intent"] = True
     enum_truncated = False
 
     # 节点 ③④⑤⑥：Query Embedding → Metadata Filter → 数据库检索 → 召回 Chunk
@@ -2343,7 +2397,8 @@ def answer_stream(
                                               channels=s["channels"]) for s in outcome.sources]
             result.context = "\n\n".join(f"[{s['rank']}] {s.get('source')} | {s.get('section') or '-'}\n{s['text']}" for s in outcome.sources)
             result.answer = render_records(outcome, resolve_answer_language(question, history),
-                                           coverage=evidence_meta["coverage"])
+                                           coverage=evidence_meta["coverage"],
+                                           inventory_hint=evidence_meta.get("inventory_intent", False))
             # 确定性求和（R6-C05）：问题明确要合计、且每条已验证记录的原文里都有
             # 金额时，代码层 Decimal 求和并附算式——不靠 LLM 心算，任一条缺金额
             # 或单位不可比就不算（宁缺毋滥，不猜）。

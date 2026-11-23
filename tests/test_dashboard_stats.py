@@ -30,6 +30,36 @@ def verified(calls=2):
 
 
 class DashboardAggregationTests(TempAuthDB):
+    def setUp(self):
+        super().setUp()
+        self.price_settings = {
+            'llm_price_input': 2.0, 'llm_price_input_cached': 0.2, 'llm_price_output': 8.0,
+        }
+        self.settings_patch = mock.patch('src.app_settings.load_app_settings',
+                                         return_value=self.price_settings)
+        self.settings_patch.start()
+        self.addCleanup(self.settings_patch.stop)
+
+    def test_llm_cost_uses_all_matching_logs_and_paginates_only_details(self):
+        usage = json.dumps({"calls": 2, "input": 100, "input_cached": 20, "output": 30, "estimated": True})
+        with auth_db._connect() as conn:
+            conn.executemany(
+                "INSERT INTO qa_logs(username, question, usage, created_at) VALUES(?,?,?,?)",
+                [("alice", f"问题{i}", usage, "2026-11-19T10:00:00") for i in range(305)]
+                + [("alice", "历史", usage, "2026-10-19T10:00:00"),
+                   ("bob", "其他用户", usage, "2026-11-19T10:00:00"),
+                   ("alice", "损坏用量", "{", "2026-11-19T10:00:00")])
+        with mock.patch("src.app_settings.load_app_settings", return_value={
+                "llm_price_input": 2, "llm_price_input_cached": 0.5, "llm_price_output": 3}):
+            response = admin_app.api_llm_costs({}, days=0, username="ali", page=999, page_size=20)
+        self.assertEqual(response["total_rows"], 306)
+        self.assertEqual(response["totals"], {
+            "input": 30600, "input_cached": 6120, "output": 9180, "calls": 612, "cost": 0.08})
+        self.assertEqual((response["page"], response["total_pages"], len(response["rows"])), (16, 16, 6))
+        self.assertEqual(response["rows"][-1]["question"], "问题0")
+        self.assertTrue(response["rows"][0]["estimated"])
+        self.assertEqual(auth_db.llm_usage_page("ali", "2026-11-01", 1, 10)[0]["total_rows"], 305)
+
     def test_legacy_qa_log_migrates_optional_mcp_context(self):
         seed()
         with auth_db._connect() as conn:
@@ -72,6 +102,85 @@ class DashboardAggregationTests(TempAuthDB):
         self.assertEqual(llm['legacy_reference_calls'], 4)
         self.assertEqual(sum(row['calls'] for row in llm['stages']), 6)
         self.assertEqual([row['calls'] for row in llm['channels']], [2, 1, 3])
+        # tokens / 费用（三档单价取自 settings；estimated 标记计数）
+        self.assertEqual(llm['tokens'], {'input': 0, 'input_cached': 0, 'output': 0})
+        self.assertEqual(llm['estimated_requests'], 0)
+        self.assertEqual(llm['cost'], 0.0)
+        self.assertEqual(llm['price'],
+                         {'input': 2.0, 'input_cached': 0.2, 'output': 8.0})
+
+    def test_llm_tokens_cost_and_daily_aggregation(self):
+        """tokens/费用按可核验记录聚合，legacy 行不计费；按天汇总供趋势图。"""
+        price = {'input': 2.0, 'input_cached': 0.2, 'output': 8.0}
+        seed('alice', usage={'report_version': 2, 'calls': 2, 'input': 1000,
+                             'input_cached': 200, 'output': 400, 'estimated': True,
+                             'stages': {'query_understanding': {'calls': 1, 'input': 400, 'output': 100},
+                                        'generation': {'calls': 1, 'input': 600, 'output': 300}}})
+        seed('bob', entry='mcp_http', usage={'report_version': 2, 'calls': 1,
+                                             'input': 500, 'output': 250})
+        seed('charlie', usage={'calls': 3})  # legacy：无 report_version，不计 tokens/费用
+        stats = usage_statistics(7, now=NOW)
+        llm = stats['llm']
+        self.assertEqual(llm['tokens'], {'input': 1500, 'input_cached': 200, 'output': 650})
+        self.assertEqual(llm['estimated_requests'], 1)
+        # 未命中 1300×2 + 缓存 200×0.2 + 输出 650×8 = 7880/1e6 = 0.00784
+        self.assertAlmostEqual(llm['cost'], 0.00784)
+        self.assertEqual(llm['price'], price)
+        self.assertEqual(llm['stages'][0], {'key': 'query_understanding', 'name': '查询理解',
+                                            'calls': 1, 'input': 400, 'output': 100})
+        other = next(row for row in llm['stages'] if row['key'] == 'other')
+        self.assertEqual((other['input'], other['output'], other['calls']), (500, 250, 1))
+        self.assertEqual(sum(row['input'] for row in llm['stages']), llm['tokens']['input'])
+        self.assertEqual(sum(row['output'] for row in llm['stages']), llm['tokens']['output'])
+        self.assertEqual(llm['inconsistent_usage'], 0)
+        daily_llm = [row for row in llm['daily_llm'] if row['calls'] or row['input']]
+        self.assertEqual(daily_llm, [dict(date='2026-11-19', calls=3, input=1500,
+                                        input_cached=200, output=650, cost=0.00784)])
+
+    def test_usage_detail_mismatch_is_visible_and_cached_tokens_are_bounded(self):
+        seed(usage={'report_version': 2, 'calls': 1, 'input': 100, 'input_cached': 150,
+                    'output': 20, 'stages': {'generation': {'calls': 2, 'input': 200, 'output': 40}}})
+        llm = usage_statistics(7, now=NOW)['llm']
+        self.assertEqual(llm['tokens'], {'input': 100, 'input_cached': 100, 'output': 20})
+        self.assertAlmostEqual(llm['cost'], 0.00018)
+        self.assertEqual(llm['inconsistent_usage'], 1)
+        self.assertEqual(sum(row['calls'] for row in llm['stages']), 1)
+
+    def test_prices_are_reloaded_and_zero_prices_remain_zero(self):
+        seed(usage={'report_version': 2, 'calls': 1, 'input': 1000000,
+                    'input_cached': 200000, 'output': 100000})
+        llm = usage_statistics(7, now=NOW)['llm']
+        self.assertAlmostEqual(llm['cost'], 2.44)
+        self.price_settings.update(llm_price_input=0, llm_price_input_cached=0, llm_price_output=0)
+        refreshed = usage_statistics(7, now=NOW)['llm']
+        self.assertEqual(refreshed['cost'], 0)
+        self.assertEqual(refreshed['tokens'], llm['tokens'])
+        self.assertEqual(refreshed['price'], {'input': 0, 'input_cached': 0, 'output': 0})
+
+    def test_cached_answer_consumes_only_current_evaluation(self):
+        result = SimpleNamespace(usage={'input': 999999, 'output': 999999, 'calls': 2},
+                                 request_usage={'stages': {}}, cache_hit=True)
+        seed(usage=usage_for_log(result, {'usage': {'input': 100, 'output': 20}}))
+        llm = usage_statistics(7, now=NOW)['llm']
+        self.assertEqual(llm['tokens'], {'input': 100, 'input_cached': 0, 'output': 20})
+        self.assertEqual(llm['calls'], 1)
+        self.assertAlmostEqual(llm['cost'], 0.00036)
+        evaluation = next(row for row in llm['stages'] if row['key'] == 'evaluation')
+        self.assertEqual((evaluation['input'], evaluation['output']), (100, 20))
+
+    def test_daily_tokens_zero_fill_and_date_boundaries(self):
+        usage = {'report_version': 2, 'calls': 1, 'input': 100, 'output': 20}
+        seed(usage=usage, date='2026-11-12T23:59:59')
+        seed(usage=usage, date='2026-11-13T00:00:00')
+        seed(usage=usage, date='2026-11-19T23:59:59')
+        seed(usage=usage, date='2026-11-20T00:00:00')
+        llm = usage_statistics(7, now=NOW)['llm']
+        self.assertEqual(llm['calls'], 2)
+        self.assertEqual(llm['tokens']['input'], 200)
+        self.assertEqual(llm['daily_llm'][1], {'date': '2026-11-14', 'calls': 0,
+                                             'input': 0, 'input_cached': 0, 'output': 0, 'cost': 0})
+        self.assertEqual(sum(row['input'] for row in llm['daily_llm']), 200)
+        self.assertAlmostEqual(sum(row['cost'] for row in llm['daily_llm']), llm['cost'])
 
     def test_aggregation_is_not_capped_at_300_and_uses_historical_department(self):
         user = self.make_employee('alice', department='新部门')

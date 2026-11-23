@@ -1733,7 +1733,9 @@ def show_answer_sources(result) -> None:
             if item.get("section"):
                 extras.append(t("sources.section", v=item["section"]))
             if item.get("page"):
-                extras.append(t("sources.page", v=item["page"]))
+                page_label = {"explicit_break": "sources.page_break_segment",
+                              "slide": "sources.slide"}.get(item.get("page_kind"), "sources.page")
+                extras.append(t(page_label, v=item["page"]))
             if extras:
                 head += "　·　" + "　".join(extras)
             st.markdown(head)
@@ -3110,7 +3112,7 @@ def page_manage():
                     st.session_state["manage_table_revision"] = \
                         st.session_state.get("manage_table_revision", 0) + 1
                     st.rerun()
-                except ManageError as exc:
+                except (ManageError, ApiException, VectorStoreError, OSError) as exc:
                     _show_management_error(exc)
 
     # 独立原子表单：仅保存当前文档的类型，绝不连带提交其他档案/权限输入。

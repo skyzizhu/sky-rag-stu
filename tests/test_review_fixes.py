@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import io
 import unittest
+from dataclasses import replace
 from types import SimpleNamespace
 from unittest import mock
 
@@ -140,17 +141,17 @@ class MergeRunTests(unittest.TestCase):
         self.assertEqual(merged.count("重叠部分ABCDEFGH"), 1)
         self.assertNotIn("【章节", merged)  # 同一章节不重复加标题
 
-    def test_build_context_keeps_titles_for_whole_run(self):
+    def test_build_context_preserves_distinct_section_citations(self):
         from src.context import build_context
         run = [self.doc_card(i, f"功能 {i}", f"功能 {i} 的说明。") for i in range(1, 6)]
         context, used, _, notes = build_context(run, max_items=10, max_per_doc=999)
-        self.assertEqual(len(used), 1)  # 5 张相邻卡片拼成 1 条资料
-        for i in range(2, 6):
-            self.assertIn(f"【章节：功能 {i}】", context)
+        self.assertEqual(len(used), 5)
+        for i in range(1, 6):
+            self.assertIn(f"章节: 功能 {i}", context)
 
 
 class ExpandDominantDocumentsTests(IngestHarness):
-    """枚举模式的文档展开：补齐被列举文档的全部卡片，且沿用权限过滤。"""
+    """普通问答使用的文档展开，验证候选顺序、补片上限和权限下推。"""
 
     def setUp(self) -> None:
         super().setUp()
@@ -177,11 +178,18 @@ class ExpandDominantDocumentsTests(IngestHarness):
         self.total_big = len(big)
         return [to_item(c) for c in other[:1]] + [to_item(c) for c in big[:n_big]]
 
-    def test_fills_in_all_cards_of_dominant_document(self):
-        from src.pipeline import expand_dominant_documents
+    def expand(self, pool, filters=None, *, keep_top=10, max_doc_cards=40):
+        from src.pipeline import expand_facts_dominant_documents
         from src.retriever import effective_filters
+
+        expanded, _, _, notes = expand_facts_dominant_documents(
+            pool, effective_filters(filters or {}), keep_top,
+            replace(self.cfg, expand_doc_max_cards=max_doc_cards), multi_fact=False)
+        return expanded, notes
+
+    def test_fills_in_all_cards_of_dominant_document(self):
         pool = self.pool(4)
-        expanded, notes = expand_dominant_documents(pool, effective_filters({}))
+        expanded, notes = self.expand(pool)
         big_cards = [it for it in expanded if it.metadata["source"] == "features.md"]
         self.assertEqual(len(big_cards), self.total_big)        # 全部卡片进入候选
         self.assertEqual(expanded[0].metadata["source"], "other.md")  # 原有第 1 名位置不动
@@ -190,44 +198,34 @@ class ExpandDominantDocumentsTests(IngestHarness):
 
     def test_top_ranked_cards_never_displaced(self):
         """实测回归：展开长文档曾把只有 1 张卡片的「心得」从前排挤到第 94 位。前 keep_top 名必须原位保留。"""
-        from src.pipeline import expand_dominant_documents
-        from src.retriever import effective_filters
         pool = self.pool(4)
-        expanded, _ = expand_dominant_documents(pool, effective_filters({}), keep_top=2)
+        expanded, _ = self.expand(pool, keep_top=2)
         self.assertEqual([it.metadata["chunk_id"] for it in expanded[:2]],
                          [it.metadata["chunk_id"] for it in pool[:2]])
 
-    def test_document_too_large_is_not_expanded(self):
-        """全文超出上下文名额的长文档谈不上「补齐全部」，不展开（避免噪声塞满名额）。"""
-        from src.pipeline import expand_dominant_documents
-        from src.retriever import effective_filters
+    def test_large_document_only_adds_neighbors(self):
         pool = self.pool(4)
-        expanded, notes = expand_dominant_documents(pool, effective_filters({}), max_doc_cards=5)
-        self.assertEqual(len(expanded), len(pool))
-        self.assertTrue(any("不展开" in n for n in notes))
+        expanded, notes = self.expand(pool, max_doc_cards=5)
+        self.assertLessEqual(len(expanded), len(pool) + 2)
+        self.assertTrue(all("邻卡" in n for n in notes))
 
     def test_document_must_appear_near_the_top(self):
         """只在后排凑够张数的文档不展开（小知识库里召回 50 条会混进无关文档）。"""
-        from src.pipeline import expand_dominant_documents
-        from src.retriever import effective_filters
         pool = self.pool(4)  # 第 1 名是 other.md，features.md 从第 2 名开始
-        expanded, notes = expand_dominant_documents(pool, effective_filters({}), keep_top=1)
+        expanded, notes = self.expand(pool, keep_top=1)
         self.assertEqual(len(expanded), len(pool))
         self.assertEqual(notes, [])
 
     def test_not_triggered_below_threshold(self):
-        from src.pipeline import expand_dominant_documents
-        from src.retriever import effective_filters
-        pool = self.pool(3)  # 同一文档只有 3 张 < 4：不算「被列举的文档」
-        expanded, notes = expand_dominant_documents(pool, effective_filters({}))
+        pool = self.pool(1)
+        expanded, notes = self.expand(pool)
         self.assertEqual(len(expanded), len(pool))
         self.assertEqual(notes, [])
 
     def test_respects_permission_filters(self):
         """补卡沿用本次检索的过滤条件：无权限时一张也不补（不越权）。"""
-        from src.pipeline import expand_dominant_documents
         pool = self.pool(4)
-        expanded, _ = expand_dominant_documents(pool, {"allowed_groups": ["no_such_group"]})
+        expanded, _ = self.expand(pool, {"allowed_groups": ["no_such_group"]})
         self.assertEqual(len(expanded), len(pool))
 
 

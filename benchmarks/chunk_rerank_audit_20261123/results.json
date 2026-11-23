@@ -1,0 +1,565 @@
+{
+  "C01_overlap_budget": {
+    "passed": false,
+    "budget": 640,
+    "tolerance": 20,
+    "card_tokens": [
+      611,
+      1212
+    ]
+  },
+  "C02_pending_sentence_lost": {
+    "passed": false,
+    "previous_sentence_found": false,
+    "tail_found": true
+  },
+  "C03_english_sentence_cut": {
+    "passed": false,
+    "endings": [
+      "his sentence documents a stage gate. This sen",
+      "tage gate. This sentence documents a stage ga"
+    ],
+    "card_count": 3
+  },
+  "C04_chapter_cross_merge": {
+    "passed": false,
+    "sections": [
+      "一章 > 子节"
+    ],
+    "contents": [
+      "来源文档：样本.md｜章节：一章 > 子节\n## 子节\n正文甲。\n\n## 子节\n正文乙。"
+    ]
+  },
+  "C05_section_merge_control": {
+    "passed": true,
+    "coverage": [
+      "一章",
+      "短节甲",
+      "短节乙"
+    ]
+  },
+  "C06_tilde_fence_headers": {
+    "passed": false,
+    "sections": [
+      "安装",
+      "comment is not a chapter",
+      "正式启动"
+    ]
+  },
+  "C07_continued_page_heading": {
+    "passed": false,
+    "locations": [
+      [
+        "1",
+        "验收步骤"
+      ],
+      [
+        "2",
+        null
+      ]
+    ]
+  },
+  "C08_pdf_margin_heuristic_removes_body": {
+    "passed": false,
+    "found_pages": []
+  },
+  "C09_setext_heading": {
+    "passed": false,
+    "sections": [
+      null
+    ]
+  },
+  "F01_format_ingest": {
+    "passed": true,
+    "indexed": {
+      "two-pages.pdf": 2,
+      "slides.pptx": 2,
+      "notes.docx": 1,
+      "register.xlsx": 5,
+      "fees.html": 1,
+      "two-paragraphs.txt": 1
+    },
+    "failures": []
+  },
+  "F02_page_two-pages.pdf": {
+    "passed": true,
+    "indexed_locations": [
+      [
+        "2",
+        null
+      ]
+    ]
+  },
+  "F02_page_slides.pptx": {
+    "passed": true,
+    "indexed_locations": [
+      [
+        "2",
+        "签收"
+      ]
+    ]
+  },
+  "F02_page_notes.docx": {
+    "passed": false,
+    "indexed_locations": [
+      [
+        null,
+        "一章 > 实施条款"
+      ]
+    ]
+  },
+  "F03_docx_heading_path": {
+    "passed": true,
+    "actual": "一章 > 实施条款"
+  },
+  "F04_xlsx_split_keeps_columns": {
+    "passed": false,
+    "cards": 5,
+    "missing_header": [
+      "doc_072a11a3_v1.0_0003",
+      "doc_072a11a3_v1.0_0001"
+    ]
+  },
+  "F05_html_subheadings": {
+    "passed": true,
+    "sections": [
+      [
+        "交通费",
+        "住宿费"
+      ]
+    ]
+  },
+  "F06_txt_title_body": {
+    "passed": true
+  },
+  "M01_mcp_fragment_correct_order": {
+    "passed": true,
+    "selected_pagination": 2,
+    "total_cards": 2
+  },
+  "M02_mcp_fragment_source_page": {
+    "passed": false,
+    "fragment_fields": [
+      "chunk_id",
+      "section",
+      "text"
+    ],
+    "pagination_page": 2
+  },
+  "M03_mcp_merged_subsection_lookup": {
+    "passed": false,
+    "visible_document": true,
+    "matched": 0
+  },
+  "M04_mcp_search_source_page": {
+    "passed": false,
+    "matching_evidence": 1,
+    "match_fields": [
+      "channels",
+      "chunk_id",
+      "chunk_ids",
+      "classification",
+      "department",
+      "doc_type",
+      "document_id",
+      "path",
+      "project_id",
+      "rank",
+      "score",
+      "section",
+      "source",
+      "status",
+      "text",
+      "version"
+    ]
+  },
+  "R01_isolated_recall_controls": {
+    "passed": true,
+    "grades": [
+      {
+        "question": "Approver Alice",
+        "hybrid_rank": 2,
+        "bm25_rank": 1
+      },
+      {
+        "question": "PPT-GOLD 校验",
+        "hybrid_rank": 2,
+        "bm25_rank": 1
+      },
+      {
+        "question": "DOCX-GOLD",
+        "hybrid_rank": 1,
+        "bm25_rank": 1
+      },
+      {
+        "question": "报销标准 住宿费 700 元",
+        "hybrid_rank": 1,
+        "bm25_rank": 1
+      }
+    ],
+    "hits_at": {
+      "hybrid_rank": {
+        "1": 2,
+        "3": 4,
+        "5": 4
+      },
+      "bm25_rank": {
+        "1": 4,
+        "3": 4,
+        "5": 4
+      }
+    }
+  },
+  "B01_default_per_doc_limit": {
+    "passed": true,
+    "kept_fragments": 1,
+    "dropped": [
+      {
+        "rank": 4,
+        "source": "manual.md",
+        "reason": "同一文档最多采用 3 条（保持来源多样性）"
+      },
+      {
+        "rank": 5,
+        "source": "manual.md",
+        "reason": "同一文档最多采用 3 条（保持来源多样性）"
+      }
+    ]
+  },
+  "B02_merge_removes_real_overlap": {
+    "passed": true,
+    "text": "申请单须经财务部应于两日内确认。"
+  },
+  "B03_merge_preserves_real_initial_letter": {
+    "passed": false,
+    "observed": "提交审批A类适用特别规则。"
+  },
+  "B04_first_card_respects_budget": {
+    "passed": false,
+    "budget": 500,
+    "observed_tokens": 810
+  },
+  "B05_version_attribution_after_dedup": {
+    "passed": false,
+    "adopted_versions": [
+      "1.0"
+    ]
+  },
+  "B06_page_provenance_control": {
+    "passed": true,
+    "locations": [
+      "1",
+      "2"
+    ]
+  },
+  "B07_expand_twelve": {
+    "passed": true,
+    "total_doc_cards": 12,
+    "expanded": 12,
+    "added": 10,
+    "notes": [
+      "short-manual.md：候选池 2 张 → 补入其余 10 张（全文 12 张进入候选）"
+    ]
+  },
+  "B08_expand_thirteen": {
+    "passed": false,
+    "total_doc_cards": 13,
+    "expanded": 2,
+    "added": 0,
+    "notes": [
+      "larger-manual.md：全文超过 12 张、扩展装不下，不展开"
+    ]
+  },
+  "B09_multifact_single_anchor": {
+    "passed": false,
+    "expanded": 1,
+    "added": 0,
+    "note": "复合问题，仅命中同文档一张；实测候选池无法触发按文档补片"
+  },
+  "B10_requested_top_two_vs_final": {
+    "passed": false,
+    "requested": 2,
+    "added_counter": 10,
+    "actual_new_cards": 8,
+    "adopted_cards": 12,
+    "response_fragments": 12
+  },
+  "B12_pipeline_topk_contract": {
+    "passed": false,
+    "counts": [
+      {
+        "top_k": 1,
+        "final_fragments": 1,
+        "original_cards": 1
+      },
+      {
+        "top_k": 2,
+        "final_fragments": 12,
+        "original_cards": 12
+      },
+      {
+        "top_k": 3,
+        "final_fragments": 12,
+        "original_cards": 12
+      },
+      {
+        "top_k": 5,
+        "final_fragments": 12,
+        "original_cards": 12
+      },
+      {
+        "top_k": 10,
+        "final_fragments": 12,
+        "original_cards": 12
+      }
+    ],
+    "note": "固定按原文顺序返回候选，使用真实扩展与组装"
+  },
+  "B11_capped_enum_document_order": {
+    "passed": false,
+    "selected_sequences": [
+      [
+        0,
+        2,
+        4,
+        7
+      ],
+      [
+        0,
+        2,
+        3,
+        5
+      ],
+      [
+        0,
+        1,
+        5,
+        7
+      ]
+    ],
+    "truncated": true
+  },
+  "R02_rrf_dual_recall_control": {
+    "passed": true,
+    "selected": "双命中",
+    "channels": "向量 + 关键词"
+  },
+  "R03_onnx_model": {
+    "passed": false,
+    "comparisons": [
+      {
+        "question": "验收负责人是谁？",
+        "gold_start_char": 520,
+        "within_local_window": true,
+        "gold_card_estimated_tokens": 422,
+        "current_top": "answer",
+        "full_card_control_top": "answer",
+        "current_scores": [
+          [
+            "C2",
+            "answer.md",
+            9.1359
+          ],
+          [
+            "C1",
+            "competitor.md",
+            0.0936
+          ]
+        ],
+        "control_scores": [
+          [
+            "C2",
+            "answer.md",
+            9.1359
+          ],
+          [
+            "C1",
+            "competitor.md",
+            0.0936
+          ]
+        ],
+        "seconds": 3.096
+      },
+      {
+        "question": "Which port serves the staging gateway?",
+        "gold_start_char": 1420,
+        "within_local_window": false,
+        "gold_card_estimated_tokens": 413,
+        "current_top": "competitor",
+        "full_card_control_top": "answer",
+        "current_scores": [
+          [
+            "C1",
+            "competitor.md",
+            0.0072
+          ],
+          [
+            "C2",
+            "answer.md",
+            0.0002
+          ]
+        ],
+        "control_scores": [
+          [
+            "C2",
+            "answer.md",
+            3.771
+          ],
+          [
+            "C1",
+            "competitor.md",
+            0.0072
+          ]
+        ],
+        "seconds": 0.397
+      },
+      {
+        "question": "采购单的复核时限是多少？",
+        "gold_start_char": 520,
+        "within_local_window": true,
+        "gold_card_estimated_tokens": 426,
+        "current_top": "answer",
+        "full_card_control_top": "answer",
+        "current_scores": [
+          [
+            "C2",
+            "answer.md",
+            9.8635
+          ],
+          [
+            "C1",
+            "competitor.md",
+            2.6913
+          ]
+        ],
+        "control_scores": [
+          [
+            "C2",
+            "answer.md",
+            9.8635
+          ],
+          [
+            "C1",
+            "competitor.md",
+            2.6913
+          ]
+        ],
+        "seconds": 0.753
+      },
+      {
+        "question": "Which group may approve emergency releases?",
+        "gold_start_char": 1420,
+        "within_local_window": false,
+        "gold_card_estimated_tokens": 419,
+        "current_top": "competitor",
+        "full_card_control_top": "answer",
+        "current_scores": [
+          [
+            "C1",
+            "competitor.md",
+            0.2666
+          ],
+          [
+            "C2",
+            "answer.md",
+            0.0002
+          ]
+        ],
+        "control_scores": [
+          [
+            "C2",
+            "answer.md",
+            7.392
+          ],
+          [
+            "C1",
+            "competitor.md",
+            0.2666
+          ]
+        ],
+        "seconds": 0.429
+      },
+      {
+        "question": "年度培训报销上限是多少？",
+        "gold_start_char": 520,
+        "within_local_window": true,
+        "gold_card_estimated_tokens": 425,
+        "current_top": "answer",
+        "full_card_control_top": "answer",
+        "current_scores": [
+          [
+            "C2",
+            "answer.md",
+            9.7763
+          ],
+          [
+            "C1",
+            "competitor.md",
+            0.1149
+          ]
+        ],
+        "control_scores": [
+          [
+            "C2",
+            "answer.md",
+            9.7763
+          ],
+          [
+            "C1",
+            "competitor.md",
+            0.1149
+          ]
+        ],
+        "seconds": 0.706
+      },
+      {
+        "question": "What is the recovery point objective for payment reconciliation?",
+        "gold_start_char": 1420,
+        "within_local_window": false,
+        "gold_card_estimated_tokens": 423,
+        "current_top": "competitor",
+        "full_card_control_top": "answer",
+        "current_scores": [
+          [
+            "C1",
+            "competitor.md",
+            0.0002
+          ],
+          [
+            "C2",
+            "answer.md",
+            0.0002
+          ]
+        ],
+        "control_scores": [
+          [
+            "C2",
+            "answer.md",
+            8.5687
+          ],
+          [
+            "C1",
+            "competitor.md",
+            0.0002
+          ]
+        ],
+        "seconds": 0.412
+      }
+    ]
+  },
+  "R04_llm_preview_includes_tail": {
+    "passed": false,
+    "token_visible": false
+  },
+  "R05_llm_invalid_ids_detected": {
+    "passed": false,
+    "reported_ok": true,
+    "sorted_scores": [
+      [
+        "C1",
+        "manual.md",
+        -1.0
+      ]
+    ]
+  }
+}

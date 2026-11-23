@@ -297,56 +297,20 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
         if on_progress:
             on_progress(text)
 
-    # 预算感知的文档提交（R9-C08）：调用预算的职责是防失控，不是腰斩已选文档集的
-    # 提取——宽候选（12 篇文档 ≈ 12 批提取）恰好填满 max_calls 时，规划补查一次
-    # 都发不出，目标文档缺召回就永远补不回来（R8 过/R9 挂的波动根源）。
-    # 规则：首轮提交按「代表排名优先 + 预算内可完整提取」裁剪，恒为规划补查保留
-    # enum_max_rounds × enum_queries_per_round + 1 次调用；被裁文档计入
-    # selection_truncated（coverage=partial 的既有诚实提示）。提取中段不再因
-    # call_budget 腰斩（时间/token/卡片/条目四道护栏不变，它们才是失控防线）。
+    # Reserve planning calls, while charging extraction by actual packed batches.
     planning_reserve = cfg.enum_max_rounds * cfg.enum_queries_per_round + 1
-
-    def _estimate_batches(doc) -> int:
-        """按该文档卡片数估批次数（每批 ≤ max_materials 个材料）。轻量：一次元数据翻页。"""
-        scoped = {**filters, 'document_id': doc['document_id']}
-        if doc.get('version'):
-            scoped['version'] = doc['version']
-        try:
-            page, _next = store.card_page(scoped, limit=cfg.enum_doc_cards)
-        except Exception:
-            return 1
-        fresh = len(page) or 1
-        max_materials = max(1, min(8, cfg.enum_output_tokens // 384))
-        return max(1, -(-fresh // max_materials))
-
-    def commit_within_budget(documents):
-        """按序提交文档，直到用尽提取配额（max_calls - 规划预留）；其余明确裁剪。"""
-        allowance = max(1, cfg.enum_max_calls - planning_reserve)
-        committed, used, dropped = [], 0, 0
-        for doc in documents:
-            key = (doc.get('document_id'), doc.get('version'))
-            if not key[0] or key in seen_docs:
-                continue
-            need = _estimate_batches(doc)
-            if committed and used + need > allowance:
-                dropped += 1
-                continue
-            committed.append(doc)
-            used += need
-        if dropped:
-            state['selection_truncated'] = True
-        return committed
 
     def document_fragments(documents):
         queue = deque()
+        queued = set()
         for doc in documents:
             key = (doc.get('document_id'), doc.get('version'))
-            if not key[0] or key in seen_docs:
+            if not key[0] or key in seen_docs or key in queued:
                 continue
-            if len(seen_docs) >= cfg.enum_max_documents:
+            if len(seen_docs) + len(queued) >= cfg.enum_max_documents:
                 state['document_budget_hit'] = True
                 continue
-            seen_docs.add(key)
+            queued.add(key)
             queue.append((doc, None))
         while queue:
             budget.check()
@@ -367,10 +331,13 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
             state['cards_read'] += len(fresh)
             if next_offset is not None:
                 queue.append((doc, next_offset))
-            for row in fresh:
+            for row in page:
                 yield from evidence_fragments(row, cfg.enum_batch_tokens)
 
-    def extract_batch(batch):
+    def extract_batch(batch, cutoff):
+        if cutoff is not None and budget.calls >= cutoff:
+            state['selection_truncated'] = True
+            return
         budget.check()
         state['batches'] += 1
         progress(f"📋 分批提取中…第 {state['batches']} 批")
@@ -388,13 +355,14 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
                 return
             state['split_batches'] += 1
             middle = len(batch) // 2
-            extract_batch(batch[:middle])
-            extract_batch(batch[middle:])
+            extract_batch(batch[:middle], cutoff)
+            extract_batch(batch[middle:], cutoff)
             return
         state['valid_batches'] += 1
         state['rejected_items'] += rejected
         processed_docs.update((f['metadata'].get('document_id'), f['metadata'].get('version'))
                               for f in batch if f['metadata'].get('document_id'))
+        seen_docs.update(processed_docs)
         for record in parsed:
             if len(records) >= cfg.enum_max_items:
                 # Keep merging evidence for existing items even after the item cap.
@@ -404,17 +372,21 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
                     raise BudgetExceeded('item_budget')
             merge_record(records, record)
 
-    def read_documents(documents):
+    def read_documents(documents, reserve=0):
         # Allow enough response space per fragment and split when the model still truncates.
         max_materials = max(1, min(8, cfg.enum_output_tokens // 384))
-        for batch in batches(document_fragments(commit_within_budget(documents)),
+        cutoff = max(budget.calls + 1, cfg.enum_max_calls - reserve) if reserve else None
+        for batch in batches(document_fragments(documents),
                              cfg.enum_batch_tokens, max_materials):
-            extract_batch(batch)
+            if cutoff is not None and budget.calls >= cutoff:
+                state['selection_truncated'] = True
+                break
+            extract_batch(batch, cutoff)
         if state['card_budget_hit']:
             raise BudgetExceeded('card_budget')
 
     try:
-        read_documents(initial_documents)
+        read_documents(initial_documents, reserve=planning_reserve if route == "cross_document" else 0)
         stale = 0
         if route == 'cross_document':
             stop_reason = 'round_budget'
@@ -523,7 +495,7 @@ def stop_reason_text(reason, language="zh-CN"):
     return text
 
 
-def render_records(outcome, language="zh-CN", *, coverage="unknown"):
+def render_records(outcome, language="zh-CN", *, coverage="unknown", inventory_hint=False):
     """逐条输出已校验记录，避免最后一次自由总结再次漏项或改变计数。"""
     records, stats = outcome.records, outcome.stats
     templates = {
@@ -569,4 +541,12 @@ def render_records(outcome, language="zh-CN", *, coverage="unknown"):
                               b=stats['valid_batches'], r=stats['rounds']))
     reason = stop_reason_text(stats['stop_reason'], language)
     lines.append(f"{stopped}：{reason}。{caveat}")
+    if inventory_hint and stats['stop_reason'].endswith('budget'):
+        hints = {
+            'zh-CN': "如果你想查看文件清单，可以问「项目文件夹里有哪些文档？」",
+            'zh-TW': "如果你想查看文件清單，可以問「專案資料夾裡有哪些文件？」",
+            'en': "If you want a file list, ask for the documents in a specific knowledge-base folder.",
+            'ja': "ファイル一覧が必要な場合は、ナレッジベース内のフォルダーを指定して文書一覧を尋ねてください。",
+        }
+        lines.append(hints.get(language, hints['en']))
     return '\n\n'.join(lines)

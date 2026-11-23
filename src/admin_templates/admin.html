@@ -163,6 +163,16 @@
   .dash-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
   .dash-metrics-overview { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .dash-metrics-usage { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dash-metrics-llm { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dash-metrics-llm b { overflow-wrap: anywhere; }
+  .dash-pie-grid > section { min-width: 0; }
+  .dash-metric small { display: block; margin-top: 6px; color: #64748b; font-size: 12px; line-height: 1.6; }
+  .dash-llm-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .dash-llm-head h3 { margin: 0; }
+  .dash-llm-chart-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .dash-llm-chart-tools button[aria-pressed="true"] { background: #3d5af1; color: #fff; border-color: #3d5af1; }
+  .dash-llm-stage { margin-top: 10px; line-height: 1.6; }
+  .dash-llm-stage .dash-bar-row { grid-template-columns: minmax(80px, 130px) minmax(0, 1fr) 70px; }
   .dash-metric { background: #fff; border: 1px solid #e3e8f2; border-radius: 10px; padding: 14px 16px; }
   .dash-metric span { color: #64748b; font-size: 12px; }
   .dash-metric b { display: block; font-size: 27px; margin-top: 5px; color: #263e71; }
@@ -195,7 +205,7 @@
   .dash-legend button[aria-pressed="false"] { background: #fff; text-decoration: line-through; }
   .dash-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .dash-trend { width: 100%; height: auto; display: block; }
-  #dash-trend-area { position: relative; }
+  #dash-trend-area, #dash-llm-trend-area { position: relative; }
   .dash-point-hit { fill: transparent; cursor: crosshair; outline: none; }
   .dash-point:hover .dash-point-dot, .dash-point:focus-within .dash-point-dot { r: 5; stroke: #fff; stroke-width: 2; }
   .dash-tooltip { position: absolute; z-index: 10; pointer-events: none; min-width: 156px;
@@ -374,6 +384,8 @@ let dashboardIngestPeriod = null;
 let dashboardInventoryData = null;
 let dashboardInventoryMode = 'direction';
 let dashboardVisible = {web: true, mcp: true, other: true};
+let dashboardLlmMetric = 'calls';
+let dashboardLlmStageMetric = 'calls';
 const dashboardColors = {web: '#4263d7', mcp: '#0c9488', other: '#9b6bce'};
 const dashNum = n => Math.max(0, Number(n) || 0).toLocaleString();
 function dashboardBars(rows, key, emptyText) {
@@ -463,6 +475,112 @@ function dashboardTrend(stats) {
     onpointermove="dashboardMoveOnChart(event)" onpointerleave="dashboardHideTooltip()">
     <line id="dash-trend-guide" y1="18" y2="208" stroke="#b8c5df" stroke-dasharray="4 4" pointer-events="none" style="display:none"/>
     ${parts.join('')}</svg><div id="dash-trend-tooltip" class="dash-tooltip" role="tooltip" hidden></div>`;
+}
+const dashboardLlmMetrics = {
+  calls: {name: '调用次数', unit: '次', color: '#4263d7'},
+  input: {name: '输入 tokens', unit: 'tokens', color: '#0c9488'},
+  output: {name: '输出 tokens', unit: 'tokens', color: '#9b6bce'},
+  cost: {name: '估算费用', unit: '元', color: '#b85f16'},
+};
+const dashCost = value => Math.max(0, Number(value) || 0).toLocaleString(undefined,
+  {minimumFractionDigits: 4, maximumFractionDigits: 4});
+function dashboardLlmSetMetric(key) {
+  if (!dashboardLlmMetrics[key] || !dashboardData?.llm) return;
+  dashboardLlmMetric = key;
+  $('#dash-llm-trend-area').innerHTML = dashboardLlmTrend(dashboardData.llm);
+}
+function dashboardLlmHideTooltip() {
+  const tip = $('#dash-llm-tooltip');
+  if (tip) tip.hidden = true;
+  const guide = $('#dash-llm-guide');
+  if (guide) guide.style.display = 'none';
+}
+function dashboardLlmShowTooltip(event, index) {
+  const area = $('#dash-llm-trend-area'), tip = $('#dash-llm-tooltip');
+  const daily = dashboardData?.llm?.daily_llm || [], day = daily[index];
+  if (!area || !tip || !day) return;
+  tip.innerHTML = `<b>${esc(day.date)}</b>${Object.entries(dashboardLlmMetrics).map(([key, metric]) =>
+    `<div class="dash-tip-row"><span><span class="dash-dot" style="background:${metric.color}"></span>${esc(metric.name)}</span>
+      <strong>${key === 'cost' ? dashCost(day[key]) : dashNum(day[key])} ${metric.unit}</strong></div>`).join('')}
+    <div class="dash-tip-row"><span>其中缓存命中</span><strong>${dashNum(day.input_cached)} tokens</strong></div>`;
+  tip.hidden = false;
+  const bounds = area.getBoundingClientRect();
+  const point = event.currentTarget.tagName.toLowerCase() === 'svg'
+    ? {right: event.clientX, top: event.clientY, bottom: event.clientY}
+    : event.currentTarget.getBoundingClientRect();
+  tip.style.left = Math.max(0, Math.min(point.right - bounds.left + 10,
+    area.clientWidth - tip.offsetWidth)) + 'px';
+  const top = point.top - bounds.top - tip.offsetHeight - 10;
+  tip.style.top = Math.max(0, top < 0 ? point.bottom - bounds.top + 10 : top) + 'px';
+  const guide = $('#dash-llm-guide');
+  if (guide) {
+    const x = 64 + index / Math.max(1, daily.length - 1) * 650;
+    guide.setAttribute('x1', x); guide.setAttribute('x2', x); guide.style.display = 'block';
+  }
+}
+function dashboardLlmMoveOnChart(event) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const x = (event.clientX - rect.left) / rect.width * 760;
+  const y = (event.clientY - rect.top) / rect.height * 250;
+  const daily = dashboardData?.llm?.daily_llm || [];
+  if (x < 54 || x > 724 || y < 8 || y > 218 || !daily.length) {
+    dashboardLlmHideTooltip(); return;
+  }
+  const index = Math.max(0, Math.min(daily.length - 1,
+    Math.round((x - 64) / 650 * (daily.length - 1))));
+  dashboardLlmShowTooltip(event, index);
+}
+function dashboardLlmTrend(llm) {
+  const key = dashboardLlmMetric, metric = dashboardLlmMetrics[key];
+  const controls = `<div class="dash-llm-chart-tools">${Object.entries(dashboardLlmMetrics).map(([k, m]) =>
+    `<button type="button" aria-pressed="${key === k}" onclick="dashboardLlmSetMetric('${k}')">${m.name}</button>`).join('')}</div>`;
+  const daily = llm.daily_llm || [];
+  if (!llm.verified_requests || !daily.length) return controls + '<div class="empty">所选范围内暂无本次用量记录</div>';
+  const left = 64, top = 18, width = 650, height = 190;
+  const peak = Math.max(0, ...daily.map(day => Number(day[key]) || 0));
+  const maximum = key === 'cost' ? Math.max(0.0001, peak * 1.1) : Math.max(4, Math.ceil(peak / 4) * 4);
+  const x = i => left + i / Math.max(1, daily.length - 1) * width;
+  const y = value => top + height - value / maximum * height;
+  const tick = value => key === 'cost' ? dashCost(value) : dashNum(value);
+  const parts = [];
+  for (let i = 0; i <= 4; i++) {
+    const value = maximum / 4 * i;
+    parts.push(`<line x1="${left}" y1="${y(value)}" x2="${left + width}" y2="${y(value)}" stroke="#e5eaf3"/>
+      <text x="${left - 9}" y="${y(value) + 4}" text-anchor="end" fill="#64748b" font-size="11">${tick(value)}</text>`);
+  }
+  const labels = new Set([0, daily.length - 1, ...daily.map((_, i) => i)
+    .filter(i => i % Math.max(1, Math.ceil(daily.length / 6)) === 0)]);
+  for (const i of labels) parts.push(`<text x="${x(i)}" y="235" text-anchor="middle" fill="#64748b" font-size="11">${esc(daily[i].date.slice(5))}</text>`);
+  parts.push(`<polyline points="${daily.map((day, i) => `${x(i)},${y(day[key] || 0)}`).join(' ')}" fill="none"
+    stroke="${metric.color}" stroke-width="2.5" stroke-linejoin="round"/>`);
+  for (let i = 0; i < daily.length; i++) parts.push(`<g class="dash-point">
+    <circle class="dash-point-dot" cx="${x(i)}" cy="${y(daily[i][key] || 0)}" r="3.5" fill="${metric.color}" pointer-events="none"/>
+    <circle class="dash-point-hit" cx="${x(i)}" cy="${y(daily[i][key] || 0)}" r="10" tabindex="0"
+      aria-label="${esc(daily[i].date)} ${metric.name}：${tick(daily[i][key])} ${metric.unit}" aria-describedby="dash-llm-tooltip"
+      onpointerenter="dashboardLlmShowTooltip(event, ${i})" onpointermove="dashboardLlmShowTooltip(event, ${i})"
+      onpointerleave="dashboardLlmHideTooltip()" onfocus="dashboardLlmShowTooltip(event, ${i})" onblur="dashboardLlmHideTooltip()"
+      onkeydown="if(event.key === 'Escape') dashboardLlmHideTooltip()"/>
+  </g>`);
+  return controls + `<div class="dash-subtitle">每日${metric.name}（${metric.unit}）；悬停可查看当日全部指标</div>
+    <svg class="dash-trend" viewBox="0 0 760 250" role="img" aria-label="每日${metric.name}趋势"
+      onpointermove="dashboardLlmMoveOnChart(event)" onpointerleave="dashboardLlmHideTooltip()">
+      <line id="dash-llm-guide" y1="18" y2="208" stroke="#b8c5df" stroke-dasharray="4 4" pointer-events="none" style="display:none"/>
+      ${parts.join('')}</svg><div id="dash-llm-tooltip" class="dash-tooltip" role="tooltip" hidden></div>`;
+}
+function dashboardLlmSetStageMetric(key) {
+  if (!['calls', 'input', 'output'].includes(key) || !dashboardData?.llm) return;
+  dashboardLlmStageMetric = key;
+  $('#dash-llm-stages').innerHTML = dashboardLlmStages(dashboardData.llm);
+}
+function dashboardLlmStages(llm) {
+  const key = dashboardLlmStageMetric;
+  const controls = `<div class="dash-llm-chart-tools">${['calls', 'input', 'output'].map(k =>
+    `<button type="button" aria-pressed="${key === k}" onclick="dashboardLlmSetStageMetric('${k}')">${dashboardLlmMetrics[k].name}</button>`).join('')}</div>`;
+  return controls + dashboardBars((llm.stages || []).filter(row => Number(row[key]) > 0), key, '暂无该指标的环节明细');
+}
+function dashboardOpenLlmCosts() {
+  llmCostFilter.days = dashboardDays; llmCostFilter.page = 1;
+  return switchTab('llmcost');
 }
 function dashboardChangeDays(value) {
   dashboardDays = Number(value);
@@ -609,15 +727,26 @@ async function renderDash() {
     </div>
     <div class="dash-note">仅统计能归属到员工的检索记录，包含答案缓存命中的请求。</div>
     <div class="card" style="margin-top:16px">
-      <h3>LLM 调用统计</h3>
-      <div class="dash-subtitle">${esc(s.period.start)} 至 ${esc(s.period.end)} · 检索流程的模型调用，含回答评估</div>
-      <div class="dash-metrics dash-metrics-usage">
+      <div class="dash-llm-head"><h3>LLM 调用与消耗统计</h3>
+        <button type="button" class="mini secondary" onclick="dashboardOpenLlmCosts()">查看费用明细</button></div>
+      <div class="dash-subtitle">${esc(s.period.start)} 至 ${esc(s.period.end)} · 员工检索流程的本次模型用量，含回答评估</div>
+      <div class="dash-metrics dash-metrics-llm">
         <div class="dash-metric"><span>可核验调用</span><b>${dashNum(llm.calls)}</b></div>
-        ${llm.legacy_requests ? `<div class="dash-metric"><span>历史日志登记调用（参考）</span><b>${dashNum(llm.legacy_reference_calls)}</b></div>` : ''}
+        <div class="dash-metric"><span>输入 tokens</span><b>${dashNum(llm.tokens?.input)}</b>
+          <small>其中缓存命中 ${dashNum(llm.tokens?.input_cached)} tokens</small></div>
+        <div class="dash-metric"><span>输出 tokens</span><b>${dashNum(llm.tokens?.output)}</b></div>
+        <div class="dash-metric"><span>估算费用</span><b>¥ ${dashCost(llm.cost)}</b>
+          <small>按当前配置单价估算，非云端账单</small></div>
       </div>
-      ${llm.calls > 0 ? dashboardBars(llm.stages.filter(row => row.calls > 0), 'calls', '暂无环节明细') : ''}
-      ${llm.verified_requests ? `<div class="dash-note">${dashNum(llm.verified_requests)} 条请求已采集本次用量，平均每次 ${llm.average_calls} 次模型调用。</div>` : ''}
-      ${llm.legacy_requests ? `<div class="dash-note">${dashNum(llm.legacy_requests)} 条旧日志缺少本次用量标记。缓存命中可能沿用原回答的调用次数，历史登记次数仅供参考。</div>` : ''}
+      <div class="dash-pie-grid">
+        <section aria-label="每日消耗趋势"><h4>每日消耗趋势</h4><div id="dash-llm-trend-area">${dashboardLlmTrend(llm)}</div></section>
+        <section aria-label="调用环节分布"><h4>调用环节分布</h4><div id="dash-llm-stages" class="dash-llm-stage">${dashboardLlmStages(llm)}</div></section>
+      </div>
+      ${llm.verified_requests ? `<div class="dash-note">${dashNum(llm.verified_requests)} 条请求已采集本次用量，平均每次 ${llm.average_calls} 次模型调用。${llm.estimated_requests ? `其中 ${dashNum(llm.estimated_requests)} 条含估算 token 用量。` : ''}</div>` : ''}
+      <div class="dash-note">单价（元 / 百万 tokens）：未命中输入 ${dashNum(llm.price?.input)} ｜ 缓存命中输入 ${dashNum(llm.price?.input_cached)} ｜ 输出 ${dashNum(llm.price?.output)}。在前台“模型配置”页修改后，按新单价重算估算费用。</div>
+      <div class="dash-note">仅计本服务员工检索日志中有本次用量标记的调用；不重放答案缓存的原回答消耗。不含入库自动标签、Embedding、本地 ONNX 精排、外部 MCP 客户端模型及未采集用量的调用。日志未区分云端与本地 LLM，以上为按当前单价的估算，不能代替云端账单。</div>
+      ${llm.inconsistent_usage ? `<div class="dash-note">${dashNum(llm.inconsistent_usage)} 条记录的用量分项不一致，未归属用量计入“其他环节”；环节分布不宜直接作为计费依据。</div>` : ''}
+      ${llm.legacy_requests ? `<div class="dash-note">${dashNum(llm.legacy_requests)} 条旧日志登记调用 ${dashNum(llm.legacy_reference_calls)} 次，仅供参考，不并入本次 tokens 和费用估算。费用明细页含旧日志等更宽范围，合计口径可能不同。</div>` : ''}
       ${!llm.verified_requests && !llm.legacy_requests ? '<div class="empty">所选日期范围内暂无员工检索日志</div>' : ''}
     </div>`;
   renderDashboardInventory(requestId, d);

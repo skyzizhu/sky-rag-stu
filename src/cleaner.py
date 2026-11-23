@@ -89,7 +89,7 @@ def _drop_repeated_page_lines(pages: list[tuple[int, list[str]]]) -> tuple[list[
     """去掉 PDF 每页都重复出现的页眉/页脚行。
 
     规则（简单可靠优先）：某个非空行如果在一半以上的页里
-    都出现在「页首或页尾」，就认定它是页眉/页脚，全部删掉。
+    都出现在同一边缘位置时才作为页眉/页脚候选。仅移除候选在该边缘的出现。
     """
     removed: list[str] = []
     if len(pages) < 3:
@@ -105,17 +105,29 @@ def _drop_repeated_page_lines(pages: list[tuple[int, list[str]]]) -> tuple[list[
         if len(non_empty) > 1:
             last_lines[non_empty[-1]] = last_lines.get(non_empty[-1], 0) + 1
 
-    threshold = max(2, len(pages) // 2)
-    suspects = {text for text, n in first_lines.items() if n >= threshold and len(text) > 1}
-    suspects |= {text for text, n in last_lines.items() if n >= threshold and len(text) > 1}
-    if not suspects:
+    threshold = max(3, (7 * len(pages) + 9) // 10)
+    def repeated_labels(counts):
+        return {text for text, n in counts.items() if n >= threshold and 1 < len(text) <= 80
+                and not text.endswith(("。", ".", "！", "!", "？", "?", "；", ";"))}
+
+    headers = repeated_labels(first_lines)
+    footers = repeated_labels(last_lines)
+    if not headers and not footers:
         return pages, removed
 
     cleaned_pages: list[tuple[int, list[str]]] = []
     for page_no, lines in pages:
-        kept = [line for line in lines if line.strip() not in suspects]
+        occupied = [i for i, line in enumerate(lines) if line.strip()]
+        discard = set()
+        # A page with only one text line may consist entirely of evidence.
+        if len(occupied) >= 2:
+            if lines[occupied[0]].strip() in headers:
+                discard.add(occupied[0])
+            if lines[occupied[-1]].strip() in footers:
+                discard.add(occupied[-1])
+        kept = [line for i, line in enumerate(lines) if i not in discard] if len(discard) < len(occupied) else lines
         cleaned_pages.append((page_no, kept))
-    return cleaned_pages, sorted(suspects)
+    return cleaned_pages, sorted(headers | footers)
 
 
 def clean_document(doc: ParsedDocument) -> ParsedDocument:

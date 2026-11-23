@@ -1,0 +1,258 @@
+{
+  "failed_publication": {
+    "before": {
+      "version": "1.0",
+      "hash_matches_disk": false,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.0/active": 1
+      }
+    },
+    "before_any_write": {
+      "version": "1.0",
+      "hash_matches_disk": false,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.0/expired": 1
+      }
+    },
+    "after_one_card": {
+      "version": "1.0",
+      "hash_matches_disk": false,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.1/active": 1,
+        "1.0/expired": 1
+      }
+    },
+    "after_retry": {
+      "version": "1.1",
+      "hash_matches_disk": true,
+      "ledger_chunks": 18,
+      "cards": {
+        "1.1/active": 18,
+        "1.0/expired": 1
+      }
+    }
+  },
+  "same_revision_shrinks": {
+    "before": {
+      "version": "2.0",
+      "hash_matches_disk": true,
+      "ledger_chunks": 18,
+      "cards": {
+        "2.0/active": 18
+      }
+    },
+    "after": {
+      "version": "2.0",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "2.0/expired": 17,
+        "2.0/active": 1
+      }
+    },
+    "distinct_payload_hashes": 2,
+    "expired_old_text_cards": 5
+  },
+  "empty_replacement": {
+    "alone": {
+      "ledger": {
+        "version": "1.0",
+        "hash_matches_disk": false,
+        "ledger_chunks": 1,
+        "cards": {
+          "1.0/active": 1
+        }
+      },
+      "ok_files": 1,
+      "chunks": 0
+    },
+    "mixed": {
+      "ledger": {
+        "version": "1.1",
+        "hash_matches_disk": true,
+        "ledger_chunks": 0,
+        "cards": {
+          "1.0/expired": 1
+        }
+      },
+      "ok_files": 2,
+      "row_chunks": [
+        0,
+        1
+      ]
+    },
+    "next_incremental_skip": true
+  },
+  "old_revision_label_reused": {
+    "before": {
+      "version": "2.0",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "2.0/active": 1,
+        "1.0/expired": 1
+      }
+    },
+    "after": {
+      "version": "1.0",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "2.0/expired": 1,
+        "1.0/active": 1
+      }
+    },
+    "original_text_preserved": false
+  },
+  "manually_edited_revision": {
+    "before": {
+      "version": "7.0",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "7.0/active": 1
+      }
+    },
+    "after": {
+      "version": "7.0",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "7.0/active": 1,
+        "7.0/expired": 1
+      }
+    }
+  },
+  "bytes_change_after_hash": {
+    "after_race": {
+      "version": "1.1",
+      "hash_matches_disk": false,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.1/active": 1,
+        "1.0/expired": 1
+      }
+    },
+    "after_plain_retry": {
+      "version": "1.2",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.1/expired": 1,
+        "1.2/active": 1,
+        "1.0/expired": 1
+      }
+    },
+    "copies_of_third_material": 2
+  },
+  "upload_decisions": {
+    "same_bytes_as_another_document": [
+      "skip",
+      "new"
+    ],
+    "same_name_across_folders": [
+      "version_of:learning/general/b.md",
+      "version_of:learning/general/b.md"
+    ],
+    "distinct_write_targets": 1,
+    "submitted_files": 2,
+    "reported_card_count": 2,
+    "published_state": {
+      "version": "1.1",
+      "hash_matches_disk": true,
+      "ledger_chunks": 2,
+      "cards": {
+        "1.0/expired": 1,
+        "1.1/active": 1
+      }
+    },
+    "first_submitted_content_survived": false
+  },
+  "failed_ledger_commit": {
+    "after_failure": {
+      "version": "1.0",
+      "hash_matches_disk": false,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.1/active": 1,
+        "1.0/expired": 1
+      }
+    },
+    "after_restore_and_retry": {
+      "version": "1.0",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.1/active": 1,
+        "1.0/expired": 1
+      }
+    },
+    "retry_skipped": true
+  },
+  "stale_ledger_snapshot": {
+    "a_after_first_commit": {
+      "version": "1.1",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.1/active": 1,
+        "1.0/expired": 1
+      }
+    },
+    "a_after_stale_second_commit": {
+      "version": "1.0",
+      "hash_matches_disk": false,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.1/active": 1,
+        "1.0/expired": 1
+      }
+    },
+    "b_after_second_commit": {
+      "version": "1.1",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.0/expired": 1,
+        "1.1/active": 1
+      }
+    }
+  },
+  "concurrent_permission_narrowing": {
+    "public_matches_after_edit": 0,
+    "public_matches_after_ingest": 1,
+    "new_revision_visible": true,
+    "ledger_acl": {
+      "allowed_groups": [
+        "all"
+      ],
+      "allowed_users": [],
+      "classification": "公开"
+    }
+  },
+  "unchanged_with_missing_vectors": {
+    "retry_skipped": true,
+    "published_state": {
+      "version": "1.0",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {}
+    }
+  },
+  "web_snapshot_revision": {
+    "same_path": true,
+    "unchanged_skipped": true,
+    "changed": {
+      "version": "1.1",
+      "hash_matches_disk": true,
+      "ledger_chunks": 1,
+      "cards": {
+        "1.0/expired": 1,
+        "1.1/active": 1
+      }
+    }
+  }
+}

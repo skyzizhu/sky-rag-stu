@@ -73,7 +73,9 @@ _PROJECT_SELECTION = re.compile(
     r"(?:^|[，,。；;！？?!\n])\s*(?:请|請)?\s*(?:(?:现在|現在|接下来|接下來|这次|這次)\s*)?"
     r"(?:(?:只|仅|僅)\s*(?:查询|查詢|查看|查找|检索|檢索|查|看|找)"
     r"|(?:更正为|更正為|改为|改為|改成|改查|切换到|切換到|换成|換成)"
-    r"\s*(?:查询|查詢|查看|查|看)?)\s*"
+    r"\s*(?:查询|查詢|查看|查|看)?"
+    # Require a separate rejection clause so 「不是天枢项目」 cannot select 天枢.
+    r"|(?:不|不对|不對|不是)\s*[，,]\s*(?:我[说說]的)?是)\s*"
 )
 _INITIAL_PROJECT_FOCUS = re.compile(r"^\s*(?:请|請)?\s*先\s*(?:查看|查询|查詢|查|看)\s*")
 
@@ -280,6 +282,101 @@ _FOLDER_DOMAINS = (
 _FOLDER_SUFFIX = re.compile(r"(?:文件夹|目录|资料夹|文件夾|目錄)")
 _LISTING_HINT = re.compile(r"哪些|多少|列出|列举|列舉|有什么|有什麼|都有|清单|清單")
 _FOLDER_NEGATED = re.compile(r"当前|當前|默认|默認|系统|系統|程序|切换|切換")  # 「当前工作目录」是程序概念，不是知识库领域
+_INVENTORY_CONTENT = re.compile(
+    r"关于|關於|总[结結]|摘[要錄]|概括|解[释釋]|里程碑|(?:功能|参数|參數)(?:清单|清單|有|是)"
+    r"|(?:哪些|列出)(?:全部)?(?:功能|参数|參數)"
+    r"|[预預]算(?:合[计計]|有?多少|是|[为為])|全文|正文|条款|條款"
+    r"|\b(?:summari[sz]\w*|explain\w*|milestones?)\b", re.I
+)
+
+
+def inventory_question_text(question: str, scope: dict[str, str]) -> str:
+    """Mask resolved metadata values so names and types do not look like content requests."""
+    if scope:
+        pattern = "|".join(
+            rf"{re.escape(value)}(?:\s*(?:{_PROJECT_WORD}))?" if key == "project" else re.escape(value)
+            for key, value in sorted(scope.items(), key=lambda item: -len(item[1]))
+        )
+        question = re.sub(pattern, " ", question, flags=re.I)
+    return unicodedata.normalize("NFKC", question)
+
+
+def inventory_needs_content(text: str) -> bool:
+    """Veto strong content cues even if the model classified the whole request as inventory."""
+    return bool(_CONTENT_MENTION.search(text) or _INVENTORY_CONTENT.search(text))
+
+
+_DOMAIN_QUALIFIER = r"(?:知识区|知識區|领域|領域|分区|分區|文件夹|文件夾|区|區)"
+_DOMAIN_FOLLOW = r"文件|文档|文檔|资料|資料|清单|清單|目录|目錄|底下|下|里|裡|内|內|中|以及|或者|[、和与與及或]"
+_DOMAIN_LEAD = re.compile(
+    r"(?:[\s「『“《\",，、:：和与與及或在把从從除]|(?:排除|除去|除了|剔除|不含|不包括|"
+    r"整理|盘点|盤點|列出|给出|給出|给我|給我|查看|看|查|一下|分别|分別|仅限|僅限))$"
+)
+_DOMAIN_EXCLUSION = re.compile(r"除(?:去|了)?|排除|剔除|不含|不包括|以外|之外|\b(?:except|excluding|without)\b", re.I)
+
+
+def inventory_domain_scope(text: str, hint: str | None) -> tuple[str | None, str]:
+    """Read domain constraints from the question. The model hint may confirm, but cannot supply, a scope."""
+    from src.domains import load_domains, resolve_code
+    from src.i18n import domain_labels_all_languages
+
+    aliases: dict[str, set[str]] = {}
+    for entry in load_domains():
+        code = entry["code"]
+        for name in [code, entry.get("name") or "", *domain_labels_all_languages(code)]:
+            if name:
+                key = unicodedata.normalize("NFKC", name).casefold()
+                aliases.setdefault(key, set()).add(code)
+    names = "|".join(re.escape(name) for name in sorted(aliases, key=len, reverse=True))
+    explicit = re.compile(
+        rf"(?<![a-z0-9_-])(?P<name>{names})(?![a-z0-9_-])[」』”》\"]?\s*"
+        rf"(?:{_DOMAIN_QUALIFIER}|(?=的?\s*(?:{_DOMAIN_FOLLOW})))",
+        re.I,
+    )
+    matches = [m for m in explicit.finditer(text) if not m.start() or _DOMAIN_LEAD.search(text[:m.start()])]
+    codes = {code for match in matches for code in aliases[match["name"].casefold()]}
+    if (matches or re.search(_DOMAIN_QUALIFIER, text)) and _DOMAIN_EXCLUSION.search(text):
+        return None, "inventory_domain_negated"
+    if len(codes) > 1:
+        return None, "inventory_domain_multiple"
+    # Generic folders may remain unnamed. An unrecognized named domain must not widen the search.
+    remainder = text
+    for match in reversed(matches):
+        remainder = remainder[:match.start()] + " " + remainder[match.end():]
+    if re.search(r"[\w」』”》\"]+\s*(?:领域|領域|分区|分區|文件夹|文件夾)"
+                 r"|[\w」』”》\"]+\s*[区區]的", remainder):
+        return None, "inventory_domain_unresolved"
+    code = next(iter(codes), None)
+    if hint:
+        label = unicodedata.normalize("NFKC", hint)
+        confirmed = resolve_code(label) or resolve_code(re.sub(rf"{_DOMAIN_QUALIFIER}$", "", label).strip())
+        if confirmed != code or not code:
+            return None, "inventory_domain_hint"
+    elif hint is None:
+        return None, "inventory_domain_hint"
+    return code, ""
+
+
+def recover_inventory_project(question: str, proposed: object) -> str | None:
+    """Recover a literal project after a colloquial lead-in obscured the deterministic parse."""
+    if not isinstance(proposed, str):
+        return None
+    name = proposed.strip()
+    if not name or len(name) > 80:
+        return None
+    pattern = rf"(?<![a-z0-9_-]){re.escape(name)}[」』”》\"]?\s*(?:{_PROJECT_WORD})?{_PROJECT_END}"
+    # Only recover a standalone name or one directly following a listing action.
+    lead = re.compile(r"(?:[\s「『“《\",，:：]|(?:列(?:出|一下)?|盘点|盤點|查(?:看|询|詢)?|找)(?:一[份下])?)$")
+    if not any(
+        (match.start() == 0 or lead.search(question[:match.start()]))
+        and not _in_content(question, match.start())
+        for match in re.finditer(pattern, question, re.I)
+    ):
+        return None
+    catalog = sorted(list_projects(), key=lambda row: -len(unicodedata.normalize("NFKC", row["name"])))
+    if _project_turn(question, catalog).get("issue") == "project_reference_ambiguous":
+        return None
+    return name
 
 
 def domain_folder_scope(question: str) -> str | None:

@@ -40,6 +40,15 @@ class RerankerTimingTests(TestCase):
         self.assertEqual([x[0] for x in outcome.scores], ["C2", "C3", "C1"])
         self.assertEqual([x[2] for x in outcome.scores], [9, 4, 2])
 
+    def test_llm_rerank_reads_late_evidence_and_rejects_invalid_ids(self):
+        item = replace(self.items[0], text="背景说明" * 96 + "验收编号 FIN-971。")
+        llm = mock.Mock()
+        llm.chat.return_value = ('[{"id":"C99","score":10}]', 0.1)
+        outcome = reranker.rerank_llm("验收编号", [item], 1, llm, self.cfg)
+        self.assertIn("FIN-971", outcome.user_prompt)
+        self.assertFalse(outcome.ok)
+        self.assertEqual(outcome.items, [item])
+
     def test_fallback_keeps_actual_backend_reason_and_attempt_time(self):
         failed = reranker.RerankOutcome(backend="local_onnx", error="model missing", elapsed=2,
                                        timings={"load": 2}, cold_load=True)

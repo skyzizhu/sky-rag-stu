@@ -310,7 +310,7 @@ class QueryScopeTests(IngestHarness):
 
     def test_mcp_followup_rejects_stale_project_argument_before_retrieval(self):
         history = [{"role": "user", "content": "先看低空监管平台项目。"},
-                   {"role": "user", "content": "我说错了，现在只查低空预警平台项目。"},
+                   {"role": "user", "content": "不，我说的是低空预警平台项目。"},
                    {"role": "assistant", "content": "好的。"}]
         with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})), \
              mock.patch.object(mcp_server, "_answer_in_scope") as run:
@@ -372,6 +372,38 @@ class QueryScopeTests(IngestHarness):
         ambiguous = [{"role": "user", "content": "现在只看低空监管平台和低空预警平台两个项目。"}]
         _, meta = self.evidence("它的验收资料有哪些？", history=ambiguous, use_llm=False)
         self.assertEqual(meta["scope_issue"], "project_reference_ambiguous")
+
+    def test_spoken_project_correction_in_web_and_mcp(self):
+        previous = {"role": "user", "content": "先讨论低空监管平台项目。"}
+        question = "这个项目的验收资料有哪些？"
+        target = projects.resolve_project_filter("低空预警平台", None)
+        with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})), \
+             mock.patch("src.config.get_config", return_value=replace(self.cfg, query_understanding=False)), \
+             mock.patch("src.pipeline.get_llm_client", side_effect=AssertionError("额外调用模型")):
+            for correction in ("不，我说的是低空预警平台项目。", "不，是「低空预警平台」项目。"):
+                with self.subTest(correction=correction):
+                    history = [previous, {"role": "user", "content": correction}]
+                    web, _ = self.evidence(question, history=history, use_llm=False)
+                    search = json.loads(mcp_server._tool_knowledge_search_impl(question, history=history))
+                    qa = json.loads(mcp_server._tool_knowledge_qa_impl(question, history=history))
+                    self.assertEqual(web.filters["project_id"], target)
+                    self.assertEqual(search["filters_applied"]["project_id"], target)
+                    for sources in (web.sources, search["matches"], qa["sources"]):
+                        self.assertEqual({row["source"] for row in sources}, {"warning.md"})
+
+        same_turn, _ = self.evidence("不，我说的是低空预警平台项目的验收资料", use_llm=False)
+        self.assertEqual(same_turn.filters["project_id"], target)
+        self.assertEqual({row["source"] for row in same_turn.sources}, {"warning.md"})
+        for correction, issue in (
+            ("不，我说的是低空监管平台和低空预警平台两个项目。", "project_reference_ambiguous"),
+            ("不，我说的是未登记项目。", "project_reference"),
+            ("不是低空预警平台项目。", "project_reference"),
+        ):
+            with self.subTest(correction=correction):
+                history = [previous, {"role": "user", "content": correction}]
+                result, meta = self.evidence(question, history=history, use_llm=False)
+                self.assertEqual(meta["scope_issue"], issue)
+                self.assertEqual(result.sources, [])
 
     def test_bare_project_followup_shares_acl_and_stops_after_topic_change(self):
         question = "它的验收资料有哪些？"
@@ -521,6 +553,106 @@ class QueryScopeTests(IngestHarness):
                 self.assertEqual(qu.filters, {})
                 self.assertEqual(qu.time_range, {})
                 llm.chat.assert_called_once()
+
+    def test_query_understanding_routes_inventory_to_visible_catalog(self):
+        self.ingest([self.write_note("公开的项目资料。", "project.md", folder="projects/general")],
+                    default_groups=["all"])
+        cases = (
+            ("盘点一下手头的资料", {}, {"report.md", "plan.md", "purchase.md", "design.md",
+                                            "warning.md", "project.md"}, {}),
+            ("项目文件清单", {"inventory_domain": "项目"}, {"project.md"}, {"domain": "projects"}),
+            ("看看项目底下有什么东西", {"inventory_domain": "项目"}, {"project.md"}, {"domain": "projects"}),
+            ("盘点低空监管平台项目的文件", {}, {"report.md", "plan.md", "purchase.md", "design.md"},
+             {"project_id": [self.regulatory]}),
+        )
+        for question, model_fields, names, filters in cases:
+            with self.subTest(question=question), mock.patch("src.pipeline.get_llm_client") as client, \
+                 mock.patch("src.pipeline.get_retriever", side_effect=AssertionError("目录盘点进入正文检索")):
+                chat = client.return_value.chat
+                chat.return_value = (json.dumps({"inventory_intent": True, **model_fields}), 0.0)
+                result, meta = self.evidence(question)
+                self.assertEqual(meta["route"], "catalog")
+                self.assertEqual(meta["coverage"], "complete")
+                self.assertEqual({row["source"] for row in result.sources}, names)
+                for key, value in filters.items():
+                    self.assertEqual(result.filters[key], value)
+                chat.assert_called_once()
+
+        with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})), \
+             mock.patch("src.config.get_config", return_value=replace(self.cfg, query_understanding=True)), \
+             mock.patch("src.pipeline.get_llm_client") as client:
+            chat = client.return_value.chat
+            chat.return_value = (json.dumps({"inventory_intent": True, "inventory_domain": "项目"}), 0.0)
+            answer = json.loads(mcp_server._tool_knowledge_qa_impl("项目文件清单"))
+            self.assertEqual(answer["coverage_details"]["route"], "catalog")
+            self.assertEqual({row["source"] for row in answer["sources"]}, {"project.md"})
+            chat.assert_called_once()
+            client.reset_mock()
+            evidence = json.loads(mcp_server._tool_knowledge_search_impl("项目文件夹里有哪些文档？"))
+            self.assertEqual(evidence["coverage_details"]["route"], "catalog")
+            client.assert_not_called()
+
+    def test_inventory_falls_back_without_dropping_content_or_requested_scope(self):
+        cases = (
+            ("低空监管平台项目的里程碑有哪些", {}, True, None, "cross_document"),
+            ("低空监管平台项目有哪些功能", {}, True, None, "cross_document"),
+            ("天枢项目预算是多少", {}, False, None, "ordinary"),
+            ("有哪些文件提到了低空监管平台项目", {}, True, None, "cross_document"),
+            ("盘点资料并总结关键结论", {}, True, None, "cross_document"),
+            ("盘点一下手头的资料", {"inventory_intent": "true"}, True, None, "cross_document"),
+            ("盘点一下手头的资料", {"inventory_domain": "项目"}, True, None, "cross_document"),
+            ("盘点未登记项目的全部资料", {}, True, None, "cross_document"),
+        )
+        for question, fields, enumeration, filters, route in cases:
+            with self.subTest(question=question), mock.patch("src.pipeline.get_llm_client") as client, \
+                 mock.patch("src.pipeline.get_retriever") as retriever:
+                client.return_value.chat.return_value = (json.dumps({
+                    "inventory_intent": True, "enumeration": enumeration, **fields,
+                }), 0.0)
+                retriever.return_value.retrieve.return_value = []
+                _, meta = self.evidence(question, filters=filters)
+                self.assertEqual(meta["route"], route)
+                self.assertTrue(retriever.return_value.retrieve.called)
+
+    def test_inventory_resolves_registered_domains_and_colloquial_project(self):
+        cases = (
+            ("把学习区的文件名给我排个清单", {"inventory_domain": "学习区"}, "domain", "learning"),
+            ("工作领域的资料给我列个目录", {"inventory_domain": "work"}, "domain", "work"),
+            ("项目文件清单", {}, "domain", "projects"),
+            ("麻烦整理归档区的文件名单", {"filters": {"status": "archive"}}, "domain", "archive"),
+            ("给我列一份低空监管平台项目下的文件清单",
+             {"metadata_scope": {"project": "低空监管平台"}}, "project_id", [self.regulatory]),
+        )
+        for question, fields, key, expected in cases:
+            with self.subTest(question=question), mock.patch("src.pipeline.get_llm_client") as client, \
+                 mock.patch("src.pipeline.get_retriever", side_effect=AssertionError("目录盘点进入正文检索")):
+                client.return_value.chat.return_value = (json.dumps({"inventory_intent": True, **fields}), 0.0)
+                result, meta = self.evidence(question)
+                self.assertEqual(meta["route"], "catalog")
+                self.assertEqual(result.filters[key], expected)
+                self.assertNotIn("private.md", {row["source"] for row in result.sources})
+
+    def test_inventory_clarifies_explicit_domain_constraints(self):
+        cases = (
+            ("整理市场领域文件清单", {"inventory_domain": "市场"}, None, "inventory_domain_unresolved"),
+            ("火星领域的文件清单", {}, None, "inventory_domain_unresolved"),
+            ("高级项目领域的文件清单", {"inventory_domain": "项目"}, None, "inventory_domain_unresolved"),
+            ("列出火星文件夹的文档", {}, None, "inventory_domain_unresolved"),
+            ("盘点除项目领域以外的已入库资料", {}, None, "inventory_domain_negated"),
+            ("列出项目领域之外的所有文档", {"inventory_domain": "项目"}, None, "inventory_domain_negated"),
+            ("分别给出项目领域和工作领域的文件清单", {"inventory_domain": "项目"}, None,
+             "inventory_domain_multiple"),
+            ("工作和学习的文件清单", {}, None, "inventory_domain_multiple"),
+            ("项目文件清单", {"inventory_domain": "项目"}, {"domain": "learning"}, "inventory_domain_conflict"),
+        )
+        for question, fields, filters, issue in cases:
+            with self.subTest(question=question), mock.patch("src.pipeline.get_llm_client") as client, \
+                 mock.patch("src.pipeline.get_retriever", side_effect=AssertionError("不明确的范围进入正文检索")):
+                client.return_value.chat.return_value = (json.dumps({"inventory_intent": True, **fields}), 0.0)
+                result, meta = self.evidence(question, filters=filters)
+                self.assertEqual(meta["scope_issue"], issue)
+                self.assertEqual(meta["scope_notice"], result.answer)
+                self.assertEqual(result.sources, [])
 
     def test_date_survives_retry_with_project_type_and_permissions(self):
         question = "查低空监管平台项目的验收报告，找 2020 年修改的性能要求"

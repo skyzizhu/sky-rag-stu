@@ -84,6 +84,46 @@ class MetadataEditCacheTests(_RetrievalCase):
 
 
 class CrossProcessCacheTests(_RetrievalCase):
+    def test_keyword_count_failure_falls_back_to_a_fresh_index(self):
+        self.ingest([self.write_note("研发资料", "cache.md")])
+        with mock.patch.object(self.store, "count_existing", side_effect=OSError("count unavailable")):
+            diagnostics = {}
+            self.assertTrue(keyword_search.bm25_search("资料", 5, store=self.store,
+                                                       diagnostics=diagnostics))
+        self.assertFalse(diagnostics["cache_hit"])
+
+    def test_warm_keyword_index_needs_only_one_collection_count(self):
+        self.ingest([self.write_note("RAG-CACHE-TEST：资料正文。", "cache.md")])
+        filters = {"status": "active"}
+        expected = keyword_search.bm25_search("资料", 5, store=self.store, filters=filters)
+        self.assertTrue(expected)
+        client = self.store.client
+        with (mock.patch.object(client, "count", wraps=client.count) as count,
+              mock.patch.object(client, "collection_exists", wraps=client.collection_exists) as exists,
+              mock.patch.object(client, "scroll", wraps=client.scroll) as scroll):
+            self.assertEqual(keyword_search.bm25_search("资料", 5, store=self.store, filters=filters), expected)
+        count.assert_called_once()
+        exists.assert_not_called()
+        scroll.assert_not_called()
+
+    def test_keyword_cache_drops_result_if_acl_changes_during_ranking(self):
+        from src.permissions import scope_filters
+
+        self.ingest([self.write_note("研发资料", "cache.md")])
+        filters = scope_filters({"status": "active"}, ["finance"], "employee")
+        search = lambda: keyword_search.bm25_search("资料", 5, store=self.store, filters=filters)
+        self.assertTrue(search())
+        rank_matches = keyword_search._rank_matches
+
+        def change_acl(*args):
+            hits = rank_matches(*args)
+            update_metadata("learning/general/cache.md", {"allowed_groups": ["hr"]})
+            return hits
+
+        with mock.patch.object(keyword_search, "_rank_matches", side_effect=change_acl):
+            self.assertFalse(search())
+        self.assertFalse(search())
+
     def test_acl_caches_expire_even_without_file_notification(self):
         from src import auth_db, mcp_server
         from src.permissions import scope_filters

@@ -3,17 +3,25 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from uuid import uuid4
-
-from qdrant_client import models
 
 from src import index_epoch, index_state
 from src.console import console_print
+from src.metadata import chunk_sequence, document_id_for
 from src.vector_store import INGEST_PENDING, VectorStoreError
 
 
 def _journal_path():
     return index_state.STATE_PATH.with_suffix(".publication.json")
+
+
+def _write_journal(journal):
+    path = _journal_path()
+    tmp_path = path.with_suffix(".tmp")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path.write_text(json.dumps(journal, ensure_ascii=False), encoding="utf-8")
+    tmp_path.replace(path)
 
 
 def publication_pending():
@@ -52,6 +60,48 @@ def _clear_journal(path, journal, retire_token):
     path.unlink()
 
 
+def _relocation_paths(store, journal):
+    root = store.cfg.knowledge_dir.resolve()
+    if root != Path(journal["knowledge_dir"]):
+        raise VectorStoreError("有一份文档尚待移动恢复，请使用原知识目录配置重试。")
+    source, target = (root / journal[key] for key in ("source", "target"))
+    if any(not path.is_relative_to(root) or path.resolve() != path for path in (source, target)):
+        raise VectorStoreError("待恢复的文档路径超出知识目录。")
+    return source, target
+
+
+def _recover_relocation(store, journal, state):
+    from qdrant_client import models
+
+    source, target = _relocation_paths(store, journal)
+    committed = state.get(journal["target"], {}).get("ingest_generation") == journal["generation"]
+    if not committed:
+        if not source.exists() and target.is_file():
+            target.rename(source)
+        elif not source.is_file() or target.exists():
+            raise VectorStoreError("文档移动未提交，但文件位置有冲突，请检查原位置和目标位置。")
+        return
+
+    if not target.is_file() or not store.collection_exists():
+        raise VectorStoreError("已提交的文档移动尚待恢复，目标文件或原向量库不可用。")
+    payload = {"document_id": document_id_for(journal["target"]), "path": journal["target"],
+               "source": target.name, "domain": journal["domain"]}
+    ids = [point["id"] for point in journal["points"]]
+    _set_payload(store, ids, **{INGEST_PENDING: True})
+    operations = []
+    for point in journal["points"]:
+        operations.append(models.SetPayloadOperation(set_payload=models.SetPayload(
+            points=[point["id"]],
+            payload={**payload, "chunk_id": point["chunk_id"], "status": point["status"]},
+        )))
+        if len(operations) == 256:
+            store.client.batch_update_points(store.cfg.qdrant_collection, operations, wait=True)
+            operations.clear()
+    if operations:
+        store.client.batch_update_points(store.cfg.qdrant_collection, operations, wait=True)
+    _set_payload(store, ids, **{INGEST_PENDING: False})
+
+
 def recover_publication(store, retire_token):
     """Complete a committed publication, or discard staged points after a failed ledger write."""
     path = _journal_path()
@@ -61,6 +111,12 @@ def recover_publication(store, retire_token):
     if journal["collection"] != store.cfg.qdrant_collection:
         raise VectorStoreError("有一批入库尚待恢复，请使用原向量库配置重试。")
     state = index_state.load_state(strict=True)
+    if journal.get("operation") == "relocate":
+        _recover_relocation(store, journal, state)
+        index_epoch.bump()
+        _clear_journal(path, journal, retire_token)
+        return
+
     committed = all(state.get(rel, {}).get("ingest_generation") == journal["generation"]
                     for rel in journal["paths"])
     if store.collection_exists():
@@ -71,6 +127,49 @@ def recover_publication(store, retire_token):
             _delete(store, journal["new"])
     index_epoch.bump()
     _clear_journal(path, journal, retire_token)
+
+
+def publish_relocation(store, state, source, target, *, entry, domain, current, status, acl_guard):
+    """Move the file and ledger, then retarget all published points in place."""
+    token, retire_token = acl_guard
+    source_entry = state[source]
+    new_id = document_id_for(target)
+    points = []
+    selector = store.published_filter({"document_id": source_entry.get("document_id") or document_id_for(source)})
+    for batch, _ in store._point_pages(selector, fields=["version", "status", "chunk_index", "chunk_id", "path"]):
+        for point in batch:
+            payload = point.payload
+            if payload.get("path") != source:
+                raise VectorStoreError("源文档在索引中存在路径冲突，已取消移动。")
+            ordinal = chunk_sequence(payload)
+            suffix = f"{ordinal:04d}" if ordinal is not None else str(point.id)
+            same_edition = (payload.get("version"), payload.get("status")) == (current["version"], current["status"])
+            points.append({"id": point.id, "chunk_id": f"{new_id}_v{payload['version']}_{suffix}",
+                           "status": status if same_edition else "expired"})
+    if not points:
+        raise VectorStoreError("原索引中没有可移动的卡片，请重新入库后重试。")
+
+    generation = uuid4().hex
+    journal = {"operation": "relocate", "acl_token": token, "collection": store.cfg.qdrant_collection,
+               "generation": generation, "knowledge_dir": str(store.cfg.knowledge_dir.resolve()),
+               "source": source, "target": target, "domain": domain, "points": points}
+    origin, destination = _relocation_paths(store, journal)
+    if destination.exists():
+        raise VectorStoreError("目标位置已有文件，已取消移动。")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if index_state.file_hash(origin) != entry["hash"]:
+        raise VectorStoreError("源文件内容已变化，请重试移动。")
+    _write_journal(journal)
+    try:
+        origin.rename(destination)
+        state[target] = {**entry, "document_id": new_id, "ingest_generation": generation}
+        del state[source]
+        index_state.save_state(state, strict=True)
+    except BaseException:
+        recover_publication(store, retire_token)
+        raise
+    # After a durable ledger update, replay a failed payload write on the next write operation.
+    recover_publication(store, retire_token)
 
 
 def publish(store, chunks, vectors, state, documents, previous_versions, acl_guard):
@@ -111,10 +210,7 @@ def publish(store, chunks, vectors, state, documents, previous_versions, acl_gua
                "generation": generation, "paths": paths, "new": new_ids,
                "replaced": replaced, "retired": retired}
     path = _journal_path()
-    tmp_path = path.with_suffix(".tmp")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path.write_text(json.dumps(journal, ensure_ascii=False), encoding="utf-8")
-    tmp_path.replace(path)
+    _write_journal(journal)
 
     try:
         stored = store.upsert_chunks(chunks, vectors)

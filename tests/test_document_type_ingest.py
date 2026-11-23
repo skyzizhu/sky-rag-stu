@@ -165,8 +165,8 @@ class DocumentTypeIngestTests(IngestHarness):
     def test_archive_restore_and_conflicting_paths_keep_type_and_visibility(self):
         path = self.write_note("正文", "a.md")
         self.ingest([path], doc_type_paths={str(path.resolve()): "一期方案/附件/a.md"})
-        update_metadata(self.rel(path), {"doc_type": "", "title": "不继承的旧标题", "version": "7.0", "allowed_groups": ["hr"]})
-        # 强制归档碰撞；新的带时间戳路径必须携带类型，不写回旧版本字段。
+        update_metadata(self.rel(path), {"doc_type": "", "title": "人工编辑标题", "version": "7.0", "allowed_groups": ["hr"]})
+        # 强制归档碰撞；目录改名不应更改档案、版本或恢复目标。
         conflict = self.knowledge / "archive" / self.rel(path)
         conflict.parent.mkdir(parents=True)
         conflict.write_text("另一份归档文件", encoding="utf-8")
@@ -176,13 +176,14 @@ class DocumentTypeIngestTests(IngestHarness):
         moved = self.knowledge / result["summary"].file_rows[0]["path"]
         self.assertNotEqual(moved, conflict)
         self.assertEqual(self.current(moved)["doc_type"], "")
-        self.assertEqual(self.current(moved)["version"], "1.0")
+        self.assertEqual(self.current(moved)["version"], "7.0")
         self.assertEqual(self.current(moved)["allowed_groups"], ["hr"])
         self.assertNotIn(self.rel(path), self.ledger())
-        self.assertNotIn("title", self.ledger()[self.rel(moved)]["overrides"])
+        self.assertEqual(self.ledger()[self.rel(moved)]["overrides"]["title"], "人工编辑标题")
         with contextlib.redirect_stdout(io.StringIO()):
             restored = restore(self.rel(moved))
         restored_path = self.knowledge / restored["summary"].file_rows[0]["path"]
+        self.assertEqual(restored_path, path)
         self.assertEqual(self.current(restored_path)["doc_type"], "")
         self.assertEqual(self.ledger()[self.rel(restored_path)]["doc_type_info"]["original_path"], "一期方案/附件/a.md")
         with contextlib.redirect_stdout(io.StringIO()):

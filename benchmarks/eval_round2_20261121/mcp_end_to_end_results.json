@@ -1,0 +1,1611 @@
+{
+  "indexed": 29,
+  "cards": 47,
+  "failed": [],
+  "missing_ingest": {
+    "errors": {
+      "work/missing.md": "file_missing"
+    },
+    "stdout": "① 找到 1 个待入库文件\n✅ 增量入库完成：没有需要处理的文件\n",
+    "ok_files": 0
+  },
+  "configuration": {
+    "model": "deepseek-flash",
+    "embedding": null,
+    "rerank": null,
+    "project_linked": true,
+    "keyword_only": true
+  },
+  "questions": [
+    {
+      "id": "SN02",
+      "scenarios": [
+        {
+          "case": "followup",
+          "identity": "wangfang",
+          "expected_project": "天枢项目",
+          "turns": [
+            {
+              "question": "先查天枢项目的负责人。",
+              "answer": "**天枢项目的负责人是周红。**\n\n依据《天枢项目立项报告.docx》「一、项目基本信息」记载：项目负责人：周红 [1]。同一章节还记载了几项相关信息：项目预算 200 万元、项目周期 2024-02 至 2025-01、参与部门为研发部与市场部，并注明天枢项目与星云项目共享测试环境与设备台账 [1]。\n\n补充说明：\n- 上述结论仅来自一份文档（立项报告，研发部，内部级），检索覆盖为 partial [1][2]，可能还有其他文档（如人员任命、变更通知）提到该项目的负责人信息但未被召回；如需确认是否有变更，可以补充其他材料再核。",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "天枢项目 负责人 项目经理",
+                    "project": "天枢",
+                    "top_k": 8
+                  },
+                  "log": {
+                    "id": 1,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "天枢项目 负责人",
+                    "top_k": 8
+                  },
+                  "log": {
+                    "id": 2,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "question",
+                      "history_count": 0,
+                      "project_source": "question"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "4": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "5": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "6": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                }
+              }
+            },
+            {
+              "question": "它的立项预算是多少万元？",
+              "answer": "**天枢项目的立项预算为 200 万元。**\n\n依据《天枢项目立项报告.docx》「一、项目基本信息」：项目预算：200 万元 [1]。\n\n同一章节的其他信息：\n- 项目负责人：周红 [1]\n- 项目周期：2024-02 至 2025-01 [1]\n\n另需注意：该项目「三、数据安全要求」中写明，系统按等保三级建设，上线前须完成第三方数据安全测评，**测评费用已列入项目预算** [2]；也就是说，200 万元中已包含这笔测评支出，但知识库中未见具体拆分金额。检索覆盖为 partial [1]，若需预算明细或后续调整记录，可能还需查阅其他材料。",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "天枢项目 立项预算 金额 万元",
+                    "project": "天枢",
+                    "top_k": 5
+                  },
+                  "log": {
+                    "id": 3,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                }
+              }
+            }
+          ],
+          "checks": {
+            "audit": true,
+            "amount": true,
+            "only_expected_project": true,
+            "supported_citation": true
+          },
+          "passed": true,
+          "seconds": 7.3
+        },
+        {
+          "case": "switch",
+          "identity": "wangfang",
+          "expected_project": "天枢项目",
+          "turns": [
+            {
+              "question": "查星云项目的负责人。",
+              "answer": "星云项目的负责人是 **陈明**。\n\n证据：\n- 《星云项目章程》「项目概况」中写明：项目负责人：陈明；核心成员为陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）[1]。\n- 《星海X-2000发布会纪要》「星云项目团队致谢」也标注：项目负责人：陈明 [2]。\n\n补充信息：星云项目即 X-2000 量产与数据平台建设项目，立项预算 135 万元，周期 2024-01 至 2024-09 [1]。",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "星云项目 负责人",
+                    "project": "星云",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 4,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "星云项目章程.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    1
+                  ],
+                  "matches": [
+                    {
+                      "source": "星云项目章程.md",
+                      "project_id": 1,
+                      "version": "1.1",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "星云项目 项目成员 项目经理 团队",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 5,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "question",
+                      "history_count": 0,
+                      "project_source": "question"
+                    },
+                    "matched_sources": [
+                      "星海X-2000发布会纪要.pptx",
+                      "星云项目章程.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    1
+                  ],
+                  "matches": [
+                    {
+                      "source": "星海X-2000发布会纪要.pptx",
+                      "project_id": null,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "星云项目章程.md",
+                      "project_id": 1,
+                      "version": "1.1",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "星云项目章程.md",
+                  "project_id": 1,
+                  "text": "来源文档：星云项目章程.md｜章节：星云项目章程 > 项目概况\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+                },
+                "2": {
+                  "source": "星海X-2000发布会纪要.pptx",
+                  "project_id": null,
+                  "text": "来源文档：星海X-2000发布会纪要.pptx｜章节：星云项目团队致谢\nX-2000 的量产落地由星云项目团队与供应链团队共同完成\n项目负责人：陈明"
+                },
+                "3": {
+                  "source": "星云项目章程.md",
+                  "project_id": 1,
+                  "text": "来源文档：星云项目章程.md｜章节：星云项目章程 > 项目概况\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+                }
+              }
+            },
+            {
+              "question": "现在只查天枢项目的负责人。",
+              "answer": "天枢项目的负责人是 **周红**。\n\n证据：《天枢项目立项报告》「一、项目基本信息」中写明：项目负责人：周红 [1]。同一章节还提到项目预算 200 万元、周期 2024-02 至 2025-01、参与部门为研发部与市场部，并与星云项目共享测试环境与设备台账 [1]。\n\n说明：本次检索覆盖度为 partial（有 1 个片段被过滤），仅命中了该立项报告，未找到其他文档中关于天枢项目负责人的记载，因此以上结论仅基于该报告。",
+              "calls": [
+                {
+                  "arguments": {
+                    "project": "天枢",
+                    "question": "天枢项目 负责人 项目成员",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 6,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                }
+              }
+            },
+            {
+              "question": "它的立项预算是多少万元？",
+              "answer": "天枢项目的立项预算是 **200 万元**。\n\n证据：《天枢项目立项报告》「一、项目基本信息」明确写道\"项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01\"[1]。\n\n作为对比参考：星云项目的立项预算为 135 万元 [2]。",
+              "calls": [],
+              "citations": {}
+            }
+          ],
+          "checks": {
+            "audit": true,
+            "amount": true,
+            "only_expected_project": false,
+            "supported_citation": false
+          },
+          "passed": false,
+          "seconds": 5.97
+        },
+        {
+          "case": "ambiguous",
+          "identity": "wangfang",
+          "expected_project": "ambiguous",
+          "turns": [
+            {
+              "question": "这轮聊星云项目和天枢项目。",
+              "answer": "两个项目在知识库里都有资料，先给你一个基本盘：\n\n**星云项目**（项目 ID 1）\n- X-2000 量产与数据平台建设项目，立项预算 135 万元，周期 2024-01 至 2024-09，负责人陈明；核心成员：陈明（负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）[1]\n- 里程碑：M1 需求确认 2024-03、M2 开发完成 2024-06、M3 系统上线 2024-09、M4 项目验收 2024-12 [1]\n- 协作关系：天枢项目与本项目共享测试环境；北斗项目是本项目的前置预研项目，其遗留的设计文档问题在本项目整改 [1]\n- 数据平台按等级保护三级标准建设，数据安全测评费用已列入预算 [1]\n\n**天枢项目**（项目 ID 2）\n- 负责人周红，预算 200 万元，周期 2024-02 至 2025-01，参与部门：研发部、市场部；与星云项目共享测试环境与设备台账 [2]\n- 数据安全：按等级保护三级建设，上线前须完成第三方数据安全测评，费用已列入预算 [3]\n- 里程碑：M1 方案评审 2024-04、M2 开发完成 2024-09、M3 试运行 2024-12 [4]\n\n两点说明：星云目前只命中 1 份《星云项目章程》[1]，天枢命中 1 份《天枢项目立项报告》（检索有 1 个片段被丢弃，覆盖为 partial）[2-4]，因此以上不是两项目资料的完整清单。\n\n你想从哪个角度展开？比如：两个项目共享测试环境/设备台账的排期冲突、预算与测评费用对比、里程碑对齐情况，或者某个项目的具体文档细节。",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "星云项目 资料 简介",
+                    "project": "星云项目",
+                    "top_k": 5
+                  },
+                  "log": {
+                    "id": 7,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "星云项目章程.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    1
+                  ],
+                  "matches": [
+                    {
+                      "source": "星云项目章程.md",
+                      "project_id": 1,
+                      "version": "1.1",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "天枢项目 资料 简介",
+                    "project": "天枢项目",
+                    "top_k": 5
+                  },
+                  "log": {
+                    "id": 8,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "星云项目章程.md",
+                  "project_id": 1,
+                  "text": "来源文档：星云项目章程.md｜章节：星云项目章程 > 项目概况\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "4": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                }
+              }
+            },
+            {
+              "question": "它的立项预算是多少万元？",
+              "answer": "你说的“它”指哪一个项目还不确定，因为这轮涉及两个项目，所以我先把两个数字都列出来：\n\n- **星云项目**：立项预算 **135 万元**（X-2000 量产与数据平台建设项目，周期 2024-01 至 2024-09，负责人陈明）[1]\n- **天枢项目**：项目预算 **200 万元**（周期 2024-02 至 2025-01，负责人周红）[2]\n\n补充说明：星云项目文档里使用的是“立项预算”这一表述[1]，天枢项目立项报告里写的是“项目预算”[2]；两者在概念上大体对应，但用词不完全一致。如果你要比较的是“立项阶段批复的预算”，两处的取值分别为 135 万元和 200 万元。\n\n请告诉我你指的是星云还是天枢，或者需要我按某个维度（例如预算差额、测评费用占比、单位时间投入强度）帮你做对比。",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "立项预算 金额 万元",
+                    "project": "星云项目",
+                    "top_k": 3
+                  },
+                  "log": {
+                    "id": 9,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "星云项目章程.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    1
+                  ],
+                  "matches": [
+                    {
+                      "source": "星云项目章程.md",
+                      "project_id": 1,
+                      "version": "1.1",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "立项预算 金额 万元",
+                    "project": "天枢项目",
+                    "top_k": 3
+                  },
+                  "log": {
+                    "id": 10,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "星云项目章程.md",
+                  "project_id": 1,
+                  "text": "来源文档：星云项目章程.md｜章节：星云项目章程 > 项目概况\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：二、关键技术指标（KPI）\n指标 | 目标值 | 验收方式\n接口响应时间 | ≤200ms | 压测报告\n并发用户数 | ≥5000 | 压测报告\n系统可用性 | 99.9% | 季度运行报告"
+                },
+                "4": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "5": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                }
+              }
+            }
+          ],
+          "checks": {
+            "audit": true,
+            "clarified": true,
+            "did_not_pick_project": false,
+            "no_budget_assertion": false
+          },
+          "passed": false,
+          "seconds": 9.95
+        },
+        {
+          "case": "permission",
+          "identity": "liuye",
+          "expected_project": "denied",
+          "turns": [
+            {
+              "question": "接下来只看星云项目。",
+              "answer": "已收到，后续检索我会限定在「星云项目」范围内。不过先说明一下当前证据边界，避免我拿错资料作答：\n\n**知识库中没有找到归属于「星云」项目的独立资料**——按项目「星云」过滤时返回空结果，已自动放宽为全库检索 [1]，因此我无法声称已掌握该项目的完整资料。\n\n目前只在两份其他项目的文档中见到与「星云项目」相关的提及：\n\n- 《星海X-2000发布会纪要.pptx》「星云项目团队致谢」章节：X-2000 的量产落地由星云项目团队与供应链团队共同完成，**项目负责人：陈明**，归属市场部、公开级 [1]\n- 《天枢项目立项报告.docx》：**天枢项目与星云项目共享测试环境与设备台账**（天枢负责人周红，研发部）[2]\n\n其余检索命中均为天枢、昆仑两个项目的资料（预算、KPI、里程碑、等保三级要求等）[3][4][5]，不属于星云项目范围，我不会把它们当作星云的证据使用。\n\n为了接下来能准确检索，想确认两点：\n\n1. 你想了解星云项目的什么内容（立项信息/预算与周期、进度里程碑、团队分工、验收资料……）？\n2. 「星云项目」是否有别的正式名称、编号或所属业务方向？（例如它是否就是 X-2000 产品线对应的项目？）如果有，请告诉我，我可以按那个名称再检索；若确实只有上述两处提及，我会如实按这两条回答，不额外推测。",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "星云项目",
+                    "top_k": 5
+                  },
+                  "log": {
+                    "id": 11,
+                    "entry": "mcp_http",
+                    "identity": "liuye",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "question",
+                      "history_count": 0,
+                      "project_source": "question",
+                      "scope_issue": "relaxed_empty"
+                    },
+                    "matched_sources": [
+                      "星海X-2000发布会纪要.pptx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "昆仑项目立项报告.md",
+                      "昆仑项目启动新闻.html"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [],
+                  "matches": [
+                    {
+                      "source": "星海X-2000发布会纪要.pptx",
+                      "project_id": null,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "昆仑项目立项报告.md",
+                      "project_id": 4,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "昆仑项目启动新闻.html",
+                      "project_id": null,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "项目 星云 概况 资料",
+                    "top_k": 5,
+                    "domain": "projects"
+                  },
+                  "log": {
+                    "id": 12,
+                    "entry": "mcp_http",
+                    "identity": "liuye",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "question",
+                      "history_count": 0,
+                      "project_source": "none"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "昆仑项目立项报告.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "昆仑项目立项报告.md",
+                      "project_id": 4,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "星海X-2000发布会纪要.pptx",
+                  "project_id": null,
+                  "text": "来源文档：星海X-2000发布会纪要.pptx｜章节：星云项目团队致谢\nX-2000 的量产落地由星云项目团队与供应链团队共同完成\n项目负责人：陈明"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：二、关键技术指标（KPI）\n指标 | 目标值 | 验收方式\n接口响应时间 | ≤200ms | 压测报告\n并发用户数 | ≥5000 | 压测报告\n系统可用性 | 99.9% | 季度运行报告"
+                },
+                "4": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "5": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "6": {
+                  "source": "昆仑项目立项报告.md",
+                  "project_id": 4,
+                  "text": "来源文档：昆仑项目立项报告.md｜章节：昆仑项目立项报告 > 项目基本信息\n## 项目基本信息\n项目负责人：林岚。项目预算：300 万元。\n项目周期 2025-03 至 2026-02，项目组常驻成都分支机构。\n参与部门：研发部、市场部。\n\n## 关键技术指标（KPI）\n- 支持 1000 台检测设备并发接入；\n- 数据上报延迟不超过 500ms；\n- 系统可用性 99.95%。\n\n## 里程碑\n- M1 方案评审：2025-05；\n- M2 开发完成：2025-10；\n- M3 试运行：2026-01。\n\n## 数据安全\n平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。"
+                },
+                "7": {
+                  "source": "昆仑项目启动新闻.html",
+                  "project_id": null,
+                  "text": "来源文档：昆仑项目启动新闻.html｜章节：昆仑项目在成都正式启动\n2025-05-20，星海科技昆仑项目启动仪式在成都分支机构举行，\n现场发布了 X-3000 便携式检测仪概念机。\n\n昆仑项目由研发部与市场部联合推进，计划 2026 年初完成试运行，\n投产后将服务西南地区 300 家工业客户。"
+                },
+                "8": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "9": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "10": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "11": {
+                  "source": "昆仑项目立项报告.md",
+                  "project_id": 4,
+                  "text": "来源文档：昆仑项目立项报告.md｜章节：昆仑项目立项报告 > 项目基本信息\n## 项目基本信息\n项目负责人：林岚。项目预算：300 万元。\n项目周期 2025-03 至 2026-02，项目组常驻成都分支机构。\n参与部门：研发部、市场部。\n\n## 关键技术指标（KPI）\n- 支持 1000 台检测设备并发接入；\n- 数据上报延迟不超过 500ms；\n- 系统可用性 99.95%。\n\n## 里程碑\n- M1 方案评审：2025-05；\n- M2 开发完成：2025-10；\n- M3 试运行：2026-01。\n\n## 数据安全\n平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。"
+                }
+              }
+            },
+            {
+              "question": "它的立项预算是多少万元？",
+              "answer": "**知识库中没有星云项目的立项预算数据。**\n\n检索结果说明：\n\n- 按「星云项目立项报告 / 预算 / 周期」检索，返回的文档全是**天枢项目**和**昆仑项目**的立项报告，没有星云项目自身的立项文件 [1][2][3][4]。\n- 专门检索「星云 + X-2000 + 预算/投入（万元）」时，检索被拒，系统明确反馈「找到了候选资料，但没有足够证据支持这个问题」，检查项 X-2000 未获证据支撑，返回空结果 [5]。\n- 关于星云项目，知识库目前只有两处零散提及：发布会纪要致谢页提到星云项目团队负责 X-2000 量产落地、负责人陈明 [6]；以及天枢立项报告中「天枢项目与星云项目共享测试环境与设备台账」[1]。\n\n需要特别提醒：知识库中出现的「200 万元」是天枢项目的预算 [1]，「300 万元」是昆仑项目的预算 [4]，二者**都不属于星云项目**，不能套用到你的问题上。\n\n如果这个数字确实存在，可能是星云项目的立项报告尚未入库，或者它以其他名称（项目编号、产品线名）存档。你把正",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "星云项目立项报告 项目预算 项目周期 负责人",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 13,
+                    "entry": "mcp_http",
+                    "identity": "liuye",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "question",
+                      "history_count": 0,
+                      "project_source": "none"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "昆仑项目立项报告.md",
+                      "星海X-2000发布会纪要.pptx",
+                      "昆仑项目启动新闻.html",
+                      "机房巡检通知.jpg"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "昆仑项目立项报告.md",
+                      "project_id": 4,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "星海X-2000发布会纪要.pptx",
+                      "project_id": null,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "昆仑项目启动新闻.html",
+                      "project_id": null,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "机房巡检通知.jpg",
+                      "project_id": null,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "星云 X-2000 项目预算 投入 万元",
+                    "top_k": 10,
+                    "domain": "projects"
+                  },
+                  "log": {
+                    "id": 14,
+                    "entry": "mcp_http",
+                    "identity": "liuye",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "question",
+                      "history_count": 0,
+                      "project_source": "none"
+                    },
+                    "matched_sources": []
+                  },
+                  "error": null,
+                  "refused": true,
+                  "issue": null,
+                  "project_ids": [],
+                  "matches": []
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "4": {
+                  "source": "昆仑项目立项报告.md",
+                  "project_id": 4,
+                  "text": "来源文档：昆仑项目立项报告.md｜章节：昆仑项目立项报告 > 项目基本信息\n## 项目基本信息\n项目负责人：林岚。项目预算：300 万元。\n项目周期 2025-03 至 2026-02，项目组常驻成都分支机构。\n参与部门：研发部、市场部。\n\n## 关键技术指标（KPI）\n- 支持 1000 台检测设备并发接入；\n- 数据上报延迟不超过 500ms；\n- 系统可用性 99.95%。\n\n## 里程碑\n- M1 方案评审：2025-05；\n- M2 开发完成：2025-10；\n- M3 试运行：2026-01。\n\n## 数据安全\n平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。"
+                },
+                "5": {
+                  "source": "星海X-2000发布会纪要.pptx",
+                  "project_id": null,
+                  "text": "来源文档：星海X-2000发布会纪要.pptx｜章节：星云项目团队致谢\nX-2000 的量产落地由星云项目团队与供应链团队共同完成\n项目负责人：陈明"
+                },
+                "6": {
+                  "source": "昆仑项目启动新闻.html",
+                  "project_id": null,
+                  "text": "来源文档：昆仑项目启动新闻.html｜章节：昆仑项目在成都正式启动\n2025-05-20，星海科技昆仑项目启动仪式在成都分支机构举行，\n现场发布了 X-3000 便携式检测仪概念机。\n\n昆仑项目由研发部与市场部联合推进，计划 2026 年初完成试运行，\n投产后将服务西南地区 300 家工业客户。"
+                },
+                "7": {
+                  "source": "机房巡检通知.jpg",
+                  "project_id": null,
+                  "text": "来源文档：机房巡检通知.jpg\n机房巡检通知\n巡检时间：每周三14:00\n负责人：王芳 (研发部)\n联系电话：0571-88886666\n星海科技IT部"
+                }
+              }
+            }
+          ],
+          "checks": {
+            "audit": true,
+            "executed": true,
+            "no_matches": false,
+            "attempted_expected_project": false,
+            "no_budget_assertion": false,
+            "disclosed_gap": false
+          },
+          "passed": false,
+          "seconds": 10.99
+        },
+        {
+          "case": "stale_argument_recovery",
+          "identity": "wangfang",
+          "expected_project": "天枢项目",
+          "turns": [
+            {
+              "question": "先看星云项目。",
+              "answer": "知识库中与「星云项目」直接相关的证据如下：\n\n## 一、项目章程要点 [1]\n来源：`projects/星云项目/星云项目章程.md`（v1.1，项目章程，研发部，内部）\n\n- **项目定位**：X-2000 量产与数据平台建设项目\n- **立项预算**：135 万元\n- **项目周期**：2024-01 至 2024-09\n- **项目负责人**：陈明\n- **核心成员**：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）\n\n**里程碑**：M1 需求确认 2024-03；M2 开发完成 2024-06；M3 系统上线 2024-09；M4 项目验收 2024-12。\n\n**协作约定**：天枢项目与本项目共享测试环境；北斗项目为本项目的前置预研项目，其遗留的设计文档问题在本项目整改。\n\n**数据安全**：数据平台按等级保护三级标准建设，数据安全测评费用已列入预算。\n\n## 二、外部提及 [2]\n`reference/星海发布会/星海X-2000发布会纪要.pptx`（市场部，公开）中有一节「星云项目团队致谢」，说明 X-2000 的量产落地由星云项目团队与供应链团队共同完成，项目负责人为陈明——与章程信息一致。\n\n## 说明（证据边界）\n按「星云项目」(project_id=1) 过滤检索，命中的**项目内文档只有 1 份章程**（另有 1 份市场部发布会资料提及本项目）；检索覆盖面标记为 unknown，因此**不能据此断定星云项目只有这一份资料**。我没有在知识库里找到星云项目的进度周报、风险清单、验收材料等进展类文档。\n\n接下来你想看哪部分？例如：\n1. 以章程为基准，核对预算/里程碑是否与预算或立项类资料一致；\n2. 查天枢（共享测试环境）、北斗（前置预研）与本项目的关联资料；\n3. 你有其他来源（周报、验收单）可入库，我再做交叉核对。\n\n你也可以直接说明「星云项目」要解决的具体问题（如「预算有没有超」「验收到哪一步」），我再针对性地检索。",
+              "calls": [
+                {
+                  "arguments": {
+                    "question": "星云项目",
+                    "project": "星云",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 15,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "星云项目章程.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    1
+                  ],
+                  "matches": [
+                    {
+                      "source": "星云项目章程.md",
+                      "project_id": 1,
+                      "version": "1.1",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "星云项目 概况 进展 资料",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 16,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "question",
+                      "history_count": 0,
+                      "project_source": "question"
+                    },
+                    "matched_sources": [
+                      "星海X-2000发布会纪要.pptx",
+                      "星云项目章程.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    1
+                  ],
+                  "matches": [
+                    {
+                      "source": "星海X-2000发布会纪要.pptx",
+                      "project_id": null,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "星云项目章程.md",
+                      "project_id": 1,
+                      "version": "1.1",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "星云项目 风险 验收 会议纪要 周报 设计文档",
+                    "project": "星云",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 17,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "星云项目章程.md"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    1
+                  ],
+                  "matches": [
+                    {
+                      "source": "星云项目章程.md",
+                      "project_id": 1,
+                      "version": "1.1",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "星云项目章程.md",
+                  "project_id": 1,
+                  "text": "来源文档：星云项目章程.md｜章节：星云项目章程 > 项目概况\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+                },
+                "2": {
+                  "source": "星海X-2000发布会纪要.pptx",
+                  "project_id": null,
+                  "text": "来源文档：星海X-2000发布会纪要.pptx｜章节：星云项目团队致谢\nX-2000 的量产落地由星云项目团队与供应链团队共同完成\n项目负责人：陈明"
+                },
+                "3": {
+                  "source": "星云项目章程.md",
+                  "project_id": 1,
+                  "text": "来源文档：星云项目章程.md｜章节：星云项目章程 > 项目概况\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+                },
+                "4": {
+                  "source": "星云项目章程.md",
+                  "project_id": 1,
+                  "text": "来源文档：星云项目章程.md｜章节：星云项目章程 > 项目概况\n## 项目概况\n星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n核心成员：陈明（项目负责人）、林岚（架构）、徐凯（后端）、刘洋（测试）。\n\n## 项目里程碑\n- M1 需求确认：2024-03；\n- M2 开发完成：2024-06；\n- M3 系统上线：2024-09；M4 项目验收：2024-12。\n\n## 协作约定\n天枢项目与本项目共享测试环境。北斗项目为本项目的前置预研项目，\n其遗留的设计文档问题在本项目整改。\n\n## 数据安全\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。"
+                }
+              }
+            },
+            {
+              "question": "现在只查天枢项目。",
+              "answer": "天枢项目（项目 ID=2）的检索结果如下：\n\n## 唯一命中的项目文档\n`projects/天枢项目/天枢项目立项报告.docx`（v1.0，研发部，内部）\n\n**一、项目基本信息** [1]\n- 项目负责人：周红\n- 项目预算：200 万元\n- 项目周期：2024-02 至 2025-01\n- 参与部门：研发部、市场部\n- 跨项目关系：天枢项目与星云项目共享测试环境与设备台账\n\n**三、数据安全要求** [2]\n- 本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算\n\n**四、里程碑** [3]\n- M1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12\n\n## 证据边界（需注意）\n1. 本次检索覆盖面为 **partial**，且每次均出现 1 条内容被丢弃（dropped=1），因此**不能认为天枢项目资料已列全**。\n2. 该立项报告的「二、」章节内容**未检索到**（章节编号从「一」直接跳到「三」），我也没有找到天枢项目的会议纪要、周报、风险清单、验收或结项资料。\n3. 尝试按 archive 状态检索天枢项目资料，返回 **not_found**，即没有归档状态的天枢文档命中。\n4. 与上一轮对比：天枢的立项报告与星云项目章程**在协作约定上一致**——星云章程称「天枢项目与本项目共享测试环境」[4]，天枢立项报告也写明两者共享测试环境与设备台账 [1]（天枢侧还多报了「设备台账」这一共享项）。\n\n需要我继续做什么？可选：\n- 换关键词重试补齐「二、」章节（如建设内容/目标/技术方案）；\n- 或把天枢与星云做逐项对比（预算、周期、里程碑、负责人、数据安全要求）；\n- 或你补充天枢的周报/纪要到知识库后我再交叉核对。",
+              "calls": [
+                {
+                  "arguments": {
+                    "project": "天枢",
+                    "question": "天枢项目 概况 进展 计划",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 18,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "question": "天枢项目",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 19,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "question",
+                      "history_count": 0,
+                      "project_source": "question"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "project": "天枢",
+                    "question": "天枢项目立项报告 项目目标 建设内容 需求 技术方案 第二章",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 20,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "project": "天枢",
+                    "question": "天枢项目 会议纪要 周报 风险 变更 测试环境 设备台账",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 21,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "project": "天枢",
+                    "question": "天枢项目 全部资料清单 文件目录",
+                    "status": "archive",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 22,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": []
+                  },
+                  "error": null,
+                  "refused": true,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": []
+                },
+                {
+                  "arguments": {
+                    "project": "天枢",
+                    "question": "天枢 二章 建设内容 项目范围 交付物 设备清单 测试计划",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 23,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                },
+                {
+                  "arguments": {
+                    "project": "天枢",
+                    "question": "天枢项目 建设背景 项目目标 效益 必要性",
+                    "domain": "projects",
+                    "top_k": 10
+                  },
+                  "log": {
+                    "id": 24,
+                    "entry": "mcp_http",
+                    "identity": "wangfang",
+                    "context": {
+                      "tool": "knowledge_search",
+                      "input_mode": "project",
+                      "history_count": 0,
+                      "project_source": "project_argument"
+                    },
+                    "matched_sources": [
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx",
+                      "天枢项目立项报告.docx"
+                    ]
+                  },
+                  "error": null,
+                  "refused": false,
+                  "issue": null,
+                  "project_ids": [
+                    2
+                  ],
+                  "matches": [
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    },
+                    {
+                      "source": "天枢项目立项报告.docx",
+                      "project_id": 2,
+                      "version": "1.0",
+                      "page": null
+                    }
+                  ]
+                }
+              ],
+              "citations": {
+                "1": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "2": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "3": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "4": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "5": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "6": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "7": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "8": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "9": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "10": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "11": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "12": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "13": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "14": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "15": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                },
+                "16": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：一、项目基本信息\n天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。"
+                },
+                "17": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：三、数据安全要求\n本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。"
+                },
+                "18": {
+                  "source": "天枢项目立项报告.docx",
+                  "project_id": 2,
+                  "text": "来源文档：天枢项目立项报告.docx｜章节：四、里程碑\nM1 方案评审 2024-04；M2 开发完成 2024-09；M3 试运行 2024-12。"
+                }
+              }
+            }
+          ],
+          "error": "ExceptionGroup",
+          "http_status": null,
+          "seconds": 16.23
+        }
+      ]
+    }
+  ],
+  "mcp": [],
+  "replay": []
+}

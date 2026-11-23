@@ -1168,6 +1168,49 @@ def count_qa_logs(username: str = "", entry: str = "",
     return row["n"]
 
 
+def llm_usage_page(username: str, since: str, page: int, page_size: int) -> tuple[dict, list[dict], int, int]:
+    """Aggregate matching log usage and read only the requested detail page in one snapshot."""
+    from contextlib import closing
+
+    where, params = _qa_logs_where(username, "")
+    if since:
+        where += (" AND " if where else " WHERE ") + "created_at >= ?"
+        params.append(since)
+    usage = """
+        WITH matching AS (
+            SELECT id, username, entry, created_at, substr(question, 1, 80) AS question,
+                   CASE WHEN json_valid(usage) THEN usage ELSE '{}' END AS data
+            FROM qa_logs
+    """ + where + """
+        ), usage_rows AS (
+            SELECT id, username, entry, created_at, question,
+                   CAST(COALESCE(json_extract(data, '$.calls'), 0) AS INTEGER) AS calls,
+                   CAST(COALESCE(json_extract(data, '$.input'), 0) AS INTEGER) AS input,
+                   CAST(COALESCE(json_extract(data, '$.input_cached'), 0) AS INTEGER) AS input_cached,
+                   CAST(COALESCE(json_extract(data, '$.output'), 0) AS INTEGER) AS output,
+                   CAST(COALESCE(json_extract(data, '$.estimated'), 0) AS INTEGER) AS estimated
+            FROM matching
+        )
+    """
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN")
+        totals = dict(conn.execute(usage + """
+            SELECT COUNT(*) AS total_rows, COALESCE(SUM(calls), 0) AS calls,
+                   COALESCE(SUM(input), 0) AS input,
+                   COALESCE(SUM(input_cached), 0) AS input_cached,
+                   COALESCE(SUM(output), 0) AS output,
+                   COALESCE(SUM(max(0, input - input_cached)), 0) AS uncached
+            FROM usage_rows WHERE calls > 0
+        """, params).fetchone())
+        total_pages = max(1, (totals["total_rows"] + page_size - 1) // page_size)
+        page = min(page, total_pages)
+        rows = conn.execute(usage + """
+            SELECT username, entry, created_at, question, calls, input, input_cached, output, estimated
+            FROM usage_rows WHERE calls > 0 ORDER BY id DESC LIMIT ? OFFSET ?
+        """, [*params, page_size, (page - 1) * page_size]).fetchall()
+    return totals, [dict(row) for row in rows], page, total_pages
+
+
 def count_user_tokens(user_id: int) -> int:
     """该用户的有效（未吊销）令牌数。"""
     with _connect() as conn:

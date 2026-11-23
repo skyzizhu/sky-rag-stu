@@ -94,7 +94,11 @@ STATE_PATH = PROJECT_ROOT / "storage" / "index_state.json"
 
 def file_hash(path: Path) -> str:
     """文件内容的 MD5 指纹（内容变一个字，指纹就变）。"""
-    return hashlib.md5(Path(path).read_bytes()).hexdigest()
+    digest = hashlib.md5()
+    with Path(path).open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def load_state(*, strict: bool = False) -> dict:

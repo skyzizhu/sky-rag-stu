@@ -14,6 +14,7 @@ import re
 import sys
 import uuid
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 from src.config import AppConfig, get_config
 from src.cleaner import clean_document
@@ -31,16 +32,13 @@ def est_tokens(text: str) -> int:
         from src.context import estimate_tokens as _fn
         _estimate_tokens_fn = _fn
     return _estimate_tokens_fn(text)
-from src.metadata import chunk_id_for
-from src.parser import PAGE_MARKER_RE, ParsedDocument, parse_directory
+from src.parser import PAGE_MARKER_RE, ParsedDocument, markdown_lines, parse_directory
 
 # 切片 id 的命名空间（固定值；Qdrant 底层要求 UUID 形态的 Point id，
 # 用 uuid5 保证「同一文档的第 N 片」永远得到同一个 UUID，重复入库不会产生重复数据）
 _CHUNK_NAMESPACE = uuid.UUID("6f1d2c34-8a5e-4b7a-9c1d-2e3f4a5b6c7d")
 
-_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
-# 硬切长段落时的句子边界
-_SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？!?；;\n])")
+_SENTENCE_END = re.compile(r'[。！？!?；;]+[”’"\x27）)]*|\.+[”’"\x27)]*(?=\s|$)|\n')
 
 
 @dataclass
@@ -54,10 +52,20 @@ class Chunk:
     metadata: dict = field(default_factory=dict)
 
 
+class Section(NamedTuple):
+    leaf: str | None
+    path: str | None
+    heading: str
+    text: str
+    leaves: list[str]
+    paths: list[str]
+    chapter: int
+
+
 def _split_by_pages(text: str) -> list[tuple[int | None, str]]:
     """按分页标记分段。返回 [(起始页码或 None, 这段正文), ...]。
 
-    一段可能横跨多页，所以只记录起始页；多页段会在元数据里写「3-4」。
+    每个片段对应一个原始分页标记。
     """
     if not PAGE_MARKER_RE.search(text):
         return [(None, text)]
@@ -89,47 +97,38 @@ def _split_by_sections(text: str) -> list[tuple[str | None, str | None, str]]:
     章节路径形如「RAG > Metadata > Metadata Filter」，章节名是最后一级标题。
     兼容入口：不带标题行、不做短小节合并的原始三段式；切片主流程用 _split_by_sections_raw。
     """
-    return [(leaf, path, body) for leaf, path, _line, body, _leaves in _split_by_sections_raw(text)]
+    return [(section.leaf, section.path, section.text) for section in _split_by_sections_raw(text)]
 
 
-def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str, str, list[str]]]:
+def _split_by_sections_raw(text: str, heading_stack: dict[int, str] | None = None) -> list[Section]:
     """按 Markdown 标题切章节（原始版）。
 
     返回 [(章节名, 章节路径, 标题行原文, 章节正文, 覆盖章节名列表), ...]——标题行原文供
     短小节合并时回注（合并后正文里不能丢掉各子块的小标题）；覆盖章节名列表供
     合并组记录本单元实际覆盖了哪些章节（单节时为单元素或空列表）。
     """
-    sections: list[tuple[str | None, str | None, str, str, list[str]]] = []
-    heading_stack: dict[int, str] = {}
-    current_leaf: str | None = None
-    current_path: str | None = None
-    current_heading_line: str | None = None
+    sections: list[Section] = []
+    heading_stack = {} if heading_stack is None else heading_stack
+    chapter = 0
+    current_heading_line = ""
     buffer: list[str] = []
 
     def flush() -> None:
         body = "\n".join(buffer).strip()
         if body:
-            sections.append((current_leaf, current_path, current_heading_line or "", body,
-                             [current_leaf] if current_leaf else []))
+            leaf = heading_stack[max(heading_stack)] if heading_stack else None
+            path = " > ".join(heading_stack[k] for k in sorted(heading_stack)) or None
+            sections.append(Section(leaf, path, current_heading_line, body,
+                                    [leaf] if leaf else [], [path] if path else [], chapter))
 
-    in_code = False  # ``` 围栏内不识别标题（与 parser._read_markdown 同款规则）：
-    # 代码块里的 "# 注释" 不是章节——否则代码块被拦腰切开，且注释会进
-    # heading_stack 污染后续所有章节的 section_path 元数据
-    for line in text.split("\n"):
-        if line.lstrip().startswith("```"):
-            in_code = not in_code
-            buffer.append(line)
-            continue
-        match = None if in_code else _HEADING_RE.match(line)
-        if match:
+    for line, level, label in markdown_lines(text):
+        if level:
             flush()
             buffer = []
-            level = len(match.group(1))
-            heading_stack[level] = match.group(2).strip()
+            chapter += int(level == 1)
+            heading_stack[level] = label
             for deeper in [k for k in heading_stack if k > level]:
                 del heading_stack[deeper]
-            current_path = " > ".join(heading_stack[k] for k in sorted(heading_stack))
-            current_leaf = heading_stack[max(heading_stack)]
             current_heading_line = line.strip()
         else:
             buffer.append(line)
@@ -137,14 +136,7 @@ def _split_by_sections_raw(text: str) -> list[tuple[str | None, str | None, str,
     return sections
 
 
-def _heading_level(heading_line: str) -> int:
-    """标题行的层级（前导 '#' 个数）；空串/非标题（无标题的文档开头段）返回 0。"""
-    stripped = heading_line.lstrip()
-    return len(stripped) - len(stripped.lstrip("#")) if stripped.startswith("#") else 0
-
-
-def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str, list[str]]],
-                          max_tokens: int) -> list[tuple[str | None, str | None, str, str, list[str]]]:
+def _merge_short_sections(sections: list[Section], max_tokens: int) -> list[Section]:
     """相邻短小节合并（2026-11-08）：合计不超过单卡容量就合成一个切片单元。
 
     病灶（实测）：网页清洗器把每个视觉块当独立小节——Xtools 价格区 5 个碎块
@@ -162,37 +154,32 @@ def _merge_short_sections(sections: list[tuple[str | None, str | None, str, str,
     """
     if max_tokens <= 0 or not sections:
         return sections
-    merged: list[tuple[str | None, str | None, str, str, list[str]]] = []
-    group: list[tuple[str | None, str | None, str, str, list[str]]] = []
-    group_size = 0
+    merged: list[Section] = []
+    group: list[Section] = []
+    group_text = ""
 
     def flush_group() -> None:
         if not group:
             return
-        if len(group) == 1:  # 没有发生合并：保持原样（正文不含标题行，行为不变）
-            leaf, path, _line, body, leaves = group[0]
-            merged.append((leaf, path, _line, body, leaves))
+        if len(group) == 1:
+            merged.append(group[0])
             return
-        named = next(((sec[0], sec[1]) for sec in group if sec[0]), (None, None))
-        body = "\n\n".join(f"{line}\n{sec_body}"
-                           for _leaf, _path, line, sec_body, _leaves in group)
-        leaves = [leaf for leaf in (_sec[0] for _sec in group) if leaf]
-        merged.append((named[0], named[1], group[0][2], body, leaves))
+        named = next((sec for sec in group if sec.leaf), group[0])
+        merged.append(Section(named.leaf, named.path, named.heading, group_text,
+                              [leaf for sec in group for leaf in sec.leaves],
+                              [path for sec in group for path in sec.paths], named.chapter))
 
     for section in sections:
-        section_size = est_tokens(section[2]) + est_tokens(section[3])
-        # R3-b 章边界：新一节是 H1 且组内已含另一章（任意成员是 H1）→ 封组，
-        # 不让「一、」「二、」这样的同级章被并成一张卡丢失定位。组内尚无 H1
-        # （纯开头段/H2 碎节）时，首个 H1 仍可收编它们并入首章。
-        if (group and _heading_level(section[2]) == 1
-                and any(_heading_level(sec[2]) == 1 for sec in group)):
+        body = f"{section.heading}\n{section.text}".strip()
+        candidate = f"{group_text}\n\n{body}" if group else body
+        previous = group[-1] if group else None
+        new_chapter = (previous and previous.chapter != section.chapter
+                       and (previous.chapter > 0 or previous.path is not None))
+        if group and (new_chapter or est_tokens(candidate) > max_tokens):
             flush_group()
-            group, group_size = [], 0
-        if group and group_size + section_size > max_tokens:
-            flush_group()
-            group, group_size = [], 0
+            group, candidate = [], body
         group.append(section)
-        group_size += section_size
+        group_text = candidate
     flush_group()
     return merged
 
@@ -226,32 +213,50 @@ def _split_paragraphs(text: str) -> list[str]:
     return [p for p in paragraphs if p]
 
 
-def _hard_split_long_text(text: str, size: int, overlap: int) -> list[str]:
-    """超长段落兜底：先按句子切，再打包；整句超长时按比例换算字符窗口硬切。
+class Piece(NamedTuple):
+    text: str
+    overlap_chars: int = 0
+    joiner: str = "\n\n"
 
-    size / overlap 单位为估算 token（V3.9）；字符窗口 = token 预算 × 该句的字符/token 比。
-    """
-    sentences = [s for s in _SENTENCE_SPLIT_RE.split(text) if s.strip()]
-    pieces: list[str] = []
-    buffer = ""
-    for sentence in sentences:
-        sentence_est = est_tokens(sentence)
-        if sentence_est > size:  # 连一个句子都超长：按比例换算字符窗口硬切
-            ratio = len(sentence) / max(1, sentence_est)
-            window = max(50, int(size * ratio * 0.9))
-            step = max(50, window - int(overlap * ratio))
-            start = 0
-            while start < len(sentence):
-                pieces.append(sentence[start : start + window])
-                start += step
-            buffer = ""
-            continue
-        if buffer and est_tokens(buffer + sentence) > size:
-            pieces.append(buffer)
-            buffer = ""
-        buffer += sentence
-    if buffer.strip():
-        pieces.append(buffer)
+
+def _prefix_end(text: str, size: int) -> int:
+    low, high = 0, min(len(text), (size + 1) * 4)
+    while low < high:
+        middle = (low + high + 1) // 2
+        if est_tokens(text[:middle]) <= size:
+            low = middle
+        else:
+            high = middle - 1
+    return low
+
+
+def _hard_split_long_text(text: str, size: int, overlap: int) -> list[Piece]:
+    """Partition long blocks, preferring complete sentences and preserving all body text."""
+    pieces: list[Piece] = []
+    repeated = ""
+    joiner = "\n\n"
+    while text:
+        prefix = repeated + joiner if repeated else ""
+        budget = size - est_tokens(prefix) - bool(prefix)
+        end = _prefix_end(text, budget)
+        sentence_end = max((match.end() for match in _SENTENCE_END.finditer(text[:end + 1])
+                            if match.end() <= end), default=0)
+        split_sentence = end < len(text) and not sentence_end
+        if end < len(text):
+            if sentence_end:
+                end = sentence_end
+            else:
+                end = max((match.end() for match in re.finditer(r"\s+", text[:end])
+                           if match.end() >= end // 2), default=end)
+        head = text[:end]
+        body = (prefix + head).rstrip()
+        if head.strip():
+            pieces.append(Piece(body, len(prefix), joiner))
+        remaining = text[end:]
+        whitespace = remaining[:len(remaining) - len(remaining.lstrip())]
+        joiner = (head[len(head.rstrip()):] + whitespace)[:2] if remaining else ""
+        repeated = _token_tail(body, overlap) if split_sentence and remaining else ""
+        text = remaining.lstrip()
     return pieces
 
 
@@ -286,44 +291,47 @@ def _bind_title_paragraphs(blocks: list[str], size: int) -> list[str]:
 
 
 def _token_tail(text: str, overlap_tokens: int) -> str:
-    """从文本末尾按行回退收集，直到估算 token 达到 overlap（天然落在行边界）。"""
-    lines = text.split("\n")
-    tail: list[str] = []
-    total = 0
-    for line in reversed(lines):
-        tail.insert(0, line)
-        total += est_tokens(line) + 1
-        if total >= overlap_tokens:
-            break
-    return "\n".join(tail)
+    if overlap_tokens <= 0:
+        return ""
+    count = _prefix_end(text[::-1], overlap_tokens)
+    return text[len(text) - count:].lstrip()
 
 
-def _pack_with_overlap(blocks: list[str], size: int, overlap: int) -> list[str]:
-    """把若干「块」（段落）打包成不超过 size（估算 token）的切片，相邻切片带 overlap。"""
-    chunks: list[str] = []
+def _pack_with_overlap(blocks: list[str], size: int, overlap: int) -> list[Piece]:
+    """Pack paragraphs, recording the exact copied prefix for reassembly."""
+    chunks: list[Piece] = []
     buffer = ""
+    copied = 0
     for block in blocks:
         if est_tokens(block) > size:
-            # 当前段落本身超长：先收掉已攒的内容，再把长段落硬切
-            if buffer.strip():
-                chunks.append(buffer)
-                buffer = ""
-            pieces = _hard_split_long_text(block, size, overlap)
-            chunks.extend(pieces)
+            if buffer:
+                chunks.append(Piece(buffer, copied))
+                buffer, copied = "", 0
+            chunks.extend(_hard_split_long_text(block, size, overlap))
             continue
         candidate = f"{buffer}\n\n{block}" if buffer else block
         if est_tokens(candidate) > size and buffer:
-            chunks.append(buffer)
-            if overlap > 0:
-                tail = _token_tail(buffer, overlap)  # 按行回退至估算 token 达标（天然行对齐）
-                buffer = (tail + "\n\n" + block).strip()
-            else:
-                buffer = block
+            chunks.append(Piece(buffer, copied))
+            tail = _token_tail(buffer, min(overlap, size - est_tokens(block) - 1))
+            if tail and est_tokens(f"{tail}\n\n{block}") > size:
+                tail = ""
+            buffer = f"{tail}\n\n{block}" if tail else block
+            copied = len(tail) + 2 if tail else 0
             continue
         buffer = candidate
-    if buffer.strip():
-        chunks.append(buffer)
+    if buffer:
+        chunks.append(Piece(buffer, copied))
     return chunks
+
+
+def _spreadsheet_pieces(text: str, size: int) -> list[Piece]:
+    header, _, body = text.partition("\n")
+    if not body or est_tokens(header) > size // 2:
+        return _pack_with_overlap(_split_paragraphs(text), size, 0)
+    budget = size - est_tokens(header + "\n") - 1
+    rows = _pack_with_overlap([line for line in body.splitlines() if line.strip()], budget, 0)
+    return [Piece(f"{header}\n{row.text}", len(header) + 1 if index else 0, row.joiner)
+            for index, row in enumerate(rows)]
 
 
 def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list[Chunk]:
@@ -339,37 +347,53 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
     # 文件名注入正文：让「按文件名找文件」在向量与 BM25 双通道都可命中
     # （与表头注入同属「档案信息入正文」原则），并让每张卡自报来源。
     source_name = str(doc.metadata.get("source") or "").strip()
+    file_type = doc.metadata.get("file_type")
+
+    def prefix(path):
+        if not source_name:
+            return ""
+        value = f"来源文档：{source_name}" + (f"｜章节：{path}" if path else "")
+        return value[:_prefix_end(value, size // 4)] + "\n"
 
     chunks: list[Chunk] = []
+    heading_stack: dict[int, str] = {}
     for page_start, page_text in _split_by_pages(doc.text):
-        sections = _merge_short_sections(_split_by_sections_raw(page_text), max_tokens=size)
-        for section_leaf, section_path, _heading_line, section_text, section_leaves in sections:
-            paragraphs = _bind_title_paragraphs(_split_paragraphs(section_text), size)
-            for piece in _pack_with_overlap(paragraphs, size, overlap):
-                piece = piece.strip()
-                if not piece:
-                    continue
-                if source_name:
-                    # R2-c 上下文前缀（Anthropic Contextual Retrieval 的确定性版）：
-                    # 卡片正文自带章节路径——向量/BM25 都能借章节语境锚定语义
-                    # （「500 元」带上「差旅住宿标准」的章节语境，跨卡事实不再裸奔），
-                    # 相邻拼接去前缀的正则按行匹配「来源文档：」开头，仍然兼容。
-                    header = f"来源文档：{source_name}"
-                    if section_path:
-                        header += f"｜章节：{section_path}"
-                    piece = f"{header}\n{piece}"
+        if file_type in {"pptx", "ppt", "dps"}:
+            heading_stack.clear()
+        raw = _split_by_sections_raw(page_text, heading_stack)
+        if file_type in {"xlsx", "xls", "et"}:
+            sections = raw
+        else:
+            max_prefix = max((est_tokens(prefix(section.path)) + 1 for section in raw), default=0)
+            sections = _merge_short_sections(raw, max_tokens=size - max_prefix)
+        for section in sections:
+            header = prefix(section.path)
+            budget = size - est_tokens(header) - bool(header)
+            paragraphs = _bind_title_paragraphs(_split_paragraphs(section.text), budget)
+            pieces = (_spreadsheet_pieces(section.text, budget) if file_type in {"xlsx", "xls", "et"}
+                      else _pack_with_overlap(paragraphs, budget, min(overlap, budget // 2)))
+            for piece in pieces:
                 page = str(page_start) if page_start else None
                 metadata = dict(doc.metadata)
                 version = str(doc.metadata.get("version") or "1.0")  # 版本进编号，新旧版本共存
                 metadata["chunk_id"] = f"{document_id}_v{version}_{len(chunks):04d}"
-                metadata["section"] = section_leaf
-                metadata["section_path"] = section_path
-                if len(section_leaves) > 1:  # 合并组：记录本卡覆盖的全部章节（R3-a）
-                    metadata["sections"] = section_leaves
+                metadata["chunk_index"] = len(chunks)
+                metadata["overlap_chars"] = piece.overlap_chars
+                metadata["chunk_joiner"] = piece.joiner
+                if file_type in {"xlsx", "xls", "et"} and piece.overlap_chars:
+                    metadata["repeated_table_header"] = True
+                metadata["section"] = section.leaf
+                metadata["section_path"] = section.path
+                if len(section.leaves) > 1:
+                    metadata["sections"] = section.leaves
+                    metadata["section_paths"] = section.paths
                 metadata["page"] = page
+                if page:
+                    metadata["page_kind"] = ("explicit_break" if file_type in {"docx", "doc", "wps"}
+                                             else "slide" if file_type in {"pptx", "ppt", "dps"} else "physical")
                 point_id = str(uuid.uuid5(_CHUNK_NAMESPACE, f"{document_id}::{version}::{len(chunks)}"))
                 chunks.append(Chunk(chunk_id=metadata["chunk_id"], point_id=point_id,
-                                    text=piece, index=len(chunks), metadata=metadata))
+                                    text=header + piece.text, index=len(chunks), metadata=metadata))
     return chunks
 
 
@@ -381,10 +405,11 @@ def chunk_documents(docs: list[ParsedDocument], config: AppConfig | None = None)
     return all_chunks
 
 
-def clean_and_chunk(docs: list[ParsedDocument]) -> tuple[list[ParsedDocument], list[Chunk]]:
+def clean_and_chunk(docs: list[ParsedDocument], config: AppConfig | None = None
+                    ) -> tuple[list[ParsedDocument], list[Chunk]]:
     """便捷入口：清洗 + 切片一步到位。"""
     cleaned = [clean_document(doc) for doc in docs]
-    return cleaned, chunk_documents(cleaned)
+    return cleaned, chunk_documents(cleaned, config)
 
 
 # ---------------- 直接运行本文件：打印切片结果，人工检查 ----------------

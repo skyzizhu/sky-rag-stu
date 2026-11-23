@@ -1,0 +1,76 @@
+{
+  "revision": "f7186f8",
+  "clean_import_error": "cannot import name 'chunk_sequence' from 'src.metadata' (C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\src\\metadata.py)",
+  "runtime_shim": "Define missing chunk_sequence; discard the additional cfg argument for HEAD clean_and_chunk.",
+  "run": 26,
+  "failures": [
+    {
+      "test": "tests.test_document_department.DocumentDepartmentTests.test_mcp_schema_and_keyword_forwarding",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\test_document_department.py\", line 210, in test_mcp_schema_and_keyword_forwarding\n    called.assert_called_once_with(*args, doc_type=None, department='研发部',\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 961, in assert_called_once_with\n    return self.assert_called_with(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 949, in assert_called_with\n    raise AssertionError(_error_message()) from cause\nAssertionError: expected call not found.\nExpected: _tool_knowledge_search_impl('q', 3, None, None, None, doc_type=None, department='研发部', project=None, business_direction=None)\n  Actual: _tool_knowledge_search_impl('q', 3, None, None, None, doc_type=None, department='研发部', project=None, business_direction=None, history=None)\n"
+    },
+    {
+      "test": "tests.test_project_comparison.ProjectComparisonTests.test_explicit_filters_and_multiple_scope_errors",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\test_project_comparison.py\", line 141, in test_explicit_filters_and_multiple_scope_errors\n    retrieve.assert_not_called()\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 910, in assert_not_called\n    raise AssertionError(msg)\nAssertionError: Expected 'get_retriever' to not have been called. Called 3 times.\nCalls: [call(),\n call().retrieve('星云、天枢、陌生三个项目里预算最高的是哪个项目？', top_k=5, filters={'allowed_groups': ['all', 'finance'], '__viewer__': {'groups': ['all', 'finance'], 'username': 'alice'}}, trace=[{'icon': '🧠', 'name': 'Query 理解 / 改写', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '直通（仅检索模式）', 'summary': '原始问题直接进入向量化，未做改写与条件推断', 'items': [('输入 / 输出', '星云、天枢、陌生三个项目里预算最高的是哪个项目？')]}, {'icon': '🔄', 'name': '范围解析回退', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '已回退（multiple）', 'summary': '问句中的范围词无法解析为元数据过滤条件（主档未登记或同字段多值）。已丢弃该过滤并回退为全库语义检索，答案顶部注明未按该条件过滤。', 'items': [('回退原因', '这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。'), ('提取到的范围', '{}'), ('保留的条件', '权限、日期与手动筛选设置不受影响')]}, {'icon': '🏆', 'name': 'Rerank（精排）', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '未启用（可在 检索设置 或 .env RERANK_ENABLED 开启）', 'summary': '候选卡片按粗排顺序（向量相似度 / RRF 融合）直接使用', 'items': [('说明', '开启后：召回先扩宽（默认 10 条候选），LLM 逐条打分精排，再取 Top K 进入回答')]}, {'icon': '🧩', 'name': '合并 / 去重', 'time': '2026-11-23 14:58:41', 'elapsed': 0.0, 'status': '已执行', 'summary': '对召回结果做合并与去重，按本次路径的条数、单文档配额和 token 预算选取；截断计入覆盖提示。', 'items': [('去重 / 合并逻辑', '忽略空白差异后比较卡片全文，重复的只保留第一条；剩余卡片按相关度依次放入，直到达到条数或字数上限'), ('多样性限制', '同一文档最多采用 3 条；本次总名额 5'), ('被丢弃的卡片', '（没有需要丢弃的卡片）'), ('输出', '采用 0 条，丢弃 0 条')]}, {'icon': '📦', 'name': '上下文组装', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '已执行', 'summary': '把采用的卡片拼成一份带编号和出处的「资料附页」，随问题一起发给大模型；同文档相邻卡片自动拼接，恢复被切片切断的上下文', 'items': [('组装规则', '相关度降序编号 [1][2]…；每条标注来源/领域/章节/页码；token 上限约 4000'), ('相邻补全', '（没有可拼接的相邻卡片）'), ('输出（最终 Context）', '（没有检索到任何相关资料）'), ('规模', '共 0 条资料，合计 10 tokens（上限约 4000 tokens）')]}], keyword_query=None, use_hybrid=True, diagnostics={}),\n call().retrieve().__bool__(),\n call().retrieve().__len__(),\n call().retrieve().__bool__(),\n call().retrieve().__bool__(),\n call().retrieve().__iter__(),\n call().retrieve().__getitem__(slice(None, 5, None)),\n call().retrieve().__getitem__().__iter__(),\n call().retrieve().__iter__(),\n call(),\n call().retrieve('星云、天枢、陌生三个项目的预算合计是多少？', top_k=5, filters={'allowed_groups': ['all', 'finance'], '__viewer__': {'groups': ['all', 'finance'], 'username': 'alice'}}, trace=[{'icon': '🧠', 'name': 'Query 理解 / 改写', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '直通（仅检索模式）', 'summary': '原始问题直接进入向量化，未做改写与条件推断', 'items': [('输入 / 输出', '星云、天枢、陌生三个项目的预算合计是多少？')]}, {'icon': '🔄', 'name': '范围解析回退', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '已回退（multiple）', 'summary': '问句中的范围词无法解析为元数据过滤条件（主档未登记或同字段多值）。已丢弃该过滤并回退为全库语义检索，答案顶部注明未按该条件过滤。', 'items': [('回退原因', '这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。'), ('提取到的范围', '{}'), ('保留的条件', '权限、日期与手动筛选设置不受影响')]}, {'icon': '🏆', 'name': 'Rerank（精排）', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '未启用（可在 检索设置 或 .env RERANK_ENABLED 开启）', 'summary': '候选卡片按粗排顺序（向量相似度 / RRF 融合）直接使用', 'items': [('说明', '开启后：召回先扩宽（默认 10 条候选），LLM 逐条打分精排，再取 Top K 进入回答')]}, {'icon': '🧩', 'name': '合并 / 去重', 'time': '2026-11-23 14:58:41', 'elapsed': 0.0, 'status': '已执行', 'summary': '对召回结果做合并与去重，按本次路径的条数、单文档配额和 token 预算选取；截断计入覆盖提示。', 'items': [('去重 / 合并逻辑', '忽略空白差异后比较卡片全文，重复的只保留第一条；剩余卡片按相关度依次放入，直到达到条数或字数上限'), ('多样性限制', '同一文档最多采用 3 条；本次总名额 5'), ('被丢弃的卡片', '（没有需要丢弃的卡片）'), ('输出', '采用 0 条，丢弃 0 条')]}, {'icon': '📦', 'name': '上下文组装', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '已执行', 'summary': '把采用的卡片拼成一份带编号和出处的「资料附页」，随问题一起发给大模型；同文档相邻卡片自动拼接，恢复被切片切断的上下文', 'items': [('组装规则', '相关度降序编号 [1][2]…；每条标注来源/领域/章节/页码；token 上限约 4000'), ('相邻补全', '（没有可拼接的相邻卡片）'), ('输出（最终 Context）', '（没有检索到任何相关资料）'), ('规模', '共 0 条资料，合计 10 tokens（上限约 4000 tokens）')]}], keyword_query=None, use_hybrid=True, diagnostics={}),\n call().retrieve().__bool__(),\n call().retrieve().__len__(),\n call().retrieve().__bool__(),\n call().retrieve().__bool__(),\n call().retrieve().__iter__(),\n call().retrieve().__getitem__(slice(None, 5, None)),\n call().retrieve().__getitem__().__iter__(),\n call().retrieve().__iter__(),\n call(),\n call().retrieve('查星云项目或天枢项目的预算', top_k=5, filters={'allowed_groups': ['all', 'finance'], '__viewer__': {'groups': ['all', 'finance'], 'username': 'alice'}}, trace=[{'icon': '🧠', 'name': 'Query 理解 / 改写', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '直通（仅检索模式）', 'summary': '原始问题直接进入向量化，未做改写与条件推断', 'items': [('输入 / 输出', '查星云项目或天枢项目的预算')]}, {'icon': '🔄', 'name': '范围解析回退', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '已回退（multiple）', 'summary': '问句中的范围词无法解析为元数据过滤条件（主档未登记或同字段多值）。已丢弃该过滤并回退为全库语义检索，答案顶部注明未按该条件过滤。', 'items': [('回退原因', '这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。'), ('提取到的范围', '{}'), ('保留的条件', '权限、日期与手动筛选设置不受影响')]}, {'icon': '🏆', 'name': 'Rerank（精排）', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '未启用（可在 检索设置 或 .env RERANK_ENABLED 开启）', 'summary': '候选卡片按粗排顺序（向量相似度 / RRF 融合）直接使用', 'items': [('说明', '开启后：召回先扩宽（默认 10 条候选），LLM 逐条打分精排，再取 Top K 进入回答')]}, {'icon': '🧩', 'name': '合并 / 去重', 'time': '2026-11-23 14:58:41', 'elapsed': 0.0, 'status': '已执行', 'summary': '对召回结果做合并与去重，按本次路径的条数、单文档配额和 token 预算选取；截断计入覆盖提示。', 'items': [('去重 / 合并逻辑', '忽略空白差异后比较卡片全文，重复的只保留第一条；剩余卡片按相关度依次放入，直到达到条数或字数上限'), ('多样性限制', '同一文档最多采用 3 条；本次总名额 5'), ('被丢弃的卡片', '（没有需要丢弃的卡片）'), ('输出', '采用 0 条，丢弃 0 条')]}, {'icon': '📦', 'name': '上下文组装', 'time': '2026-11-23 14:58:41', 'elapsed': None, 'status': '已执行', 'summary': '把采用的卡片拼成一份带编号和出处的「资料附页」，随问题一起发给大模型；同文档相邻卡片自动拼接，恢复被切片切断的上下文', 'items': [('组装规则', '相关度降序编号 [1][2]…；每条标注来源/领域/章节/页码；token 上限约 4000'), ('相邻补全', '（没有可拼接的相邻卡片）'), ('输出（最终 Context）', '（没有检索到任何相关资料）'), ('规模', '共 0 条资料，合计 10 tokens（上限约 4000 tokens）')]}], keyword_query=None, use_hybrid=True, diagnostics={}),\n call().retrieve().__bool__(),\n call().retrieve().__len__(),\n call().retrieve().__bool__(),\n call().retrieve().__bool__(),\n call().retrieve().__iter__(),\n call().retrieve().__getitem__(slice(None, 5, None)),\n call().retrieve().__getitem__().__iter__(),\n call().retrieve().__iter__()].\n"
+    },
+    {
+      "test": "__main__.LifecycleBaseline.test_archive_restore",
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 46, in test_archive_restore\nAssertionError: Lists differ: [['1.0', 'active']] != [['1.0', 'expired'], ['1.1', 'active']]\n\nFirst differing element 0:\n['1.0', 'active']\n['1.0', 'expired']\n\nSecond list contains 1 additional elements.\nFirst extra element 1:\n['1.1', 'active']\n\n- [['1.0', 'active']]\n+ [['1.0', 'expired'], ['1.1', 'active']]\n"
+    }
+  ],
+  "errors": [
+    {
+      "test": "tests.test_document_version_ui.VersionUiStructureTests.test_actual_row_contains_declared_version_and_state",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\test_document_version_ui.py\", line 47, in test_actual_row_contains_declared_version_and_state\n    result = values[\"_row\"](doc)\n             ^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\app.py\", line 2946, in _row\n    project = project_catalog.get(d.get(\"project_id\"), {})\n              ^^^^^^^^^^^^^^^\nNameError: name 'project_catalog' is not defined\n"
+    },
+    {
+      "test": "tests.test_project_comparison.ProjectComparisonTests.test_explicit_filters_and_multiple_scope_errors (question='星云、天枢、陌生三个项目里预算最高的是哪个项目？')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\test_project_comparison.py\", line 139, in test_explicit_filters_and_multiple_scope_errors\n    self.assertEqual(meta[\"scope_issue\"], expected)\n                     ~~~~^^^^^^^^^^^^^^^\nKeyError: 'scope_issue'\n"
+    },
+    {
+      "test": "tests.test_project_comparison.ProjectComparisonTests.test_explicit_filters_and_multiple_scope_errors (question='星云、天枢、陌生三个项目的预算合计是多少？')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\test_project_comparison.py\", line 139, in test_explicit_filters_and_multiple_scope_errors\n    self.assertEqual(meta[\"scope_issue\"], expected)\n                     ~~~~^^^^^^^^^^^^^^^\nKeyError: 'scope_issue'\n"
+    },
+    {
+      "test": "tests.test_project_comparison.ProjectComparisonTests.test_explicit_filters_and_multiple_scope_errors (question='查星云项目或天枢项目的预算')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\test_project_comparison.py\", line 139, in test_explicit_filters_and_multiple_scope_errors\n    self.assertEqual(meta[\"scope_issue\"], expected)\n                     ~~~~^^^^^^^^^^^^^^^\nKeyError: 'scope_issue'\n"
+    }
+  ],
+  "archive_restore": {
+    "before": [
+      [
+        "1.0",
+        "expired"
+      ],
+      [
+        "1.1",
+        "active"
+      ]
+    ],
+    "archived": [
+      [
+        "1.0",
+        "archive"
+      ]
+    ],
+    "after": [
+      [
+        "1.0",
+        "active"
+      ]
+    ]
+  },
+  "initial_baseline_errors": [
+    {
+      "test": "tests.test_document_version_ui.VersionUiStructureTests.test_actual_row_contains_declared_version_and_state",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\test_document_version_ui.py\", line 47, in test_actual_row_contains_declared_version_and_state\n    result = values[\"_row\"](doc)\n             ^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\app.py\", line 2946, in _row\n    project = project_catalog.get(d.get(\"project_id\"), {})\n              ^^^^^^^^^^^^^^^\nNameError: name 'project_catalog' is not defined\n"
+    },
+    {
+      "test": "tests.test_project_comparison.ProjectComparisonTests.test_explicit_filters_and_multiple_scope_errors",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\test_project_comparison.py\", line 29, in setUp\n    self.ingest([self.write_note(text, filename)], default_project_id=self.project_ids[name],\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\_helpers.py\", line 226, in ingest\n    return ingest_files(paths=paths, config=self.cfg, embedding_client=self.embedding,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\src\\pipeline.py\", line 155, in ingest_files\n    return _ingest_files_impl(paths=paths, rebuild=rebuild, config=config,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\src\\pipeline.py\", line 434, in _ingest_files_impl\n    cleaned_docs, chunks = clean_and_chunk(docs, cfg)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: clean_and_chunk() takes 1 positional argument but 2 were given\n"
+    },
+    {
+      "test": "__main__.LifecycleBaseline.test_archive_restore",
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 32, in test_archive_restore\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\tests\\_helpers.py\", line 226, in ingest\n    return ingest_files(paths=paths, config=self.cfg, embedding_client=self.embedding,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\src\\pipeline.py\", line 155, in ingest_files\n    return _ingest_files_impl(paths=paths, rebuild=rebuild, config=config,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\skyzi\\AppData\\Local\\Temp\\sky-core-business-code-6f5393909f684690848e2541d9db6ba6\\src\\pipeline.py\", line 434, in _ingest_files_impl\n    cleaned_docs, chunks = clean_and_chunk(docs, cfg)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: clean_and_chunk() takes 1 positional argument but 2 were given\n"
+    }
+  ]
+}

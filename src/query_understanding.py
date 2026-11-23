@@ -55,6 +55,13 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
    "enumeration_scope"：列举范围，只允许 document（指定文档内的条目）或 cross_document（跨文档寻找条目）。
        明确指定一份简历/合同/产品说明时选 document；“哪些项目用过 RAG”选 cross_document。
        无法确定时省略；不要把文档内容条件当成目录筛选条件。
+   "inventory_intent"：只有用户只要已入库文件本身的名单或数量，且仅查文件元数据就能回答时，才输出布尔值 true。
+       “盘点一下手头的资料”“项目文件清单”“看看项目底下有什么东西”“星云项目有哪些文件”属于文件盘点。
+       “哪些文件提到了星云项目”“项目里程碑清单”“凤凰项目预算是多少”“列出文件并总结内容”均省略该字段。
+       文件盘点时省略 enumeration_scope。还需查正文、按属性分组、比较或排除多个范围时，省略 inventory_intent。
+   "inventory_domain"：仅在 inventory_intent 为 true 且原问题明确点名知识库领域时填写，逐字抄写领域名称或编号。
+       “项目文件清单”抄写“项目”；“星云项目的文件清单”应通过 metadata_scope 指定星云项目，省略 inventory_domain。
+       用户明确点名的领域即使不在枚举中也要照抄，由程序校验。未明确限定领域时省略，不按文件主题猜领域。
    "sub_queries"：字符串数组。仅当用户的**一个问题里包含多个不同的信息需求**时输出
        （如"查一下我的心得，并且查工作经历有几个"→ ["用户心得笔记的要点", "工作经历的数量"]）。
        拆分规则：每个子查询必须自带完整检索语境（含主语和主题词，禁止"李强的信息"这类宽泛表述）；
@@ -113,6 +120,8 @@ class QueryUnderstanding:
     error: str = ""
     elapsed: float = 0.0
     usage: dict = field(default_factory=dict)  # 本次调用的 token 用量（B16.1 模型消耗统计）
+    inventory_intent: bool = False
+    inventory_domain: str | None = ""  # 空字符串表示未指定；None 表示输出无效
 
 
 def _strip_code_fence(raw: str) -> str:
@@ -244,6 +253,16 @@ def understand_query(
             qu.sub_queries = cleaned[:4]  # 最多 4 个子查询，防拆分爆炸
 
         qu.filters, warnings = _valid_filters(data.get("filters", {}))
+        inventory = data.get("inventory_intent", False)
+        qu.inventory_intent = inventory is True
+        if type(inventory) is not bool:
+            warnings.append("inventory_intent 必须是布尔值，已忽略")
+        if qu.inventory_intent and "inventory_domain" in data:
+            domain = data["inventory_domain"]
+            literal = domain.strip() if isinstance(domain, str) else ""
+            qu.inventory_domain = literal if 0 < len(literal) <= 80 else None
+            if qu.inventory_domain is None:
+                warnings.append("inventory_domain 不是有效的领域原文")
         tr = data.get("time_range")
         qu.time_range = _valid_time_range(tr)
         if tr is not None and not qu.time_range:

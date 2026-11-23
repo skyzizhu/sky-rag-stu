@@ -10,6 +10,11 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
+from heapq import nlargest
+from threading import Lock
+
 import jieba
 from rank_bm25 import BM25Okapi
 
@@ -28,43 +33,30 @@ def tokenize(text: str) -> list[str]:
 
 
 # ---------- BM25 索引缓存 ----------
-# 缓存结构：{cache_key: {"bm25": BM25Okapi, "cards": list, "epoch": str}}
-# cache_key 由过滤条件生成；库变更时通过 invalidate_cache() 全部清空
-_bm25_cache: dict[tuple[VectorStore, str], dict] = {}
-_cache_collection_count = -1  # 上次构建时的集合卡片数，用于检测库变化
+@dataclass
+class _ScopedIndex:
+    bm25: BM25Okapi | None
+    cards: list[dict]
+    postings: dict[str, list[int]]
+    truncated: bool
+
+
+_bm25_cache: OrderedDict[tuple, _ScopedIndex] = OrderedDict()
+_cache_lock = Lock()
 
 
 def invalidate_cache() -> None:
     """入库/删除后调用，清空全部 BM25 缓存。"""
-    global _bm25_cache, _cache_collection_count
-    _bm25_cache = {}
-    _cache_collection_count = -1
+    with _cache_lock:
+        _bm25_cache.clear()
 
 
-def _get_cached_index(store: VectorStore, filters: dict | None) -> tuple[BM25Okapi, list[dict], bool] | None:
-    """获取缓存的 BM25 索引；未命中或库已变化时返回 None。
-
-    库变化的判定 = 卡片总数变了 或 构建后索引纪元变了。只看卡片数不够：改元数据（可见部门、
-    分类、领域）卡片数不变；而其他进程（前台 ↔ MCP）的写操作只能通过纪元文件感知。
-    """
-    global _cache_collection_count
-    try:
-        current_count = store.count()
-    except Exception:
-        return None
-    if current_count != _cache_collection_count:
-        invalidate_cache()
-        _cache_collection_count = current_count
-        return None
-    revision = retrieval_acl_revision()
-    if revision is None:
-        return None
-    key = (store, str(sorted((filters or {}).items())))
-    entry = _bm25_cache.get(key)
-    if (entry and entry["epoch"] == (index_epoch.current(), revision)
-            and revision == retrieval_acl_revision()):
-        return entry["bm25"], entry["cards"], entry["truncated"]
-    return None
+def _get_cached_index(key: tuple) -> _ScopedIndex | None:
+    with _cache_lock:
+        entry = _bm25_cache.get(key)
+        if entry is not None:
+            _bm25_cache.move_to_end(key)
+        return entry
 
 
 def _index_text(payload: dict) -> str:
@@ -80,27 +72,30 @@ def _index_text(payload: dict) -> str:
     return " ".join(str(p) for p in parts if p)
 
 
-def _build_and_cache(store: VectorStore, filters: dict | None) -> tuple[BM25Okapi, list[dict], bool] | None:
-    """构建 BM25 索引并写入缓存。"""
-    global _cache_collection_count
-    epoch = (index_epoch.current(), retrieval_acl_revision())
+def _build_index(store: VectorStore, filters: dict | None) -> _ScopedIndex:
     cards = store.get_all_cards(filters=filters, limit=_MAX_CARDS + 1)
-    if not cards:
-        return None
     truncated = len(cards) > _MAX_CARDS
     cards = cards[:_MAX_CARDS]
     corpus = [tokenize(_index_text(card["payload"])) for card in cards]
+    if not any(corpus):
+        return _ScopedIndex(None, cards, {}, truncated)
     bm25 = BM25Okapi(corpus)
-    key = (store, str(sorted((filters or {}).items())))
-    if epoch[1] is not None and epoch == (index_epoch.current(), retrieval_acl_revision()):
-        for oldest in list(_bm25_cache)[:max(0, len(_bm25_cache) - _MAX_CACHE_ENTRIES + 1)]:
-            _bm25_cache.pop(oldest, None)
-        _bm25_cache[key] = {"bm25": bm25, "cards": cards, "epoch": epoch, "truncated": truncated}
-    try:
-        _cache_collection_count = store.count()
-    except Exception:
-        pass
-    return bm25, cards, truncated
+    postings = defaultdict(list)
+    for index, terms in enumerate(bm25.doc_freqs):
+        for term in terms:
+            postings[term].append(index)
+    return _ScopedIndex(bm25, cards, postings, truncated)
+
+
+def _rank_matches(index: _ScopedIndex, tokens: list[str], top_k: int) -> list[dict]:
+    candidates = {position for term in set(tokens) for position in index.postings.get(term, ())}
+    if not candidates or index.bm25 is None:
+        return []
+    positions = list(candidates)
+    scores = index.bm25.get_batch_scores(tokens, positions)
+    ranked = nlargest(top_k, zip(positions, scores), key=lambda pair: (pair[1], -pair[0]))
+    return [{"score": float(score), "payload": index.cards[position]["payload"]}
+            for position, score in ranked]
 
 
 def bm25_search(
@@ -113,30 +108,38 @@ def bm25_search(
 ) -> list[dict]:
     """对知识卡片做 BM25 关键词检索（带缓存，首次构建后复用）。"""
     store = store or get_vector_store()
-    if not store.collection_exists():
+    epoch = (index_epoch.current(), retrieval_acl_revision())
+    scoped = "__viewer__" in (filters or {})
+    if scoped and epoch[1] is None:
+        return []
+    count_available = True
+    try:
+        count = store.count_existing()
+    except Exception:
+        # The exact count is a cache safeguard. An otherwise readable index can
+        # still answer from a fresh scoped scan without caching the result.
+        count_available, count = False, None
+    if count_available and count is None:
         raise VectorStoreError(
             "知识库还是空的，请先入库（运行 python ingest.py 或在界面里上传文档）。"
         )
 
-    cached = _get_cached_index(store, filters)
+    # The scope includes the caller's identity. The count also detects out-of-band
+    # additions or removals that do not bump the application epoch.
+    key = (store, str(sorted((filters or {}).items())), epoch, count)
+    cached = _get_cached_index(key) if count_available else None
     if diagnostics is not None:
         diagnostics["cache_hit"] = cached is not None
-    if cached is None:
-        cached = _build_and_cache(store, filters)
-    if cached is None:
-        return []
-    bm25, cards, truncated = cached
+    index = cached if cached is not None else _build_index(store, filters)
     if diagnostics is not None:
-        diagnostics["truncated"] = truncated
-    tokens = tokenize(query)
-    terms = set(tokens)
-    scores = bm25.get_scores(tokens)
-    ranked = sorted(
-        ((card, score) for card, score, counts in zip(cards, scores, bm25.doc_freqs)
-         if not terms.isdisjoint(counts)),
-        key=lambda pair: -pair[1],
-    )
-    return [
-        {"score": float(score), "payload": card["payload"]}
-        for card, score in ranked[:top_k]
-    ]
+        diagnostics["truncated"] = index.truncated
+    results = _rank_matches(index, tokenize(query), top_k)
+    if epoch != (index_epoch.current(), retrieval_acl_revision()):
+        return []
+    if cached is None and count_available and epoch[1] is not None:
+        with _cache_lock:
+            _bm25_cache[key] = index
+            _bm25_cache.move_to_end(key)
+            while len(_bm25_cache) > _MAX_CACHE_ENTRIES:
+                _bm25_cache.popitem(last=False)
+    return results

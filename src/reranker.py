@@ -25,6 +25,7 @@ import threading
 from dataclasses import dataclass, field
 
 from src.config import AppConfig, get_config
+from src.context import estimate_tokens
 from src.llm import LLMClient
 from src.retriever import RetrievedItem
 
@@ -52,7 +53,39 @@ RERANK_USER_PROMPT_TEMPLATE = """【用户问题】{question}
 
 请对以上每条候选输出评分 JSON 数组。"""
 
-_MAX_CANDIDATE_CHARS = 300  # 每条候选送给评分器的正文长度（控制成本，标题句已足够判断）
+_LLM_CANDIDATE_TOKENS = 700
+
+
+def _focus_window(question: str, windows) -> str:
+    from src.keyword_search import tokenize
+
+    terms = {term.casefold() for term in tokenize(question) if len(term) > 1 and term.isalnum()}
+
+    def score(window):
+        folded = window.casefold()
+        return sum(term in folded for term in terms)
+
+    return max(windows, key=score)
+
+
+def _llm_excerpt(question: str, text: str) -> str:
+    if estimate_tokens(text) <= _LLM_CANDIDATE_TOKENS:
+        return text
+    windows = []
+    start = 0
+    while start < len(text):
+        low, high = start, min(len(text), start + _LLM_CANDIDATE_TOKENS * 4)
+        while low < high:
+            middle = (low + high + 1) // 2
+            if estimate_tokens(text[start:middle]) <= _LLM_CANDIDATE_TOKENS:
+                low = middle
+            else:
+                high = middle - 1
+        windows.append(text[start:low])
+        if low == len(text):
+            break
+        start += max(1, (low - start) // 2)
+    return _focus_window(question, windows)
 
 
 @dataclass
@@ -128,11 +161,14 @@ def rerank_llm(
     """用 LLM 对候选卡片逐条打相关度分，按分重排。失败时整体回退为粗排顺序。"""
     cfg = config or get_config()
     outcome = RerankOutcome(before_order=[f"[{it.rank}] {it.metadata.get('source')}" for it in items])
+    if not items:
+        outcome.ok = True
+        return outcome
 
     lines = []
     for i, item in enumerate(items, start=1):
         meta = item.metadata
-        snippet = item.text[:_MAX_CANDIDATE_CHARS].replace("\n", " ")
+        snippet = _llm_excerpt(question, item.text)
         lines.append(f'C{i}｜来源: {meta.get("source", "?")}｜章节: {meta.get("section") or "-"}｜内容: {snippet}')
     outcome.user_prompt = RERANK_USER_PROMPT_TEMPLATE.format(
         question=question, candidates="\n".join(lines)
@@ -148,32 +184,30 @@ def rerank_llm(
         outcome.raw_output = raw
         entries = _extract_json_array(raw)
         score_map: dict[str, float] = {}
-        for entry in entries if isinstance(entries, list) else []:
+        expected = {f"C{i}" for i in range(1, len(items) + 1)}
+        for entry in entries:
             if not isinstance(entry, dict):
-                continue
+                raise ValueError("候选评分格式无效")
             cid = str(entry.get("id", "")).strip().upper()
-            score = float(entry.get("score", 0))
-            score_map[cid] = max(0.0, min(10.0, score))
+            score = entry.get("score")
+            if (cid not in expected or cid in score_map or type(score) not in (int, float)
+                    or not 0 <= score <= 10):
+                raise ValueError("候选编号重复或无效，或分数不在 0–10 之间")
+            score_map[cid] = float(score)
+        if score_map.keys() != expected:
+            raise ValueError("候选评分不完整")
 
-        # 打分排序：没被打分 / 打分非法的候选沿用粗排名次排在后面
-        # 注意：候选编号 C{idx+1} 是 1-based，与提示词里的编号一一对应
-        def sort_key(pair: tuple[int, RetrievedItem]) -> tuple[float, int]:
-            idx, item = pair
-            return (-score_map.get(f"C{idx + 1}", -1.0), idx)
-
-        ordered_pairs = sorted(enumerate(items), key=sort_key)
+        ordered_pairs = sorted(enumerate(items), key=lambda pair: -score_map[f"C{pair[0] + 1}"])
         outcome.items = [item for _, item in ordered_pairs]
         outcome.scores = [
-            (f"C{idx + 1}", item.metadata.get("source", "?"), score_map.get(f"C{idx + 1}", -1.0))
+            (f"C{idx + 1}", item.metadata.get("source", "?"), score_map[f"C{idx + 1}"])
             for idx, item in ordered_pairs
         ]
         outcome.after_order = [
             f"[{rank}] {source}（{score:.2f} 分，{cid}）"
             for rank, (cid, source, score) in enumerate(outcome.scores[:top_k], start=1)
         ]
-        outcome.ok = bool(score_map)
-        if not outcome.ok:
-            outcome.error = "评分输出中没有有效条目"
+        outcome.ok = True
     except Exception as exc:
         outcome.ok = False
         outcome.error = f"{type(exc).__name__}: {exc}"
@@ -190,7 +224,6 @@ _LOCAL_RERANKER_KEY = None
 _LOCAL_LOAD_LOCK = threading.Lock()
 _LOCAL_SCORE_LOCK = threading.Lock()
 _LOCAL_MAX_PAIR_TOKENS = 2048
-_LOCAL_DOC_CHARS = 1200
 
 
 def _sigmoid(x: float) -> float:
@@ -223,7 +256,7 @@ def _get_local_reranker(config: AppConfig | None = None):
         if not model_file.exists() or not tok_file.exists():
             raise FileNotFoundError(f"精排模型文件缺失：{cfg.rerank_model_dir}")
         tokenizer = Tokenizer.from_file(str(tok_file))
-        tokenizer.enable_truncation(max_length=_LOCAL_MAX_PAIR_TOKENS)
+        tokenizer.no_truncation()
         options = ort.SessionOptions()
         options.intra_op_num_threads = max(0, cfg.rerank_threads)
         options.inter_op_num_threads = 1
@@ -237,11 +270,25 @@ def _get_local_reranker(config: AppConfig | None = None):
 
 def _score_pair(tokenizer, session, input_names, query: str, text: str,
                 detail: dict | None = None) -> float:
-    """逐对计时分词和推理；输入长度保持不变。"""
+    """Score a complete card when the actual pair fits, otherwise select a query-focused window."""
     import numpy as np
 
     start = time.perf_counter()
     encoding = tokenizer.encode(query, text)
+    if len(encoding.ids) > _LOCAL_MAX_PAIR_TOKENS:
+        query_offsets = [offset for seq, offset in zip(encoding.sequence_ids, encoding.offsets) if seq == 0]
+        if len(query_offsets) > _LOCAL_MAX_PAIR_TOKENS // 4:
+            query = query[:query_offsets[_LOCAL_MAX_PAIR_TOKENS // 4 - 1][1]]
+            encoding = tokenizer.encode(query, text)
+        if len(encoding.ids) > _LOCAL_MAX_PAIR_TOKENS:
+            offsets = [offset for seq, offset in zip(encoding.sequence_ids, encoding.offsets) if seq == 1]
+            available = _LOCAL_MAX_PAIR_TOKENS - (len(encoding.ids) - len(offsets)) - 4
+            windows = (text[offsets[start][0]:offsets[min(len(offsets), start + available) - 1][1]]
+                       for start in range(0, len(offsets), max(1, available // 2)))
+            text = _focus_window(query, windows)
+            encoding = tokenizer.encode(query, text)
+    if len(encoding.ids) > _LOCAL_MAX_PAIR_TOKENS:
+        raise ValueError("精排分词后超出句对预算")
     feed = {"input_ids": np.array([encoding.ids], dtype=np.int64),
             "attention_mask": np.array([encoding.attention_mask], dtype=np.int64)}
     if "token_type_ids" in input_names:
@@ -253,7 +300,8 @@ def _score_pair(tokenizer, session, input_names, query: str, text: str,
         raise ValueError("精排模型输出不是单个有限分数")
     inference = time.perf_counter() - start
     if detail is not None:
-        detail.update(token_count=len(encoding.ids), tokenization=tokenization, inference=inference)
+        detail.update(document_chars=len(text), token_count=len(encoding.ids),
+                      tokenization=tokenization, inference=inference)
     return _sigmoid(float(logits[0]))
 
 
@@ -284,9 +332,9 @@ def rerank_local(question: str, items: list[RetrievedItem], top_k: int,
             outcome.timings["queue"] = time.perf_counter() - wait_start
             for i, item in enumerate(items, start=1):
                 detail = {"id": f"C{i}", "source": item.metadata.get("source", "?"),
-                          "document_chars": len(item.text[:_LOCAL_DOC_CHARS])}
+                          "document_chars": len(item.text)}
                 score01 = _score_pair(tokenizer, session, input_names, question,
-                                      item.text[:_LOCAL_DOC_CHARS], detail)
+                                      item.text, detail)
                 score_map[f"C{i}"] = score01 * 10.0
                 outcome.pair_details.append(detail)
                 outcome.pair_tokens.append(detail["token_count"])

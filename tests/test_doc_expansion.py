@@ -39,7 +39,7 @@ class ExpandFactsDominantTests(unittest.TestCase):
         items = ([_item("deck", 3, 1), _item("deck", 1, 2), _item("other", 1, 3),
                   _item("deck", 5, 4), _item("single", 1, 5), _item("lone", 1, 6)])
         store = mock.Mock()
-        store.get_all_cards.return_value = [_card("deck", i) for i in range(1, 7)]
+        store.ordered_document_cards.return_value = [_card("deck", i) for i in range(1, 7)]
         with mock.patch("src.pipeline.get_vector_store", return_value=store):
             expanded, added, docs, notes = expand_facts_dominant_documents(
                 items, {"status": "active"}, top_k=5, cfg=self.cfg(), multi_fact=False)
@@ -58,24 +58,31 @@ class ExpandFactsDominantTests(unittest.TestCase):
         """复合问题（multi_fact）放宽前排要求：池内 ≥2 张即可扩展。"""
         items = [_item("deck", 1, 1), _item("other", 1, 2), _item("deck", 2, 3)]
         store = mock.Mock()
-        store.get_all_cards.return_value = [_card("deck", i) for i in range(1, 5)]
+        store.ordered_document_cards.side_effect = (
+            lambda filters, limit, **kwargs: [_card("deck", i) for i in range(1, 5)]
+            if filters["document_id"] == "deck" else [])
         with mock.patch("src.pipeline.get_vector_store", return_value=store):
             expanded, added, docs, _ = expand_facts_dominant_documents(
                 items, None, top_k=5, cfg=self.cfg(), multi_fact=True)
         self.assertEqual(docs, {"deck"})
         self.assertEqual(added, 2)
 
-    def test_oversized_doc_not_expanded(self):
-        """全文超过上限的文档不展开（装不下整篇就不补，避免半篇噪声）。"""
+    def test_oversized_doc_only_adds_anchored_neighbors(self):
+        """超限文档按同版本和状态补入相邻卡片。"""
         items = [_item("big", 1, 1), _item("big", 2, 2), _item("other", 1, 3)]
+        items[0].metadata["status"] = "active"
         store = mock.Mock()
-        store.get_all_cards.return_value = [_card("big", i) for i in range(1, 4)]  # limit=2 → 超限
+        store.ordered_document_cards.side_effect = (
+            [_card("big", i) for i in range(1, 4)], [_card("big", 3)])
         with mock.patch("src.pipeline.get_vector_store", return_value=store):
             expanded, added, docs, notes = expand_facts_dominant_documents(
-                items, None, top_k=5, cfg=self.cfg(limit=2), multi_fact=False)
-        self.assertEqual(docs, set())
-        self.assertEqual(added, 0)
-        self.assertTrue(any("不展开" in note for note in notes))
+                items, {"status": "all"}, top_k=5, cfg=self.cfg(limit=2), multi_fact=False)
+        self.assertEqual(docs, {"big"})
+        self.assertEqual(added, 1)
+        self.assertEqual(expanded[-1].metadata["chunk_id"], "big_0003")
+        store.ordered_document_cards.assert_called_with(
+            {"status": "active", "document_id": "big", "version": "1.0"}, 2, indices={0, 3})
+        self.assertTrue(any("邻卡" in note for note in notes))
 
     def test_disabled_and_no_dominant_are_noops(self):
         """limit=0 关闭；无主导文档（前 5 名同文档 <2 张且非复合题）不触发。"""
@@ -86,7 +93,7 @@ class ExpandFactsDominantTests(unittest.TestCase):
                 items, None, 5, self.cfg(limit=0), False)[1], 0)
             self.assertEqual(expand_facts_dominant_documents(
                 items, None, 5, self.cfg(), False)[2], set())
-        store.get_all_cards.assert_not_called()
+        store.ordered_document_cards.assert_not_called()
 
 
 class ResolveSpokenSourceTests(unittest.TestCase):
@@ -134,7 +141,7 @@ class MultiFactCapTests(unittest.TestCase):
                   _item("d3", 1, 5), _item("d3", 2, 8), _item("d4", 1, 9),
                   _item("d1", 3, 10), _item("d2", 3, 11)])
         store = mock.Mock()
-        store.get_all_cards.side_effect = (
+        store.ordered_document_cards.side_effect = (
             lambda filters, limit: [{"payload": {"document_id": filters["document_id"],
                                                  "chunk_id": f"{filters['document_id']}_000{i}",
                                                  "source": f"{filters['document_id']}.md",

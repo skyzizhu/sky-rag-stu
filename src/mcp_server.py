@@ -283,7 +283,11 @@ def _sources_payload(sources: list[dict]) -> list[dict]:
             "channels": s.get("channels"),
             "path": s.get("path"),
             "section": s.get("section"),
+            "section_path": s.get("section_path"),
+            "sections": s.get("sections") or [],
+            "section_paths": s.get("section_paths") or [],
             "page": s.get("page"),
+            "page_kind": s.get("page_kind"),
             "domain": s.get("domain"),
             "doc_type": s.get("doc_type") or "",
             "department": s.get("department") or "",
@@ -303,7 +307,7 @@ def _items_payload(items: list[dict]) -> list[dict]:
         {**item, "evidence": [
             {"source_id": evidence["source_id"], "quote": evidence["quote"],
              "metadata": {key: evidence["metadata"][key] for key in (
-                 "document_id", "chunk_id", "source", "path", "section", "page",
+                 "document_id", "chunk_id", "source", "path", "section", "section_path", "page", "page_kind",
                  "project_id", "doc_type", "version", "status", "classification",
              ) if key in evidence["metadata"]}}
             for evidence in item["evidence"]
@@ -509,6 +513,11 @@ def _tool_knowledge_search_impl(
                     "score": round(float(item.score), 4),
                     "channels": item.channels,
                     "section": item.metadata.get("section"),
+                    "section_path": item.metadata.get("section_path"),
+                    "sections": item.metadata.get("sections") or [],
+                    "section_paths": item.metadata.get("section_paths") or [],
+                    "page": item.metadata.get("page"),
+                    "page_kind": item.metadata.get("page_kind"),
                     "text": item.text,
                 }
                 for i, item in enumerate(result.retrieved, start=1)
@@ -603,7 +612,8 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
 
     Args:
         document_ids: 文档编号列表（knowledge_search 结果中的 document_id 字段，1~10 篇）
-        page: fragments 模式、单文档时的页码（从 1 起；多文档时不分页）
+        page: fragments 模式的卡片列表页（从 1 起；多文档时不分页）。片段内的 page 是原文位置，
+              page_kind 区分 PDF 物理页、幻灯片与 Word 显式分页段。
         page_size: fragments 模式每页卡片数（1~20，默认 5）
         mode: "fragments"（分页片段）或 "full"（拼接全文）
         section: 可选，章节名关键词——只返回章节名包含它的内容（大小写不敏感）
@@ -617,6 +627,7 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
     import math
 
     from src.context import _merge_run
+    from src.metadata import chunk_sequence
     from src.permissions import classify_visibility, scope_filters
     from src.retriever import RetrievedItem, effective_filters
     from src.vector_store import get_vector_store
@@ -655,9 +666,14 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
     except Exception as exc:
         return json.dumps({"error": f"知识库访问失败：{exc}"}, ensure_ascii=False)
 
-    def _seq(card) -> int:
-        m = re.search(r"(\d{4})$", card["payload"].get("chunk_id") or "")
-        return int(m.group(1)) if m else 0
+    def _seq(card) -> tuple[bool, int]:
+        number = chunk_sequence(card["payload"])
+        return number is None, number or 0
+
+    def _headings(payload):
+        return [value for value in (payload.get("section"), payload.get("section_path"),
+                                    *(payload.get("sections") or ()), *(payload.get("section_paths") or ()))
+                if value]
 
     # 按文档分组（保持请求顺序），组内按卡片序号排序
     by_doc: dict[str, list] = {}
@@ -695,13 +711,12 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
             cards = [c for c in cards if c["payload"].get("status") == selected_status]
         if section_kw:  # 章节过滤：只保留章节名含关键词的卡片（大小写不敏感）
             matched = [c for c in cards
-                       if section_kw in str(c["payload"].get("section") or "").lower()]
+                       if any(section_kw in str(value).lower() for value in _headings(c["payload"]))]
             if not matched:
                 section_missed.append(d)  # 文档可见但无匹配章节：单独列出，不算 not_found
                 continue
             cards = matched
         meta = cards[0]["payload"]
-        cards = sorted(cards, key=_seq)
         base = {"document_id": d, "source": meta.get("source"),
                 "path": meta.get("path"),
                 "title": meta.get("title"), "owner": meta.get("owner"),
@@ -712,8 +727,7 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
                 "project_id": meta.get("project_id"),
                 "classification": classify_visibility(meta.get("allowed_groups"), meta.get("allowed_users")),
                 "version": meta.get("version"), "status": meta.get("status"), "total_cards": len(cards),
-                "sections": sorted({str(c["payload"].get("section") or "")
-                                    for c in cards if c["payload"].get("section")})}
+                "sections": sorted({str(value) for c in cards for value in _headings(c["payload"])})}
         if mode == "full":
             run = [RetrievedItem(rank=i, score=0.0, text=c["payload"]["text"],
                                  metadata={k: v for k, v in c["payload"].items() if k != "text"})
@@ -723,6 +737,11 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
         else:
             fragments = [{"chunk_id": c["payload"].get("chunk_id"),
                           "section": c["payload"].get("section"),
+                          "section_path": c["payload"].get("section_path"),
+                          "sections": c["payload"].get("sections") or [],
+                          "section_paths": c["payload"].get("section_paths") or [],
+                          "page": c["payload"].get("page"),
+                          "page_kind": c["payload"].get("page_kind"),
                           "text": c["payload"].get("text", "")}
                          for c in cards]
             if len(ordered_ids) == 1:  # 分页仅在单文档时生效；多文档按文档分组全量返回

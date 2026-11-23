@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import HTTPException, Request
 
 from src import admin_app, auth_db, keyword_search, mcp_server
+from src.ingest_publication import publication_pending
 from src.manage import archive, remove_from_index, revoke_document_user, restore, update_metadata
 from src.permissions import document_visible, scope_filters
 from src.pipeline import query_evidence
@@ -126,14 +127,17 @@ class VisibilityLevelTests(IngestHarness):
 
     def test_reingest_after_interrupted_archive_still_requires_original_grant(self):
         relative = self._note("restricted.md", [], ["alice"])
-        with (mock.patch.object(self.embedding, "embed_texts", side_effect=RuntimeError("offline")),
+        with (mock.patch.object(self.store.client, "batch_update_points", side_effect=RuntimeError("offline")),
               self.assertRaises(RuntimeError),
               contextlib.redirect_stdout(io.StringIO())):
             archive(relative)
         moved = "archive/" + relative
         self.assertTrue((self.knowledge / moved).is_file())
         self.assertEqual(self.ledger()[moved]["visibility_info"]["value"]["allowed_users"], ["alice"])
+        self.assertTrue(publication_pending())
+        self.assertIsNone(auth_db.retrieval_acl_revision())
         self.ingest([self.knowledge / moved])
+        self.assertFalse(publication_pending())
         remove_from_index(moved)
         self.ingest([self.knowledge / moved])
         self.assertEqual(self._sources(["hr"], "alice"), {"restricted.md"})

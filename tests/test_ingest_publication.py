@@ -15,6 +15,94 @@ class PublicationTests(IngestHarness):
         super().setUp()
         self.use_fakes()
 
+    def test_archive_and_restore_keep_editions_and_vectors(self):
+        path = self.write_note("第一版")
+        relative = path.relative_to(self.knowledge).as_posix()
+        self.ingest([path])
+        self.write_note("第二版")
+        self.ingest([path])
+        points, _ = self.store.client.scroll(self.cfg.qdrant_collection, with_vectors=True)
+        original_vectors = {p.id: p.vector for p in points}
+        with mock.patch.object(self.embedding, "embed_texts", side_effect=AssertionError("不应重新向量化")):
+            archived = manage.archive(relative)["summary"].file_rows[0]["path"]
+            self.assertEqual(self.versions(), {"1.0": "expired", "1.1": "archive"})
+            self.assertEqual({row["path"] for row in self.store.list_documents()}, {archived})
+            self.assertEqual({row["domain"] for row in self.store.list_documents()}, {"archive"})
+            self.assertEqual(manage.restore(archived)["summary"].file_rows[0]["path"], relative)
+        self.assertEqual(self.versions(), {"1.0": "expired", "1.1": "active"})
+        points, _ = self.store.client.scroll(self.cfg.qdrant_collection, with_vectors=True)
+        self.assertEqual({p.id: p.vector for p in points}, original_vectors)
+        self.assertEqual({p.payload["path"] for p in points}, {relative})
+        self.assertEqual({rel for rel in self.ledger()}, {relative})
+        self.write_note("第三版")
+        self.ingest([path])
+        self.assertEqual(self.versions(), {"1.0": "expired", "1.1": "expired", "1.2": "active"})
+
+    def test_relocation_ledger_failure_keeps_original_file_and_editions(self):
+        path = self.write_note("第一版")
+        relative = path.relative_to(self.knowledge).as_posix()
+        self.ingest([path])
+        self.write_note("第二版")
+        self.ingest([path])
+        before = self.ledger()
+        with mock.patch.object(index_state, "save_state", side_effect=OSError("disk full")):
+            with self.assertRaisesRegex(OSError, "disk full"):
+                manage.archive(relative)
+        self.assertTrue(path.is_file())
+        self.assertFalse((self.knowledge / "archive" / relative).exists())
+        self.assertEqual(self.ledger(), before)
+        self.assertEqual(self.versions(), {"1.0": "expired", "1.1": "active"})
+        self.assertFalse(publication_pending())
+        self.assertIsNotNone(auth_db.retrieval_acl_revision())
+
+    def test_restore_into_occupied_path_keeps_both_documents(self):
+        path = self.write_note("原正文")
+        relative = path.relative_to(self.knowledge).as_posix()
+        self.ingest([path])
+        self.write_note("尚未入库的修改正文")
+        archived = manage.archive(relative)["summary"].file_rows[0]["path"]
+        self.assertEqual(self.versions(), {"1.0": "expired", "1.1": "archive"})
+        self.write_note("占用旧文件位置的新资料")
+        self.ingest([path])
+        restored = manage.restore(archived)["summary"].file_rows[0]["path"]
+        self.assertNotEqual(restored, relative)
+        self.assertEqual(self.ledger()[restored]["version"], "1.1")
+        self.assertEqual(self.ledger()[relative]["version"], "1.0")
+        cards = [row["payload"] for row in self.store.get_all_cards()]
+        self.assertEqual(len({card["chunk_id"] for card in cards}), 3)
+        self.assertEqual({(card["path"], card["version"], card["status"]) for card in cards}, {
+            (restored, "1.0", "expired"), (restored, "1.1", "active"), (relative, "1.0", "active"),
+        })
+        self.assertIn("占用旧文件位置的新资料", path.read_text(encoding="utf-8"))
+        self.assertIn("尚未入库的修改正文", (self.knowledge / restored).read_text(encoding="utf-8"))
+
+    def test_relocation_recovers_partial_vector_metadata_write(self):
+        path = self.write_note("第一版")
+        relative = path.relative_to(self.knowledge).as_posix()
+        self.ingest([path])
+        self.write_note("第二版")
+        self.ingest([path])
+        write = self.store.client.batch_update_points
+
+        def write_then_fail(collection, operations, **kwargs):
+            write(collection, operations[:1], **kwargs)
+            raise RuntimeError("offline")
+
+        with mock.patch.object(self.store.client, "batch_update_points", side_effect=write_then_fail):
+            with self.assertRaisesRegex(RuntimeError, "offline"):
+                manage.archive(relative)
+        archived = f"archive/{relative}"
+        self.assertTrue(publication_pending())
+        self.assertIsNone(auth_db.retrieval_acl_revision())
+        self.assertEqual(self.store.count(), 0)
+        self.assertNotIn(relative, self.ledger())
+        self.assertIn(archived, self.ledger())
+        self.assertEqual(self.ingest([self.knowledge / archived], skip_unchanged=True).skipped_files, [archived])
+        self.assertFalse(publication_pending())
+        self.assertIsNotNone(auth_db.retrieval_acl_revision())
+        self.assertEqual(self.versions(), {"1.0": "expired", "1.1": "archive"})
+        self.assertEqual({row["path"] for row in self.store.list_documents()}, {archived})
+
     def test_partial_write_hides_staged_points_and_preserves_previous_edition(self):
         path = self.write_note("第一版")
         self.ingest([path])
@@ -193,4 +281,17 @@ class PublicationTests(IngestHarness):
         self.store.delete_documents([self.store.list_documents()[0]["document_id"]])
         result = self.ingest([path], skip_unchanged=True)
         self.assertEqual(result.ok_files, 1)
+        self.assertEqual(self.versions(), {"1.0": "active"})
+
+    def test_matching_file_hash_repairs_a_card_with_a_different_content_hash(self):
+        path = self.write_note("较长的正文。" * 1800)
+        self.ingest([path])
+        cards = self.store.get_all_cards()
+        self.assertGreater(len(cards), 1)
+        verified = index_state.file_hash(path)
+        self.store.client.set_payload(self.cfg.qdrant_collection,
+                                      {"version_content_hash": "旧指纹"}, points=[cards[-1]["id"]], wait=True)
+        self.assertEqual(self.ingest([path], skip_unchanged=True).ok_files, 1)
+        self.assertEqual({row["payload"]["version_content_hash"] for row in self.store.get_all_cards()},
+                         {verified})
         self.assertEqual(self.versions(), {"1.0": "active"})

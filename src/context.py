@@ -16,6 +16,7 @@ import unicodedata
 from dataclasses import replace
 
 from src.config import AppConfig, get_config
+from src.metadata import chunk_sequence
 from src.retriever import RetrievedItem
 
 
@@ -50,22 +51,14 @@ def citation_label(item: RetrievedItem, number: int, *, show_version: bool = Fal
     if meta.get("section"):
         label += f" | 章节: {meta['section']}"
     if meta.get("page"):
-        label += f" | 页码: {meta['page']}"
+        page_label = {"explicit_break": "显式分页段", "slide": "幻灯片"}.get(meta.get("page_kind"), "页码")
+        label += f" | {page_label}: {meta['page']}"
     return label
 
 
 def _chunk_seq(item: RetrievedItem) -> int | None:
     """从 chunk_id 末尾解析出卡片序号（doc_xxx_0003 → 3）；解析失败返回 None。"""
-    match = re.search(r"(\d{4})$", item.metadata.get("chunk_id") or "")
-    return int(match.group(1)) if match else None
-
-
-def _truncate_to_tokens(text: str, max_tokens: int) -> str:
-    """按 token 估算把文本截断到上限内（按比例折算字符数粗截，够用即可）。"""
-    total = estimate_tokens(text)
-    if total <= max_tokens:
-        return text
-    return text[: max(0, int(len(text) * max_tokens / total))] + "……"
+    return chunk_sequence(item.metadata)
 
 
 # 切片时每张卡片正文开头注入的「来源文档：xxx」行（src/chunker.py，供按文件名检索）
@@ -82,22 +75,36 @@ def _merge_run(run: list[RetrievedItem]) -> str:
     - 不重叠的两张卡片之间换行，避免正文首尾粘连。
     """
     merged = run[0].text
-    prev_section = run[0].metadata.get("section")
-    for item in run[1:]:
+    for previous, item in zip(run, run[1:]):
         body = _SOURCE_PREFIX_RE.sub("", item.text, count=1)
-        overlap = 0
-        for k in range(min(300, len(merged), len(body)), 0, -1):
-            if merged.endswith(body[:k]):
-                overlap = k
-                break
+        before, current = _chunk_seq(previous), _chunk_seq(item)
+        adjacent = (before is not None and current == before + 1
+                    and all(previous.metadata.get(key) == item.metadata.get(key)
+                            for key in ("document_id", "version", "page", "section", "section_path")))
+        overlap, joiner = 0, "\n"
+        if adjacent:
+            recorded = item.metadata.get("overlap_chars")
+            if type(recorded) is int and 0 <= recorded <= len(body):
+                joiner = item.metadata.get("chunk_joiner", "\n")
+                if joiner not in ("", " ", "\n", "\n\n") and (
+                        not isinstance(joiner, str) or len(joiner) > 2 or joiner.strip()):
+                    joiner = "\n"
+                if (item.metadata.get("repeated_table_header")
+                        or merged.endswith(body[:recorded].removesuffix(joiner))):
+                    overlap = recorded
+            elif recorded is None:
+                # Old cards lack overlap metadata. Ignore coincidental short matches.
+                overlap = next((k for k in range(min(300, len(merged), len(body)), 9, -1)
+                                if merged.endswith(body[:k])), 0)
+                if overlap:
+                    joiner = ""
         piece = body[overlap:]
-        section = item.metadata.get("section")
+        section = item.metadata.get("section_path") or item.metadata.get("section")
+        prev_section = previous.metadata.get("section_path") or previous.metadata.get("section")
         if section and section != prev_section:
             piece = f"【章节：{section}】\n{piece}"
-        if overlap == 0 and piece and not merged.endswith("\n"):
-            merged += "\n"
-        merged += piece
-        prev_section = section or prev_section
+        if piece:
+            merged += joiner + piece
     return merged
 
 
@@ -129,19 +136,20 @@ def build_context(
 
     # —— 第一轮：按规则选取 ——
     used: list[RetrievedItem] = []
-    seen_texts: set[str] = set()
+    seen_texts: set[tuple] = set()
     per_doc: dict[str, int] = {}
     dropped: list[dict] = []
-    blocks: list[str] = []
     context_so_far = ""  # 已放入的资料全文（用于 token 估算）
 
     for item in items:
-        normalized = "".join(item.text.split())
+        doc_id = item.metadata.get("document_id") or item.metadata.get("source")
+        normalized = ("".join(item.text.split()), doc_id, item.metadata.get("version"),
+                      item.metadata.get("page"),
+                      item.metadata.get("section_path") or item.metadata.get("section"))
         if normalized in seen_texts:
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
                             "reason": "内容重复（与更高相关度的卡片相同），只保留第一条"})
             continue
-        doc_id = item.metadata.get("document_id") or item.metadata.get("source")
         if len(used) >= max_items:
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
                             "reason": f"已满采用条数上限（Top {max_items}）"})
@@ -154,14 +162,14 @@ def build_context(
         number = rank_offset + len(used) + 1
         block = f"{citation_label(item, number, show_version=show_version)}\n{item.text}"
         # Token 估算替代纯字符数：中英文混合时更接近模型实际容量
-        if estimate_tokens(context_so_far + block) > cfg.context_max_tokens and context_so_far:
+        candidate = f"{context_so_far}\n\n{block}" if context_so_far else block
+        if estimate_tokens(candidate) > cfg.context_max_tokens:
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
                             "reason": f"放入后会超出资料 token 上限（约 {cfg.context_max_tokens} tokens）"})
             continue
         seen_texts.add(normalized)
         used.append(item)
-        blocks.append(block)
-        context_so_far += block
+        context_so_far = candidate
         per_doc[doc_id] = per_doc.get(doc_id, 0) + 1
 
     # —— 第二轮：相邻补全 ——
@@ -204,30 +212,26 @@ def build_context(
             label = citation_label(first, number, show_version=show_version)
             text = first.text
             if len(run) > 1:
-                merged_text = _merge_run(run)
-                # 相邻拼接会叠加多张卡片的全文，可能突破第一轮的 token 预算：
-                # 合并后复核，超限则截断合并文本（保留卡片编号与出处）
-                over = estimate_tokens(merged_text) - max(
-                    200, cfg.context_max_tokens - estimate_tokens("\n\n".join(final_blocks))
-                )
-                if over > 0:
-                    merged_text = _truncate_to_tokens(merged_text, max(
-                        200, cfg.context_max_tokens - estimate_tokens("\n\n".join(final_blocks))
-                    ))
-                    merge_notes.append(
-                        f"{first.metadata.get('source')} 的相邻卡片拼接后超出资料上限，已截断"
-                    )
-                text = merged_text
+                text = _merge_run(run)
                 merge_notes.append(
                     f"{first.metadata.get('source')} 的 {len(run)} 张相邻卡片"
                     f"（{first.metadata.get('chunk_id')} ~ {run[-1].metadata.get('chunk_id')}）"
                     f"已拼接为一条，恢复被切片切断的上下文"
                 )
+            block = f"{label}\n{text}"
+            if estimate_tokens("\n\n".join([*final_blocks, block])) > cfg.context_max_tokens:
+                dropped.extend({"rank": item.rank, "source": item.metadata.get("source"),
+                                "reason": "合并后超出资料 token 上限"} for item in run)
+                continue
             metadata = {**first.metadata, "chunk_ids": [
                 item.metadata["chunk_id"] for item in run if item.metadata.get("chunk_id")
             ]}
+            for field in ("sections", "section_paths"):
+                values = list(dict.fromkeys(value for item in run for value in item.metadata.get(field, [])))
+                if values:
+                    metadata[field] = values
             final_items.append(replace(first, rank=number, text=text, metadata=metadata))
-            final_blocks.append(f"{label}\n{text}")
+            final_blocks.append(block)
 
     context = "\n\n".join(final_blocks) if final_blocks else "（没有检索到任何相关资料）"
     return context, final_items, dropped, merge_notes

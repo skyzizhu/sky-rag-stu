@@ -125,7 +125,11 @@ class EnumerationProcessingTests(IngestHarness):
         self.assertEqual(outcome.stats['calls'], 1)
         self.assertEqual(outcome.stats['stop_reason'], 'call_budget')
         self.assertEqual(len(outcome.records), 1)
-        self.assertIn('结果不完整', render_records(outcome, coverage='partial').splitlines()[0])
+        answer = render_records(outcome, coverage='partial')
+        self.assertIn('结果不完整', answer.splitlines()[0])
+        self.assertNotIn('项目文件夹里有哪些文档', answer)
+        self.assertIn('项目文件夹里有哪些文档', render_records(
+            outcome, coverage='partial', inventory_hint=True))
 
     def test_short_documents_share_one_extraction_batch_and_leave_room_for_followup(self):
         for index, name in enumerate("甲乙丙丁", 1):

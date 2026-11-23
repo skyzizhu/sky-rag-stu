@@ -35,6 +35,15 @@ from src.document_type import resolve_doc_type
 STATUSES = ["active", "archive", "expired"]
 
 
+def chunk_sequence(metadata: dict) -> int | None:
+    """Return a stored source ordinal, with support for older chunk IDs."""
+    ordinal = metadata.get("chunk_index")
+    if type(ordinal) is int and ordinal >= 0:
+        return ordinal
+    tail = str(metadata.get("chunk_id") or "").rsplit("_", 1)[-1]
+    return int(tail) if tail.isascii() and tail.isdigit() and len(tail) >= 4 else None
+
+
 def bump_version(version: str) -> str:
     """内容变化时版本号自动递增。
 
@@ -273,7 +282,8 @@ def build_document_metadata(
     path_info = infer_from_path(inference_path or relative_path)
 
     # domain / topic / tags：FM > 目录 > 默认
-    domain = _valid_domain(fm.get("domain")) or path_info["domain"] or DEFAULTS["domain"]
+    domain = ("archive" if path_info["status"] == "archive"
+              else _valid_domain(fm.get("domain")) or path_info["domain"])
     category = normalize_category(fm.get("category"))  # 兼容旧文档显式声明
     topic = _as_list(fm.get("topic")) or path_info["topic"] or []
     tags = _as_list(fm.get("tags"))

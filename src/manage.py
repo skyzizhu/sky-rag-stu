@@ -19,7 +19,7 @@ from src.document_department import normalize_department
 from src.document_type import normalize_doc_type
 from src.ingest_audit import IngestAudit
 from src.metadata import document_id_for
-from src.pipeline import ingest_files
+from src.pipeline import IngestSummary, ingest_files
 from src.vector_store import get_vector_store
 
 
@@ -88,25 +88,15 @@ def _visibility_snapshot(state, relative_path, store) -> dict:
     return {}
 
 
-def _stage_moved_visibility(state, source: str, target: str, store) -> None:
-    from src import index_state
-
-    visibility = _visibility_snapshot(state, source, store)
-    if visibility:
-        state.setdefault(target, {})["visibility_info"] = visibility
-        # 先持久化目标路径的 ACL，文件移动后即使切片失败也不能丢掉授权。
-        index_state.save_state(state, strict=True)
-
-
 @contextmanager
 def _document_write():
     from src.auth_db import document_acl_write
-    from src.ingest_publication import recover_publication
+    from src.ingest_publication import publication_owns_token, recover_publication
     from src.pipeline import _ingest_lock
 
-    with _ingest_lock, document_acl_write() as (_, retire_token):
-        recover_publication(get_vector_store(), retire_token)
-        yield
+    with _ingest_lock, document_acl_write(retain_if=publication_owns_token) as guard:
+        recover_publication(get_vector_store(), guard[1])
+        yield guard
 
 
 def revoke_document_user(username: str) -> int:
@@ -177,85 +167,107 @@ def reingest(relative_path: str, owner: str | None = None) -> dict:
     return {"message": f"已重新入库：{relative_path}（{summary.total_chunks} 张卡片）", "summary": summary}
 
 
-def archive(relative_path: str, owner: str | None = None) -> dict:
-    """归档：把文件移到 knowledge/archive/ 下（保留原子目录结构），并刷新向量库。"""
-    path, knowledge_dir, cfg = _resolve(relative_path)
-    if relative_path.split("/")[0] == "archive":
-        raise ManageError("该文件已经在归档目录里了。")
+def _move_destination(relative_path: str, to_archive: bool, entry: dict) -> str:
+    if to_archive:
+        if relative_path.startswith("archive/"):
+            raise ManageError("该文件已经在归档目录里了。")
+        return f"archive/{relative_path}"
+    parts = relative_path.split("/")
+    if len(parts) < 2 or parts[0] != "archive":
+        raise ManageError("该文件不在归档目录里。")
+    original = entry.get("archive_origin", {}).get("path")
+    if not original:
+        original = f"reference/documents/{parts[1]}" if len(parts) == 2 else "/".join(parts[1:])
+    if "/" in original:
+        from src.domains import all_codes
 
-    dest = knowledge_dir / "archive" / relative_path
-    if dest.exists():  # 同名冲突：加时间戳
-        stamp = time.strftime("%Y%m%d_%H%M%S")
-        dest = dest.with_name(f"{dest.stem}_{stamp}{dest.suffix}")
-    from src import index_state as istate
-    with _document_write():
-        state = istate.load_state(strict=True)
-        type_info = istate.snapshot_doc_type(state, relative_path)
-        department_info = istate.snapshot_department(state, relative_path)
-        store = get_vector_store()
-        _stage_moved_visibility(state, relative_path, dest.relative_to(knowledge_dir).as_posix(), store)
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(path), str(dest))
-        store.delete_documents([document_id_for(relative_path)])
-    with istate.carry_doc_types({dest.relative_to(knowledge_dir).as_posix(): type_info},
-                                department_values={dest.relative_to(knowledge_dir).as_posix():
-                                                   department_info},
-                                project_values={dest.relative_to(knowledge_dir).as_posix():
-                                                istate.project_link_for(state, relative_path)},
-                                ):
-        summary = ingest_files(paths=[dest], owner=owner)
-    if summary.ok_files == 0:
-        raise ManageError(f"归档后重新入库失败：{summary.failed_files}")
-    return {"message": f"已归档：{relative_path} → archive/{relative_path}", "summary": summary}
+        domain = original.split("/", 1)[0].lower()
+        if domain == "archive" or domain not in all_codes():
+            raise ManageError(f"无法恢复到领域「{domain}」，原领域已不存在或不可恢复。")
+    return original
+
+
+def _available_move_path(target: Path, root: Path, state, store) -> str:
+    stamp = None
+    candidate = target
+    attempt = 0
+    while True:
+        resolved = candidate.resolve()
+        if not resolved.is_relative_to(root) or resolved != candidate:
+            raise ManageError("目标路径不可用：文档移动必须保留在知识目录中。")
+        relative = candidate.relative_to(root).as_posix()
+        if (relative not in state and not candidate.exists()
+                and not store.list_documents({"document_id": document_id_for(relative)})):
+            return relative
+        if stamp is None:
+            stamp = time.strftime("%Y%m%d_%H%M%S")
+        attempt += 1
+        suffix = stamp if attempt == 1 else f"{stamp}_{attempt}"
+        candidate = target.with_name(f"{target.stem}_{suffix}{target.suffix}")
+
+
+def _relocate(relative_path: str, *, to_archive: bool, owner: str | None) -> dict:
+    from src import index_state
+    from src.domains import all_codes
+    from src.ingest_publication import publish_relocation
+    from src.keyword_search import invalidate_cache
+    from src.metadata import infer_from_path
+    from src.pipeline import clear_qa_cache
+
+    status = "archive" if to_archive else "active"
+    action = "归档" if to_archive else "恢复"
+    for allow_ingest in (True, False):
+        with _document_write() as guard:
+            path, root, cfg = _resolve(relative_path)
+            source = path.relative_to(root).as_posix()
+            state = index_state.load_state(strict=True)
+            entry = state.get(source, {})
+            destination = _move_destination(source, to_archive, entry)
+            target = _safe_knowledge_path(destination, cfg)
+            if target.relative_to(root).as_posix() != destination or source == destination:
+                raise ManageError("目标路径不可用：请检查知识目录中的链接。")
+            store = get_vector_store()
+            doc_id = entry.get("document_id") or document_id_for(source)
+            old_status = entry.get("indexed_status") or infer_from_path(source)["status"]
+            current = next((row for row in store.list_documents({"document_id": doc_id})
+                            if row["path"] == source and row["version"] == entry.get("version")
+                            and row["status"] == old_status), None)
+            if current and current["chunks"] == entry.get("chunks") and entry.get("hash") == index_state.file_hash(path):
+                target_rel = _available_move_path(target, root, state, store)
+                updated = {**entry, "indexed_status": status,
+                           "overrides": {**entry.get("overrides", {}), "status": status}}
+                visibility = _visibility_snapshot(state, source, store)
+                if visibility:
+                    updated["visibility_info"] = visibility
+                if to_archive:
+                    updated["archive_origin"] = {"path": source, "domain": current["domain"]}
+                    domain = "archive"
+                else:
+                    original_domain = updated.pop("archive_origin", {}).get("domain")
+                    domain = (original_domain if original_domain in all_codes() and original_domain != "archive"
+                              else infer_from_path(target_rel)["domain"])
+                publish_relocation(store, state, source, target_rel, entry=updated, domain=domain,
+                                   current=current, status=status, acl_guard=guard)
+                invalidate_cache()
+                clear_qa_cache()
+                row = {**current, "path": target_rel, "document_id": document_id_for(target_rel),
+                       "source": Path(target_rel).name, "domain": domain, "status": status}
+                summary = IngestSummary(total_files=1, ok_files=1, total_chunks=row["chunks"], file_rows=[row])
+                return {"message": f"已{action}：{source} → {target_rel}", "summary": summary}
+        # Unindexed edits must be published to the original version chain before the move.
+        if allow_ingest:
+            reingest(source, owner=owner)
+    raise ManageError(f"{action}期间文件或索引已变化，请刷新后重试。")
+
+
+def archive(relative_path: str, owner: str | None = None) -> dict:
+    """归档文件及其版本链。"""
+    return _relocate(relative_path, to_archive=True, owner=owner)
 
 
 def restore(archived_relative_path: str, owner: str | None = None) -> dict:
-    """恢复：把归档文件移回原目录；原本就散落在归档根目录的，移到 reference/documents/。"""
-    path, knowledge_dir, cfg = _resolve(archived_relative_path)
-    parts = archived_relative_path.split("/")
-    if parts[0] != "archive" or len(parts) < 2:
-        raise ManageError("该文件不在归档目录里。")
-
-    original = "/".join(parts[1:])
-    if len(parts) == 2:  # 直接放在 archive/ 根目录的文件，没有原始目录可回
-        target = knowledge_dir / "reference" / "documents" / parts[1]
-    else:
-        # V3.8：原领域必须仍已登记——否则文件落进未登记目录，入库时会被悄悄兜底归到 reference
-        from src.domains import all_codes
-
-        if parts[1].lower() not in all_codes():
-            raise ManageError(f"原领域「{parts[1]}」已不存在（可能已在领域管理中删除），"
-                              "请先在领域管理中重新创建该领域再恢复。")
-        target = knowledge_dir / original
-    # 复检目标仍在 knowledge/ 内：构造的 archive/../x 路径不能把文件移出知识库
-    try:
-        target.resolve().relative_to(knowledge_dir.resolve())
-    except (ValueError, OSError):
-        raise ManageError("恢复目标路径非法。")
-    if target.exists():  # 同名冲突：加时间戳
-        stamp = time.strftime("%Y%m%d_%H%M%S")
-        target = target.with_name(f"{target.stem}_{stamp}{target.suffix}")
-    from src import index_state as istate
-    with _document_write():
-        state = istate.load_state(strict=True)
-        type_info = istate.snapshot_doc_type(state, archived_relative_path)
-        department_info = istate.snapshot_department(state, archived_relative_path)
-        store = get_vector_store()
-        _stage_moved_visibility(state, archived_relative_path, target.relative_to(knowledge_dir).as_posix(), store)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(path), str(target))
-        store.delete_documents([document_id_for(archived_relative_path)])
-    with istate.carry_doc_types({target.relative_to(knowledge_dir).as_posix(): type_info},
-                                department_values={target.relative_to(knowledge_dir).as_posix():
-                                                   department_info},
-                                project_values={target.relative_to(knowledge_dir).as_posix():
-                                                istate.project_link_for(state, archived_relative_path)},
-                                ):
-        summary = ingest_files(paths=[target], owner=owner)
-    if summary.ok_files == 0:
-        raise ManageError(f"恢复后重新入库失败：{summary.failed_files}")
-    return {"message": f"已恢复：{archived_relative_path} → {target.relative_to(knowledge_dir).as_posix()}",
-            "summary": summary}
+    """将文件和版本链恢复到原目录；旧归档没有原路径时沿用目录约定。"""
+    return _relocate(archived_relative_path, to_archive=False, owner=owner)
 
 
 def confirm_document_version(relative_path: str, value: str, revision: str,

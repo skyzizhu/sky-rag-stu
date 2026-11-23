@@ -154,13 +154,22 @@ class DocumentTypeMcpTests(IngestHarness):
 
     def test_doc_type_keyword_index_uses_existing_idempotent_ingest_setup(self):
         self.assertIn("doc_type", INDEXED_FIELDS)
-        with mock.patch.object(self.store.client, "create_payload_index") as index, \
+        info = self.store.client.get_collection(self.cfg.qdrant_collection)
+
+        def create_index(**kwargs):
+            info.payload_schema[kwargs["field_name"]] = models.PayloadIndexInfo(
+                data_type=kwargs["field_schema"], points=0)
+
+        with mock.patch.object(self.store.client, "get_collection", return_value=info), \
+             mock.patch.object(self.store.client, "create_payload_index", side_effect=create_index) as index, \
              mock.patch.object(self.store.client, "create_collection") as create, \
              mock.patch.object(self.store.client, "delete_collection") as delete:
             self.store.ensure_collection(self.embedding.DIM)
+            initial_calls = index.call_count
             self.store.ensure_collection(self.embedding.DIM)
+            self.assertEqual(index.call_count, initial_calls)
         type_calls = [c for c in index.call_args_list if c.kwargs["field_name"] == "doc_type"]
-        self.assertEqual(len(type_calls), 2)
+        self.assertEqual(len(type_calls), 1)
         for call in type_calls:
             self.assertEqual(call.kwargs["field_schema"], models.PayloadSchemaType.KEYWORD)
             self.assertTrue(call.kwargs["wait"])

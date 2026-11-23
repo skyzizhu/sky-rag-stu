@@ -40,24 +40,12 @@ def _count(value) -> int:
 @lru_cache(maxsize=1)
 def _indexed_projects(store, epoch: str, refresh_window: int) -> tuple[int | None, ...]:
     """Read just enough metadata to count each active document once."""
-    if not store.collection_exists():
-        return ()
     documents: dict[str, int | None] = {}
-    offset = None
-    active = store.published_filter({"status": "active"})
-    while True:
-        points, offset = store.client.scroll(
-            collection_name=store.cfg.qdrant_collection, scroll_filter=active,
-            limit=256, offset=offset, with_payload=["document_id", "project_id"], with_vectors=False,
-        )
-        for point in points:
-            payload = point.payload or {}
-            document_id = payload.get("document_id")
-            if document_id:
-                project_id = payload.get("project_id")
-                documents.setdefault(document_id, project_id if type(project_id) is int else None)
-        if offset is None:
-            return tuple(documents.values())
+    for payload in store.iter_payloads({"status": "active"}, ["document_id", "project_id"]):
+        if document_id := payload.get("document_id"):
+            project_id = payload.get("project_id")
+            documents.setdefault(document_id, project_id if type(project_id) is int else None)
+    return tuple(documents.values())
 
 
 def knowledge_inventory() -> dict:
@@ -135,6 +123,21 @@ def usage_statistics(days: int = 30, *, now: datetime | None = None) -> dict:
              for i in range(days)}
     totals, llm_channels, stage_totals = Counter(), Counter(), Counter()
     llm_calls = verified_requests = legacy_requests = legacy_calls = malformed_usage = 0
+    token_in = token_cached = token_out = 0
+    estimated_requests = inconsistent_usage = 0
+    cost_total = 0.0
+    stage_input, stage_output = Counter(), Counter()
+    llm_daily = {str(start + timedelta(days=i)): dict(date=str(start + timedelta(days=i)),
+                                                   calls=0, input=0, input_cached=0, output=0, cost=0.0)
+                 for i in range(days)}
+    # 模型单价（元/百万 tokens）与「LLM 费用」页同一来源（settings.json，前台模型配置页可改）
+    from src.app_settings import PRICE_DEFAULTS, load_app_settings
+
+    settings = load_app_settings()
+    price_in = float(settings.get("llm_price_input", PRICE_DEFAULTS["llm_price_input"]))
+    price_cached = float(settings.get("llm_price_input_cached",
+                                      PRICE_DEFAULTS["llm_price_input_cached"]))
+    price_out = float(settings.get("llm_price_output", PRICE_DEFAULTS["llm_price_output"]))
     with auth_db._connect() as conn:
         conn.execute('BEGIN')  # 所有图表使用同一读取快照，避免并发请求造成总数不一致。
         summary = conn.execute("SELECT COUNT(*) AS requests, COUNT(DISTINCT username) AS employees, "
@@ -153,7 +156,7 @@ def usage_statistics(days: int = 30, *, now: datetime | None = None) -> dict:
             if row['day'] in daily:
                 daily[row['day']][key] += row['n']
         # 只读取小字段，分批扫描；不拉正文/回答，也不截断为最近 300 条。
-        cursor = conn.execute('SELECT entry, usage FROM qa_logs WHERE ' + where, params)
+        cursor = conn.execute('SELECT entry, substr(created_at,1,10) AS day, usage FROM qa_logs WHERE ' + where, params)
         while rows := cursor.fetchmany(500):
             for row in rows:
                 try:
@@ -171,17 +174,54 @@ def usage_statistics(days: int = 30, *, now: datetime | None = None) -> dict:
                 calls = _count(usage.get('calls'))
                 llm_calls += calls
                 llm_channels[channel(row['entry'])] += calls
+                # 费用公式复用「LLM 费用」页的三档单价；此处范围仍限定员工 v2 本次用量。
+                # 日志未标记云端/本地来源，只能给出当前单价估算，不能代替云端账单。
+                input_tok = _count(usage.get('input'))
+                reported_cached = _count(usage.get('input_cached'))
+                cached_tok = min(input_tok, reported_cached)
+                output_tok = _count(usage.get('output'))
+                token_in += input_tok
+                token_cached += cached_tok
+                token_out += output_tok
+                if usage.get('estimated'):
+                    estimated_requests += 1
+                row_cost = (max(0, input_tok - cached_tok) * price_in
+                            + cached_tok * price_cached + output_tok * price_out) / 1_000_000
+                cost_total += row_cost
+                day_row = llm_daily.get(row['day'])
+                if day_row is not None:
+                    day_row['calls'] += calls
+                    day_row['input'] += input_tok
+                    day_row['input_cached'] += cached_tok
+                    day_row['output'] += output_tok
+                    day_row['cost'] += row_cost
                 stages = usage.get('stages')
                 remaining = calls
+                attributed_input = attributed_output = 0
+                inconsistent = reported_cached > input_tok
                 if isinstance(stages, dict):
                     for key, part in stages.items():
                         if not isinstance(part, dict):
                             continue
-                        amount = min(remaining, _count(part.get('calls', 1 if part.get('input') or part.get('output') else 0)))
+                        reported_calls = _count(part.get('calls', 1 if part.get('input') or part.get('output') else 0))
+                        amount = min(remaining, reported_calls)
+                        inconsistent |= reported_calls > remaining
                         label = 'enumeration' if key.startswith('enumeration_') else key
-                        stage_totals[label if label in STAGES else 'other'] += amount
+                        bucket = label if label in STAGES else 'other'
+                        stage_totals[bucket] += amount
+                        part_input = _count(part.get('input'))
+                        part_output = _count(part.get('output'))
+                        stage_input[bucket] += part_input
+                        stage_output[bucket] += part_output
+                        attributed_input += part_input
+                        attributed_output += part_output
                         remaining -= amount
                 stage_totals['other'] += remaining
+                stage_input['other'] += max(0, input_tok - attributed_input)
+                stage_output['other'] += max(0, output_tok - attributed_output)
+                inconsistent |= attributed_input > input_tok or attributed_output > output_tok
+                if inconsistent:
+                    inconsistent_usage += 1
     return dict(
         period=dict(days=days, start=str(start), end=str(today)),
         requests=summary['requests'], active_employees=summary['employees'],
@@ -192,6 +232,15 @@ def usage_statistics(days: int = 30, *, now: datetime | None = None) -> dict:
         llm=dict(calls=llm_calls, verified_requests=verified_requests, legacy_requests=legacy_requests,
                  legacy_reference_calls=legacy_calls, malformed_usage=malformed_usage,
                  average_calls=round(llm_calls / verified_requests, 2) if verified_requests else 0,
+                 tokens=dict(input=token_in, input_cached=token_cached, output=token_out),
+                 estimated_requests=estimated_requests, inconsistent_usage=inconsistent_usage,
+                 cost=round(cost_total, 8),
+                 daily_llm=[dict(date=row['date'], calls=row['calls'], input=row['input'],
+                                 input_cached=row['input_cached'], output=row['output'], cost=round(row['cost'], 8))
+                            for row in llm_daily.values()],
+                 price=dict(input=price_in, input_cached=price_cached, output=price_out),
                  channels=[dict(key=key, name=name, calls=llm_channels[key]) for key, name in CHANNELS.items()],
-                 stages=[dict(key=key, name=name, calls=stage_totals[key]) for key, name in STAGES.items()]),
+                 stages=[dict(key=key, name=name, calls=stage_totals[key],
+                              input=stage_input.get(key, 0), output=stage_output.get(key, 0))
+                         for key, name in STAGES.items()]),
     )

@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 
 from src.chunker import (_bind_title_paragraphs, _is_title_paragraph,
                          _merge_short_sections, _split_by_sections,
@@ -24,7 +25,7 @@ from tests._helpers import IngestHarness
 
 def _parsed(markdown: str, source: str = "test.md") -> ParsedDocument:
     return ParsedDocument(metadata={"source": source, "document_id": "doc_test"},
-                          text=markdown, pages=None)
+                          text=markdown)
 
 
 class MergeShortSectionsTests(unittest.TestCase):
@@ -224,6 +225,16 @@ if __name__ == "__main__":
 
 class TokenDensityTests(unittest.TestCase):
     """V3.9 换制的核心性质：中英文同 token → 同卡片数（字符制下英文卡只有约 1/3 密度）。"""
+
+    def test_long_sentence_preserves_pending_text_and_budget(self):
+        from src.chunker import est_tokens
+
+        cfg = replace(get_config(), chunk_size=100, chunk_overlap=20)
+        text = "验收编号 ZX-410。" + "甲" * 220 + "。\n\n" + "乙" * 118 + "\n\n" + "丙" * 118
+        chunks = chunk_document(_parsed(text, "报告.md"), cfg)
+        self.assertTrue(any("ZX-410" in chunk.text for chunk in chunks))
+        self.assertTrue(all(est_tokens(chunk.text) <= cfg.chunk_size for chunk in chunks))
+        self.assertEqual([c.metadata["chunk_index"] for c in chunks], list(range(len(chunks))))
 
     def test_same_tokens_same_card_count_regardless_of_language(self):
         from src.chunker import chunk_document, est_tokens
