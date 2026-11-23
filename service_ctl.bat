@@ -30,7 +30,31 @@ echo === %SVC% %ACTION% %date% %time% === >> "%LOG%"
 if "%ACTION%"=="stop" goto stop
 rem Do not create a duplicate instance when this port is already listening.
 netstat -aon | findstr /R /C:":%PORT% .*LISTENING" >nul
-if not errorlevel 1 exit /b 0
+if not errorlevel 1 (
+    echo Service port %PORT% is already listening; no duplicate process started. >> "%LOG%"
+    exit /b 0
+)
+
+set "SERVICE_EXE=%ROOT%.venv\Scripts\python.exe"
+if "%SVC%"=="qdrant" set "SERVICE_EXE=%QDRANT_EXE%"
+if "%SVC%"=="ollama" set "SERVICE_EXE=%OLLAMA_APP%"
+if not exist "%SERVICE_EXE%" (
+    echo ERROR: service executable not found: %SERVICE_EXE% >> "%LOG%"
+    echo ERROR: service executable not found: %SERVICE_EXE% 1>&2
+    exit /b 1
+)
+if "%SVC%"=="mcp" if not exist "%ROOT%src\mcp_server.py" (
+    echo ERROR: MCP entry script not found. >> "%LOG%"
+    exit /b 1
+)
+set "SERVICE_LOG=%LOGDIR%\svc_%SVC%.log"
+rem Check redirection before START; failures are also captured by the API wrapper log.
+type nul >> "%SERVICE_LOG%" 2>nul
+if errorlevel 1 (
+    echo ERROR: service log is not writable: %SERVICE_LOG% >> "%LOG%"
+    echo ERROR: service log is not writable: %SERVICE_LOG% 1>&2
+    exit /b 1
+)
 
 if "%SVC%"=="front" goto front
 if "%SVC%"=="admin" goto admin
@@ -43,21 +67,29 @@ exit /b 1
 cd /d "%ROOT%"
 set "PYTHONIOENCODING=utf-8"
 start "" /B "%ROOT%.venv\Scripts\python.exe" -m streamlit run app.py --server.headless true --server.port 8501 >> "%LOGDIR%\svc_front.log" 2>&1
+if errorlevel 1 goto launch_failed
+echo START accepted: front; readiness is checked by the admin page. >> "%LOG%"
 exit /b 0
 
 :admin
 cd /d "%ROOT%"
 start "" /B "%ROOT%.venv\Scripts\python.exe" -m uvicorn src.admin_app:app --host 0.0.0.0 --port 8700 --proxy-headers --forwarded-allow-ips=127.0.0.1 >> "%LOGDIR%\svc_admin.log" 2>&1
+if errorlevel 1 goto launch_failed
+echo START accepted: admin; readiness is checked by the admin page. >> "%LOG%"
 exit /b 0
 
 :qdrant
 rem Preserve the existing Qdrant working directory and its storage folder.
 for %%i in ("%QDRANT_EXE%") do cd /d "%%~dpi"
 start "" /B "%QDRANT_EXE%" >> "%LOGDIR%\svc_qdrant.log" 2>&1
+if errorlevel 1 goto launch_failed
+echo START accepted: qdrant; readiness is checked by the admin page. >> "%LOG%"
 exit /b 0
 
 :ollama
 start "" /B "%OLLAMA_APP%" >> "%LOGDIR%\svc_ollama.log" 2>&1
+if errorlevel 1 goto launch_failed
+echo START accepted: ollama; readiness is checked by the admin page. >> "%LOG%"
 exit /b 0
 
 :mcp
@@ -66,7 +98,14 @@ cd /d "%ROOT%"
 set "MCP_TRANSPORT=streamable-http"
 set "PYTHONIOENCODING=utf-8"
 start "" /B "%ROOT%.venv\Scripts\python.exe" "%ROOT%src\mcp_server.py" >> "%LOGDIR%\svc_mcp.log" 2>&1
+if errorlevel 1 goto launch_failed
+echo START accepted: mcp; readiness is checked by the admin page. >> "%LOG%"
 exit /b 0
+
+:launch_failed
+echo ERROR: START failed for service %SVC%. See %SERVICE_LOG%. >> "%LOG%"
+echo ERROR: START failed for service %SVC%. See %SERVICE_LOG%. 1>&2
+exit /b 1
 
 :stop
 rem Allow the HTTP response to reach the browser before stopping the admin API.

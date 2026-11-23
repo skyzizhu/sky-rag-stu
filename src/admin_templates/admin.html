@@ -755,12 +755,14 @@ async function renderDash() {
 /* ---------- 服务状态与控制 ---------- */
 function serviceStatusTable(services, busy) {
   const rows = services.map(s => {
-    const running = s.ok;
+    const running = s.running ?? s.ok;
     const btn = (label, action, enabled) =>
       `<button type="button" class="mini" onclick="svcAct('${s.key}','${action}')"${enabled ? '' : ' disabled'}>${label}</button>`;
     return `
     <tr><td><b>${esc(s.name)}</b></td>
-    <td>${s.ok ? '<span class="tag on">🟢 运行中</span>' : '<span class="tag off">🔴 未运行</span>'}</td>
+    <td>${s.ok ? '<span class="tag on">🟢 运行中</span>' : running
+      ? '<span class="tag neutral">🟠 已运行，未就绪</span>' : '<span class="tag off">🔴 未运行</span>'}
+      ${s.detail ? `<div class="muted">${esc(s.detail)}</div>` : ''}</td>
     <td>${btn('开启', 'start', !running && !busy)} ${btn('停止', 'stop', running && !busy)}</td></tr>`;
   }).join('');
   return `<table><tr><th>服务</th><th>状态</th><th>操作</th></tr>${rows}</table>`;
@@ -782,7 +784,8 @@ async function renderServices() {
   $('#view').innerHTML = `
     <div class="card"><h3>服务运行状态</h3>
       <div id="svc-status-box">${serviceStatusTable(d.services, svcBusy)}</div>
-      <div class="muted" style="margin-top:8px">每次进入本页实时探测。一键重启 = 全部停止后按序拉起，约 15 秒恢复（本后台会随之短暂中断，恢复后状态自动刷新）。</div>
+      <div class="muted" style="margin-top:8px">每次进入本页实时探测。启动指令受理不代表已经就绪；Ollama 会另行检查向量模型是否已安装。</div>
+      <div class="muted" style="margin-top:8px">控制日志：storage/service_script_control.log；单服务日志：storage/svc_服务名.log 与 storage/svc_服务名_control.log。</div>
     </div>
     <div class="card"><h3>服务控制</h3>
       <div class="toolbar">

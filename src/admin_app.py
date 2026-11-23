@@ -315,34 +315,73 @@ def api_overview_inventory(_: dict = Depends(require_admin_api)):
 
 # ---------------------------------------------------------------- JSON API：服务状态与控制
 _SERVICE_PROBES = [
-    ("front", "知识库前台（8501）", "http://localhost:8501"),
-    ("admin", "管理后台（8700）", "http://localhost:8700/admin/login"),
-    ("qdrant", "Qdrant 向量库（6333）", "http://localhost:6333"),
-    ("ollama", "Ollama 向量化模型（11434）", "http://localhost:11434"),
-    # MCP 知识服务（streamable-http）：健康时对未带令牌的探测返回 401，
-    # 401 < 500 计为正常——与鉴权拒绝共用一个状态码，语义一致
-    ("mcp", "MCP 知识服务（8760）", "http://localhost:8760/mcp"),
+    ("front", "知识库前台（8501）", "http://127.0.0.1:8501"),
+    ("admin", "管理后台（8700）", "http://127.0.0.1:8700/admin/login"),
+    ("qdrant", "Qdrant 向量库（6333）", "http://127.0.0.1:6333"),
+    ("ollama", "Ollama 向量化模型（11434）", "http://127.0.0.1:11434"),
+    # MCP 不带 PAT 的 401 表示鉴权层在线，不等于检索依赖已全部就绪。
+    ("mcp", "MCP 知识服务（8760）", "http://127.0.0.1:8760/mcp"),
 ]
+
+
+def _service_probe_url(key: str, default: str, cfg) -> str:
+    if key == "qdrant":
+        return cfg.qdrant_url
+    if key == "ollama":
+        return cfg.ollama_url.rstrip("/") + "/api/tags"
+    if key == "mcp":
+        host = os.getenv("MCP_HTTP_HOST", "127.0.0.1")
+        host = "127.0.0.1" if host in ("0.0.0.0", "localhost") else host
+        host = "[::1]" if host == "::" else f"[{host}]" if ":" in host else host
+        return f"http://{host}:{os.getenv('MCP_HTTP_PORT', '8760')}/mcp"
+    return default
+
+
+def _probe_service(key: str, name: str, url: str, cfg) -> dict:
+    import requests
+
+    result = {"key": key, "name": name, "ok": False, "running": False, "detail": ""}
+    with requests.Session() as session:
+        host = urlsplit(url).hostname or ""
+        if host in ("localhost", "127.0.0.1", "::1"):
+            session.trust_env = False  # 回环服务不经系统代理，远程地址仍沿用部署配置。
+        try:
+            response = session.get(url, timeout=3)
+            result["running"] = (200 <= response.status_code < 400
+                                 or key == "mcp" and response.status_code == 401)
+            if not result["running"]:
+                result["detail"] = f"服务返回 HTTP {response.status_code}，尚未就绪"
+            elif key == "ollama":
+                models = response.json().get("models", [])
+                names = {value for model in models if isinstance(model, dict)
+                         for value in (model.get("name"), model.get("model")) if isinstance(value, str)}
+                expected = cfg.embedding_model
+                available = expected in names or ":" not in expected and expected + ":latest" in names
+                result["model_available"] = available
+                result["ok"] = available
+                result["detail"] = (f"服务在线，向量模型 {expected} 已安装" if available
+                                    else f"服务已启动，但未安装向量模型 {expected}；启动按钮不会自动下载模型")
+            else:
+                result["ok"] = True
+                result["detail"] = "服务在线（PAT 鉴权正常）" if key == "mcp" else "服务在线"
+        except requests.Timeout:
+            result["detail"] = "服务探测超时，请查看启动日志后刷新"
+        except requests.RequestException:
+            result["detail"] = "无法连接服务，请检查监听地址和启动日志"
+        except (ValueError, TypeError, AttributeError):
+            result["detail"] = "服务已响应，但模型列表无效，请查看 Ollama 日志"
+    return result
 
 
 @app.get("/api/services")
 def api_services(_: dict = Depends(require_admin_api)):
-    """探测后端服务运行状态（前台 / 管理后台 / Qdrant / Ollama 向量化模型）。"""
-    import requests as _requests
-    from src.config import get_config
-
-    # 与入库使用同一份配置：读取 .env，而不是仅依赖进程环境变量。
-    embedding_model = get_config().embedding_model
+    """按实际配置探测服务；区分运行状态与模型就绪，不改变服务控制权限。"""
+    cfg = get_config()
     services = []
-    for key, name, url in _SERVICE_PROBES:
+    for key, name, default in _SERVICE_PROBES:
         if key == "ollama":
-            name = f"Ollama-向量模型 {embedding_model}（11434）"
-        try:
-            resp = _requests.get(url, timeout=3)
-            ok = resp.status_code < 500
-        except Exception:
-            ok = False
-        services.append({"key": key, "name": name, "ok": ok})
+            name = f"Ollama-向量模型 {cfg.embedding_model}（11434）"
+        services.append(_probe_service(key, name, _service_probe_url(key, default, cfg), cfg))
     return {"ok": True, "services": services}
 
 
@@ -366,15 +405,24 @@ def _run_service_script(script_name: str, args: list[str] | None = None) -> dict
     if not script.exists():
         return {"ok": False, "detail": f"未找到控制脚本：{script_name}"}
     if os.name == "nt":
-        flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
-        cmd = ["cmd", "/c", str(script)] + list(args or [])
+        # DETACHED_PROCESS 下 cmd 的端口检查管道在 Windows 会卡住；隐藏控制台
+        # 保留标准句柄与立即回包语义，脚本仍由独立进程组执行。
+        flags = subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
+        command_processor = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "cmd.exe"
+        cmd = [str(command_processor), "/d", "/c", str(script)] + list(args or [])
+        log_dir = script.parent / "storage"
+        log_path = log_dir / "service_script_control.log"
         try:
-            subprocess.Popen(cmd, cwd=str(script.parent), creationflags=flags,
-                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
+            log_dir.mkdir(parents=True, exist_ok=True)
+            with log_path.open("ab") as output:
+                output.write(f"\n=== {script_name} {' '.join(args or [])} {datetime.now().isoformat()} ===\n".encode("utf-8"))
+                output.flush()
+                subprocess.Popen(cmd, cwd=str(script.parent), creationflags=flags,
+                                 stdin=subprocess.DEVNULL, stdout=output, stderr=output)
         except OSError as exc:
+            logging.getLogger(__name__).exception("Could not launch service control script %s", script_name)
             return {"ok": False, "detail": f"控制脚本启动失败：{exc}"}
-        return {"ok": True}
+        return {"ok": True, "control_log": "storage/service_script_control.log"}
     # macOS / Linux：setsid 分离进程组（脱离管理后台进程树，后台自身被停后脚本继续跑完）
     cmd = ["bash", str(script)] + list(args or [])
     try:
