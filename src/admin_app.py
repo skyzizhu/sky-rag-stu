@@ -25,8 +25,13 @@ from pathlib import Path
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
+import sqlite3
+import tempfile
+from contextlib import closing
 from fastapi import Depends, FastAPI, Form, HTTPException, Path as PathParam, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.background import BackgroundTask
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -36,11 +41,13 @@ from src import auth_db, business_directions, admin_audit, ingest_audit, project
 from src.config import get_config
 from src.dashboard_stats import ingestion_statistics, knowledge_inventory, usage_statistics
 
-app = FastAPI(title="Sky Personal RAG · 管理后台", docs_url=None, redoc_url=None)
+app = FastAPI(title="长城互联网 · RAG管理后台", docs_url=None, redoc_url=None)
 # V3.8 安全收紧：不再挂全局 CORS（原 allow_origin_regex=".*" + allow_credentials，
 # 等于允许任何来源带着管理员会话调用管理接口）。浏览器端唯一的跨域调用是登录门
 # iframe 对 /auth/ping 的探测，CORS 头只在该端点单独下发（见 api_ping）。
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "admin_templates"))
+# 品牌静态资源：前台 Streamlit 的 ./static 目录，后台同源挂载同一份（logo 等）。
+app.mount("/static", StaticFiles(directory=Path(__file__).parent.parent / "static"), name="static")
 
 _STATE_CHANGING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -61,7 +68,10 @@ async def _same_origin_guard(request: Request, call_next):
                                    request.headers.get("x-forwarded-host")) if h}
             if urlsplit(origin).netloc not in allowed:
                 return JSONResponse({"ok": False, "detail": "跨站请求被拒绝"}, status_code=403)
-    return await call_next(request)
+    response = await call_next(request)
+    if request.url.path.startswith('/api/data/'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @app.middleware('http')
@@ -464,6 +474,187 @@ def api_service_control(key: str, action: str, _: dict = Depends(require_admin_a
     if result["ok"]:
         result["detail"] = f"指令已发出：{key} {action}"
     return JSONResponse(result, status_code=200 if result["ok"] else 400)
+
+
+# ---------------------------------------------------------------- 数据管理（只读查看与整库导出）
+
+_DATA_TABLE_REMARKS = {
+    'departments': '部门主数据、权限键及停用状态',
+    'department_aliases': '部门名称及历史权限键的归属映射',
+    'business_directions': '业务方向主数据、编号及备注',
+    'projects': '项目主数据、业务方向及牵头部门',
+    'project_departments': '项目与参与部门的关联关系',
+    'project_directories': '领域内项目与目录名的绑定关系',
+    'admins': '独立管理员账户、认证信息及管理身份状态',
+    'users': '员工账户、所属部门、认证信息及权限配置',
+    'document_user_revocations': '员工停用时记录的文档访问撤销标记',
+    'tokens': '员工 MCP 令牌哈希、使用时间及吊销状态',
+    'user_prefs': '按账户保存的用户偏好设置',
+    'user_login_logs': '员工侧登录、登出等认证事件日志',
+    'admin_login_logs': '管理后台登录、登出等认证事件日志',
+    'admin_operation_logs': '管理操作审计：操作者、动作、目标、结果及耗时',
+    'qa_logs': '问答、检索和总结日志，含答案、来源及模型用量',
+    'doc_access_logs': '文档读取、分页片段及目录枚举的访问审计',
+    'ingest_logs': '文件入库审计：批次、来源、处理状态及耗时',
+    'retrieval_acl_epoch': '授权及检索范围变更的版本与处理中标记',
+    'sqlite_sequence': 'SQLite 自动维护的自增序号记录',
+}
+
+
+def _data_table_remark(name: str) -> str:
+    return _DATA_TABLE_REMARKS.get(name, 'SQLite 系统维护对象' if name.startswith('sqlite_')
+                                   else '未登记用途，请参考字段结构')
+
+
+def _open_readonly() -> sqlite3.Connection:
+    """只读打开现有 SQLite 库，不创建库或运行迁移。"""
+    conn = sqlite3.connect(auth_db.DB_PATH.resolve().as_uri() + '?mode=ro', uri=True, timeout=5)
+    conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA query_only=ON')
+    return conn
+
+
+def _data_identifier(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _cell_value(value):
+    if isinstance(value, bytes):
+        return {'type': 'blob', 'bytes': len(value), 'hex': value.hex()}
+    if value is None or isinstance(value, str):
+        return value
+    return str(value)  # SQLite int64 超出浏览器安全整数范围时也不丢精度。
+
+
+def _data_columns(conn, table: str) -> list[dict]:
+    return [dict(name=c['name'], type=c['type'], not_null=bool(c['notnull']),
+                 default=c['dflt_value'], primary_key=bool(c['pk']),
+                 primary_key_order=c['pk'], hidden=c['hidden'])
+            for c in conn.execute(f'PRAGMA table_xinfo({_data_identifier(table)})')]
+
+
+def _data_indexes(conn, table: str) -> list[dict]:
+    indexes = []
+    for row in conn.execute(f'PRAGMA index_list({_data_identifier(table)})'):
+        definition = conn.execute('SELECT sql FROM sqlite_master WHERE type=? AND name=?',
+                                  ('index', row['name'])).fetchone()
+        columns = [dict(row) for row in conn.execute(
+            f'PRAGMA index_xinfo({_data_identifier(row["name"])} )')]
+        indexes.append(dict(name=row['name'], table=table, unique=bool(row['unique']),
+                            origin=row['origin'], partial=bool(row['partial']),
+                            sql=definition['sql'] if definition else None, columns=columns))
+    return indexes
+
+
+@app.get('/api/data/tables')
+def api_data_tables(_: dict = Depends(require_admin_api)):
+    """列出全部表、视图、索引（含自动索引）及触发器，不提供 SQL 执行或写接口。"""
+    tables, views, indexes, triggers = [], [], [], []
+    with closing(_open_readonly()) as conn:
+        conn.execute('BEGIN')
+        objects = conn.execute("SELECT name, type, tbl_name, sql FROM sqlite_master "
+                               "WHERE type IN ('table','view','index','trigger') ORDER BY type, name").fetchall()
+        known_indexes = set()
+        for obj in objects:
+            if obj['type'] in ('table', 'view'):
+                entry = dict(name=obj['name'], type=obj['type'], rows=None, columns=None,
+                             sql=obj['sql'], internal=obj['name'].startswith('sqlite_'),
+                             remark=_data_table_remark(obj['name']))
+                try:
+                    entry['columns'] = len(_data_columns(conn, obj['name']))
+                    if obj['type'] == 'table':
+                        entry['rows'] = conn.execute(
+                            f'SELECT COUNT(*) FROM {_data_identifier(obj["name"])}').fetchone()[0]
+                except sqlite3.Error:
+                    entry['unavailable'] = True  # 单个损坏视图不影响其他对象的结构列表。
+                tables.append(entry)
+                if obj['type'] == 'view':
+                    views.append(entry)
+                else:
+                    table_indexes = _data_indexes(conn, obj['name'])
+                    indexes.extend(table_indexes)
+                    known_indexes.update(i['name'] for i in table_indexes)
+            elif obj['type'] == 'trigger':
+                triggers.append(dict(name=obj['name'], table=obj['tbl_name'], sql=obj['sql']))
+        for obj in objects:
+            if obj['type'] == 'index' and obj['name'] not in known_indexes:
+                indexes.append(dict(name=obj['name'], table=obj['tbl_name'], unique=False,
+                                    origin='c', partial=False, sql=obj['sql'], columns=[]))
+        info = {key: conn.execute('PRAGMA ' + key).fetchone()[0]
+                for key in ('page_count', 'page_size', 'user_version', 'schema_version', 'journal_mode')}
+    return {'ok': True, 'database': 'storage/auth/auth.db', 'database_info': info,
+            'tables': tables, 'views': views, 'indexes': indexes, 'triggers': triggers}
+
+
+@app.get('/api/data/tables/{table}/schema')
+def api_data_table_schema(table: str, _: dict = Depends(require_admin_api)):
+    """只读查看结构，不计数或读取数据行；损坏视图仍保留 SQL 定义。"""
+    with closing(_open_readonly()) as conn:
+        conn.execute('BEGIN')
+        obj = conn.execute("SELECT type, sql FROM sqlite_master WHERE type IN ('table','view') AND name=?",
+                           (table,)).fetchone()
+        if obj is None:
+            raise HTTPException(status_code=404, detail='表或视图不存在')
+        columns, error = [], ''
+        try:
+            columns = _data_columns(conn, table)
+        except sqlite3.Error:
+            error = '字段结构不可用，请检查 SQL 定义及引用对象是否存在'
+        indexes = _data_indexes(conn, table) if obj['type'] == 'table' else []
+        foreign_keys = [dict(row) for row in conn.execute(
+            f'PRAGMA foreign_key_list({_data_identifier(table)})')] if obj['type'] == 'table' else []
+    return {'ok': True, 'table': table, 'type': obj['type'], 'sql': obj['sql'],
+            'remark': _data_table_remark(table), 'columns': columns, 'indexes': indexes,
+            'foreign_keys': foreign_keys, 'unavailable': bool(error), 'error': error}
+
+
+@app.get('/api/data/tables/{table}/rows')
+def api_data_table_rows(table: str, page: int = Query(1, ge=1),
+                        page_size: int = Query(50, ge=1, le=500),
+                        _: dict = Depends(require_admin_api)):
+    """分页查看全部字段与原始数据；只接受库中已存在对象，标识符按 SQLite 规则转义。"""
+    with closing(_open_readonly()) as conn:
+        conn.execute('BEGIN')
+        obj = conn.execute("SELECT type, sql FROM sqlite_master WHERE type IN ('table','view') AND name=?",
+                           (table,)).fetchone()
+        if obj is None:
+            raise HTTPException(status_code=404, detail='表或视图不存在')
+        identifier = _data_identifier(table)
+        columns = _data_columns(conn, table)
+        total = conn.execute(f'SELECT COUNT(*) FROM {identifier}').fetchone()[0]
+        total_pages = max(1, -(-total // page_size))
+        page = min(page, total_pages)
+        primary = sorted((c for c in columns if c['primary_key']), key=lambda c: c['primary_key_order'])
+        order = ' ORDER BY ' + ', '.join(_data_identifier(c['name']) for c in primary) if primary else ''
+        cursor = conn.execute(f'SELECT * FROM {identifier}{order} LIMIT ? OFFSET ?',
+                              (page_size, (page - 1) * page_size))
+        result_names = [c[0] for c in cursor.description]
+        rows = [[_cell_value(value) for value in row] for row in cursor]
+        indexes = _data_indexes(conn, table) if obj['type'] == 'table' else []
+        foreign_keys = [dict(row) for row in conn.execute(f'PRAGMA foreign_key_list({identifier})')]
+    return {'ok': True, 'table': table, 'type': obj['type'], 'sql': obj['sql'],
+            'columns': columns, 'data_columns': result_names, 'indexes': indexes,
+            'foreign_keys': foreign_keys, 'rows': rows, 'total': total,
+            'page': page, 'page_size': page_size, 'total_pages': total_pages}
+
+
+@app.get('/api/data/export')
+def api_data_export(_: dict = Depends(require_admin_api)):
+    """下载包含全部 SQLite 对象与数据的一致性快照，传输结束删除本次临时副本。"""
+    export_dir = auth_db.DB_PATH.parent / 'exports'
+    export_dir.mkdir(parents=True, exist_ok=True)
+    handle, filename = tempfile.mkstemp(prefix='sky_rag_backup_', suffix='.db', dir=export_dir)
+    os.close(handle)
+    target = Path(filename)
+    try:
+        with closing(_open_readonly()) as source, closing(sqlite3.connect(target)) as destination:
+            source.backup(destination, pages=256, sleep=0.01)
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
+    return FileResponse(target, filename=target.name, media_type='application/octet-stream',
+                        headers={'Cache-Control': 'no-store'},
+                        background=BackgroundTask(target.unlink, missing_ok=True))
 
 
 # ---------------------------------------------------------------- JSON API：业务方向（与权限部门独立）
@@ -1051,6 +1242,8 @@ def api_reveal_ingest_file(request: Request, log_id: int = PathParam(ge=1, le=2*
 def api_llm_costs(_: dict = Depends(require_admin_api),
                   days: int = Query(0, ge=0, le=365),
                   username: str = "",
+                  entry: str | None = None,
+                  username_exact: bool = False,
                   page: int = Query(1, ge=1),
                   page_size: int = Query(20, ge=1, le=100)):
     """云端 LLM 消耗统计（V3.9）：从 qa_logs 的 usage 逐条计算费用并汇总。
@@ -1058,6 +1251,7 @@ def api_llm_costs(_: dict = Depends(require_admin_api),
     费用 = 未命中输入 × 输入单价 + 命中缓存输入 × 缓存单价 + 输出 × 输出单价；
     单价（元/百万 tokens）实时读取 settings.json（与前台「模型配置」页同一来源），
     改单价后历史记录按新价重算。days：最近 N 天（0=全部）；username：按用户过滤。
+    username_exact 启用账户精确匹配；entry=None 为全部，空串为历史未记录入口。
     汇总（totals）始终覆盖全部符合条件的数据，分页只影响明细行（rows）。
     """
     from datetime import datetime, timedelta
@@ -1075,7 +1269,8 @@ def api_llm_costs(_: dict = Depends(require_admin_api),
 
     cutoff = (datetime.now() - timedelta(days=days)).strftime(
         "%Y-%m-%dT%H:%M:%S") if days else ""
-    totals, rows, page, total_pages = auth_db.llm_usage_page(username, cutoff, page, page_size)
+    totals, rows, page, total_pages = auth_db.llm_usage_page(
+        username, cutoff, page, page_size, entry=entry, username_exact=username_exact)
     total_items = totals.pop("total_rows")
     totals["cost"] = round(_cost(totals.pop("uncached"), totals["input_cached"], totals["output"]), 2)
     for row in rows:
@@ -1085,6 +1280,7 @@ def api_llm_costs(_: dict = Depends(require_admin_api),
     return {"ok": True, "totals": totals, "rows": rows,
             "page": page, "page_size": page_size,
             "total_rows": total_items, "total_pages": total_pages,
+            "filters": auth_db.llm_usage_filter_options(),
             "prices": {"input": price_in, "input_cached": price_cached,
                        "output": price_out}}
 

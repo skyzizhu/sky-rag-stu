@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>管理员登录 · Sky Personal RAG</title>
+<title>RAG管理后台登录 · 长城互联网</title>
+<link rel="icon" type="image/png" href="/static/gw_logo.png">
 <style>
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
          background: #2b3a67; margin: 0; display: flex; align-items: center;
@@ -37,7 +38,9 @@
   </form>
   {% else %}
   <h1>🛡 管理后台</h1>
-  <p class="sub">Sky Personal RAG · 仅限管理员账户</p>
+  <p class="sub"><img src="/static/gw_logo.png" alt="长城互联网"
+       style="display:block;height:30px;width:auto;object-fit:contain;margin:0 0 8px;
+              background:#fff;border-radius:4px;padding:1px 3px;"> 长城互联网 · RAG管理后台 · 仅限管理员账户</p>
   <form id="login-form">
     <label>账户名</label>
     <input name="username" autocomplete="username" required>

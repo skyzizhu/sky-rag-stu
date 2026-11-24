@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sky Personal RAG · 管理后台</title>
+<title>RAG管理后台 · 长城互联网</title>
+<link rel="icon" type="image/png" href="/static/gw_logo.png">
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -52,7 +53,8 @@
 </head>
 <body>
 <header>
-  <span class="brand">🛡 Sky Personal RAG · 管理后台</span>
+  <span class="brand"><img src="/static/gw_logo.png" alt="长城互联网"
+        style="height:26px;vertical-align:middle;background:#fff;border-radius:4px;padding:1px 3px;"> 长城互联网 · RAG管理后台</span>
   <nav>
     <a href="/admin" class="{{ 'active' if active == 'dash' else '' }}">工作台</a>
     <a href="/admin/departments" class="{{ 'active' if active == 'deps' else '' }}">部门管理</a>

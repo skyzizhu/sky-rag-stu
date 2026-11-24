@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>管理后台 · Sky Personal RAG</title>
+<title>RAG管理后台 · 长城互联网</title>
+<link rel="icon" type="image/png" href="/static/gw_logo.png">
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -89,6 +90,20 @@
   .log-dialog-header form { margin: 0; }
   .log-dialog-body { min-height: 0; overflow-y: auto; overflow-wrap: anywhere; line-height: 1.6;
                         padding: 16px; }
+  .data-dialog { width: 1280px; }
+  .data-dialog .log-dialog-body { padding: 12px 16px; line-height: 1.35; }
+  .data-grid-scroll { overflow: auto; border: 1px solid #e3e8f2; border-radius: 8px; background: #fff; }
+  .data-grid { width: max-content; min-width: 100%; font-size: 12.5px; }
+  .data-grid th, .data-grid td { padding: 5px 8px; line-height: 1.35; vertical-align: top; }
+  .data-grid tbody tr:hover { background: #f2f6ff; }
+  .data-cell-preview { display: block; min-width: 32px; max-width: 240px; padding: 0; border: 0;
+                       border-radius: 2px; background: transparent; color: inherit; font: inherit;
+                       text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .data-cell-preview:hover { color: #2453b3; }
+  .data-dialog .toolbar select { width: auto; }
+  .data-value-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+  .data-table-remark { min-width: 180px; max-width: 300px; white-space: normal; }
+  .data-table-actions { display: flex; gap: 6px; }
   .qa-detail-field { margin: 12px 0 0; }
   .qa-detail-field h4 { margin: 0; font-size: 13px; }
   .ingest-overview, .ingest-detail-section { padding: 14px 16px; border: 1px solid #e3e8f2;
@@ -225,7 +240,9 @@
 </head>
 <body>
 <aside class="sidebar">
-  <div class="brand">🛡 Sky Personal RAG<span>管理后台</span></div>
+  <div class="brand"><img src="/static/gw_logo.png" alt="长城互联网"
+        style="display:block;height:34px;width:auto;max-width:100%;object-fit:contain;
+               margin:0 0 8px;background:#fff;border-radius:4px;padding:1px 3px;"> 长城互联网<span>RAG管理后台</span></div>
   <nav id="tabs"></nav>
   <span class="spacer"></span>
   <div class="who">👤 <b>{{ admin['username'] }}</b><br>
@@ -257,6 +274,38 @@
     <form method="dialog"><button type="submit" class="mini secondary" autofocus>关闭</button></form>
   </header>
   <div id="qa-log-detail-body" class="log-dialog-body"></div>
+</dialog>
+<dialog id="data-table-detail" class="log-dialog data-dialog" aria-labelledby="data-table-detail-title">
+  <header class="log-dialog-header">
+    <h3 id="data-table-detail-title"></h3>
+    <form method="dialog"><button type="submit" class="mini secondary" autofocus>关闭</button></form>
+  </header>
+  <div id="data-table-detail-body" class="log-dialog-body"></div>
+</dialog>
+<dialog id="data-schema-detail" class="log-dialog" aria-labelledby="data-schema-detail-title">
+  <header class="log-dialog-header">
+    <h3 id="data-schema-detail-title"></h3>
+    <form method="dialog"><button type="submit" class="mini secondary" autofocus>关闭</button></form>
+  </header>
+  <div id="data-schema-detail-body" class="log-dialog-body"></div>
+</dialog>
+<dialog id="data-value-detail" class="log-dialog" aria-labelledby="data-value-detail-title">
+  <header class="log-dialog-header">
+    <h3 id="data-value-detail-title">完整值</h3>
+    <form method="dialog"><button type="submit" class="mini secondary" autofocus>关闭</button></form>
+  </header>
+  <div class="log-dialog-body">
+    <div class="toolbar"><span id="data-value-info" class="muted"></span>
+      <button id="data-value-copy" type="button" class="mini secondary" onclick="copyDataValue()">复制完整值</button></div>
+    <pre id="data-value-text" class="mono data-value-text"></pre>
+  </div>
+</dialog>
+<dialog id="admin-operation-detail" class="log-dialog" aria-labelledby="admin-operation-detail-title">
+  <header class="log-dialog-header">
+    <h3 id="admin-operation-detail-title">管理员操作详情</h3>
+    <form method="dialog"><button type="submit" class="mini secondary" autofocus>关闭</button></form>
+  </header>
+  <div id="admin-operation-detail-body" class="log-dialog-body"></div>
 </dialog>
 
 <script>
@@ -329,6 +378,7 @@ const TABS = [
     { id: 'qalog', name: '员工检索日志', render: renderQaLog },
   ] },
   { id: 'llmcost', name: 'LLM 费用',   render: renderLlmCost },
+  { id: 'data',    name: '数据管理',   render: renderDataManagement },
   { id: 'services', name: '服务状态',  render: renderServices },
 ];
 let current = 'dash';
@@ -579,7 +629,7 @@ function dashboardLlmStages(llm) {
   return controls + dashboardBars((llm.stages || []).filter(row => Number(row[key]) > 0), key, '暂无该指标的环节明细');
 }
 function dashboardOpenLlmCosts() {
-  llmCostFilter.days = dashboardDays; llmCostFilter.page = 1;
+  llmCostFilter = { days: dashboardDays, page: 1, username: '', entry: null };
   return switchTab('llmcost');
 }
 function dashboardChangeDays(value) {
@@ -752,7 +802,219 @@ async function renderDash() {
   renderDashboardInventory(requestId, d);
 }
 
-/* ---------- 服务状态与控制 ---------- */
+/* ---------- 数据管理（只读查看 SQLite，整库导出） ---------- */
+let dataTableState = { table: '', page: 1, pageSize: 50, totalPages: 1, total: 0 };
+let dataManagementRequest = 0;
+let dataTableRequest = 0;
+let dataSchemaRequest = 0;
+let dataPageRows = [];
+let dataPageColumns = [];
+let dataSchemaObjects = [];
+let dataExportBusy = false;
+$('#data-schema-detail').addEventListener('close', () => {
+  ++dataSchemaRequest; $('#data-schema-detail-body').innerHTML = '';
+});
+$('#data-table-detail').addEventListener('close', () => {
+  ++dataTableRequest; clearDataPage(); $('#data-table-detail-body').innerHTML = '';
+});
+$('#data-value-detail').addEventListener('close', () => {
+  $('#data-value-text').textContent = ''; $('#data-value-info').textContent = '';
+});
+function clearDataPage() {
+  if ($('#data-value-detail').open) $('#data-value-detail').close();
+  dataPageRows = []; dataPageColumns = [];
+}
+function dataObjectButton(object, index) {
+  if (object.type === 'table' || object.type === 'view') return `<div class="data-table-actions">
+    <button type="button" class="mini secondary" onclick="openDataObject(${index})">字段结构</button>
+    <button type="button" class="mini secondary" onclick="openDataRows(${index})">查看数据</button></div>`;
+  return `<button type="button" class="mini secondary" onclick="openDataObject(${index})">查看详情</button>`;
+}
+function openDataRows(index) {
+  const object = dataSchemaObjects[index];
+  if (object && (object.type === 'table' || object.type === 'view')) openDataTable(object.name);
+}
+async function renderDataManagement() {
+  const request = ++dataManagementRequest;
+  const d = await api('GET', '/api/data/tables');
+  if (current !== 'data' || request !== dataManagementRequest) return;
+  dataSchemaObjects = [...d.tables, ...d.indexes.map(o => ({...o, type: 'index'})),
+    ...(d.triggers || []).map(o => ({...o, type: 'trigger'}))];
+  const tables = d.tables.filter(t => t.type === 'table');
+  const views = d.tables.filter(t => t.type === 'view');
+  const tableRows = tables.map(t => `<tr>
+    <td class="mono">${esc(t.name)}${t.internal ? ' <span class="muted">系统表</span>' : ''}</td>
+    <td>${t.rows == null ? '—' : dashNum(t.rows)}</td><td>${dashNum(t.columns)}</td>
+    <td class="data-table-remark">${esc(t.remark)}</td>
+    <td>${dataObjectButton(t, dataSchemaObjects.indexOf(t))}</td></tr>`).join('');
+  const viewRows = views.map(t => `<tr><td class="mono">${esc(t.name)}</td>
+    <td>${t.rows == null ? '查看时计算' : dashNum(t.rows)}</td><td>${dataObjectButton(t, dataSchemaObjects.indexOf(t))}</td></tr>`).join('');
+  const indexRows = dataSchemaObjects.map((o, i) => o.type === 'index' ? `<tr>
+    <td class="mono">${esc(o.name)}</td><td>${esc(o.table)}</td>
+    <td>${o.unique ? '唯一' : '普通'}${o.origin !== 'c' ? ' · 自动' : ''}${o.partial ? ' · 部分' : ''}</td>
+    <td>${dataObjectButton(o, i)}</td></tr>` : '').join('');
+  const triggerRows = dataSchemaObjects.map((o, i) => o.type === 'trigger' ? `<tr>
+    <td class="mono">${esc(o.name)}</td><td>${esc(o.table)}</td><td>${dataObjectButton(o, i)}</td></tr>` : '').join('');
+  const info = d.database_info || {};
+  $('#view').innerHTML = `<div class="card">
+    <h3>数据管理（只读）</h3>
+    <div class="dash-subtitle">SQLite：${esc(d.database)} · 数据库版本 ${dashNum(info.user_version)} · 日志模式 ${esc(info.journal_mode || '—')}</div>
+    <div class="toolbar"><button id="data-export-button" type="button" onclick="confirmDataExport()" ${dataExportBusy ? 'disabled' : ''}>⬇ 导出整个数据库（.db 快照）</button>
+      <button type="button" class="secondary" onclick="renderDataManagement().catch(e => toast(e.message, false))">刷新结构</button></div>
+    <div class="dash-note">仅管理员可访问，支持逐表分页查看全部数据，不提供修改、删除或任意 SQL 执行。数据可能包含员工信息、认证凭据及日志；请勿随意分享。此页仅管理 SQLite 数据，不包含 Qdrant 向量库和磁盘知识文件。</div>
+    <h4>数据表（${tables.length}）</h4><div style="overflow-x:auto"><table>
+      <tr><th>表名</th><th>行数</th><th>字段数</th><th>备注</th><th>操作</th></tr>
+      ${tableRows || '<tr><td colspan="5" class="empty">没有数据表</td></tr>'}</table></div>
+    <h4>视图（${views.length}）</h4><div style="overflow-x:auto"><table>
+      <tr><th>视图名</th><th>行数</th><th>操作</th></tr>${viewRows || '<tr><td colspan="3" class="empty">无视图</td></tr>'}</table></div>
+    <h4>索引（${d.indexes.length}）</h4><div style="overflow-x:auto"><table>
+      <tr><th>索引名</th><th>所属表</th><th>类型</th><th>操作</th></tr>
+      ${indexRows || '<tr><td colspan="4" class="empty">无索引</td></tr>'}</table></div>
+    <h4>触发器（${(d.triggers || []).length}）</h4><div style="overflow-x:auto"><table>
+      <tr><th>名称</th><th>所属表</th><th>操作</th></tr>${triggerRows || '<tr><td colspan="3" class="empty">无触发器</td></tr>'}</table></div>
+    <div class="dash-note">包括 SQLite 自动维护的索引和系统表。导出采用一致性快照，下载完成后删除本次服务端临时副本；不会删除已有备份。</div></div>`;
+}
+function openDataObject(index) {
+  const object = dataSchemaObjects[index];
+  if (!object) return;
+  if (object.type === 'table' || object.type === 'view') return openDataSchema(object.name);
+  ++dataSchemaRequest;
+  $('#data-schema-detail-title').textContent = `${object.type === 'index' ? '索引' : '触发器'} — ${object.name}`;
+  const columns = object.columns || [];
+  $('#data-schema-detail-body').innerHTML = `<p>所属表：${esc(object.table)}</p>
+    ${object.type === 'index' ? `<p>${object.unique ? '唯一索引' : '普通索引'} · ${object.origin === 'c' ? '显式创建' : 'SQLite 自动维护'}${object.partial ? ' · 部分索引' : ''}</p>
+    <div style="overflow-x:auto"><table><tr><th>序号</th><th>字段</th><th>排序</th><th>排序规则</th><th>索引键</th></tr>
+      ${columns.map(c => `<tr><td>${dashNum(c.seqno)}</td><td>${esc(c.name ?? (c.cid === -2 ? '表达式' : 'rowid'))}</td>
+        <td>${c.desc ? '降序' : '升序'}</td><td>${esc(c.coll || '—')}</td><td>${c.key ? '是' : '否'}</td></tr>`).join('')}</table></div>` : ''}
+    <h4>SQL 定义</h4><pre class="log-detail">${esc(object.sql || 'SQLite 自动生成，无独立 SQL 定义')}</pre>`;
+  const dialog = $('#data-schema-detail');
+  if (!dialog.open) dialog.showModal();
+  $('#data-schema-detail-body').scrollTop = 0;
+}
+async function openDataSchema(table) {
+  const request = ++dataSchemaRequest, dialog = $('#data-schema-detail');
+  $('#data-schema-detail-title').textContent = `字段结构 — ${table}`;
+  $('#data-schema-detail-body').innerHTML = '<div class="empty">加载中…</div>';
+  if (!dialog.open) dialog.showModal();
+  try {
+    const d = await api('GET', `/api/data/tables/${encodeURIComponent(table)}/schema`);
+    if (request !== dataSchemaRequest || !dialog.open) return;
+    const schemaRows = d.columns.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.type) || '—'}</td>
+      <td>${c.not_null ? '是' : '否'}</td><td>${esc(c.default ?? '—')}</td>
+      <td>${c.primary_key ? `🔑 ${c.primary_key_order}` : '—'}</td><td>${c.hidden === 2 || c.hidden === 3 ? '生成列' : c.hidden ? '隐藏列' : '普通列'}</td></tr>`).join('');
+    const indexRows = (d.indexes || []).map(i => `<tr><td>${esc(i.name)}</td><td>${i.unique ? '唯一' : '普通'}</td>
+      <td>${esc((i.columns || []).filter(c => c.key).map(c => c.name ?? '表达式').join('、'))}</td></tr>`).join('');
+    const foreignRows = (d.foreign_keys || []).map(f => `<tr><td>${esc(f.from)}</td><td>${esc(f.table)}.${esc(f.to)}</td>
+      <td>${esc(f.on_update)}</td><td>${esc(f.on_delete)}</td></tr>`).join('');
+    $('#data-schema-detail-body').innerHTML = `<p class="muted">${esc(d.remark)} · 仅查询结构，不读取数据行。</p>
+      <h4>字段结构</h4>${d.unavailable ? `<p class="muted">${esc(d.error)}</p>` : `<div style="overflow-x:auto"><table>
+        <tr><th>字段</th><th>类型</th><th>非空</th><th>默认值</th><th>主键序号</th><th>字段属性</th></tr>${schemaRows}</table></div>`}
+      <h4>SQL 定义</h4><pre class="log-detail">${esc(d.sql || '—')}</pre>
+      <h4>索引</h4>${indexRows ? `<div style="overflow-x:auto"><table><tr><th>索引名</th><th>类型</th><th>索引键</th></tr>${indexRows}</table></div>` : '<p class="muted">无索引</p>'}
+      <h4>外键</h4>${foreignRows ? `<div style="overflow-x:auto"><table><tr><th>字段</th><th>引用</th><th>更新规则</th><th>删除规则</th></tr>${foreignRows}</table></div>` : '<p class="muted">无外键</p>'}`;
+    $('#data-schema-detail-body').scrollTop = 0;
+  } catch (e) {
+    if (request === dataSchemaRequest && dialog.open) $('#data-schema-detail-body').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+function openDataTable(table) {
+  dataTableState = { table, page: 1, pageSize: 50, totalPages: 1, total: 0 };
+  $('#data-table-detail-title').textContent = `数据列表 — ${table}`;
+  $('#data-table-detail-body').innerHTML = '<div class="empty">加载中…</div>';
+  const dialog = $('#data-table-detail');
+  if (!dialog.open) dialog.showModal();
+  loadDataTableRow().catch(e => toast(e.message, false));
+}
+function dataCell(value, row, column) {
+  const text = value === null ? 'NULL' : value?.type === 'blob' ? `<BLOB ${value.bytes} 字节>` : value === '' ? '（空字符串）' : String(value);
+  const preview = text.slice(0, 120).replace(/\s+/g, ' ') + (text.length > 120 ? '…' : '');
+  return `<td><button type="button" class="data-cell-preview${value === null || value === '' ? ' muted' : ''}"
+    aria-label="查看第 ${row + 1} 行 ${esc(dataPageColumns[column])} 的完整值" onclick="openDataValue(${row}, ${column})">${esc(preview)}</button></td>`;
+}
+function openDataValue(row, column) {
+  if (!dataPageRows[row] || column < 0 || column >= dataPageColumns.length) return;
+  const value = dataPageRows[row][column];
+  $('#data-value-detail-title').textContent = `完整值 — ${dataTableState.table} · ${dataPageColumns[column]}`;
+  $('#data-value-info').textContent = value === null ? 'NULL（无值）' : value?.type === 'blob' ? `BLOB · ${value.bytes} 字节 · 十六进制` : value === '' ? '空字符串 · 0 字符' : `${String(value).length} 字符`;
+  $('#data-value-text').textContent = value === null ? 'NULL' : value?.type === 'blob' ? value.hex : String(value);
+  $('#data-value-copy').disabled = value === null;
+  const dialog = $('#data-value-detail');
+  if (!dialog.open) dialog.showModal();
+  $('#data-value-text').parentElement.scrollTop = 0;
+}
+function copyDataValue() {
+  copyText($('#data-value-text').textContent, undefined, $('#data-value-detail'));
+}
+async function loadDataTableRow() {
+  const state = dataTableState, { table, page, pageSize } = state;
+  const request = ++dataTableRequest;
+  clearDataPage();
+  $('#data-table-detail-body').innerHTML = '<div class="empty">加载中…</div>';
+  let d;
+  try {
+    d = await api('GET', `/api/data/tables/${encodeURIComponent(table)}/rows?page=${page}&page_size=${pageSize}`);
+  } catch (e) {
+    if (state === dataTableState && request === dataTableRequest && $('#data-table-detail').open)
+      $('#data-table-detail-body').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    return;
+  }
+  if (state !== dataTableState || request !== dataTableRequest || !$('#data-table-detail').open) return;
+  state.total = d.total; state.totalPages = d.total_pages; state.page = d.page;
+  dataPageRows = d.rows; dataPageColumns = d.data_columns || d.columns.map(c => c.name);
+  const head = dataPageColumns.map(name => `<th>${esc(name)}</th>`).join('');
+  const body = d.rows.map((row, r) => `<tr>${row.map((value, c) => dataCell(value, r, c)).join('')}</tr>`).join('');
+  $('#data-table-detail-body').innerHTML = `<div class="muted" style="margin-bottom:10px">共 ${dashNum(d.total)} 行 · 第 ${d.page} / ${d.total_pages} 页（每页 ${d.page_size} 行）。单页读取使用同一数据库快照。</div>
+    <p class="muted">单行预览避免长内容撑高行距；点击单元格查看及复制完整值。</p>
+    <h4>数据（本页 ${d.rows.length} 行）</h4><div class="data-grid-scroll"><table class="data-grid">
+      <thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="${Math.max(1, dataPageColumns.length)}" class="empty">表中没有数据</td></tr>`}</tbody></table></div>
+    <div class="toolbar" style="margin-top:12px">
+      <button class="mini secondary" ${d.page <= 1 ? 'disabled' : ''} onclick="dataTablePage(-1)">上一页</button>
+      <span class="muted">第 ${d.page} / ${d.total_pages} 页</span>
+      <button class="mini secondary" ${d.page >= d.total_pages ? 'disabled' : ''} onclick="dataTablePage(1)">下一页</button>
+      <select aria-label="数据表每页行数" onchange="dataTablePageSize(+this.value)">
+        ${[20, 50, 100, 500].map(n => `<option value="${n}" ${n === d.page_size ? 'selected' : ''}>每页 ${n} 行</option>`).join('')}</select></div>`;
+}
+function dataTablePage(delta) {
+  const next = Math.min(Math.max(1, dataTableState.page + delta), dataTableState.totalPages);
+  if (next === dataTableState.page) return;
+  dataTableState.page = next;
+  loadDataTableRow().catch(e => toast(e.message, false));
+}
+function dataTablePageSize(size) {
+  dataTableState.pageSize = size; dataTableState.page = 1;
+  loadDataTableRow().catch(e => toast(e.message, false));
+}
+function confirmDataExport() {
+  if (dataExportBusy) return;
+  confirmDo('确认导出整个数据库', '快照包含员工及管理员信息、密码哈希、令牌哈希和全部日志，仅供受信任管理员备份。文件不会上传到第三方，但下载后须妥善保管。确认导出？',
+    downloadDataExport, '确认导出');
+}
+async function downloadDataExport() {
+  if (dataExportBusy) return;
+  dataExportBusy = true;
+  if ($('#data-export-button')) $('#data-export-button').disabled = true;
+  let link, url;
+  try {
+    const response = await fetch('/api/data/export');
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('会话已过期，请重新登录');
+      throw new Error('数据库导出失败，请查看后台日志');
+    }
+    const blob = await response.blob();
+    const header = response.headers.get('content-disposition') || '';
+    const match = header.match(/filename="([^"]+)"/);
+    url = URL.createObjectURL(blob); link = document.createElement('a');
+    link.href = url; link.download = match ? match[1] : 'sky_rag_backup.db';
+    document.body.appendChild(link); link.click();
+    toast('数据库快照已下载，请妥善保管');
+  } finally {
+    if (link) link.remove();
+    if (url) setTimeout(() => URL.revokeObjectURL(url), 1000);
+    dataExportBusy = false;
+    if ($('#data-export-button')) $('#data-export-button').disabled = false;
+  }
+}
+
 function serviceStatusTable(services, busy) {
   const rows = services.map(s => {
     const running = s.running ?? s.ok;
@@ -1421,6 +1683,24 @@ function userResetDlg(id, username) {
 /* ---------- 管理员操作日志 ---------- */
 let adminOperationFilter = { username: '', action: '', success: '', page: 1, page_size: 20, snapshot_id: 0 };
 let adminOperationRequest = 0;
+let adminOperationRows = new Map();
+function showAdminOperationDetail(id) {
+  const row = adminOperationRows.get(id);
+  if (!row) return;
+  const body = $('#admin-operation-detail-body');
+  const field = (label, value) => `<section class="qa-detail-field"><h4>${label}</h4><div class="log-detail">${esc(value ?? '—')}</div></section>`;
+  body.innerHTML = `<div class="muted">${esc(row.created_at)} · ${esc(row.username) || '未认证'} · ${esc(row.action_label)}</div>
+    ${field('对象', row.target || '—')}
+    ${field('说明', row.detail || '—')}
+    ${field('结果', `${row.success ? '成功' : '失败'} · HTTP ${row.status_code}`)}
+    ${field('IP', row.ip || '—')}
+    ${field('耗时', `${row.duration_ms} ms`)}
+    ${field('请求方法', row.method || '—')}
+    ${field('请求路径', row.path || '—')}
+    ${field('浏览器 / 客户端', row.user_agent || '—')}`;
+  $('#admin-operation-detail').showModal();
+  body.scrollTop = 0;
+}
 function adminOperationChange(key, value) {
   adminOperationFilter[key] = value;
   adminOperationFilter.page = 1;
@@ -1441,6 +1721,7 @@ async function renderAdminOperations() {
   if (current !== 'adminops' || requestId !== adminOperationRequest) return;
   adminOperationFilter.snapshot_id = d.snapshot_id;
   adminOperationFilter.page = d.page;
+  adminOperationRows = new Map(d.logs.map(row => [row.id, row]));
   const rows = d.logs.map(l => `<tr>
     <td class="muted">${esc(l.created_at)}</td>
     <td><b>${esc(l.username) || '未认证'}</b>${l.username && !l.authenticated ? '<br><span class="muted">尝试账户</span>' : ''}</td>
@@ -1448,7 +1729,7 @@ async function renderAdminOperations() {
     <td class="wrap">${esc(l.detail) || '—'}</td>
     <td>${l.success ? '<span class="tag on">成功</span>' : '<span class="tag off">失败</span>'}<br><span class="muted">HTTP ${l.status_code}</span></td>
     <td>${esc(l.ip) || '—'}</td><td>${l.duration_ms} ms</td>
-    <td><details><summary>查看</summary><div class="wrap mono">${esc(l.method)} ${esc(l.path)}<br>${esc(l.user_agent)}</div></details></td>
+    <td><button type="button" class="mini secondary" onclick="showAdminOperationDetail(${l.id})">查看</button></td>
   </tr>`).join('');
   $('#view').innerHTML = `<div class="card">
     <h3>管理员操作日志</h3>
@@ -1751,11 +2032,12 @@ async function admDelete(id, username) {
 async function renderTokens() {
   const d = await api('GET', '/api/tokens');
   const users = (await api('GET', '/api/users')).users;
+  const ownerDepartments = new Map(users.map(u => [u.username, u.department]));
   const userOpts = users.map(u => `<option value="${esc(u.username)}">${esc(u.username)}</option>`).join('');
   const rows = d.tokens.map(t => `
     <tr>
       <td class="mono">${esc(t.token_prefix)}…</td>
-      <td>${esc(t.username || '—')}</td>
+      <td>${esc(t.username || '—')}/${esc(ownerDepartments.get(t.username) || '未分配部门')}</td>
       <td>${esc(t.name) || '—'}</td>
       <td class="muted">${esc(t.created_at)}</td>
       <td class="muted">${esc(t.last_used || '从未使用')}</td>
@@ -1802,26 +2084,28 @@ async function tokenRevoke(prefix) {
                   toast('令牌已吊销'); renderTokens(); }, '吊销', true);
 }
 /* 剪贴板复制：优先 Clipboard API，非安全上下文（如 http://局域网IP 访问）降级 execCommand */
-function copyText(text, note) {
+function copyText(text, note, container) {
   const done = () => toast(note || '已复制到剪贴板');
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done, container));
     return;
   }
-  fallbackCopy(text, done);
+  fallbackCopy(text, done, container);
 }
-function fallbackCopy(text, done) {
+function fallbackCopy(text, done, container) {
   const ta = document.createElement('textarea');
   ta.value = text;
   ta.style.position = 'fixed';
   ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
+  const active = document.activeElement;
+  (container || active?.closest('dialog[open]') || document.body).appendChild(ta);
+  ta.focus(); ta.select();
   try {
-    document.execCommand('copy');
+    if (!document.execCommand('copy')) throw new Error('copy failed');
     done();
   } catch (e) { toast('复制失败，请手动选择文本复制', false); }
-  document.body.removeChild(ta);
+  ta.remove();
+  if (active instanceof HTMLElement) active.focus();
 }
 
 /* ---------- 管理员登录日志（登录/登出，与管理操作日志分开） ---------- */
@@ -1959,22 +2243,42 @@ function actionLabel(a) {
 }
 
 /* ---------- 云端 LLM 费用（V3.9：qa_logs.usage × 模型单价） ---------- */
-let llmCostFilter = { days: 30, page: 1 };
+let llmCostFilter = { days: 30, page: 1, username: '', entry: null };
+let llmCostRequest = 0;
 const LLM_PAGE_SIZE = 20;
+function llmCostEntryName(entry) {
+  return entry === '' ? '未记录入口（历史）' : Object.prototype.hasOwnProperty.call(qaEntryLabel, entry) ? qaEntryLabel[entry] : entry;
+}
+function llmCostChange(field, value) {
+  llmCostFilter[field] = value; llmCostFilter.page = 1;
+  renderLlmCost().catch(e => toast(e.message, false));
+}
+function llmCostPage(page) {
+  llmCostFilter.page = page;
+  renderLlmCost().catch(e => toast(e.message, false));
+}
 async function renderLlmCost() {
+  const request = ++llmCostRequest, filter = {...llmCostFilter};
   const qs = new URLSearchParams();
-  qs.set('days', llmCostFilter.days);
-  qs.set('page', llmCostFilter.page);
+  qs.set('days', filter.days);
+  qs.set('page', filter.page);
   qs.set('page_size', LLM_PAGE_SIZE);
+  if (filter.username) { qs.set('username', filter.username); qs.set('username_exact', 'true'); }
+  if (filter.entry !== null) qs.set('entry', filter.entry);
   const d = await api('GET', '/api/llm/costs?' + qs.toString());
+  if (request !== llmCostRequest || current !== 'llmcost') return;
+  llmCostFilter.page = d.page;
   const t = d.totals, p = d.prices;
   const daysSel = [0, 7, 30, 90].map(v =>
-    `<option value="${v}" ${llmCostFilter.days === v ? 'selected' : ''}>${v === 0 ? '全部' : '最近 ' + v + ' 天'}</option>`).join('');
+    `<option value="${v}" ${filter.days === v ? 'selected' : ''}>${v === 0 ? '全部' : '最近 ' + v + ' 天'}</option>`).join('');
+  const usersSel = (d.filters?.users || []).map(u => `<option value="${esc(u.username)}" ${filter.username === u.username ? 'selected' : ''}>${esc(u.username)}${u.real_name ? '（' + esc(u.real_name) + '）' : ''}</option>`).join('');
+  const entries = [...new Set([...Object.keys(qaEntryLabel), ...(d.filters?.entries || [])])];
+  const entriesSel = [null, ...entries].map(entry => `<option value="${esc(JSON.stringify(entry))}" ${filter.entry === entry ? 'selected' : ''}>${entry === null ? '全部' : esc(llmCostEntryName(entry))}</option>`).join('');
   const rows = d.rows.map(r => `
     <tr>
       <td class="muted">${esc(r.created_at)}</td>
       <td><b>${esc(r.username) || '—'}</b></td>
-      <td><span class="tag neutral">${esc(r.entry)}</span></td>
+      <td><span class="tag neutral">${esc(llmCostEntryName(r.entry))}</span></td>
       <td class="wrap">${esc(r.question)}</td>
       <td>${r.input.toLocaleString()}<span class="muted">（缓存 ${r.input_cached.toLocaleString()}）</span></td>
       <td>${r.output.toLocaleString()}</td>
@@ -1991,14 +2295,21 @@ async function renderLlmCost() {
       continue;
     }
     pages += `<button class="${i === cur ? 'current' : ''}" ${i === cur ? 'disabled' : ''}
-      onclick="llmCostFilter.page = ${i}; renderLlmCost();">${i}</button>`;
+      onclick="llmCostPage(${i})">${i}</button>`;
   }
   const prev = `<button ${cur <= 1 ? 'disabled' : ''}
-    onclick="llmCostFilter.page = ${cur - 1}; renderLlmCost();">‹ 上一页</button>`;
+    onclick="llmCostPage(${cur - 1})">‹ 上一页</button>`;
   const next = `<button ${cur >= totalPages ? 'disabled' : ''}
-    onclick="llmCostFilter.page = ${cur + 1}; renderLlmCost();">下一页 ›</button>`;
+    onclick="llmCostPage(${cur + 1})">下一页 ›</button>`;
   $('#view').innerHTML = `
     <h3>云端 LLM 消耗与费用（仅云上模型；本地模型不计费）</h3>
+    <div class="toolbar">
+      <label>统计范围：<select aria-label="LLM费用统计范围" onchange="llmCostChange('days', +this.value)">${daysSel}</select></label>
+      <label>用户：<select aria-label="LLM费用用户" onchange="llmCostChange('username', this.value)">
+        <option value="" ${!filter.username ? 'selected' : ''}>全部</option>${usersSel}</select></label>
+      <label>入口：<select aria-label="LLM费用入口" onchange="llmCostChange('entry', JSON.parse(this.value))">${entriesSel}</select></label>
+    </div>
+    <div class="muted">以下汇总覆盖当前用户、入口及日期范围内的全部匹配记录，翻页不改变汇总。</div>
     <div class="cost-cards">
       <div class="cost-card"><div class="label">调用次数</div>
         <div class="value">${t.calls}</div></div>
@@ -2010,14 +2321,9 @@ async function renderLlmCost() {
       <div class="cost-card highlight"><div class="label">总费用</div>
         <div class="value">${t.cost.toFixed(2)} 元</div></div>
     </div>
-    <div style="display:flex; align-items:center; gap:16px; margin: 4px 0 10px;">
-      <span>统计范围：
-        <select onchange="llmCostFilter.days = parseInt(this.value); llmCostFilter.page = 1; renderLlmCost();">${daysSel}</select>
-      </span>
-      <span class="muted" style="margin-left:auto;">单价（元/百万 tokens）：
-        输入 ${p.input} ｜ 命中缓存 ${p.input_cached} ｜ 输出 ${p.output}
-        —— 在前台「模型配置」页修改</span>
-    </div>
+    <div class="muted" style="margin:4px 0 10px">单价（元/百万 tokens）：
+      输入 ${p.input} ｜ 命中缓存 ${p.input_cached} ｜ 输出 ${p.output}
+      —— 在前台「模型配置」页修改</div>
     <table class="data-table">
       <thead><tr>
         <th>时间</th><th>用户</th><th>入口</th><th>问题</th>
