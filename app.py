@@ -834,6 +834,28 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
 
 /* ==================== 标题与标签颜色修复 ==================== */
 .section-title {color: var(--text-primary) !important; opacity: 1 !important;}
+
+/* ---------- 领域管理：表格化列表（V3.9.1）----------
+   行容器带 key（dom_row_<code> / dom_list_head），用 CSS 补表头、分隔线与悬停高亮；
+   亮/暗主题通过现有文本变量适配。 */
+.st-key-dom_list_head {padding: 8px 14px !important; margin-top: 6px; margin-bottom: 0 !important;
+  border: 1px solid var(--border-subtle) !important; border-bottom: 0 !important;
+  border-radius: 10px 10px 0 0 !important; background: var(--bg-sidebar) !important;}
+.st-key-dom_list_head p {margin: 0 !important; font-size: .74rem !important; font-weight: 700;
+  color: var(--text-secondary) !important; letter-spacing: .02em;}
+/* 行与行紧贴：每行各自被包在 stLayoutWrapper 里，父级 stVerticalBlock 有全局 gap:16px；
+   用负外边距抵消相邻行之间的 gap，形成连续表格（不影响其他块） */
+[data-testid="stLayoutWrapper"]:has(> [class*="st-key-dom_row_"]) {margin: -16px 0 0 !important; padding: 0 !important;}
+[data-testid="stLayoutWrapper"]:has(> .st-key-dom_list_head) {margin: 6px 0 0 !important; padding: 0 !important;}
+[class*="st-key-dom_row_"] {padding: 10px 14px !important; margin: 0 !important; gap: 0 !important;
+  border: 1px solid var(--border-subtle) !important; border-top: 0 !important;
+  background: var(--bg-primary) !important; transition: background .16s ease;}
+[class*="st-key-dom_row_"]:last-of-type {border-radius: 0 0 10px 10px !important;}
+[class*="st-key-dom_row_"]:hover {background: var(--bg-secondary) !important;}
+[class*="st-key-dom_row_"] > [data-testid="stVerticalBlockBorderWrapper"] {border: 0 !important;}
+[class*="st-key-dom_row_"] [data-testid="stMarkdownContainer"] p {margin: 0 !important;}
+[class*="st-key-dom_row_"] [data-testid="stCaptionContainer"] {margin-top: 2px !important;}
+[class*="st-key-dom_row_"] [data-testid="stCaptionContainer"] p {margin: 0 !important; line-height: 1.35;}}
 .stMarkdown p strong, .stMarkdown p b {color: var(--text-primary) !important;}
 .stRadio label p, .stSelectbox label p, .stTextInput label p,
 .stToggle label p, .stSlider label p {
@@ -3679,46 +3701,54 @@ def page_domains():
     documents = store.list_documents()
     usage = domain_reg.usage_by_domain(cfg.knowledge_dir, istate.load_state(), documents)
 
-    # ② 领域列表（V3.9.1 列表化）：一行一领域，行内直接提供 编辑/停用|启用/删除；
-    #    编辑走弹框（domain_edit_request），删除仍走确认框（domain_delete_request）
+    # ② 领域列表（V3.9.1 表格化）：表头 + 一行一领域，行间分隔线、悬停高亮；
+    #    行内直接提供 编辑/停用|启用/删除；编辑走弹框（domain_edit_request），
+    #    删除仍走确认框（domain_delete_request）
+    DOMAIN_COLS = [2.3, 1.05, 1.35, 0.85, 0.85, 0.85]
+    with st.container(key="dom_list_head"):
+        head = st.columns(DOMAIN_COLS)
+        for col, key in zip(head, ("dommgr.col.domain", "dommgr.col.status", "dommgr.col.stat",
+                                   "dommgr.col.edit", "dommgr.col.toggle", "dommgr.col.delete")):
+            col.markdown(f"**{t(key)}**")
     for d in domain_reg.load_domains():
         code = d["code"]
         stat = usage.get(code) or {}
         reserved = code in domain_reg.RESERVED_CODES
         enabled = d.get("enabled", True)
         blocked = reserved or domain_reg.has_data(stat)
-        row = st.columns([2.3, 1.05, 1.35, 0.85, 0.85, 0.85])
-        with row[0]:
-            st.markdown(f"**{domain_label(code)}**"
-                        + (f"　`{t('dommgr.badge.system')}`" if reserved else ""),
-                        unsafe_allow_html=True)
-            if d.get("description"):
-                st.caption(d["description"])
-        with row[1]:
-            st.markdown(("🟢 " if enabled else "⛔ ")
-                        + t("dommgr.status.on" if enabled else "dommgr.status.off"))
-        with row[2]:
-            st.caption(t("dommgr.stat.short", files=stat.get("files", 0),
-                         cards=stat.get("cards", 0)))
-        if row[3].button(t("dommgr.edit.dialog.btn"), key=f"dom_edit_{code}",
-                         width="stretch", help=t("dommgr.edit.dialog.help")):
-            st.session_state["domain_edit_request"] = code
-            st.rerun()
-        if enabled:
-            if row[4].button(t("dommgr.disable.btn"), key=f"dom_off_{code}", width="stretch",
-                             disabled=reserved,
-                             help=t("dommgr.reserved.help") if reserved else t("dommgr.disable.help")):
-                domain_reg.update_domain(code, enabled=False)
+        with st.container(key=f"dom_row_{code}"):
+            row = st.columns(DOMAIN_COLS)
+            with row[0]:
+                st.markdown(f"**{domain_label(code)}**"
+                            + (f"　`{t('dommgr.badge.system')}`" if reserved else ""),
+                            unsafe_allow_html=True)
+                if d.get("description"):
+                    st.caption(d["description"])
+            with row[1]:
+                st.markdown(("🟢 " if enabled else "⛔ ")
+                            + t("dommgr.status.on" if enabled else "dommgr.status.off"))
+            with row[2]:
+                st.caption(t("dommgr.stat.short", files=stat.get("files", 0),
+                             cards=stat.get("cards", 0)))
+            if row[3].button(t("dommgr.edit.dialog.btn"), key=f"dom_edit_{code}",
+                             width="stretch", help=t("dommgr.edit.dialog.help")):
+                st.session_state["domain_edit_request"] = code
                 st.rerun()
-        elif row[4].button(t("dommgr.enable.btn"), key=f"dom_on_{code}", width="stretch"):
-            domain_reg.update_domain(code, enabled=True)
-            st.rerun()
-        if row[5].button(t("dommgr.delete.btn"), key=f"dom_del_{code}", width="stretch",
-                         disabled=blocked,
-                         help=(t("dommgr.reserved.help") if reserved
-                               else t("dommgr.delete.has_data") if blocked else None)):
-            st.session_state["domain_delete_request"] = code
-            st.rerun()
+            if enabled:
+                if row[4].button(t("dommgr.disable.btn"), key=f"dom_off_{code}", width="stretch",
+                                 disabled=reserved,
+                                 help=t("dommgr.reserved.help") if reserved else t("dommgr.disable.help")):
+                    domain_reg.update_domain(code, enabled=False)
+                    st.rerun()
+            elif row[4].button(t("dommgr.enable.btn"), key=f"dom_on_{code}", width="stretch"):
+                domain_reg.update_domain(code, enabled=True)
+                st.rerun()
+            if row[5].button(t("dommgr.delete.btn"), key=f"dom_del_{code}", width="stretch",
+                             disabled=blocked,
+                             help=(t("dommgr.reserved.help") if reserved
+                                   else t("dommgr.delete.has_data") if blocked else None)):
+                st.session_state["domain_delete_request"] = code
+                st.rerun()
 
     # ③ 未登记目录：有文件却没登记为领域的文件夹（入库时被兜底归到 reference）
     unregistered = domain_reg.unregistered_dirs(cfg.knowledge_dir)
