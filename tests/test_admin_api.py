@@ -66,15 +66,30 @@ class RegisterTests(ApiTestCase):
         super().setUp()
         self.dep = self.make_department("hr")
 
-    def _register(self, username="newbie", p1="secret1", p2="secret1", dep_id=None):
+    def _register(self, username="newbie", p1="secret1", p2="secret1", dep_id=None,
+                  real_name="", note=""):
         return self.client.post("/auth/register", json={
             "username": username, "password": p1, "password_confirm": p2,
-            "department_id": dep_id or self.dep["id"]})
+            "department_id": dep_id or self.dep["id"],
+            "real_name": real_name, "note": note})
 
     def test_success(self):
         resp = self._register()
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["department"], "hr")
+
+    def test_real_name_and_note_persisted(self):
+        resp = self._register(real_name="  张三 ", note=" 后端开发 ")
+        self.assertEqual(resp.status_code, 200)
+        user = auth_db.get_user("newbie")
+        self.assertEqual(user["real_name"], "张三")   # 前后空白被剥掉
+        self.assertEqual(user["note"], "后端开发")
+
+    def test_real_name_optional_defaults_empty(self):
+        resp = self._register()
+        self.assertEqual(resp.status_code, 200)
+        user = auth_db.get_user("newbie")
+        self.assertEqual((user["real_name"], user["note"]), ("", ""))
 
     def test_admin_name_rejected_and_logged(self):
         auth_db.create_admin("boss", "admin-pw")
@@ -251,6 +266,36 @@ class CorsAndCsrfTests(ApiTestCase):
         resp = self._toggle(Origin="https://rag.example.com",
                             **{"X-Forwarded-Host": "rag.example.com"})
         self.assertEqual(resp.status_code, 200)
+
+
+class RegisterProfileDirectTests(TempAuthDB):
+    """Windows 可跑：绕过 TestClient 直调 api_register（client_ip 已给则不触 Request）。
+
+    覆盖注册新增的真实姓名/职责备注字段：落库、剥空白、缺省为空。
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        auth_db.init_db()
+        self.dep = auth_db.create_department("hr")
+
+    def _register(self, username="newbie", **extra):
+        body = admin_app.RegisterBody(
+            username=username, password="secret1", password_confirm="secret1",
+            department_id=self.dep["id"], client_ip="127.0.0.1", **extra)
+        return admin_app.api_register(body, request=None)
+
+    def test_real_name_and_note_saved_and_stripped(self):
+        resp = self._register(real_name="  张三 ", note=" 后端开发 ")
+        self.assertTrue(resp["ok"])
+        user = auth_db.get_user("newbie")
+        self.assertEqual(user["real_name"], "张三")
+        self.assertEqual(user["note"], "后端开发")
+
+    def test_missing_profile_defaults_empty(self):
+        self._register()
+        user = auth_db.get_user("newbie")
+        self.assertEqual((user["real_name"], user["note"]), ("", ""))
 
 
 if __name__ == "__main__":

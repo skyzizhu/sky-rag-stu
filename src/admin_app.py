@@ -1298,6 +1298,8 @@ class RegisterBody(ContextFields):
     password: str
     password_confirm: str
     department_id: int  # 必填：注册必须归属部门；部门由管理员在后台创建
+    real_name: str = ""  # V3.9.1：注册可填真实姓名/职责备注（选填，与后台员工档案同字段）
+    note: str = ""
 
 
 class LoginBody(ContextFields):
@@ -1344,7 +1346,8 @@ def api_register(body: RegisterBody, request: Request):
         return JSONResponse({"ok": False, "detail": "请选择一个有效部门"}, status_code=400)
     try:
         user = auth_db.create_user(body.username, body.password,
-                                   department_id=dep["id"])
+                                   department_id=dep["id"],
+                                   real_name=body.real_name, note=body.note)
     except ValueError as exc:
         auth_db.log_auth_event("register", body.username, success=False,
                                detail=str(exc), entry="web",
@@ -1535,6 +1538,79 @@ def api_get_prefs(username: str):
 def api_save_prefs(body: PrefsBody):
     auth_db.save_user_prefs(body.username, body.settings)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- 个人中心（员工自助，V3.9.1）
+class ChangePasswordBody(ContextFields):
+    username: str
+    old_password: str
+    new_password: str
+    new_password_confirm: str
+
+
+class SelfProfileBody(ContextFields):
+    username: str
+    real_name: str = ""
+    note: str = ""
+
+
+def _active_employee_or_none(username: str):
+    """员工自助接口的身份校验：账户存在且状态 active，否则返回 None。"""
+    user = auth_db.get_user((username or "").strip())
+    if user is None or user.get("status") != "active":
+        return None
+    return user
+
+
+@app.post("/auth/change-password")
+def api_change_password(body: ChangePasswordBody, request: Request):
+    """员工自助改密：需原密码验证；与后台重置一致，密码变更会吊销其全部 MCP 令牌。"""
+    username = (body.username or "").strip()
+    user = _active_employee_or_none(username)
+    if user is None:
+        return JSONResponse({"ok": False, "detail": "登录态已失效，请重新登录"}, status_code=401)
+    logged, ok = body.old_password, False
+    if body.new_password != body.new_password_confirm:
+        detail, code = "两次输入的新密码不一致", 400
+    elif body.new_password == body.old_password:
+        detail, code = "新密码不能与原密码相同", 400
+    else:
+        authed, _ = auth_db.authenticate(username, body.old_password)
+        if authed is None:
+            detail, code = "原密码不正确", 400
+        else:
+            ok = True
+    if not ok:
+        auth_db.log_auth_event("change_password", username, success=False, detail=detail,
+                               entry="web", ip=(body.client_ip or _web_ip(request)),
+                               user_agent=body.user_agent, accept_language=body.accept_language)
+        return JSONResponse({"ok": False, "detail": detail}, status_code=code)
+    try:
+        auth_db.reset_password(user["id"], body.new_password)
+    except ValueError as exc:
+        auth_db.log_auth_event("change_password", username, success=False, detail=str(exc),
+                               entry="web", ip=(body.client_ip or _web_ip(request)),
+                               user_agent=body.user_agent, accept_language=body.accept_language)
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=400)
+    auth_db.log_auth_event("change_password", username, success=True, entry="web",
+                           ip=(body.client_ip or _web_ip(request)),
+                           user_agent=body.user_agent, accept_language=body.accept_language)
+    return {"ok": True}
+
+
+@app.post("/auth/profile")
+def api_self_profile(body: SelfProfileBody, request: Request):
+    """员工自助维护真实姓名与职责备注；账户名/部门/权限只能由管理员改。"""
+    username = (body.username or "").strip()
+    user = _active_employee_or_none(username)
+    if user is None:
+        return JSONResponse({"ok": False, "detail": "登录态已失效，请重新登录"}, status_code=401)
+    auth_db.update_user(user["id"], real_name=body.real_name, note=body.note)
+    auth_db.log_auth_event("update_profile", username, success=True, entry="web",
+                           ip=(body.client_ip or _web_ip(request)),
+                           user_agent=body.user_agent, accept_language=body.accept_language)
+    user = auth_db.get_user(username)
+    return {"ok": True, "real_name": user["real_name"], "note": user["note"]}
 
 
 if __name__ == "__main__":
