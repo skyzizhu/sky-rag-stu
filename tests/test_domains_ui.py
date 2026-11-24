@@ -1,10 +1,12 @@
-"""领域管理页 UI 全流程（AppTest 真实运行 app.py）：新增 → 改名 → 停用/启用 → 删除空领域；
-有数据 / 系统领域的删除与停用按钮必须禁用。隔离方式同 tests/test_upload_ui.py。"""
+"""领域管理页 UI 全流程（AppTest 真实运行 app.py）：新增 → 弹框改名 → 停用/启用 → 删除空领域；
+有数据 / 系统领域的删除与停用按钮必须禁用。V3.9.1 列表化后操作直接放行内，编辑走弹框。
+隔离方式同 tests/test_upload_ui.py；Windows 上 AppTest 受网络隔离守卫限制，整类跳过。"""
 
 from __future__ import annotations
 
 import contextlib
 import io
+import os
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -24,6 +26,7 @@ def _domains_page_as_default(page, *args, **kwargs):
     return _real_page(page, *args, **kwargs)
 
 
+@unittest.skipIf(os.name == "nt", "Windows AppTest sockets are blocked by test network isolation")
 class DomainPageFlowTests(IngestHarness):
     def setUp(self) -> None:
         super().setUp()
@@ -68,21 +71,22 @@ class DomainPageFlowTests(IngestHarness):
 
     def test_lists_builtins_with_system_protection(self):
         at = self.open_page()
-        labels = [e.label for e in at.expander]
         for code in domains.BUILTIN_CODES:
-            self.assertTrue(any(label.startswith(code + " ·") for label in labels), code)
+            self.assertTrue(any(b.key == f"dom_edit_{code}" for b in at.button), code)
         self.assertTrue(at.button(key="dom_del_archive").disabled)
         self.assertTrue(at.button(key="dom_off_reference").disabled)
 
-    def test_create_rename_disable_delete(self):
+    def test_create_edit_in_dialog_disable_delete(self):
         at = self.open_page()
-        at.text_input[0].input("finance")      # 新增表单：编号
-        at.text_input[1].input("财务")         # 新增表单：名称
+        self.click(at, at.button(key="dom_add_open"))          # 「＋ 新增领域」弹框
+        at.text_input[0].input("finance")      # 新增弹框：编号
+        at.text_input[1].input("财务")         # 新增弹框：名称
         self.click(at, next(b for b in at.button if b.label == "创建领域"))
         self.assertEqual(domains.display_name("finance"), "财务")
-        self.assertTrue(any(e.label.startswith("finance · 财务") for e in at.expander))
+        self.assertTrue(any(b.key == "dom_edit_finance" for b in at.button))
 
-        # 改名：最后一个「显示名称」输入框属于最后登记的 finance
+        # 改名：行内「编辑」按钮打开弹框，弹框内保存
+        self.click(at, at.button(key="dom_edit_finance"))
         name_inputs = [w for w in at.text_input if w.label == "显示名称"]
         name_inputs[-1].input("财务资料")
         save_buttons = [b for b in at.button if b.label == "保存名称与描述"]
@@ -108,7 +112,7 @@ class DomainPageFlowTests(IngestHarness):
 
     def test_page_hidden_without_permission(self):
         at = self.open_page(permissions=())
-        self.assertFalse(any(e.label.startswith("work ·") for e in at.expander))
+        self.assertFalse(any(b.key == "dom_edit_work" for b in at.button))
 
 
 if __name__ == "__main__":

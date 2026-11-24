@@ -1,4 +1,4 @@
-"""个人知识库 RAG —— Streamlit 界面（侧边菜单导航版）。
+"""长城互联网 · 企业知识库 RAG —— Streamlit 界面（侧边菜单导航版）。
 
 启动方式：在项目根目录运行  streamlit run app.py
 
@@ -92,8 +92,18 @@ from src.sessions import (
     save_session,
 )  # noqa: E402
 from src.vector_store import VectorStoreError, get_vector_store  # noqa: E402
+from src.form_hint_i18n import apply_form_hint_language  # noqa: E402
 
-st.set_page_config(page_title="Sky Personal RAG", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="长城互联网 · 企业知识库 · 智能检索问答",
+                   page_icon="static/gw_logo.png", layout="wide")
+
+# 品牌logo：Streamlit 1.67 未启用 ./static 静态目录（/static/* 会回退 index.html），
+# 侧边栏图改为 base64 内嵌，页面图标（page_icon）仍走文件路径由 Streamlit 自行托管。
+import base64 as _b64  # noqa: E402
+
+_LOGO_FILE = Path(__file__).parent / "static" / "gw_logo.png"
+LOGO_DATA_URI = ("data:image/png;base64," + _b64.b64encode(_LOGO_FILE.read_bytes()).decode()
+                 if _LOGO_FILE.exists() else "")
 cfg = get_config()
 
 # 上传页格式显示：按类别归组（文档 → 表格 → 演示 → 图片 → 网页），仅影响显示顺序；
@@ -117,9 +127,8 @@ def _is_hidden_relpath(parts: tuple[str, ...]) -> bool:
 
 # 跨页面共享的设置项：在「设置与状态」里改，问答页即时生效
 st.session_state.setdefault("top_k", cfg.top_k)
-st.session_state.setdefault("domain_choice", "all")
-st.session_state.setdefault("doc_type_choice", "")
-st.session_state.setdefault("department_choice", "")
+# V3.9.1：领域/文档类型/归属部门/可见密级四项检索筛选暂时隐藏（后期再评估恢复）——
+# 不初始化 session 键，settings.json / 个人偏好里的旧值不再加载（见 build_filters 与 SETTINGS_KEYS）。
 st.session_state.setdefault("scope_choice", "active")
 st.session_state.setdefault("debug_mode", True)
 st.session_state.setdefault("query_understanding", cfg.query_understanding)
@@ -510,8 +519,11 @@ html, body, .stApp, .stMarkdown, input, textarea {
   color: var(--accent-text) !important; font-weight: 600;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_footer) {order:4 !important;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_logout) {
-  order:5 !important; margin-top:auto !important; padding: 4px 6px 2px !important;
-  border-top: 1px solid var(--border-subtle) !important;}
+  order:5 !important; margin-top:auto !important; padding: 4px 6px 8px !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  /* 悬浮钉底：侧边栏内容超高时也始终贴在可视区底部，无需滚动（底色随亮暗主题） */
+  position: sticky !important; bottom: 0 !important; z-index: 3 !important;
+  background: var(--bg-sidebar) !important;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_logout) button {
   width: 100% !important;}
 [data-testid="stSidebar"] [role="radiogroup"] label {border-radius: 10px; padding: 4px 12px;
@@ -520,9 +532,12 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
   background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(139,92,246,.1));
   color: #818CF8 !important; border-left: 2px solid #818CF8;}
-.brand-block {padding: 4px 42px 17px 3px; margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle);}
+.brand-block {padding: 8px 4px 14px; margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle);
+              display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 7px;}
+.brand-logo {height: 46px; max-width: 100%; object-fit: contain; background: #fff;
+             border-radius: 8px; padding: 4px 8px; box-shadow: 0 4px 14px rgba(0,0,0,.12);}
 .brand-name {font-size:1.05rem;font-weight:800;color:var(--text-primary);line-height:1.2;letter-spacing:-.02em;}
-.brand-slogan {font-size:.72rem;color:var(--text-secondary);margin-top:4px;}
+.brand-slogan {font-size:.72rem;color:var(--text-secondary);line-height:1.5;}
 [data-testid="stExpander"] {border-radius: 12px !important;
   border: 1px solid var(--border-subtle) !important; background: var(--bg-card) !important;}
 .stButton > button {border-radius: 10px; border: 1px solid rgba(148,163,184,.12);
@@ -912,15 +927,10 @@ def persist_app_settings() -> None:
     必须整包带上 installed_plugins（它不在 session_state 里，读取走 src/plugin），
     否则任何一次覆盖式保存都会把它（或 language）从 settings.json 里丢掉。
     V3.7：登录用户额外把偏好按人存入 SQLite（不同用户语言/主题互不影响）。
+    V3.9.1：已隐藏的四项检索筛选不在 SETTINGS_KEYS 里，不会再被写入或按人回读，
+    旧值仍留在旧文件/偏好里但视为失效（下次任意保存会从 settings.json 中自然清除）。
     """
     data = {k: st.session_state[k] for k in SETTINGS_KEYS if k in st.session_state}
-    # 仅初始化空默认值不应扩写已有设置（热重载/其他控件保存可能调用此入口）。
-    if not data.get("doc_type_choice") and "doc_type_choice" not in load_app_settings():
-        data.pop("doc_type_choice", None)
-    if not data.get("department_choice") and "department_choice" not in load_app_settings():
-        data.pop("department_choice", None)
-    if not data.get("classification_choice") and "classification_choice" not in load_app_settings():
-        data.pop("classification_choice", None)
     data["installed_plugins"] = get_installed_plugins()
     save_app_settings(data)
     user = st.session_state.get("auth_user")
@@ -1024,34 +1034,19 @@ def tag(text: str, color: str = "blue") -> str:
 
 
 def build_filters() -> dict:
-    """把设置页的检索设置翻译成 Metadata Filter（值为语言无关的代码）。"""
+    """把设置页的检索设置翻译成 Metadata Filter（值为语言无关的代码）。
+
+    V3.9.1：限定知识领域、文档类型、归属部门、可见密级四项筛选暂时隐藏，
+    已保存的旧值不再读取/应用/写入——避免"界面看不见但仍在收窄"的残留过滤；
+    底层 metadata 过滤机制（vector_store.build_filter）原样保留，恢复时从
+    git 历史找回本函数与设置页的对应控件。检索范围（status）继续生效。
+    """
     filters: dict = {}
-    # V3.8：已保存的领域选择若已被删除，回落为全部——否则过滤条件永远检索不到内容
-    domain_choice = domain_reg.sanitize_choice(st.session_state["domain_choice"])
-    if domain_choice != "all":
-        filters["domain"] = domain_choice
     scope = st.session_state["scope_choice"]
     if scope == "all":
         filters["status"] = "all"
     elif scope == "archive":
         filters["status"] = "archive"
-    # 类型只做用户指定的精确过滤，不参与问题理解或排序；坏偏好回落为不过滤。
-    try:
-        doc_type_choice = normalize_doc_type_filter(st.session_state.get("doc_type_choice", ""))
-    except ValueError:
-        doc_type_choice = None
-    if doc_type_choice is not None:
-        filters["doc_type"] = doc_type_choice
-    # 归属部门同理：精确过滤档案字段，与可见权限无关；坏偏好回落为不过滤。
-    try:
-        department_choice = normalize_department_filter(st.session_state.get("department_choice", ""))
-    except ValueError:
-        department_choice = None
-    if department_choice is not None:
-        filters["department"] = department_choice
-    level = st.session_state.get("classification_choice")
-    if level in ("公开", "内部", "受限"):
-        filters["classification"] = level
     return filters
 
 
@@ -1865,14 +1860,20 @@ def page_chat():
         )
 
     # V3.7.1 空会话引导：示例问题一键提问（点击后走与手输完全相同的问答流程）
+    # V3.9.1：预设问题由系统按用户提问次数自动归纳（高频优先，同次数取最近）；
+    # 不足 3 个时用内置示例补位，全新用户看到的仍是默认三问。
     if not st.session_state.messages:
+        _ex_username = (st.session_state.get("auth_user") or {}).get("username") or ""
+        frequent = auth_db.get_frequent_questions(_ex_username) if _ex_username else []
+        examples = (frequent + [q for q in (t(k) for k in ("chat.ex.1", "chat.ex.2", "chat.ex.3"))
+                                if q not in frequent])[:3]
         ex_cols = st.columns(3)
-        for i, ex_key in enumerate(("chat.ex.1", "chat.ex.2", "chat.ex.3")):
-            if ex_cols[i].button(t(ex_key), key=f"chat_example_{i}", width="stretch"):
-                st.session_state["chat_ask_example"] = t(ex_key)
+        for i, ex_text in enumerate(examples):
+            if ex_cols[i].button(ex_text, key=f"chat_example_{i}", width="stretch"):
+                st.session_state["chat_ask_example"] = ex_text
 
     for message in st.session_state.messages:
-        with st.chat_message(message["role"], avatar="🙋" if message["role"] == "user" else "🧠"):
+        with st.chat_message(message["role"], avatar="🙋" if message["role"] == "user" else LOGO_DATA_URI or "🧠"):
             if message["role"] == "user":
                 st.markdown(f'<div class="user-bubble">{html.escape(message["content"])}</div>',
                             unsafe_allow_html=True)
@@ -1906,7 +1907,7 @@ def page_chat():
             key=f"scroll_question_{st.session_state['session_id']}_{len(st.session_state.messages)}",
         )
 
-        with st.chat_message("assistant", avatar="🧠"):
+        with st.chat_message("assistant", avatar=LOGO_DATA_URI or "🧠"):
             if not cfg.llm_api_key:
                 st.error(t("chat.no_api_key"))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.no_api_key.msg")})
@@ -3283,50 +3284,15 @@ def page_retrieval_settings():
     st.markdown(f'<div class="section-title">{t("set.retrieval.title")}</div>', unsafe_allow_html=True)
     st.caption(t("set.retrieval.caption"))
 
-    domain_codes = ["all"] + domain_reg.all_codes()  # 含停用领域：其数据仍可检索
     scope_codes = ["active", "all", "archive"]
 
-    # 值保存语言无关的代码（all/work/…、active/all/archive），显示时本地化；
-    # 显式传入当前生效值，保证第一次打开就显示正确数据；变化时同步回 session
+    # 值保存语言无关的代码（active/all/archive），显示时本地化；
+    # 显式传入当前生效值，保证第一次打开就显示正确数据；变化时同步回 session。
+    # V3.9.1：限定知识领域、文档类型、归属部门、可见密级四项筛选暂时隐藏（后期再评估恢复），
+    # 只保留 Top K 与检索范围；已保存的旧筛选值不再读取/应用/写入（见 build_filters）。
     st.slider(t("set.top_k"), 1, 10,
               value=st.session_state["top_k"], key="set_top_k",
               on_change=_sync_setting("top_k", "set_top_k"))
-    st.selectbox(t("set.domain"), domain_codes,
-                 format_func=lambda c: t("common.all") if c == "all" else domain_label(c),
-                 index=domain_codes.index(st.session_state["domain_choice"])
-                 if st.session_state["domain_choice"] in domain_codes else 0,
-                 key="set_domain", on_change=_sync_setting("domain_choice", "set_domain"))
-    try:
-        doc_type_choice = normalize_doc_type_filter(st.session_state.get("doc_type_choice", "")) or ""
-    except ValueError:
-        doc_type_choice = ""
-    st.text_input(t("common.doc_type"), value=doc_type_choice, max_chars=80,
-                  key="set_doc_type", on_change=_sync_setting("doc_type_choice", "set_doc_type"),
-                  help=t("doc_type.filter.help"), placeholder=t("doc_type.filter.optional"))
-    try:
-        department_choice = normalize_department_filter(
-            st.session_state.get("department_choice", "")) or ""
-    except ValueError:
-        department_choice = ""
-    _reg_departments = document_department_options()[1:]
-    _stored_departments = sorted({str(d.get("department") or "").strip()
-                                    for d in store.list_documents(_viewer_filters())} - {""})
-    department_options = list(dict.fromkeys(
-        ["", "__no_department__"] + _reg_departments + _stored_departments
-        + ([department_choice] if department_choice else [])))
-    st.selectbox(t("common.department"), department_options,
-                 format_func=lambda v: t("common.all") if v == ""
-                 else t("department.unspecified") if v == "__no_department__" else v,
-                 index=department_options.index(department_choice)
-                 if department_choice in department_options else 0,
-                 key="set_department", on_change=_sync_setting("department_choice", "set_department"),
-                 help=t("department.filter.help"))
-    visibility_choices = ["", "公开", "内部", "受限"]
-    visibility_choice = st.session_state.get("classification_choice", "")
-    st.selectbox(t("visibility.level"), visibility_choices,
-                 format_func=lambda value: _visibility_label(value) if value else t("common.all"),
-                 index=visibility_choices.index(visibility_choice) if visibility_choice in visibility_choices else 0,
-                 key="set_classification", on_change=_sync_setting("classification_choice", "set_classification"))
     st.radio(t("set.scope"), scope_codes,
              format_func=lambda s: t(f"scope.{s}"),
              index=scope_codes.index(st.session_state["scope_choice"])
@@ -3535,20 +3501,16 @@ def page_params_overview():
 try_restore_session()
 
 with st.sidebar:
+    # V3.9.1：把 Streamlit 内置英文表单提示（Press Enter to submit form 等）
+    # 按当前界面语言替换——所有页面共用侧边栏，这里挂一次全局生效
+    apply_form_hint_language(current_language())
     with st.container(key="sidebar_brand"):
         st.markdown(
             f"""
             <div class="brand-block">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:42px;height:42px;border-radius:12px;flex:none;
-                            background:linear-gradient(135deg,#2563EB,#4F46E5);
-                            display:flex;align-items:center;justify-content:center;
-                            font-size:1.35rem;box-shadow:0 4px 14px rgba(37,99,235,.35);">🧠</div>
-                <div>
-                  <div class="brand-name">Sky Personal RAG</div>
-                  <div class="brand-slogan">{t("brand.slogan")}</div>
-                </div>
-              </div>
+              <img class="brand-logo" src="{LOGO_DATA_URI}" alt="长城互联网">
+              <div class="brand-name">长城互联网</div>
+              <div class="brand-slogan">{t("brand.slogan")}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -3638,6 +3600,65 @@ def confirm_domain_delete() -> None:
         st.rerun()
 
 
+@st.dialog(t("dommgr.add.title"), width="small")
+@_guard_management_database
+def add_domain_dialog() -> None:
+    """新增领域弹框（V3.9.1 列表化改造）：编号是数据身份，创建后不可改。"""
+    with st.form("domain_add_form", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        new_code = c1.text_input(t("dommgr.field.code"), help=t("dommgr.field.code.help"))
+        new_name = c2.text_input(t("dommgr.field.name"))
+        new_desc = st.text_input(t("dommgr.field.desc"))
+        if st.form_submit_button(t("dommgr.add.btn"), type="primary", width="stretch"):
+            try:
+                created = domain_reg.create_domain(new_code, new_name, new_desc, store=store)
+            except domain_reg.DomainError as exc:
+                # 弹框随提交后的整页重绘关闭，把错误带到页面上展示
+                st.session_state.pop("domain_add_open", None)
+                st.session_state["domain_add_error"] = str(exc)
+                st.rerun()
+            else:
+                st.session_state.pop("domain_add_open", None)
+                st.toast(t("dommgr.add.ok", code=created["code"]), icon="✅")
+                st.rerun()
+
+
+@st.dialog(t("dommgr.edit.dialog.title"), width="small")
+@_guard_management_database
+def edit_domain_dialog() -> None:
+    """编辑弹框：只改名称与描述，编号是数据身份不可改（V3.9.1 列表化改造）。
+
+    编号经 domain_edit_active 传入（弹框体是独立重绘，request 键已在打开时消费）；
+    成功/失败都会消费该键，因此右上角 X 关闭后不会再被下一次任意操作弹回。
+    """
+    code = st.session_state.get("domain_edit_active")
+    if not code:
+        return
+    domain = next((d for d in domain_reg.load_domains() if d["code"] == code), None)
+    if not domain:
+        st.session_state.pop("domain_edit_active", None)
+        return
+    st.caption(f"{t('dommgr.field.code')}：{code}　·　{t('dommgr.field.code.help')}")
+    with st.form("domain_edit_dialog_form"):
+        name_val = st.text_input(
+            t("dommgr.field.name"), value=domain.get("name", ""),
+            placeholder=domain_label_i18n(code, with_code=False) if domain.get("builtin") else "",
+            help=t("dommgr.field.name.builtin_help") if domain.get("builtin") else None)
+        desc_val = st.text_input(t("dommgr.field.desc"), value=domain.get("description", ""))
+        if st.form_submit_button(t("dommgr.edit.btn"), type="primary", width="stretch"):
+            try:
+                domain_reg.update_domain(code, name=name_val, description=desc_val)
+            except domain_reg.DomainError as exc:
+                # 弹框随提交后的整页重绘关闭，把错误带到页面上展示
+                st.session_state.pop("domain_edit_active", None)
+                st.session_state["domain_edit_error"] = str(exc)
+                st.rerun()
+            else:
+                st.session_state.pop("domain_edit_active", None)
+                st.toast(t("dommgr.edit.ok"), icon="✅")
+                st.rerun()
+
+
 @_guard_management_database
 def page_domains():
     """领域管理：增 / 改名称与描述 / 启停 / 删除（只能删空领域）/ 登记未登记目录。
@@ -3647,73 +3668,57 @@ def page_domains():
     require_perm("domains")
     st.markdown(f'<div class="section-title">{t("dommgr.title")}</div>', unsafe_allow_html=True)
     st.caption(t("dommgr.caption"))
+    if edit_error := st.session_state.pop("domain_edit_error", None):
+        st.error(edit_error)
+    if add_error := st.session_state.pop("domain_add_error", None):
+        st.error(add_error)
+    if st.button(t("dommgr.add.title"), key="dom_add_open", icon=":material/add:"):
+        st.session_state["domain_add_open"] = True
+        st.rerun()
 
     documents = store.list_documents()
     usage = domain_reg.usage_by_domain(cfg.knowledge_dir, istate.load_state(), documents)
 
-    # ① 新增领域
-    with st.expander(t("dommgr.add.title")):
-        with st.form("domain_add_form", clear_on_submit=True):
-            c1, c2 = st.columns(2)
-            new_code = c1.text_input(t("dommgr.field.code"), help=t("dommgr.field.code.help"))
-            new_name = c2.text_input(t("dommgr.field.name"))
-            new_desc = st.text_input(t("dommgr.field.desc"))
-            if st.form_submit_button(t("dommgr.add.btn"), type="primary", width="stretch"):
-                try:
-                    created = domain_reg.create_domain(new_code, new_name, new_desc, store=store)
-                except domain_reg.DomainError as exc:
-                    _show_management_error(exc)
-                else:
-                    st.toast(t("dommgr.add.ok", code=created["code"]), icon="✅")
-                    st.rerun()
-
-    # ② 领域列表
+    # ② 领域列表（V3.9.1 列表化）：一行一领域，行内直接提供 编辑/停用|启用/删除；
+    #    编辑走弹框（domain_edit_request），删除仍走确认框（domain_delete_request）
     for d in domain_reg.load_domains():
         code = d["code"]
         stat = usage.get(code) or {}
         reserved = code in domain_reg.RESERVED_CODES
         enabled = d.get("enabled", True)
-        header = (f"{domain_label(code)}　"
-                  f"{t('dommgr.status.on') if enabled else t('dommgr.status.off')}"
-                  f"{'　' + t('dommgr.badge.system') if reserved else ''}　"
-                  f"{t('dommgr.stat.short', files=stat.get('files', 0), cards=stat.get('cards', 0))}")
-        with st.expander(header):
+        blocked = reserved or domain_reg.has_data(stat)
+        row = st.columns([2.3, 1.05, 1.35, 0.85, 0.85, 0.85])
+        with row[0]:
+            st.markdown(f"**{domain_label(code)}**"
+                        + (f"　`{t('dommgr.badge.system')}`" if reserved else ""),
+                        unsafe_allow_html=True)
             if d.get("description"):
                 st.caption(d["description"])
-            st.caption(t("dommgr.stat.detail", files=stat.get("files", 0),
-                         archived=stat.get("archived", 0), documents=stat.get("documents", 0),
+        with row[1]:
+            st.markdown(("🟢 " if enabled else "⛔ ")
+                        + t("dommgr.status.on" if enabled else "dommgr.status.off"))
+        with row[2]:
+            st.caption(t("dommgr.stat.short", files=stat.get("files", 0),
                          cards=stat.get("cards", 0)))
-            with st.form(f"domain_edit_{code}"):
-                name_val = st.text_input(
-                    t("dommgr.field.name"), value=d.get("name", ""),
-                    placeholder=domain_label_i18n(code, with_code=False) if d.get("builtin") else "",
-                    help=t("dommgr.field.name.builtin_help") if d.get("builtin") else None)
-                desc_val = st.text_input(t("dommgr.field.desc"), value=d.get("description", ""))
-                if st.form_submit_button(t("dommgr.edit.btn"), width="stretch"):
-                    try:
-                        domain_reg.update_domain(code, name=name_val, description=desc_val)
-                    except domain_reg.DomainError as exc:
-                        st.error(str(exc))
-                    else:
-                        st.toast(t("dommgr.edit.ok"), icon="✅")
-                        st.rerun()
-            col_toggle, col_delete = st.columns(2)
-            if enabled:
-                if col_toggle.button(t("dommgr.disable.btn"), key=f"dom_off_{code}", width="stretch",
-                                     disabled=reserved,
-                                     help=t("dommgr.reserved.help") if reserved else t("dommgr.disable.help")):
-                    domain_reg.update_domain(code, enabled=False)
-                    st.rerun()
-            elif col_toggle.button(t("dommgr.enable.btn"), key=f"dom_on_{code}", width="stretch"):
-                domain_reg.update_domain(code, enabled=True)
+        if row[3].button(t("dommgr.edit.dialog.btn"), key=f"dom_edit_{code}",
+                         width="stretch", help=t("dommgr.edit.dialog.help")):
+            st.session_state["domain_edit_request"] = code
+            st.rerun()
+        if enabled:
+            if row[4].button(t("dommgr.disable.btn"), key=f"dom_off_{code}", width="stretch",
+                             disabled=reserved,
+                             help=t("dommgr.reserved.help") if reserved else t("dommgr.disable.help")):
+                domain_reg.update_domain(code, enabled=False)
                 st.rerun()
-            blocked = reserved or domain_reg.has_data(stat)
-            if col_delete.button(t("dommgr.delete.btn"), key=f"dom_del_{code}", width="stretch",
-                                 disabled=blocked,
-                                 help=(t("dommgr.reserved.help") if reserved
-                                       else t("dommgr.delete.has_data") if blocked else None)):
-                st.session_state["domain_delete_request"] = code
-                st.rerun()
+        elif row[4].button(t("dommgr.enable.btn"), key=f"dom_on_{code}", width="stretch"):
+            domain_reg.update_domain(code, enabled=True)
+            st.rerun()
+        if row[5].button(t("dommgr.delete.btn"), key=f"dom_del_{code}", width="stretch",
+                         disabled=blocked,
+                         help=(t("dommgr.reserved.help") if reserved
+                               else t("dommgr.delete.has_data") if blocked else None)):
+            st.session_state["domain_delete_request"] = code
+            st.rerun()
 
     # ③ 未登记目录：有文件却没登记为领域的文件夹（入库时被兜底归到 reference）
     unregistered = domain_reg.unregistered_dirs(cfg.knowledge_dir)
@@ -3735,6 +3740,11 @@ def page_domains():
                     st.toast(t("dommgr.unreg.ok", code=created["code"]), icon="✅")
                     st.rerun()
 
+    if code := st.session_state.pop("domain_edit_request", None):
+        st.session_state["domain_edit_active"] = code
+        edit_domain_dialog()
+    if st.session_state.pop("domain_add_open", None):
+        add_domain_dialog()
     if st.session_state.get("domain_delete_request"):
         confirm_domain_delete()
 
@@ -3851,25 +3861,10 @@ with st.sidebar:
                     '<div style="text-align:center;font-size:.72rem;color:var(--text-muted);padding:18px 6px;line-height:1.7;">'
                     f'{t("sidebar.empty")}</div>', unsafe_allow_html=True)
 
-        ok_all = all(ok for ok, _ in system_status(current_language()).values())
-        status_emoji = "🟢" if ok_all else "🟡"
-        status_text = t("sidebar.status.ok") if ok_all else t("sidebar.status.pending")
-        status_detail = " · ".join(
-            f"{name}{'✓' if ok else '!'}" for name, (ok, _) in system_status(current_language()).items()
-        )
-        st.markdown(
-            f"""
-            <div class="sidebar-status">
-              <div class="sidebar-status-row">
-                <strong>{status_emoji} {t("sidebar.status.title")}</strong><span>{status_text}</span>
-              </div>
-              <div class="sidebar-status-note">{status_detail}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        # V3.9.1：侧边栏底部的系统状态卡已按用户要求移除（MCP 探测开销随之省去）；
+        # 完整服务状态仍在「设置 → 系统状态」页查看。
 
-    # V3.7.2 登出按钮：独立容器吸附侧边栏最底部（CSS margin-top:auto），
+    # V3.7.2 登出按钮：独立容器吸附侧边栏最底部（sticky 钉底），
     # 点击后弹确认框（confirm_logout），确认才真正退出
     if st.session_state.get("auth_user"):
         with st.container(key="sidebar_logout"):

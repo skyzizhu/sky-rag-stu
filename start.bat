@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title Sky Personal RAG 启动器
+title 长城互联网 启动器
 
 REM ============================================================
 REM  Windows 一键启动：Qdrant + Ollama 检查 + 管理后台 + 知识库前台

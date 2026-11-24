@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title Sky Personal RAG - 停止服务
+title 长城互联网 - 停止服务
 
 REM 关闭全部服务：Qdrant + Ollama + 管理后台 + 前台（按端口精确清理残留）
 taskkill /F /IM qdrant.exe >nul 2>&1

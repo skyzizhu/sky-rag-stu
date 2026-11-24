@@ -941,6 +941,23 @@ def save_user_prefs(username: str, settings: dict) -> None:
         )
 
 
+# ---------------------------------------- 问答页预设问题（按用户提问次数自动归纳）
+def get_frequent_questions(username: str, limit: int = 3, max_length: int = 100) -> list[str]:
+    """按提问次数归纳该用户的高频问题（次数降序，同次数取最近一次），供问答页一键再问。
+
+    只统计本人提出的非空问题；过长问题不适合做按钮，不参与归纳。
+    无历史时返回空列表，界面回落到内置示例问题。
+    """
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT question, COUNT(*) AS n, MAX(id) AS latest FROM qa_logs "
+            "WHERE username=? AND question != '' AND length(question) <= ? "
+            "GROUP BY question ORDER BY n DESC, latest DESC LIMIT ?",
+            (username, max_length, limit),
+        ).fetchall()
+    return [row["question"] for row in rows]
+
+
 # ---------------------------------------------------------------- 登录日志
 _BROWSER_RES = [
     ("Edge", re.compile(r"Edg(?:e|A|iOS)?/([\d.]+)")),
@@ -1168,14 +1185,28 @@ def count_qa_logs(username: str = "", entry: str = "",
     return row["n"]
 
 
-def llm_usage_page(username: str, since: str, page: int, page_size: int) -> tuple[dict, list[dict], int, int]:
-    """Aggregate matching log usage and read only the requested detail page in one snapshot."""
+def llm_usage_page(username: str, since: str, page: int, page_size: int,
+                   *, entry: str | None = None,
+                   username_exact: bool = False) -> tuple[dict, list[dict], int, int]:
+    """Aggregate all matching usage; paginate details in one snapshot.
+
+    Username defaults to legacy LIKE matching; exact mode uses literal equality.
+    An empty username selects all users. entry=None selects all entries, while
+    entry='' selects only historical logs with an empty entry.
+    """
     from contextlib import closing
 
-    where, params = _qa_logs_where(username, "")
+    conditions, params = [], []
+    if username:
+        conditions.append("username=?" if username_exact else "username LIKE ?")
+        params.append(username if username_exact else f"%{username}%")
+    if entry is not None:
+        conditions.append("entry=?")
+        params.append(entry)
     if since:
-        where += (" AND " if where else " WHERE ") + "created_at >= ?"
+        conditions.append("created_at >= ?")
         params.append(since)
+    where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
     usage = """
         WITH matching AS (
             SELECT id, username, entry, created_at, substr(question, 1, 80) AS question,
@@ -1209,6 +1240,28 @@ def llm_usage_page(username: str, since: str, page: int, page_size: int) -> tupl
             FROM usage_rows WHERE calls > 0 ORDER BY id DESC LIMIT ? OFFSET ?
         """, [*params, page_size, (page - 1) * page_size]).fetchall()
     return totals, [dict(row) for row in rows], page, total_pages
+
+
+def llm_usage_filter_options() -> dict:
+    """Return current and historical users plus raw entries from all QA logs."""
+    from contextlib import closing
+
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN")
+        users = conn.execute("""
+            WITH usernames AS (
+                SELECT username FROM users
+                UNION
+                SELECT username FROM qa_logs WHERE username != ''
+            )
+            SELECT usernames.username, COALESCE(users.real_name, '') AS real_name
+            FROM usernames LEFT JOIN users ON users.username = usernames.username
+            ORDER BY usernames.username
+        """).fetchall()
+        entries = conn.execute(
+            "SELECT DISTINCT entry FROM qa_logs ORDER BY entry").fetchall()
+    return {"users": [dict(row) for row in users],
+            "entries": [row["entry"] for row in entries]}
 
 
 def count_user_tokens(user_id: int) -> int:

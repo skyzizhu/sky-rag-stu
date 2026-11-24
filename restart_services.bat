@@ -1,5 +1,5 @@
 @echo off
-rem Restart all Sky Personal RAG services: stop everything, then relaunch.
+rem Restart all Great Wall Internet (长城互联网) services: stop everything, then relaunch.
 rem Triggered by the admin console "Services" tab (detached process) or manually.
 rem Each service logs to its own file under storage\ (shared files would lock
 rem each other out — long-running servers hold their redirect handle open).
@@ -33,8 +33,8 @@ ping -n 5 127.0.0.1 >nul
 
 cd /d "%ROOT%"
 start "" /B "%ROOT%.venv\Scripts\python.exe" -m uvicorn src.admin_app:app --host 0.0.0.0 --port 8700 --proxy-headers --forwarded-allow-ips=127.0.0.1 >> "%LOGDIR%\restart_admin.log" 2>&1
-start "" /B "%ROOT%.venv\Scripts\streamlit.exe" run app.py --server.headless true >> "%LOGDIR%\restart_front.log" 2>&1
-set "MCP_TRANSPORT=streamable-http"
+start "" /B "%ROOT%.venv\Scripts\streamlit.exe" run app.py --server.headless true >> "%LOGDIR%\restart_front.log" 2>&1
+set "MCP_TRANSPORT=streamable-http"
 start "" /B "%ROOT%.venv\Scripts\python.exe" "%ROOT%src\mcp_server.py" >> "%LOGDIR%\restart_mcp.log" 2>&1
 
 echo === restart done %date% %time% === >> "%LOGDIR%\restart.log"

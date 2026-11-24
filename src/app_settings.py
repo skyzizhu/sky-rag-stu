@@ -16,12 +16,10 @@ SETTINGS_PATH = PROJECT_ROOT / "settings.json"
 _LEGACY_PATH = PROJECT_ROOT / "storage" / "settings.json"  # 旧位置（storage 曾被 gitignore）
 
 # 允许持久化的设置键（与界面上的设置项一一对应）
+# V3.9.1：domain/doc_type/department/classification 四项检索筛选已暂时隐藏——
+# 不再持久化、不再按人回读；_normalize_choices 仍容忍旧文件里的这些键，便于后期恢复。
 SETTINGS_KEYS = [
     "top_k",
-    "domain_choice",
-    "doc_type_choice",
-    "department_choice",
-    "classification_choice",
     "scope_choice",
     "debug_mode",
     "query_understanding",

@@ -267,12 +267,15 @@ class DocumentTypeStructureTests(unittest.TestCase):
         self.assertIn("&lt;script&gt;", st.markdown.call_args.args[0])
         self.assertNotIn("<script>", st.markdown.call_args.args[0])
 
-    def test_retrieval_widget_and_four_language_keys(self):
+    def test_retrieval_filter_widgets_hidden_and_language_keys_kept(self):
         page = function("page_retrieval_settings")
-        widget = next(node for node in calls(page, "text_input")
-                      if any(k.arg == "key" and ast.literal_eval(k.value) == "set_doc_type" for k in node.keywords))
-        self.assertEqual(next(ast.literal_eval(k.value) for k in widget.keywords if k.arg == "max_chars"), 80)
-        self.assertIn("_sync_setting('doc_type_choice', 'set_doc_type')", ast.unparse(widget))
+        # V3.9.1：领域/文档类型/归属部门/可见密级四项筛选暂时隐藏，设置页不得再渲染这些控件。
+        hidden_keys = {"set_domain", "set_doc_type", "set_department", "set_classification"}
+        rendered_keys = {ast.literal_eval(k.value) for role in ("selectbox", "text_input")
+                         for node in calls(page, role)
+                         for k in node.keywords if k.arg == "key"}
+        leaked = hidden_keys & rendered_keys
+        self.assertFalse(leaked, f"隐藏的筛选控件仍被渲染：{sorted(leaked)}")
         keys = {"common.doc_type", "doc_type.unclassified", "doc_type.help", "doc_type.default",
                 "doc_type.default.help", "doc_type.save", "doc_type.filter.optional", "doc_type.filter.help"}
         for lang in LANGUAGE_ORDER:
@@ -282,40 +285,34 @@ class DocumentTypeStructureTests(unittest.TestCase):
 
 class DocumentTypeSettingsTests(unittest.TestCase):
     def test_settings_normalization_does_not_split_free_text(self):
-        self.assertIn("doc_type_choice", SETTINGS_KEYS)
+        # V3.9.1：四项检索筛选已隐藏，不再出现在持久化键里；归一化仍容忍旧文件中的历史值。
+        self.assertNotIn("doc_type_choice", SETTINGS_KEYS)
         for value, expected in (("  自定义 技术方案  ", "自定义 技术方案"), ("", ""), (None, ""),
                                 (" all ", ""), ("ALL", ""), (" __unclassified__ ", "__unclassified__"),
                                 ("x" * 80, "x" * 80), ("x" * 81, ""), (12, ""), ([], ""),
                                 ("bad\nvalue", "")):
             self.assertEqual(_normalize_choices({"doc_type_choice": value})["doc_type_choice"], expected)
 
-    def test_consume_filter_normalizes_and_keeps_existing_filters(self):
-        st = SimpleNamespace(session_state=dict(domain_choice="learning", scope_choice="archive"))
+    def test_build_filters_ignores_hidden_filter_keys(self):
+        st = SimpleNamespace(session_state=dict(domain_choice="learning", scope_choice="archive",
+                                                doc_type_choice=" 技术方案 ", department_choice="财务部",
+                                                classification_choice="受限"))
         env = load_functions(["build_filters"], dict(st=st, normalize_doc_type_filter=normalize_doc_type_filter,
                                                      normalize_department_filter=normalize_department_filter,
                                                      domain_reg=SimpleNamespace(sanitize_choice=lambda value: value)))
-        for value, expected in ((" 技术方案 ", "技术方案"), ("__unclassified__", "__unclassified__"),
-                                ("", None), (None, None), ("all", None), (123, None), ("x" * 81, None)):
-            st.session_state["doc_type_choice"] = value
-            filters = env["build_filters"]()
-            self.assertEqual(filters.get("doc_type"), expected)
-            self.assertEqual(filters["domain"], "learning")
-            self.assertEqual(filters["status"], "archive")
+        # V3.9.1：四项筛选已隐藏——旧会话值即使存在也不再参与过滤；检索范围（status）保留。
+        self.assertEqual(env["build_filters"](), {"status": "archive"})
 
-    def test_untouched_blank_default_is_not_added_by_unrelated_save(self):
+    def test_hidden_filter_setting_is_not_persisted_by_unrelated_save(self):
         self.addCleanup(isolate_app_settings("zh-CN"))
-        st = SimpleNamespace(session_state={"doc_type_choice": "", "theme": "system"})
+        # V3.9.1：隐藏的筛选键不再写入全局 settings.json——旧值不会经任何保存泄漏成全局默认。
+        st = SimpleNamespace(session_state={"doc_type_choice": "技术方案", "theme": "system"})
         env = load_functions(["persist_app_settings"],
                              dict(st=st, SETTINGS_KEYS=SETTINGS_KEYS, load_app_settings=load_app_settings,
                                   save_app_settings=save_app_settings, get_installed_plugins=lambda: []))
         env["persist_app_settings"]()
         self.assertNotIn("doc_type_choice", load_app_settings())
-        st.session_state["doc_type_choice"] = "技术方案"
-        env["persist_app_settings"]()
-        self.assertEqual(load_app_settings()["doc_type_choice"], "技术方案")
-        st.session_state["doc_type_choice"] = ""
-        env["persist_app_settings"]()
-        self.assertEqual(load_app_settings()["doc_type_choice"], "")
+        self.assertEqual(load_app_settings()["theme"], "system")
 
     def test_settings_persist_in_isolated_file(self):
         self.addCleanup(isolate_app_settings("zh-CN"))
@@ -496,14 +493,6 @@ class DocumentTypeAppTests(IngestHarness):
         next(widget for widget in at.button if widget.label == "保存文档类型").click()
         self.render(at)
         self.update.assert_called_once_with(self.documents[1]["path"], {"doc_type": ""})
-
-    def test_retrieval_text_setting_persists(self):
-        self.page = "settings-retrieval"
-        at = self.open_page()
-        at.text_input(key="set_doc_type").input(" 技术方案 ")
-        self.render(at)
-        self.assertEqual(load_app_settings()["doc_type_choice"], "技术方案")
-
 
 if __name__ == "__main__":
     unittest.main()

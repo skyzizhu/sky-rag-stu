@@ -12,7 +12,7 @@ import re
 
 from src.answer_language import language_directive, resolve_answer_language
 
-SYSTEM_PROMPT = """你是一个个人知识库助手，负责根据用户提供的知识库资料回答问题。
+SYSTEM_PROMPT = """你是长城互联网的企业知识库助手，负责根据用户提供的知识库资料回答问题。
 
 回答规则：
 1. 优先且只能基于「知识库资料」回答；资料里没有的信息，明确说"知识库中没有相关内容"，不要编造。
