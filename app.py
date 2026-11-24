@@ -957,15 +957,17 @@ def persist_app_settings() -> None:
     必须整包带上 installed_plugins（它不在 session_state 里，读取走 src/plugin），
     否则任何一次覆盖式保存都会把它（或 language）从 settings.json 里丢掉。
     V3.7：登录用户额外把偏好按人存入 SQLite（不同用户语言/主题互不影响）。
-    V3.9.1：已隐藏的四项检索筛选不在 SETTINGS_KEYS 里，不会再被写入或按人回读，
-    旧值仍留在旧文件/偏好里但视为失效（下次任意保存会从 settings.json 中自然清除）。
+    V3.9.1：语言与外观主题属于个人偏好——只进当前登录用户的 prefs，不再写入
+    全局 settings.json（否则一个用户改外观，会把没设过偏好的其他人的界面也改掉）；
+    登录前的登录页仍以全局文件的旧值（或系统默认）作为种子。
     """
     data = {k: st.session_state[k] for k in SETTINGS_KEYS if k in st.session_state}
+    personal = {k: data.pop(k) for k in ("language", "theme") if k in data}
     data["installed_plugins"] = get_installed_plugins()
     save_app_settings(data)
     user = st.session_state.get("auth_user")
     if user:
-        prefs = {k: v for k, v in data.items() if k != "installed_plugins"}
+        prefs = {k: v for k, v in {**data, **personal}.items() if k != "installed_plugins"}
         auth_client.save_prefs(user["username"], prefs)
 
 
@@ -1358,6 +1360,11 @@ def _apply_user_prefs(username: str) -> None:
     for key, value in prefs.items():
         if key in SETTINGS_KEYS and key != "installed_plugins":
             st.session_state[key] = value
+    # V3.9.1 修复「点完语言后主题单选框丢选中」：语言/主题的控件内部状态若与会话值
+    # 脱节，radio/segmented-control 会以控件旧状态渲染出"无选中"。这里清掉控件状态，
+    # 强制下一帧按（刚套用的）会话值重建控件。
+    for widget_key in ("set_theme_ui", "set_language_ui"):
+        st.session_state.pop(widget_key, None)
 
 
 front_host_global = "localhost:8501"  # 由 auth_gate 每次渲染时更新
@@ -1457,6 +1464,11 @@ def auth_gate() -> bool:
                 )
                 p1 = st.text_input(t("auth.password"), type="password", key="reg_pw1")
                 p2 = st.text_input(t("auth.password.confirm"), type="password", key="reg_pw2")
+                # V3.9.1：选填的姓名/职责默认收起，点「更多选填信息」展开——注册主路径保持最短
+                with st.expander(t("auth.more_optional")):
+                    real_name = st.text_input(t("auth.real_name"), key="reg_real_name",
+                                              max_chars=32)
+                    note = st.text_input(t("auth.note"), key="reg_note", max_chars=200)
                 submitted = st.form_submit_button(t("auth.register.btn"), type="primary",
                                                   width="stretch")
                 if submitted:
@@ -1467,7 +1479,9 @@ def auth_gate() -> bool:
                     elif len(p1) < 6:
                         st.error(t("auth.pwd.short"))
                     else:
-                        data, err = auth_client.register(u.strip(), p1, p2, dep["id"])
+                        data, err = auth_client.register(u.strip(), p1, p2, dep["id"],
+                                                         real_name=real_name.strip(),
+                                                         note=note.strip())
                         if err:
                             st.error(err)
                         else:
@@ -3790,6 +3804,108 @@ def page_domains():
         confirm_domain_delete()
 
 
+# ---------------------------------------------------------------- 页面：个人中心（V3.9.1）
+# 已分配前台权限 → 菜单标题的映射（显示复用导航标题，不另造一套词表）
+_PROFILE_PERM_LABELS = {"upload": "nav.upload", "manage": "nav.manage",
+                        "domains": "nav.domains", "retrieval_settings": "nav.retrieval",
+                        "maintenance": "nav.maintenance", "plugins": "nav.plugins"}
+
+
+def page_profile():
+    """个人中心：改自己的密码、维护自己的姓名与职责、查看自己的权限（人人可用，无权限门槛）。"""
+    _au = st.session_state.get("auth_user") or {}
+    username = str(_au.get("username") or "")
+    if not username:
+        st.warning(t("auth.api.down"))
+        st.stop()
+    user = auth_db.get_user(username) or {}
+    st.markdown(f'<div class="section-title">{t("profile.title")}</div>', unsafe_allow_html=True)
+    st.caption(t("profile.caption"))
+
+    # ① 我的账户（实时读库：管理员在后台改了资料，这里刷新即见最新）
+    with st.container(border=True):
+        st.markdown(f'<div class="section-title">{t("profile.info.title")}</div>',
+                    unsafe_allow_html=True)
+        real_name = (user.get("real_name") or "").strip()
+        note = (user.get("note") or "").strip()
+        c1, c2 = st.columns(2)
+        c1.markdown(f"**{t('profile.username')}**：{username}")
+        c1.markdown(f"**{t('profile.department')}**：{user.get('department') or '—'}")
+        c2.markdown(f"**{t('profile.status')}**："
+                    f"{t('profile.status.active') if user.get('status') == 'active' else t('profile.status.disabled')}")
+        if real_name:  # V3.9.1：填了才展示
+            c2.markdown(f"**{t('profile.real_name')}**：{real_name}")
+        if note:
+            c1.markdown(f"**{t('profile.note')}**：{note}")
+
+    # ② 我的权限：分「人人固有」与「管理员已分配」两组展示，不再挤成一团
+    with st.container(border=True):
+        st.markdown(f'<div class="section-title">{t("profile.perms.title")}</div>',
+                    unsafe_allow_html=True)
+        assigned = [p for p in (user.get("permissions") or []) if p in _PROFILE_PERM_LABELS]
+
+        def _perm_pills(label_keys):
+            chips = [f'<span class="pill">{t(k)}</span>' for k in label_keys]
+            st.markdown("<div style='display:flex;flex-wrap:wrap;gap:6px;'>" + "".join(chips)
+                        + "</div>", unsafe_allow_html=True)
+
+        st.caption(t("profile.perms.inherent"))
+        _perm_pills(["nav.chat", "nav.general", "nav.status", "nav.params",
+                     "nav.learning", "nav.plugins", "nav.maintenance"])
+        st.caption(t("profile.perms.assigned"))
+        if assigned:
+            _perm_pills([_PROFILE_PERM_LABELS[p] for p in assigned])
+        else:
+            st.caption(t("profile.perms.none_assigned"))
+
+    c_left, c_right = st.columns(2)
+
+    # ③ 修改密码（自助：需原密码；与后台重置一致会吊销该员工的 MCP 令牌）
+    with c_left.container(border=True):
+        st.markdown(f'<div class="section-title">{t("profile.pw.title")}</div>',
+                    unsafe_allow_html=True)
+        with st.form("profile_pw_form", clear_on_submit=True):
+            old_pw = st.text_input(t("profile.pw.old"), type="password")
+            new_pw = st.text_input(t("profile.pw.new"), type="password")
+            confirm_pw = st.text_input(t("profile.pw.confirm"), type="password")
+            st.caption(t("profile.pw.note"))
+            submitted = st.form_submit_button(t("profile.pw.btn"), type="primary",
+                                              width="stretch")
+            if submitted:
+                if new_pw != confirm_pw:
+                    st.error(t("profile.pw.mismatch"))
+                elif new_pw == old_pw:
+                    st.error(t("profile.pw.same_as_old"))
+                elif len(new_pw) < 6:
+                    st.error(t("auth.pwd.short"))
+                else:
+                    data, err = auth_client.change_password(username, old_pw, new_pw, confirm_pw)
+                    if err:
+                        st.error(err)
+                    else:
+                        st.toast(t("profile.pw.ok"), icon="✅")
+
+    # ④ 编辑真实姓名与职责（保存后同步登录会话，用户信息卡即时更新）
+    with c_right.container(border=True):
+        st.markdown(f'<div class="section-title">{t("profile.edit.title")}</div>',
+                    unsafe_allow_html=True)
+        with st.form("profile_info_form", clear_on_submit=False):
+            rn = st.text_input(t("profile.real_name"), value=user.get("real_name") or "",
+                               max_chars=32)
+            nt = st.text_input(t("profile.note"), value=user.get("note") or "",
+                               max_chars=200)
+            if st.form_submit_button(t("profile.edit.btn"), type="primary", width="stretch"):
+                data, err = auth_client.update_self_profile(username, rn.strip(), nt.strip())
+                if err:
+                    st.error(err)
+                else:
+                    _au["real_name"] = data.get("real_name", "")
+                    _au["note"] = data.get("note", "")
+                    st.session_state["auth_user"] = _au
+                    st.toast(t("profile.edit.ok"), icon="✅")
+                    st.rerun()
+
+
 # ---------------------------------------------------------------- 页面 10：学习笔记
 def page_learning():
     st.markdown(f'<div class="section-title">{t("learn.title")}</div>', unsafe_allow_html=True)
@@ -3821,6 +3937,7 @@ _auth_user = st.session_state.get("auth_user") or {}
 _user_perms = set(_auth_user.get("permissions") or [])
 
 chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
+profile_page = st.Page(page_profile, title=t("nav.profile"), icon="👤", url_path="profile")
 upload_page = st.Page(page_upload, title=t("nav.upload"), icon="📤", url_path="upload")
 manage_page = st.Page(page_manage, title=t("nav.manage"), icon="🗂", url_path="manage")
 domains_page = st.Page(page_domains, title=t("nav.domains"), icon="🧭", url_path="domains")
@@ -3851,6 +3968,8 @@ if "retrieval_settings" in _user_perms:
 settings_pages.append(maintenance_page)
 settings_pages.extend([status_page, params_page])
 employee_nav[t("nav.group.settings")] = settings_pages
+# V3.9.1：个人中心放在「设置」组下方（人人可用，无权限门槛）
+employee_nav[t("nav.group.profile")] = [profile_page]
 employee_nav[t("nav.group.learn")] = [learning_page]
 employee_nav[t("nav.group.plugins")] = [plugins_page]
 pg = st.navigation(employee_nav)

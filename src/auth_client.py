@@ -130,10 +130,11 @@ def bootstrap_admin(username: str, password: str, password_confirm: str) -> tupl
 
 
 def register(username: str, password: str, password_confirm: str,
-             department_id: int) -> tuple[dict | None, str]:
+             department_id: int, real_name: str = "", note: str = "") -> tuple[dict | None, str]:
     return _post_json("/auth/register", {
         "username": username, "password": password,
         "password_confirm": password_confirm, "department_id": department_id,
+        "real_name": real_name, "note": note,
         **browser_context(),
     })
 
@@ -141,6 +142,20 @@ def register(username: str, password: str, password_confirm: str,
 def login(username: str, password: str) -> tuple[dict | None, str]:
     return _post_json("/auth/login", {"username": username, "password": password,
                                       **browser_context()})
+
+
+def change_password(username: str, old_password: str, new_password: str,
+                    new_password_confirm: str) -> tuple[dict | None, str]:
+    return _post_json("/auth/change-password", {
+        "username": username, "old_password": old_password,
+        "new_password": new_password, "new_password_confirm": new_password_confirm,
+        **browser_context()})
+
+
+def update_self_profile(username: str, real_name: str, note: str) -> tuple[dict | None, str]:
+    return _post_json("/auth/profile", {
+        "username": username, "real_name": real_name, "note": note,
+        **browser_context()})
 
 
 def logout(username: str) -> None:

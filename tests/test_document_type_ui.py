@@ -305,14 +305,16 @@ class DocumentTypeSettingsTests(unittest.TestCase):
 
     def test_hidden_filter_setting_is_not_persisted_by_unrelated_save(self):
         self.addCleanup(isolate_app_settings("zh-CN"))
-        # V3.9.1：隐藏的筛选键不再写入全局 settings.json——旧值不会经任何保存泄漏成全局默认。
+        # V3.9.1：隐藏的筛选键不再写入全局 settings.json；语言/主题同属个人偏好也不进全局文件
+        # （PerUserThemePersistTests 专门覆盖后者）。
         st = SimpleNamespace(session_state={"doc_type_choice": "技术方案", "theme": "system"})
         env = load_functions(["persist_app_settings"],
                              dict(st=st, SETTINGS_KEYS=SETTINGS_KEYS, load_app_settings=load_app_settings,
                                   save_app_settings=save_app_settings, get_installed_plugins=lambda: []))
         env["persist_app_settings"]()
-        self.assertNotIn("doc_type_choice", load_app_settings())
-        self.assertEqual(load_app_settings()["theme"], "system")
+        settings = load_app_settings()
+        self.assertNotIn("doc_type_choice", settings)
+        self.assertNotIn("theme", settings)
 
     def test_settings_persist_in_isolated_file(self):
         self.addCleanup(isolate_app_settings("zh-CN"))
@@ -493,6 +495,29 @@ class DocumentTypeAppTests(IngestHarness):
         next(widget for widget in at.button if widget.label == "保存文档类型").click()
         self.render(at)
         self.update.assert_called_once_with(self.documents[1]["path"], {"doc_type": ""})
+
+class PerUserThemePersistTests(unittest.TestCase):
+    """V3.9.1：语言/外观主题改为个人偏好——只进当前用户 prefs，不再写入全局文件。"""
+
+    def test_language_theme_stay_per_user_not_global(self):
+        self.addCleanup(isolate_app_settings("zh-CN"))
+        st = SimpleNamespace(session_state={"language": "en", "theme": "dark", "top_k": 5,
+                                            "auth_user": {"username": "u1"}})
+        captured = []
+        env = dict(st=st, SETTINGS_KEYS=SETTINGS_KEYS,
+                   load_app_settings=load_app_settings, save_app_settings=save_app_settings,
+                   get_installed_plugins=lambda: [],
+                   auth_client=SimpleNamespace(save_prefs=lambda u, p: captured.append((u, p))))
+        funcs = load_functions(["persist_app_settings"], env)
+        funcs["persist_app_settings"]()
+        settings = load_app_settings()
+        self.assertNotIn("language", settings)
+        self.assertNotIn("theme", settings)
+        self.assertEqual(len(captured), 1)
+        self.assertEqual(captured[0][0], "u1")
+        self.assertEqual(captured[0][1]["language"], "en")
+        self.assertEqual(captured[0][1]["theme"], "dark")
+
 
 if __name__ == "__main__":
     unittest.main()

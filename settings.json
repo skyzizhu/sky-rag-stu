@@ -7,7 +7,7 @@
   "rerank": true,
   "answer_eval": true,
   "theme": "system",
-  "language": "zh-CN",
+  "language": "system",
   "llm_price_input": 2.0,
   "llm_price_input_cached": 0.2,
   "llm_price_output": 8.0,
