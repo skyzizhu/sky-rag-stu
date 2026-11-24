@@ -569,6 +569,14 @@ div[data-baseweb="radio"] label {color: var(--text-secondary) !important;}
 [data-testid="stChatMessage"]:has(.user-bubble) [data-testid="stMarkdownContainer"] {
   display:flex !important;justify-content:flex-end !important;align-items:flex-start !important;width:100% !important;}
 [data-testid="stChatMessage"]:has(.user-bubble) [data-testid="stMarkdown"] {width:100% !important;}
+/* 检索进行中：气泡里只有状态行时垂直居中（答案流式开始后进度行清空，选择器失效恢复常规排版） */
+[data-testid="stChatMessage"]:has(.chat-progress-line) {padding-top: 10px; padding-bottom: 10px;
+  align-items: center !important;}
+[data-testid="stChatMessage"]:has(.chat-progress-line) [data-testid="stChatMessageContent"],
+[data-testid="stChatMessage"]:has(.chat-progress-line) [data-testid="stMarkdownContainer"] {
+  display: flex !important; flex-direction: column; justify-content: center !important;}
+[data-testid="stChatMessage"]:has(.chat-progress-line) [data-testid="stMarkdownContainer"] {min-height: 64px;}
+.chat-progress-line {display: flex; align-items: center;}
 [data-testid="stBottom"], [data-testid="stBottom"] > div {background: transparent !important;
   border: none !important; box-shadow: none !important;}
 [data-testid="stBottom"] {position: fixed !important; bottom: 10px !important;
@@ -1895,7 +1903,8 @@ def page_chat():
                 st.session_state["chat_ask_example"] = ex_text
 
     for message in st.session_state.messages:
-        with st.chat_message(message["role"], avatar="🙋" if message["role"] == "user" else LOGO_DATA_URI or "🧠"):
+        # V3.9.1：助手头像不再用品牌 logo（宽图被头像框裁剪难看），回落 Streamlit 默认机器人图标
+        with st.chat_message(message["role"], avatar="🙋" if message["role"] == "user" else None):
             if message["role"] == "user":
                 st.markdown(f'<div class="user-bubble">{html.escape(message["content"])}</div>',
                             unsafe_allow_html=True)
@@ -1929,7 +1938,7 @@ def page_chat():
             key=f"scroll_question_{st.session_state['session_id']}_{len(st.session_state.messages)}",
         )
 
-        with st.chat_message("assistant", avatar=LOGO_DATA_URI or "🧠"):
+        with st.chat_message("assistant"):
             if not cfg.llm_api_key:
                 st.error(t("chat.no_api_key"))
                 st.session_state.messages.append({"role": "assistant", "content": t("chat.no_api_key.msg")})
@@ -1942,7 +1951,9 @@ def page_chat():
             full_text = ""
 
             def _show_progress(msg):
-                progress_ph.markdown(f"⏳ {tr(msg)}")
+                # 带类名的状态行：气泡内只有进度时由 CSS 垂直居中（见 chat-progress-line 样式）
+                progress_ph.markdown(f'<div class="chat-progress-line">⏳ {tr(msg)}</div>',
+                                     unsafe_allow_html=True)
 
             def _mark_interrupted():
                 """流式中断的页面收尾：去掉光标、给半截答案加中断标注。"""
