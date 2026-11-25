@@ -454,16 +454,56 @@ class VectorStore:
                 "unknown_date_documents": len(unknown_dates),
                 "list_truncated": len(ordered) > max_documents}
 
-    def card_page(self, filters: dict, offset=None, limit: int = 8, timeout: float | None = None):
+    def card_page(self, filters: dict, offset=None, limit: int = 8, timeout: float | None = None,
+                  *, chunk_ids: list[str] | None = None):
         """第二阶段按游标读取卡片；每一页都在服务端执行相同权限/状态/版本条件。"""
         if not self.collection_exists():
             return [], None
+        predicate = self.published_filter(filters)
+        if chunk_ids is not None:
+            predicate = models.Filter(must=[predicate, models.FieldCondition(
+                key="chunk_id", match=models.MatchAny(any=chunk_ids))])
         points, next_offset = self.client.scroll(
-            collection_name=self.cfg.qdrant_collection, scroll_filter=self.published_filter(filters),
+            collection_name=self.cfg.qdrant_collection, scroll_filter=predicate,
             offset=offset, limit=limit, with_vectors=False, with_payload=True,
             **({"timeout": max(1, math.ceil(timeout))} if timeout is not None else {}),
         )
         return [{"id": str(p.id), "payload": p.payload or {}} for p in points], next_offset
+
+    def source_ordered_card_page(self, filters: dict, cursor=None, limit: int = 8,
+                                 timeout: float | None = None):
+        """Page through a document version by chunk index, then read legacy cards."""
+        if cursor is not None and not isinstance(cursor, tuple):
+            return self.card_page(filters, offset=cursor, limit=limit, timeout=timeout)
+        next_index, legacy_offset = cursor if cursor is not None else (0, None)
+        collection = self.cfg.qdrant_collection
+        predicate = self.published_filter(filters)
+        missing = models.IsEmptyCondition(is_empty=models.PayloadField(key="chunk_index"))
+        options = {"with_vectors": False, "with_payload": True,
+                   **({"timeout": max(1, math.ceil(timeout))} if timeout is not None else {})}
+        if next_index is not None:
+            try:
+                points, _ = self.client.scroll(
+                    collection, scroll_filter=predicate, limit=limit,
+                    order_by=models.OrderBy(key="chunk_index", start_from=next_index), **options,
+                )
+            except UnexpectedResponse as exc:
+                if self._missing_collection(exc):
+                    return [], None
+                error = str(exc).lower()
+                if (cursor is not None or exc.status_code != 400 or
+                        "chunk_index" not in error or "index" not in error.replace("chunk_index", "")):
+                    raise
+                # An older collection may not have the index required for server-side ordering.
+                return self.card_page(filters, limit=limit, timeout=timeout)
+            if points:
+                next_index = points[-1].payload["chunk_index"] + 1
+                rows = [{"id": str(p.id), "payload": p.payload or {}} for p in points]
+                return rows, (next_index if len(points) == limit else None, None)
+        points, offset = self.client.scroll(collection, scroll_filter=models.Filter(must=[predicate, missing]),
+                                            offset=legacy_offset, limit=limit, **options)
+        return ([{"id": str(p.id), "payload": p.payload or {}} for p in points],
+                (None, offset) if offset is not None else None)
 
     def get_all_cards(self, filters: dict | None = None, limit: int = 5000) -> list[dict]:
         """拉取（可按 Metadata 过滤的）全部卡片：[{"id", "payload"}, ...]。供 BM25 通道建索引用。"""

@@ -152,11 +152,13 @@ def build_context(
             continue
         if len(used) >= max_items:
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
+                            "limit": "top_k",
                             "reason": f"已满采用条数上限（Top {max_items}）"})
             break
         if (per_doc.get(doc_id, 0) >= max_per_doc
                 and doc_id not in (unlimited_docs or ())):
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
+                            "limit": "per_document",
                             "reason": f"同一文档最多采用 {max_per_doc} 条（保持来源多样性）"})
             continue
         number = rank_offset + len(used) + 1
@@ -165,6 +167,7 @@ def build_context(
         candidate = f"{context_so_far}\n\n{block}" if context_so_far else block
         if estimate_tokens(candidate) > cfg.context_max_tokens:
             dropped.append({"rank": item.rank, "source": item.metadata.get("source"),
+                            "limit": "max_evidence_tokens",
                             "reason": f"放入后会超出资料 token 上限（约 {cfg.context_max_tokens} tokens）"})
             continue
         seen_texts.add(normalized)
@@ -221,6 +224,7 @@ def build_context(
             block = f"{label}\n{text}"
             if estimate_tokens("\n\n".join([*final_blocks, block])) > cfg.context_max_tokens:
                 dropped.extend({"rank": item.rank, "source": item.metadata.get("source"),
+                                "limit": "max_evidence_tokens",
                                 "reason": "合并后超出资料 token 上限"} for item in run)
                 continue
             metadata = {**first.metadata, "chunk_ids": [

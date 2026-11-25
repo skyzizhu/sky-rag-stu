@@ -39,15 +39,17 @@ from src.evidence_support import assess_evidence, deadline_constraint, preserve_
 from src.document_department import normalize_department, resolve_department
 from src.document_type import normalize_doc_type, resolve_doc_type
 from src.enumeration import (enumeration_route, is_staff_total_question, catalog_time, document_representatives,
-                             document_key, group_documents, expand_documents, coverage_notice)
+                             document_key, group_documents, expand_documents, coverage_notice,
+                             document_read_priority)
 from src.llm import LLMClient, get_llm_client, new_usage, strip_think_tags
+from src.mcp_search_limits import MCP_SEARCH_MAX_TOKENS, MCP_SEARCH_MAX_TOP_K
 from src.metadata import build_document_metadata, chunk_sequence, document_id_for, version_from_filename
 from src.permissions import classify_visibility, normalize_visibility
 from src.document_visibility import prune_user_grants, resolve_visibility
 from src.parser import ParsedDocument, SUPPORTED_EXTENSIONS, parse_file
 from src.project_directories import is_generated_info, managed_directory_names, without_storage_directory
 from src.project_comparison import (
-    MAX_COMPARISON_PROJECTS, ProjectComparison, parse_project_comparison, render_project_comparison,
+    MAX_COMPARISON_PROJECTS, ProjectComparison, parse_project_comparison, project_facts, render_project_comparison,
 )
 from src.project_document_evidence import parse_project_mentions, scan_project_mentions
 from src.projects import list_projects, resolve_project_filter
@@ -62,7 +64,7 @@ from src.query_scope import (
 from src.reranker import rerank as rerank_items, rerank_local as rerank_documents_local
 from src.retriever import RetrievedItem, effective_filters, get_retriever
 from src.retrieval_intent import (VERSION_SIDES, compares_versions, comparison_statuses,
-                                  enumerated_sub_queries, explicit_file_dates)
+                                  enumerated_sub_queries, explicit_file_dates, version_evidence_questions)
 from src.trace import make_node, now_str
 from src.vector_store import VectorStore, get_vector_store
 
@@ -111,6 +113,7 @@ class QAResult:
     usage: dict = field(default_factory=dict)  # 本次回答的 LLM 消耗合计（B16.1；评估的用量在 evaluation["usage"]）
     request_usage: dict | None = None  # 本次实际用量；缓存命中时与原回答展示用量分离。
     cache_hit: bool = False
+    enumeration_read_priority: dict[tuple, list[str]] = field(default_factory=dict, repr=False)
 
 
 # ---------------------------------------------------------------- 入库
@@ -960,7 +963,9 @@ def _department_project_roster(department, filters, cfg):
 
 def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison, filters: dict | None,
                                  top_k: int, cfg: AppConfig, use_hybrid: bool, use_rerank: bool,
-                                 user_groups: list[str] | None, username: str | None, on_progress=None):
+                                 user_groups: list[str] | None, username: str | None, on_progress=None,
+                                 evidence_max_tokens: int | None = None,
+                                 adaptive_evidence: frozenset[str] = frozenset()):
     from src.auth_db import retrieval_acl_revision
 
     base = filters or {}
@@ -1017,25 +1022,78 @@ def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison
     else:
         result.filters = effective_filters({**base, "project_id": ids})
         grouped = []
+        limits = set()
+        expanded = set()
+        effective_budget = cfg.context_max_tokens if "max_evidence_tokens" in adaptive_evidence else evidence_max_tokens
+        # Give every project an equal first pass before lending unused budget to a missing fact.
+        project_budget = effective_budget // len(projects) if effective_budget is not None else None
+
+        def read_project(project_id, k, tokens, policy=frozenset()):
+            branch_cfg = cfg if k == top_k else replace(cfg, context_max_per_doc=max(cfg.context_max_per_doc, min(k, 6)))
+            branch, branch_meta = query_evidence(
+                comparison.search_query, top_k=k,
+                filters={**base, "project_id": [project_id]},
+                use_query_understanding=False, use_hybrid=use_hybrid,
+                use_rerank=use_rerank, use_llm=False, config=branch_cfg,
+                user_groups=user_groups, username=username, evidence_max_tokens=tokens, adaptive_evidence=policy,
+            )
+            for key in elapsed:
+                elapsed[key] += branch.elapsed.get(key, 0.0)
+            return branch, branch_meta
+
+        branches = []
+        project_policy = adaptive_evidence | {"project_facts"} if adaptive_evidence else frozenset()
         for name, project_id in projects:
             if on_progress:
                 on_progress(f"正在检索项目「{name}」…")
-            # Each branch uses the shared ACL-aware retrieval and context assembly with its own project ID.
-            # The operation and fields were parsed once from the original question.
-            branch, branch_meta = query_evidence(
-                comparison.search_query, top_k=top_k,
-                filters={**base, "project_id": [project_id]},
-                use_query_understanding=False, use_hybrid=use_hybrid,
-                use_rerank=use_rerank, use_llm=False, config=cfg,
-                user_groups=user_groups, username=username,
-            )
+            branches.append(read_project(project_id, top_k, project_budget, project_policy))
+
+        if adaptive_evidence and project_budget is not None:
+            pending = {}
+            for i, (branch, branch_meta) in enumerate(branches):
+                amounts, owners = project_facts(branch.sources)
+                fields = {kind: set(facts) for kind, wanted, facts in (("budget", comparison.budget, amounts),
+                                                                    ("owner", comparison.owner, owners)) if wanted}
+                missing = {kind for kind, facts in fields.items() if not facts}
+                if not missing or branch_meta.get("scope_issue"):
+                    continue
+                withheld = branch_meta.get("context_budget", {}).get("withheld_project_facts", {})
+                if adjustable := {limit for limit in adaptive_evidence if missing.intersection(withheld.get(limit, ()))}:
+                    pending[i] = (fields, adjustable)
+            token_pending = {i for i, (_, kinds) in pending.items() if "max_evidence_tokens" in kinds}
+            spare = 0
+            if token_pending:
+                protected = sum(project_budget if i in pending else min(project_budget, estimate_tokens(branch.context))
+                                for i, (branch, _) in enumerate(branches))
+                spare = max(0, MCP_SEARCH_MAX_TOKENS - protected) // len(token_pending)
+            for i, (before, kinds) in pending.items():
+                if (index_epoch.current(), retrieval_acl_revision()) != revision:
+                    break
+                k = MCP_SEARCH_MAX_TOP_K if "top_k" in kinds else top_k
+                tokens = project_budget + (spare if i in token_pending else 0)
+                if (k, tokens) == (top_k, project_budget):
+                    continue
+                retry, retry_meta = read_project(projects[i][1], k, tokens)
+                amounts, owners = project_facts(retry.sources)
+                after = {"budget": set(amounts), "owner": set(owners)}
+                if (retry.filters == branches[i][0].filters
+                        and any(not old and len(after[kind]) == 1 for kind, old in before.items())
+                        and all(old == after[kind] if old else len(after[kind]) <= 1
+                                for kind, old in before.items())):
+                    branches[i] = (retry, retry_meta)
+                    if k > top_k:
+                        expanded.add("top_k")
+                    if tokens > project_budget:
+                        effective_budget = MCP_SEARCH_MAX_TOKENS
+                        expanded.add("max_evidence_tokens")
+
+        for (name, _), (branch, branch_meta) in zip(projects, branches, strict=True):
+            limits.update(branch_meta.get("context_budget", {}).get("truncated_by", ()))
             offset = len(result.sources)
             sources = [dict(source, rank=offset + rank) for rank, source in enumerate(branch.sources, 1)]
             result.sources.extend(sources)
             result.retrieved.extend(replace(item, rank=offset + rank) for rank, item in enumerate(branch.retrieved, 1))
             grouped.append((name, sources))
-            for key in elapsed:
-                elapsed[key] += branch.elapsed.get(key, 0.0)
             result.trace.append(make_node(
                 "🔀", "项目子查询", time_str=now_str(), elapsed=branch.elapsed.get("total", 0.0),
                 summary=f"项目「{name}」采用 {len(sources)} 条证据。",
@@ -1055,6 +1113,11 @@ def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison
                         comparison={"operations": list(comparison.operations), "missing": missing,
                                     "projects": [{"name": name, "sources": [s["rank"] for s in sources]}
                                                  for name, sources in grouped]})
+            meta["context_budget"] = {
+                "max_tokens": effective_budget if effective_budget is not None else len(projects) * cfg.context_max_tokens,
+                "truncated_by": sorted(limits),
+                "expanded_by": sorted(expanded),
+            }
     result.elapsed.update(elapsed)
     result.elapsed["retrieval"] = sum(elapsed.values())
     result.elapsed["total"] = result.elapsed["retrieval"] + result.elapsed.get("query_understanding", 0.0)
@@ -1062,16 +1125,17 @@ def _project_comparison_evidence(result: QAResult, comparison: ProjectComparison
     return result, meta
 
 
-def _version_context(items, cfg, max_items, max_per_doc, scopes):
+def _version_context(items, cfg, max_items, max_per_doc, scopes, *, fixed_sides=None):
     """Give each allowed version side its own context budget and keep citations unique."""
     side_count = max(1, sum(bool(statuses) for statuses in scopes.values()))
-    side_cfg = replace(cfg, context_max_tokens=cfg.context_max_tokens // side_count)
     contexts, used, dropped, notes = [], [], [], []
     missing = []
     for key, label, _ in VERSION_SIDES:
+        budget_cfg, card_limit = (fixed_sides or {}).get(key, (cfg, max_items))
+        side_cfg = replace(budget_cfg, context_max_tokens=budget_cfg.context_max_tokens // side_count)
         candidates = [item for item in items if item.metadata.get("status") in scopes[key]]
         context, sources, discarded, merged = build_context(
-            candidates, side_cfg, max_items=max(1, max_items // side_count), max_per_doc=max_per_doc,
+            candidates, side_cfg, max_items=max(1, card_limit // side_count), max_per_doc=max_per_doc,
             rank_offset=len(used), show_version=True,
         )
         if not sources:
@@ -1082,6 +1146,37 @@ def _version_context(items, cfg, max_items, max_per_doc, scopes):
         dropped.extend(discarded)
         notes.extend(merged)
     return "\n\n".join(contexts), used, dropped, notes, missing
+
+
+def _version_evidence_support(question, by_version_question, items, scopes, scope_terms):
+    """Check each requested fact against the corresponding version's evidence."""
+    by_side = {}
+    combined = assess_evidence(question, [item.text for item in items], scope_terms)
+    identifiers = list(dict.fromkeys(combined.get("identifier_fields", ())))
+    checked = list(identifiers)
+    missing = [identifier for identifier in identifiers if identifier in combined.get("missing", ())]
+    identifier_blocked = bool(identifiers and len(missing) == len(identifiers))
+    dates = []
+    for key, label, _ in VERSION_SIDES:
+        if not scopes[key]:
+            continue
+        side = assess_evidence(by_version_question[key],
+                               [item.text for item in items if item.metadata.get("status") in scopes[key]],
+                               scope_terms, fields_only=True)
+        if not side:
+            continue
+        by_side[key] = side
+        checked.extend(f"{label}的{field}" for field in side["checked"])
+        missing.extend(f"{label}的{field}" for field in side["missing"])
+        dates.extend(f"{label}的{field}" for field in side.get("date_fields", ()))
+    if not checked:
+        return {}
+    status = "supported" if not missing else "partial"
+    if identifier_blocked or (not identifiers and by_side and
+                              all(side["status"] == "unsupported" for side in by_side.values())):
+        status = "unsupported"
+    return {"status": status, "checked": checked, "missing": missing, "date_fields": dates,
+            "identifier_fields": identifiers, "by_side": by_side}
 
 
 def query_evidence(
@@ -1099,6 +1194,8 @@ def query_evidence(
     conversation_context: str = "",
     username: str | None = None,
     project_context: dict | None = None,
+    evidence_max_tokens: int | None = None,
+    adaptive_evidence: frozenset[str] = frozenset(),
 ) -> tuple[QAResult, dict]:
     """Evidence 统一查询入口（V3.9）：检索半程（意图→检索→融合→筛选→组装）。
 
@@ -1109,6 +1206,7 @@ def query_evidence(
 
     filters 应为 scope_filters 之后的条件；本函数内部对 user_groups 再做一次注入
     （直接调用方传 None 即可，MCP 层传令牌属主的可见部门）。
+    evidence_max_tokens 仅用于证据模式的单次请求，可覆盖语义检索的资料预算。
     """
     def _p(msg):
         if on_progress:
@@ -1127,6 +1225,11 @@ def query_evidence(
         return guarded, guarded.evidence_meta
 
     cfg = config or get_config()
+    if use_llm:
+        evidence_max_tokens = None
+        adaptive_evidence = frozenset()
+    if evidence_max_tokens is not None:
+        cfg = replace(cfg, context_max_tokens=evidence_max_tokens)
     top_k = top_k or cfg.top_k
 
     from src.permissions import scope_filters, classify_visibility
@@ -1267,7 +1370,7 @@ def query_evidence(
     if comparison:
         compared = _project_comparison_evidence(result, comparison, {**date_filters, **(filters or {})},
                                                 top_k, cfg, use_hybrid, use_rerank,
-                                                user_groups, username, on_progress)
+                                                user_groups, username, on_progress, evidence_max_tokens, adaptive_evidence)
         if compared is not None:
             return compared
     staff_total = is_staff_total_question(question)
@@ -1430,7 +1533,8 @@ def query_evidence(
         ctx_max_items = ENUM_CTX_ITEMS
         ctx_max_per_doc = 999
         use_rerank_now = False
-        enum_ctx_cfg = replace(cfg, context_max_tokens=ENUM_CTX_TOKENS)
+        enum_tokens = ENUM_CTX_TOKENS if evidence_max_tokens is None else min(ENUM_CTX_TOKENS, evidence_max_tokens)
+        enum_ctx_cfg = replace(cfg, context_max_tokens=enum_tokens)
     else:
         use_rerank_now = use_rerank and (use_llm or cfg.rerank_backend == "local_onnx")
         recall_k = max(recall_k, cfg.rerank_recall_k) if use_rerank_now else recall_k
@@ -1438,6 +1542,12 @@ def query_evidence(
         enum_ctx_cfg = cfg
     merged_filters = {**qu_filters, **(filters or {})}
     result.filters = effective_filters(merged_filters)
+    scope_terms = tuple(spoken_scope[key] for key in ("project", "business_direction") if key in spoken_scope)
+    probe_card_limit = ("top_k" in adaptive_evidence and not enumeration_mode
+                        and (version_scopes is not None or "project_facts" in adaptive_evidence
+                             or bool(assess_evidence(question, [], scope_terms))))
+    if probe_card_limit:
+        recall_k = max(recall_k, MCP_SEARCH_MAX_TOP_K)
     _p("🔍 数据检索中…")
     t0 = time.time()
     retriever = get_retriever()
@@ -1696,6 +1806,8 @@ def query_evidence(
         enum_truncated |= len(selected) < len(reps)
         expanded, expansion_truncated = expand_documents(
             get_vector_store(), selected, result.retrieved, result.filters, cfg.enum_doc_cards)
+        if use_llm and cfg.enum_stage2_enabled and route == "document":
+            result.enumeration_read_priority = document_read_priority(result.retrieved, expanded, cfg.enum_page_cards)
         recalled_ids = {hit.metadata.get("chunk_id") for hit in result.retrieved}
         enumerated_additions = sum(hit.metadata.get("chunk_id") not in recalled_ids for hit in expanded)
         result.retrieved = expanded
@@ -1724,7 +1836,8 @@ def query_evidence(
             outcome = rerank_items(question, result.retrieved, top_k=top_k,
                                    llm=get_llm_client(), config=cfg)
         else:
-            outcome = rerank_documents_local(question, result.retrieved, top_k, cfg)
+            outcome = rerank_documents_local(question, result.retrieved,
+                                             max(top_k, MCP_SEARCH_MAX_TOP_K) if probe_card_limit else top_k, cfg)
         record_stage_usage(result, "rerank", outcome.usage)
         rr_elapsed = time.time() - t_rr
         result.elapsed["rerank"] = rr_elapsed
@@ -1803,7 +1916,7 @@ def query_evidence(
             status="跳过（枚举模式）",
             summary="列举路径独立处理：指定文档直接展开；跨文档按文档精排，不再逐卡片精排。",
             items=[("说明", f"枚举模式：召回 {recall_k} 条候选；上下文最多 {ctx_max_items} 条、"
-                           f"约 {ENUM_CTX_TOKENS} tokens，同文档不限条数")],
+                           f"约 {enum_ctx_cfg.context_max_tokens} tokens，同文档不限条数")],
         ))
 
     # 子查询证据保底：精排重排后，把每个子查询的 Top-1 证据提到候选池最前。
@@ -1855,27 +1968,100 @@ def query_evidence(
     # 精排后不再截断候选池，由组装规则在全部候选中选出最终进入回答的 Top K
     merge_start = now_str()
     t1 = time.time()
-    missing_sides = []
-    if version_scopes is None:
-        context, used, dropped, merge_notes = build_context(
-            result.retrieved, enum_ctx_cfg,
-            max_items=ctx_max_items + (facts_expansion_added if multi_fact else 0),
-            max_per_doc=ctx_max_per_doc,
-            unlimited_docs=facts_expansion_docs or None,
-        )
-    else:
-        context, used, dropped, merge_notes, missing_sides = _version_context(
-            result.retrieved, cfg, ctx_max_items, ctx_max_per_doc, version_scopes,
-        )
-        scope_meta["version_comparison"] = {"missing_sides": missing_sides}
+    by_version_question = version_evidence_questions(question) if version_scopes is not None else None
+
+    def assemble(context_cfg, item_limit, *, fixed_sides=None):
+        if version_scopes is not None:
+            return _version_context(result.retrieved, context_cfg, item_limit, ctx_max_per_doc, version_scopes,
+                                    fixed_sides=fixed_sides)
+        return (*build_context(result.retrieved, context_cfg,
+                               max_items=item_limit + (facts_expansion_added if multi_fact else 0),
+                               max_per_doc=ctx_max_per_doc, unlimited_docs=facts_expansion_docs or None), [])
+
+    def assess_selection(items, discarded):
+        if version_scopes is not None:
+            return _version_evidence_support(question, by_version_question, items, version_scopes, scope_terms)
+        if items or (adaptive_evidence and discarded and not enumeration_mode):
+            return assess_evidence(question, [item.text for item in items], scope_terms)
+        return {}
+
+    context_cfg = cfg if version_scopes is not None else enum_ctx_cfg
+    selection = assemble(context_cfg, ctx_max_items)
+    support = assess_selection(selection[1], selection[2])
+    effective_top_k = top_k
+    expanded_by = []
+    budget_clipped = any(row.get("limit") for row in selection[2])
+    if (adaptive_evidence and "project_facts" not in adaptive_evidence and not enumeration_mode
+            and budget_clipped and not scope_meta.get("scope_issue") and not scope_meta.get("scope_fallback")):
+        # Compare real context assemblies on the same scoped and ranked candidates. A card
+        # clipped by the item limit may also exceed the token limit once the card fits.
+        gaps = {("field", field) for field in support.get("missing", ())} | {("side", side) for side in selection[4]}
+        if gaps:
+            fixed_sides = {}
+            if version_scopes is not None:
+                missing_ids = set(support.get("identifier_fields", ())).intersection(support.get("missing", ()))
+                for key, _, _ in VERSION_SIDES:
+                    if key in selection[4] or support.get("by_side", {}).get(key, {}).get("missing"):
+                        continue
+                    if missing_ids:
+                        candidates = [item.text for item in result.retrieved
+                                      if item.metadata.get("status") in version_scopes[key]]
+                        available = assess_evidence(question, candidates, scope_terms)
+                        if missing_ids.difference(available.get("missing", ())):
+                            continue
+                    fixed_sides[key] = (context_cfg, ctx_max_items)
+            can_raise_k = "top_k" in adaptive_evidence and top_k < MCP_SEARCH_MAX_TOP_K
+            can_raise_tokens = ("max_evidence_tokens" in adaptive_evidence
+                                and context_cfg.context_max_tokens < MCP_SEARCH_MAX_TOKENS)
+            options = [(True, False)] if can_raise_k else []
+            if can_raise_tokens:
+                options.append((False, True))
+                if can_raise_k:
+                    options.append((True, True))
+            best = (selection, support, context_cfg, ctx_max_items, top_k, [])
+            for allow_cards, allow_tokens in options:
+                trial_k = MCP_SEARCH_MAX_TOP_K if allow_cards else top_k
+                trial_items = trial_k * (2 if ctx_max_items > top_k else 1)
+                trial_cfg = replace(
+                    context_cfg, context_max_tokens=MCP_SEARCH_MAX_TOKENS if allow_tokens else context_cfg.context_max_tokens,
+                    context_max_per_doc=max(context_cfg.context_max_per_doc, min(trial_k, 6))
+                    if allow_cards else context_cfg.context_max_per_doc,
+                )
+                trial = assemble(trial_cfg, trial_items, fixed_sides=fixed_sides)
+                trial_support = assess_selection(trial[1], trial[2])
+                trial_gaps = ({("field", field) for field in trial_support.get("missing", ())}
+                              | {("side", side) for side in trial[4]})
+                if trial[1] and trial_gaps < gaps:
+                    best = (trial, trial_support, trial_cfg, trial_items, trial_k,
+                            [name for name, enabled in (("top_k", allow_cards), ("max_evidence_tokens", allow_tokens))
+                             if enabled])
+                    gaps = trial_gaps
+                    if not gaps:
+                        break
+            selection, support, context_cfg, ctx_max_items, effective_top_k, expanded_by = best
+
+    context, used, dropped, merge_notes, missing_sides = selection
+    if version_scopes is not None:
+        scope_meta["version_comparison"] = {"missing_sides": missing_sides, "missing_fields": {
+            key: side["missing"] for key, side in support.get("by_side", {}).items() if side["missing"]
+        }}
         if missing_sides:
             labels = "、".join(label for key, label, _ in VERSION_SIDES if key in missing_sides)
             result.answer = f"当前检索范围内缺少可用于比较的{labels}证据，无法确认新旧版本的差异。"
             scope_meta["support_notice"] = result.answer
-    support = assess_evidence(
-        question, [item.text for item in used],
-        tuple(spoken_scope[key] for key in ("project", "business_direction") if key in spoken_scope),
-    ) if used else {}
+    withheld_project_facts = {}
+    if "project_facts" in adaptive_evidence:
+        for limit, reasons in (("top_k", {"top_k", "per_document"}),
+                               ("max_evidence_tokens", {"max_evidence_tokens"})):
+            if limit not in adaptive_evidence:
+                continue
+            ranks = {row["rank"] for row in dropped if row.get("limit") in reasons}
+            cutoff = next((row["rank"] for row in dropped if row.get("limit") == "top_k"), None) if limit == "top_k" else None
+            withheld = [item.text for item in result.retrieved
+                        if item.rank in ranks or (cutoff is not None and item.rank >= cutoff)]
+            if withheld:
+                amounts, owners = project_facts([{"rank": i, "text": text} for i, text in enumerate(withheld, 1)])
+                withheld_project_facts[limit] = [kind for kind, facts in (("budget", amounts), ("owner", owners)) if facts]
     if support:
         trace.append(make_node(
             "🔎", "证据支持检查", time_str=now_str(),
@@ -1883,7 +2069,7 @@ def query_evidence(
             items=[("检查结果", str(support))],
         ))
         scope_meta["evidence_support"] = support
-        if support["status"] == "unsupported":
+        if support["status"] == "unsupported" and not missing_sides:
             scope_meta["support_notice"] = "找到了候选资料，但没有足够证据支持这个问题。"
             result.answer = scope_meta["support_notice"]
             used = []
@@ -1949,7 +2135,7 @@ def query_evidence(
         items=[
             ("去重 / 合并逻辑", "忽略空白差异后比较卡片全文，重复的只保留第一条；"
              "剩余卡片按相关度依次放入，直到达到条数或字数上限"),
-            ("多样性限制", f"同一文档最多采用 {ctx_max_per_doc if ctx_max_per_doc is not None else cfg.context_max_per_doc} 条；本次总名额 {ctx_max_items}"),
+            ("多样性限制", f"同一文档最多采用 {ctx_max_per_doc if ctx_max_per_doc is not None else context_cfg.context_max_per_doc} 条；本次总名额 {ctx_max_items}"),
             ("被丢弃的卡片", "\n".join(drop_lines) if drop_lines else "（没有需要丢弃的卡片）"),
             ("输出", f"采用 {len(used)} 条，丢弃 {len(dropped)} 条"),
         ],
@@ -1962,10 +2148,10 @@ def query_evidence(
                 "同文档相邻卡片自动拼接，恢复被切片切断的上下文",
         items=[
             ("组装规则", f"相关度降序编号 [1][2]…；每条标注来源/领域/章节/页码；"
-             f"token 上限约 {enum_ctx_cfg.context_max_tokens}"),
+             f"token 上限约 {context_cfg.context_max_tokens}"),
             ("相邻补全", "\n".join(merge_notes) if merge_notes else "（没有可拼接的相邻卡片）"),
             ("输出（最终 Context）", context),
-            ("规模", f"共 {len(used)} 条资料，合计 {estimate_tokens(context)} tokens（上限约 {enum_ctx_cfg.context_max_tokens} tokens）"),
+            ("规模", f"共 {len(used)} 条资料，合计 {estimate_tokens(context)} tokens（上限约 {context_cfg.context_max_tokens} tokens）"),
         ],
     ))
 
@@ -2000,6 +2186,15 @@ def query_evidence(
                                          "added_cards": facts_expansion_added + enumerated_additions,
                                          "adopted_cards": sum(len(row["chunk_ids"]) or 1 for row in result.sources),
                                          "citation_entries": len(result.sources)}}
+    if not use_llm:
+        evidence_meta["context_budget"] = {
+            "max_tokens": context_cfg.context_max_tokens,
+            "truncated_by": sorted({d["limit"] for d in dropped if "limit" in d}),
+            "expanded_by": expanded_by,
+            "effective_top_k": effective_top_k,
+        }
+        if withheld_project_facts:
+            evidence_meta["context_budget"]["withheld_project_facts"] = withheld_project_facts
     if enumeration_mode:
         trace.append(make_node("📋", "列举覆盖范围", time_str=now_str(),
                                summary=coverage_notice(evidence_meta),
@@ -2136,6 +2331,8 @@ def answer_stream(
     username: str | None = None,
     session_id: str | None = None,
     conversation_state: dict | None = None,
+    evidence_max_tokens: int | None = None,
+    adaptive_evidence: frozenset[str] = frozenset(),
 ):
     def _p(msg):
         if on_progress:
@@ -2230,8 +2427,9 @@ def answer_stream(
     cache_key = ("enumeration-processing-v2|" + cache_key
                  + f"|enum={ENUM_RECALL_K},{ENUM_CTX_ITEMS},{ENUM_CTX_TOKENS},"
                    f"{cfg.enum_rerank_docs},{cfg.enum_expand_docs},{cfg.enum_doc_cards}")
+    cache_key += f"|answer_budget={cfg.context_max_tokens},{cfg.context_max_per_doc},{cfg.rerank_recall_k},{cfg.llm_max_tokens}"
     cache_key += "|stage2=" + str(tuple(getattr(cfg, key) for key in (
-        "enum_stage2_enabled", "enum_max_rounds", "enum_queries_per_round", "enum_no_new_rounds",
+        "enum_stage2_enabled", "enum_verify_enabled", "enum_max_rounds", "enum_queries_per_round", "enum_no_new_rounds",
         "enum_max_calls", "enum_max_seconds", "enum_max_tokens", "enum_batch_tokens", "enum_page_cards",
         "enum_max_cards", "enum_max_documents", "enum_max_items", "enum_output_tokens")))
     cache_key += "|session=" + hashlib.sha256(json.dumps(
@@ -2325,7 +2523,8 @@ def answer_stream(
         use_query_understanding=use_query_understanding, use_hybrid=use_hybrid,
         use_rerank=use_rerank, history=history, use_llm=use_llm,
         on_progress=_p, config=cfg, conversation_context=memory_text,
-        user_groups=user_groups, username=username, project_context=project_context)
+        user_groups=user_groups, username=username, project_context=project_context,
+        evidence_max_tokens=evidence_max_tokens, adaptive_evidence=adaptive_evidence)
     _attach_conversation(result)
     result.evidence_meta = evidence_meta   # V3.9：MCP 证据模式透出 coverage
     result.trace[:0] = trace   # 早期节点（就绪/提问/会话记忆）并入时间线头部
@@ -2369,7 +2568,8 @@ def answer_stream(
             _rank_documents if use_rerank else None,
             get_llm_client(), cfg, evidence_meta["route"], on_progress=_p,
             conversation_context=memory_text + "\n" + json.dumps(history or [], ensure_ascii=False),
-            intent=evidence_meta.get("intent", ""))
+            intent=evidence_meta.get("intent", ""),
+            read_priority=result.enumeration_read_priority if evidence_meta["route"] == "document" else None)
         for index, usage in enumerate(outcome.calls, 1):
             record_stage_usage(result, f"enumeration_{index}", usage)
         result.elapsed["enumeration"] = outcome.stats["elapsed"]
@@ -2380,6 +2580,7 @@ def answer_stream(
         evidence_meta["processed_documents"] = outcome.stats["processed_documents"]
         # 语义条目提取不签 complete；达到预算、无效证据或错误均明确 partial。
         limited = (outcome.stats["stop_reason"].endswith("budget") or outcome.stats["errors"]
+                   or outcome.stats.get("verify_error")
                    or outcome.stats["rejected_items"] or outcome.stats["selection_truncated"]
                    or outcome.stats.get("rerank_failures") or evidence_meta["coverage"] == "partial")
         evidence_meta["coverage"] = "partial" if limited else "unknown"
@@ -2581,6 +2782,8 @@ def answer_question(
     username: str | None = None,
     session_id: str | None = None,
     conversation_state: dict | None = None,
+    evidence_max_tokens: int | None = None,
+    adaptive_evidence: frozenset[str] = frozenset(),
 ) -> QAResult:
     """完整问答链路（一次性返回完整答案）。use_llm=False 时只做检索（不花钱）。"""
     result, deltas = answer_stream(
@@ -2589,6 +2792,8 @@ def answer_question(
         use_hybrid=use_hybrid, use_rerank=use_rerank,
         history=history, config=config, user_groups=user_groups,
         username=username, session_id=session_id, conversation_state=conversation_state,
+        evidence_max_tokens=evidence_max_tokens,
+        adaptive_evidence=adaptive_evidence,
     )
     for _ in deltas:  # 消费生成器，把答案收集完整
         pass

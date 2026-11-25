@@ -61,6 +61,28 @@ class QueryEvidenceTests(IngestHarness):
         self.assertIn("`arr[42]`", result.answer)
         self.assertEqual(compute_signals(result)["cite"], {"cited": 1, "total": 1, "invalid": [99]})
 
+    def test_web_answer_cache_isolated_by_answer_budgets(self):
+        from src.pipeline import answer_question
+
+        def generate(_messages, usage_out):
+            usage_out["finish_reason"] = "stop"
+            yield "支持降噪 [1]。"
+
+        def answer(cfg):
+            return answer_question("Xtools 怎么降噪？", use_query_understanding=False, use_rerank=False, config=cfg)
+
+        with mock.patch("src.pipeline.get_llm_client", return_value=SimpleNamespace(chat_stream=generate)):
+            self.assertFalse(answer(self.cfg).cache_hit)
+            self.assertTrue(answer(self.cfg).cache_hit)
+            for key in ("context_max_tokens", "context_max_per_doc", "rerank_recall_k", "llm_max_tokens"):
+                with self.subTest(key=key):
+                    updated = replace(self.cfg, **{key: getattr(self.cfg, key) + 1})
+                    self.assertFalse(answer(updated).cache_hit)
+                    self.assertTrue(answer(updated).cache_hit)
+            limited = answer(replace(self.cfg, context_max_tokens=16))
+            self.assertFalse(limited.cache_hit)
+            self.assertEqual(limited.sources, [])
+
     def test_revoke_during_generation_withholds_new_deltas_and_clears_output(self):
         from src import mcp_server
         from src.manage import update_metadata
@@ -339,6 +361,95 @@ class McpDocumentToolsTests(IngestHarness):
         self.assertIn(payload["coverage"], ("not_found", "partial", "unknown"))
         self.assertTrue(all("document_id" in m and "version" in m
                             for m in payload["matches"]))
+
+    def test_knowledge_search_expands_evidence_only_for_the_request(self):
+        from src.config import get_config
+
+        question = "运维交接记录"
+        paths = [self.write_note(f"{question} 样本 {i}。" + "设备交接需要核对标签和接收签字。" * 29,
+                                 f"brief-{i:02}.md") for i in range(12)]
+        self.ingest(paths, default_groups=["hr"])
+        self.ingest([self.write_note(f"{question} 保密内容。", "finance-only.md")], default_groups=["finance"])
+        with mock.patch("src.mcp_server._identity_from_ctx", return_value=(["all", "hr"], "alice", {})):
+            default = self._call("knowledge_search", question, domain="learning")
+            expanded = self._call("knowledge_search", question, domain="learning", top_k=100, max_evidence_tokens=10000)
+            limited = self._call("knowledge_search", question, domain="learning", top_k=12, max_evidence_tokens=1000)
+            self.assertEqual(self._call("knowledge_search", question, domain="learning")["matches"], default["matches"])
+
+        self.assertEqual(default["evidence_budget"]["top_k"], 5)
+        self.assertEqual(default["evidence_budget"]["max_evidence_tokens"], 4000)
+        budget = expanded["evidence_budget"]
+        self.assertEqual((budget["top_k"], budget["max_evidence_tokens"], budget["returned_matches"]), (12, 8000, 12))
+        self.assertEqual({match["source"] for match in expanded["matches"]}, {path.name for path in paths})
+        self.assertTrue(all(match["document_id"] and match["version"] and match["chunk_ids"]
+                            for match in expanded["matches"]))
+        limited_budget = limited["evidence_budget"]
+        self.assertLess(limited_budget["returned_matches"], budget["returned_matches"])
+        self.assertLessEqual(limited_budget["estimated_text_tokens"], 1000)
+        self.assertIn("max_evidence_tokens", limited_budget["truncated_by"])
+        self.assertTrue(limited_budget["truncated"])
+        self.assertEqual(limited["coverage"], "partial")
+        self.assertIs(get_config(), self.cfg)
+        _, web_meta = query_evidence(question, use_llm=False, config=replace(self.cfg, context_max_tokens=2500),
+                                     use_rerank=False,
+                                     user_groups=["all", "hr"], username="alice")
+        self.assertEqual(web_meta["context_budget"]["max_tokens"], 2500)
+
+    def test_knowledge_search_auto_expands_only_the_limit_blocking_a_fact(self):
+        from src.retriever import RetrievedItem
+
+        question = "设备 DPC-550 的预算是多少？"
+        hits = [RetrievedItem(i, 1 / i, f"DPC-550 设备说明第 {i} 页。", {
+            "document_id": f"d{i}", "chunk_id": f"d{i}_0000", "source": f"d{i}.md", "version": "1.0",
+        }, "关键词") for i in range(1, 8)]
+
+        def retrieve(query, *, top_k, **kwargs):
+            return hits[:top_k]
+
+        with mock.patch("src.pipeline.get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
+            missing = self._call("knowledge_search", question)
+            self.assertEqual(missing["evidence_budget"]["expanded_by"], [])
+            self.assertEqual(missing["evidence_budget"]["top_k"], 5)
+            hits[6] = replace(hits[6], text="DPC-550 的预算为 200 万元。")
+            simple = self._call("knowledge_search", "DPC-550 设备说明")
+            self.assertEqual(simple["evidence_budget"]["top_k"], 5)
+            self.assertEqual(simple["evidence_budget"]["expanded_by"], [])
+            result = self._call("knowledge_search", question)
+            fixed = self._call("knowledge_search", question, top_k=5)
+
+        self.assertEqual(result["evidence_budget"]["top_k"], 12)
+        self.assertEqual(result["evidence_budget"]["max_evidence_tokens"], 4000)
+        self.assertEqual(result["evidence_budget"]["expanded_by"], ["top_k"])
+        self.assertTrue(any("200 万元" in match["text"] for match in result["matches"]))
+        self.assertEqual(fixed["evidence_budget"]["top_k"], 5)
+        self.assertEqual(fixed["evidence_budget"]["expanded_by"], [])
+
+        hits[:] = [replace(hits[0], text="DPC-550 的预算为 200 万元。" + "背景。" * 1900)]
+        with mock.patch("src.pipeline.get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
+            result = self._call("knowledge_search", question)
+        self.assertEqual(result["evidence_budget"]["top_k"], 5)
+        self.assertEqual(result["evidence_budget"]["max_evidence_tokens"], 8000)
+        self.assertEqual(result["evidence_budget"]["expanded_by"], ["max_evidence_tokens"])
+
+    def test_mcp_resolves_two_limits_within_one_retrieval(self):
+        from src.retriever import RetrievedItem
+
+        markers = [f"DPC-550 说明 {i}。" + "设备背景。" * 153 for i in range(1, 7)]
+        markers.append("DPC-550 的预算为 200 万元。" + "补充资料。" * 153)
+        hits = [RetrievedItem(i, 1 / i, text, {"document_id": f"d{i}", "source": f"d{i}.md"}, "关键词")
+                for i, text in enumerate(markers, 1)]
+        retrieve = mock.Mock(side_effect=lambda query, *, top_k, **kwargs: hits[:top_k])
+        question = "设备 DPC-550 的预算是多少？"
+        with mock.patch("src.pipeline.get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
+            result = self._call("knowledge_search", question)
+            retrieve.assert_called_once()
+            fixed = self._call("knowledge_search", question, max_evidence_tokens=4000)
+        budget = result["evidence_budget"]
+        self.assertEqual((budget["top_k"], budget["max_evidence_tokens"]), (12, 8000))
+        self.assertEqual(set(budget["expanded_by"]), {"top_k", "max_evidence_tokens"})
+        self.assertTrue(any("200 万元" in match["text"] for match in result["matches"]))
+        self.assertEqual(fixed["evidence_budget"]["max_evidence_tokens"], 4000)
+        self.assertEqual(fixed["coverage_details"]["evidence_support"]["missing"], ["预算金额"])
 
     def test_get_document_full_stitches_single(self):
         payload = self._call("get_document", [self.document_id], mode="full")

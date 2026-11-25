@@ -2,11 +2,13 @@
 
 import json
 from dataclasses import replace
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from src import auth_db, mcp_server, pipeline, projects
 from src.project_comparison import parse_project_comparison
 from src.query_understanding import QueryUnderstanding
+from src.retriever import RetrievedItem
 from tests._helpers import IngestHarness
 
 
@@ -79,11 +81,42 @@ class ProjectComparisonTests(IngestHarness):
         with patch.object(mcp_server, "_identity_from_ctx", return_value=(["engineering"], "alice", {})), \
              patch("src.config.get_config", return_value=replace(self.cfg, query_understanding=False)):
             qa = json.loads(mcp_server._tool_knowledge_qa_impl(HIGHEST))
-            search = json.loads(mcp_server._tool_knowledge_search_impl(HIGHEST))
+            search = json.loads(mcp_server._tool_knowledge_search_impl(HIGHEST, top_k=12, max_evidence_tokens=8000))
         self.assertEqual(qa["coverage"], "partial")
         self.assertIn("无法计算全部项目", qa["answer"])
         self.assertEqual({row["source"] for row in search["matches"]}, {"a.md", "b.md"})
         self.assertEqual(search["coverage_details"]["comparison"]["missing"], ["北斗的预算"])
+        self.assertEqual(search["evidence_budget"]["max_evidence_tokens"], 8000)
+        self.assertEqual([entry["sources"] for entry in search["coverage_details"]["comparison"]["projects"]], [[1], [2], []])
+
+    def test_mcp_comparison_redistributes_only_to_project_with_budget_omission(self):
+        query_evidence = pipeline.query_evidence
+        questions = []
+        sky = self.project_ids["星云项目"]
+        other = self.project_ids["天枢项目"]
+
+        def query(question, *args, **kwargs):
+            if question == "项目预算金额":
+                [project_id] = kwargs["filters"]["project_id"]
+                questions.append((project_id, kwargs["evidence_max_tokens"]))
+            return query_evidence(question, *args, **kwargs)
+
+        def retrieve(question, *, filters, **kwargs):
+            [project_id] = filters["project_id"]
+            text = "项目预算：135 万元。" if project_id == sky else "项目预算：200 万元。" + "背景。" * 1100
+            return [RetrievedItem(1, 1.0, text, {"document_id": str(project_id),
+                                                 "source": f"{project_id}.md"}, "关键词")]
+
+        with patch.object(pipeline, "query_evidence", side_effect=query), \
+             patch.object(pipeline, "get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
+            response = json.loads(mcp_server._tool_knowledge_search_impl("星云和天枢两个项目的预算分别是多少？"))
+        self.assertEqual(questions[:2], [(sky, 2000), (other, 2000)])
+        self.assertEqual(len(questions), 3)
+        self.assertEqual(questions[2][0], other)
+        self.assertGreater(questions[2][1], 3000)
+        self.assertEqual(response["evidence_budget"]["expanded_by"], ["max_evidence_tokens"])
+        self.assertFalse(response["coverage_details"]["comparison"]["missing"])
+        self.assertEqual([p["sources"] for p in response["coverage_details"]["comparison"]["projects"]], [[1], [2]])
 
     def test_department_budget_uses_ordinary_retrieval_even_with_introductory_comma(self):
         self.ingest([self.write_note("2024 年度研发部预算为 520 万元。", "department-budget.md")],

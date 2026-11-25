@@ -281,7 +281,9 @@ class DocumentTypeMcpTests(IngestHarness):
                  mock.patch.object(ms.anyio.to_thread, "run_sync", new=run_inline):
                 # Drive the mocked wrapper directly; no Windows asyncio socketpair required.
                 extra_defaults, extra_values = {
-                    "knowledge_search": ({"history": None}, {"history": [{"role": "user", "content": "查示例项目"}]}),
+                    "knowledge_search": ({"history": None, "max_evidence_tokens": None},
+                                         {"history": [{"role": "user", "content": "查示例项目"}],
+                                          "max_evidence_tokens": 8000}),
                     "get_document": ({"version": None, "status": None}, {"version": "1.0", "status": "expired"}),
                     "list_documents": ({"page": 1, "page_size": 100}, {"page": 2, "page_size": 4}),
                 }.get(name, ({}, {}))
@@ -313,6 +315,8 @@ class DocumentTypeMcpTests(IngestHarness):
                 self.assertIn("doc_type", properties)
                 self.assertNotIn("doc_type", tool.parameters.get("required", []))
                 self.assertNotIn("ctx", properties)
+                self.assertEqual("max_evidence_tokens" in properties, name == "knowledge_search")
+                self.assertNotIn("max_evidence_tokens", tool.parameters.get("required", []))
                 for key in ("project", "business_direction"):
                     self.assertIn(key, properties)
                     self.assertNotIn(key, tool.parameters.get("required", []))

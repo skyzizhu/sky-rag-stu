@@ -36,6 +36,10 @@ from src import auth_db, projects  # noqa: E402
 from src.permissions import scope_filters, visible_groups, write_group_options  # noqa: E402
 from src.answer_format import format_answer_markdown  # noqa: E402
 from src.config import get_config  # noqa: E402
+from src.mcp_params_i18n import mcp_param_text  # noqa: E402
+from src.mcp_search_limits import (  # noqa: E402
+    MCP_SEARCH_DEFAULT_TOP_K, MCP_SEARCH_MAX_TOP_K, MCP_SEARCH_DEFAULT_TOKENS, MCP_SEARCH_MAX_TOKENS,
+)
 from src.chat_scroll import scroll_chat_to_latest, scroll_follow_stream  # noqa: E402
 from src.directory_uploader import (  # noqa: E402
     decode_directory_batch,
@@ -3507,6 +3511,18 @@ def page_params_overview():
         )
 
     _show_parameters(params_rows)
+
+    st.subheader(mcp_param_text("params.group.mcp"))
+    mcp_values = [
+        ("mcp_top_k_default", MCP_SEARCH_DEFAULT_TOP_K),
+        ("mcp_top_k_max", MCP_SEARCH_MAX_TOP_K),
+        ("mcp_evidence_tokens_default", MCP_SEARCH_DEFAULT_TOKENS),
+        ("mcp_evidence_tokens_max", MCP_SEARCH_MAX_TOKENS),
+    ]
+    _show_parameters([(mcp_param_text(f"params.{key}.label"), value, mcp_param_text(f"params.{key}.note"))
+                      for key, value in mcp_values])
+    st.caption(mcp_param_text("params.mcp.caption"))
+
     st.subheader(t("params.group.enumeration"))
     enumeration_values = [
         ("ENUM_RECALL_K", ENUM_RECALL_K),

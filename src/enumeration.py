@@ -6,6 +6,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 from src.retriever import RetrievedItem
+from src.metadata import chunk_sequence
 
 ROUTES = {"catalog", "document", "cross_document"}
 
@@ -87,6 +88,25 @@ def group_documents(items: list[RetrievedItem]) -> dict:
     for item in items:
         grouped.setdefault(document_key(item), []).append(item)
     return grouped
+
+
+def document_read_priority(recalled, expanded, page_cards: int) -> dict[tuple, list[str]]:
+    """Use actual retrieval hits before neighboring cards in long documents."""
+    hits = group_documents(recalled)
+    priorities = {}
+    for key, cards in group_documents(expanded).items():
+        if len(cards) <= page_cards or not hits.get(key):
+            continue
+        ranked = hits[key]
+        ids = {card.metadata.get('chunk_id') for card in cards}
+        preferred = [cid for card in ranked if (cid := card.metadata.get('chunk_id')) in ids and cid]
+        positions = {chunk_sequence(card.metadata): card.metadata.get('chunk_id') for card in cards}
+        # Reuse the first hit's immediate context when it was not independently recalled.
+        first = chunk_sequence(ranked[0].metadata)
+        if first is not None:
+            preferred.extend(positions.get(i) for i in (first - 1, first + 1))
+        priorities[key] = list(dict.fromkeys(cid for cid in preferred if cid))
+    return priorities
 
 
 _SOURCE_PREFIX_LINE = re.compile(r"^来源文档：[^\n]*\n?")

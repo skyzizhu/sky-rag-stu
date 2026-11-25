@@ -207,8 +207,13 @@ class DocumentDepartmentTests(IngestHarness):
                         coroutine.send(None)
                 finally:
                     coroutine.close()
+                extra_defaults = {
+                    'knowledge_search': {'history': None, 'max_evidence_tokens': None},
+                    'get_document': {'version': None, 'status': None},
+                    'list_documents': {'page': 1, 'page_size': 100},
+                }.get(name, {})
                 called.assert_called_once_with(*args, doc_type=None, department='研发部',
-                                               project=None, business_direction=None)
+                                               project=None, business_direction=None, **extra_defaults)
 
 
 class DepartmentUiContractTests(unittest.TestCase):

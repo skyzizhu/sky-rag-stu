@@ -553,6 +553,8 @@ python scripts/test_km_scenarios.py            # 知识库管理机制自动测�
 
 `knowledge_search` 和 `knowledge_qa` 由调用方管理会话。优先传本轮问题和已确认的 `project`，需要服务端消解指代时传相关 `history`。依赖指代的问题中，如果最近一条用户消息明确切换到了另一个项目，接口返回 `coverage_details.scope_issue=conflict`，调用方应核对参数后重试。后台员工检索日志详情记录入参形态、采用的历史条数、项目范围来源和范围状态。诊断字段不保存历史正文。
 
+`knowledge_search` 普通检索从 `top_k=5`、约 4,000 tokens 起步。省略参数时，如果预算挡住了补齐明确缺项的候选，就用同一批已授权候选重新组装证据。目标卡片数最高 12，证据预算最高 8,000 tokens。新旧版本比较按侧检查事实，扩容时保留证据已足够的一侧。项目比较按项目分配预算，只给有被截断的相关候选、且缺少所问事实的项目补查。调用方可用 `top_k` 和 `max_evidence_tokens` 固定对应预算。`evidence_budget` 返回实际限额、返回量、正文 token 估算、截断原因和自动扩容情况。语义列举和文件盘点沿用各自的默认预算，长文档可用 `get_document` 按命中版本和章节读取。
+
 **接入方式**（以 ZCode / Claude Desktop 为例，写入其 MCP 配置）：
 
 ```json

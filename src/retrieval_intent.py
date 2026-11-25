@@ -85,12 +85,60 @@ VERSION_SIDES = (
 )
 
 
+_VERSION_CLAUSE_BREAK = re.compile(r"[。;?!:\n]|(?<!\d),|,(?!\d)")
+_BOTH_VERSIONS = re.compile(r"新[旧舊](?:两|兩)?版")
+_VERSION_NAME = rf"(?:{_CURRENT.pattern}|{_HISTORY.pattern})(?:版本|版|本)?"
+_VERSION_FIELD = re.compile(rf"{_VERSION_NAME}\s*的")
+_VERSION_LABEL = re.compile(_VERSION_NAME)
+_VERSION_FIELD_JOIN = re.compile(r"以及|和|与|與|及|、")
+_SHARED_VALUE_ASK = re.compile(r"(?:分别|分別|各自|各)?(?:为|為|是)?(?:多少|多大|几次|幾次|什么值|什麼值)\s*$")
+
+
+def version_evidence_questions(question: str) -> dict[str, str]:
+    """Assign clearly version-qualified clauses without changing the retrieval query."""
+    text = unicodedata.normalize("NFKC", question)
+    masked = _QUOTED.sub(lambda match: " " * len(match[0]), text)
+    by_side = {key: [] for key, _, _ in VERSION_SIDES}
+    start = 0
+    label = ""
+    boundaries = [(match.start(), match.end()) for match in _VERSION_CLAUSE_BREAK.finditer(masked)]
+    for end, following in [*boundaries, (len(text), len(text))]:
+        clause, wording = text[start:end], masked[start:end]
+        start = following
+        if masked[end:end + 1] == ":" and _VERSION_LABEL.fullmatch(wording.strip()):
+            label = wording.strip()
+            continue
+        if label:
+            clause, wording = f"{label} {clause}", f"{label} {wording}"
+            label = ""
+        # A shared phrase such as “现行版和历史版的预算” keeps both sides.
+        parts = [(clause, wording)]
+        for join in _VERSION_FIELD_JOIN.finditer(wording):
+            left, right = wording[:join.start()], wording[join.end():].lstrip()
+            first, second = _VERSION_FIELD.search(left), _VERSION_FIELD.match(right)
+            if (first and second and left[first.end():].strip()
+                    and bool(_CURRENT.search(first[0])) != bool(_CURRENT.search(second[0]))):
+                suffix = _SHARED_VALUE_ASK.search(wording)
+                parts = [(clause[:join.start()] + (suffix[0] if suffix else ""), left),
+                         (clause[join.end():], right)]
+                break
+        for part, visible in parts:
+            current = bool(_CURRENT.search(visible))
+            historical = bool(_HISTORY.search(visible))
+            targets = by_side if current == historical or _BOTH_VERSIONS.search(visible) else (
+                "current" if current else "historical",
+            )
+            for key in targets:
+                by_side[key].append(part)
+    return {key: "。".join(parts) for key, parts in by_side.items()}
+
+
 def compares_versions(question: str) -> bool:
     text = unicodedata.normalize("NFKC", question)
     wording = _QUOTED.sub(" ", text)
     return bool(_COMPARE.search(wording) and not _ONLY_ONE.search(wording)
                 and (_CURRENT.search(text) and _HISTORY.search(text)
-                     or re.search(r"新[旧舊](?:两|兩)?版", wording)))
+                     or _BOTH_VERSIONS.search(wording)))
 
 
 # —— 确定性查询拆分（V3.4 查询拆分的离线兜底）——

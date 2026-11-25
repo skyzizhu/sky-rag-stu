@@ -82,26 +82,43 @@ class ProcessingOutcome:
 
 
 class BudgetClient:
-    """所有提取、规划、LLM 精排共用预算，单次请求禁重试且使用剩余超时。"""
+    """提取、补查和复审共用调用数、token 和截止时间。"""
     def __init__(self, llm, cfg, outcome):
         self.llm, self.cfg, self.outcome = llm, cfg, outcome
         self.deadline = time.monotonic() + cfg.enum_max_seconds
         self.calls = 0
         self.tokens = 0
+        self.call_limit = cfg.enum_max_calls
+        self.token_limit = cfg.enum_max_tokens
+
+    def reserve_review(self):
+        if self.cfg.enum_verify_enabled and self.call_limit > 1:
+            self.call_limit -= 1
+            self.token_limit -= min(2048, self.token_limit // 8)
+            self.deadline -= min(10.0, self.cfg.enum_max_seconds / 10)
+
+    def begin_review(self, deadline):
+        self.call_limit = self.cfg.enum_max_calls
+        self.token_limit = self.cfg.enum_max_tokens
+        self.deadline = deadline
 
     def check(self):
         if time.monotonic() >= self.deadline:
             raise BudgetExceeded('time_budget')
-        if self.calls >= self.cfg.enum_max_calls:
+        if self.calls >= self.call_limit:
             raise BudgetExceeded('call_budget')
-        if self.tokens >= self.cfg.enum_max_tokens:
+        if self.tokens >= self.token_limit:
             raise BudgetExceeded('token_budget')
+
+    def output_limit(self, messages):
+        return min(self.cfg.enum_output_tokens, self.token_limit - self.tokens
+                   - estimate_tokens(json.dumps(messages, ensure_ascii=False)))
 
     def chat(self, messages, usage_out=None):
         self.check()
         input_tokens = estimate_tokens(json.dumps(messages, ensure_ascii=False))
         output_limit = min(self.cfg.enum_output_tokens,
-                           self.cfg.enum_max_tokens - self.tokens - input_tokens)
+                           self.token_limit - self.tokens - input_tokens)
         if output_limit < 128:
             raise BudgetExceeded('token_budget')
         self.calls += 1
@@ -112,7 +129,7 @@ class BudgetClient:
                                          max_tokens=output_limit)
         except Exception:
             # 超时或错误也占用调用次数和输入预算，不能无限重试。
-            self.tokens += input_tokens
+            self.tokens += max(input_tokens, int(usage.get('input') or 0)) + int(usage.get('output') or 0)
             self.outcome.calls.append(dict(usage))
             raise
         self.tokens += max(input_tokens, int(usage.get('input') or 0)) + max(
@@ -235,53 +252,64 @@ def merge_record(records, record):
     return True
 
 
-def review_records_relevance(question, records, llm, cfg, outcome, conversation_context="", intent=""):
-    """提取后的语义把关：剔除仅关键词擦边、并未真正回答问题的记录。
-
-    逐字证据校验只能证明"引用是真的"，证明不了"引用切题"——产品功能恰好含问题
-    中的词（如问题问「建模方法」，提取出介绍「无人机实时建模」设备的卡片）就是
-    典型漏网。独立调用一次模型逐条复审（不占 process 预算，预算耗尽后仍能执行）；
-    任何失败都保守放行（fail-open），绝不因把关失败丢掉真实内容。
-    intent 是 Query 理解产出的意图锚点，让复审与提取共享同一次类别理解。
-    返回 (被剔除条数, 是否出错)；直接原地过滤 records 列表。
-    """
+def review_records_relevance(question, records, budget, conversation_context="", intent=""):
+    """Apply explicit verdicts and retain evidence for records without a valid verdict."""
     payload = [{'index': i + 1, 'name': str(r['name'])[:100],
                 'quote': '\n'.join(dict.fromkeys(e['quote'][:300] for e in r['evidence'][:3]))}
                for i, r in enumerate(records)]
-    usage = {}
+
+    def messages(count):
+        return [{'role': 'system', 'content': VERIFICATION_PROMPT},
+                {'role': 'user', 'content': json.dumps({
+                    'original_question': question, 'target_intent': intent,
+                    'conversation_context': conversation_context, 'candidates': payload[:count],
+                }, ensure_ascii=False)}]
+
     try:
-        raw, _ = llm.chat(
-            [{'role': 'system', 'content': VERIFICATION_PROMPT},
-             {'role': 'user', 'content': json.dumps(
-                 {'original_question': question, 'target_intent': intent,
-                  'conversation_context': conversation_context,
-                  'candidates': payload}, ensure_ascii=False)}],
-            usage_out=usage, timeout=cfg.enum_max_seconds,
-            max_tokens=min(cfg.enum_output_tokens, 4096))
+        budget.check()
+        low, high = 0, len(payload)
+        while low < high:
+            count = (low + high + 1) // 2
+            if budget.output_limit(messages(count)) >= max(128, 24 * count):
+                low = count
+            else:
+                high = count - 1
+        if not low:
+            raise BudgetExceeded('token_budget')
+        raw, _ = budget.chat(messages(low))
         verdicts = parse_object(raw).get('verdicts')
         if not isinstance(verdicts, list):
             raise ValueError('缺少 verdicts 数组')
-        relevant = {}
-        for verdict in verdicts:
-            if isinstance(verdict, dict) and isinstance(verdict.get('index'), int) \
-                    and 1 <= verdict['index'] <= len(records):
-                relevant[verdict['index']] = verdict.get('relevant') is True
-        kept = [record for i, record in enumerate(records, 1) if relevant.get(i, True)]
-        removed = len(records) - len(kept)
-        records[:] = kept
-        return removed, False
-    except Exception:
-        outcome.stats['verify_error'] = True
-        return 0, True
-    finally:
-        outcome.calls.append(dict(usage))
+    except BudgetExceeded as exc:
+        return 0, 0, str(exc)
+    except Exception as exc:
+        return 0, 0, type(exc).__name__
+
+    relevant = {}
+    conflicting = set()
+    for verdict in verdicts:
+        if not isinstance(verdict, dict):
+            continue
+        index, value = verdict.get('index'), verdict.get('relevant')
+        if type(index) is int and 1 <= index <= low and type(value) is bool:
+            if relevant.setdefault(index, value) != value:
+                conflicting.add(index)
+    for index in conflicting:
+        del relevant[index]
+    kept = [record for i, record in enumerate(records, 1) if relevant.get(i, True)]
+    removed = len(records) - len(kept)
+    reason = 'incomplete_verdicts' if len(relevant) < low else 'review_capacity' if low < len(records) else ''
+    records[:] = kept
+    return removed, len(relevant), reason
 
 
 def process_enumeration(question, initial_documents, candidate_keys, filters, store, retrieve,
                         rank_documents, llm, cfg, route, on_progress=None, conversation_context="",
-                        intent=""):
+                        intent="", *, read_priority=None):
     outcome = ProcessingOutcome()
     budget = BudgetClient(llm, cfg, outcome)
+    deadline = budget.deadline
+    budget.reserve_review()
     begun = time.monotonic()
     seen_docs, processed_docs, seen_cards, seen_queries = set(), set(), set(), {normalized(question)}
     candidates = set(candidate_keys)
@@ -289,7 +317,8 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
     state = outcome.stats
     state.update(rounds=0, queries=0, batches=0, valid_batches=0, split_batches=0, cards_read=0,
                  rejected_items=0, errors=0, document_budget_hit=False, card_budget_hit=False, selection_truncated=False,
-                 verify_removed=0, verify_error=False)
+                 verify_removed=0, verify_checked=0, verify_error=False,
+                 verify_status='not_needed' if cfg.enum_verify_enabled else 'disabled')
     stop_reason = 'document_read'
     model_codes = bool(re.search(r'型号|型號|\bsku\b', question, re.I))
 
@@ -298,7 +327,7 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
             on_progress(text)
 
     # Reserve planning calls, while charging extraction by actual packed batches.
-    planning_reserve = cfg.enum_max_rounds * cfg.enum_queries_per_round + 1
+    planning_reserve = cfg.enum_max_rounds * cfg.enum_queries_per_round
 
     def document_fragments(documents):
         queue = deque()
@@ -311,27 +340,38 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
                 state['document_budget_hit'] = True
                 continue
             queued.add(key)
-            queue.append((doc, None))
+            priority = (read_priority or {}).get(key, ())
+            queue.append((doc, None, priority))
         while queue:
             budget.check()
             if state['cards_read'] >= cfg.enum_max_cards:
                 state['card_budget_hit'] = True
                 return
-            doc, offset = queue.popleft()
+            doc, offset, priority = queue.popleft()
             scoped = {**filters, 'document_id': doc['document_id']}
             if doc.get('version'):
                 scoped['version'] = doc['version']
-            page, next_offset = store.card_page(scoped, offset=offset,
-                                               limit=min(cfg.enum_page_cards, cfg.enum_max_cards - state['cards_read']),
-                                               timeout=max(.01, budget.deadline - time.monotonic()))
+            limit = min(cfg.enum_page_cards, cfg.enum_max_cards - state['cards_read'])
+            timeout = max(.01, budget.deadline - time.monotonic())
+            if priority:
+                ids, remaining = priority[:limit], priority[limit:]
+                page, _ = store.card_page(scoped, chunk_ids=list(ids), limit=len(ids), timeout=timeout)
+                by_id = {row['payload'].get('chunk_id'): row for row in page}
+                page = [by_id[cid] for cid in ids if cid in by_id]
+                queue.append((doc, None, remaining))
+                next_offset = None
+            elif read_priority is not None and doc.get('version'):
+                page, next_offset = store.source_ordered_card_page(scoped, offset, limit, timeout)
+            else:
+                page, next_offset = store.card_page(scoped, offset=offset, limit=limit, timeout=timeout)
             if next_offset is not None and str(next_offset) == str(offset):
                 raise ValueError('文档读取游标未前进')
             fresh = [row for row in page if row['id'] not in seen_cards]
             seen_cards.update(row['id'] for row in fresh)
             state['cards_read'] += len(fresh)
             if next_offset is not None:
-                queue.append((doc, next_offset))
-            for row in page:
+                queue.append((doc, next_offset, ()))
+            for row in fresh:
                 yield from evidence_fragments(row, cfg.enum_batch_tokens)
 
     def extract_batch(batch, cutoff):
@@ -375,7 +415,7 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
     def read_documents(documents, reserve=0):
         # Allow enough response space per fragment and split when the model still truncates.
         max_materials = max(1, min(8, cfg.enum_output_tokens // 384))
-        cutoff = max(budget.calls + 1, cfg.enum_max_calls - reserve) if reserve else None
+        cutoff = max(budget.calls + 1, budget.call_limit - reserve) if reserve else None
         for batch in batches(document_fragments(documents),
                              cfg.enum_batch_tokens, max_materials):
             if cutoff is not None and budget.calls >= cutoff:
@@ -438,9 +478,13 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
     # 提取后的语义把关：关键词擦边的记录（如产品功能恰好含问题中的词）不能充当答案。
     # 全部被剔除时 records 为空，上游据此输出「0 条记录」的如实结论，而不是拿擦边内容凑数。
     if cfg.enum_verify_enabled and records:
-        removed, _verify_error = review_records_relevance(
-            question, records, llm, cfg, outcome, conversation_context, intent)
-        state['verify_removed'] = removed
+        total = len(records)
+        budget.begin_review(deadline)
+        removed, checked, reason = review_records_relevance(
+            question, records, budget, conversation_context, intent)
+        state.update(verify_removed=removed, verify_checked=checked, verify_error=checked < total,
+                     verify_status='complete' if checked == total else 'partial' if checked else 'not_reviewed',
+                     verify_reason=reason)
     if state['document_budget_hit']:
         stop_reason = 'document_budget'
     if state['errors'] and not stop_reason.endswith('budget'):
@@ -450,7 +494,7 @@ def process_enumeration(question, initial_documents, candidate_keys, filters, st
                  candidate_documents=len(candidates), processed_documents=len(processed_docs),
                  items=len(records), possible_duplicates=sum(
                      1 for r in records if sum(normalized(x['name']) == normalized(r['name']) for x in records) > 1))
-    if time.monotonic() >= budget.deadline:
+    if time.monotonic() >= deadline:
         state['stop_reason'] = 'time_budget'
     # 只有实际被接受的证据进入来源列表，编号完全由代码生成，模型不能伪造引用。
     sources = {}
@@ -502,19 +546,19 @@ def render_records(outcome, language="zh-CN", *, coverage="unknown", inventory_h
         'zh-CN': ("本次从已处理资料中整理出 **{n} 条带原文证据的记录**；这不是全库确定总数。",
                   "部分同名记录尚不能确认是同一实体，已分别保留，当前记录数不等于去重后的实体总数。",
                   "处理范围：{d} 份文档、{c} 张卡片、{b} 批有效提取，补查 {r} 轮。", "停止原因", "结果可能遗漏，不能据此宣称全库已查全。",
-                  "⚠️ 语义复审未完成（调用失败），以上记录未经相关性把关，可能包含仅字面关联的无关条目。"),
+                  "⚠️ 语义复审未完成，部分或全部保留记录尚未经过相关性复审。"),
         'zh-TW': ("本次從已處理資料整理出 **{n} 筆附原文證據的記錄**；這不是全庫確定總數。",
                   "部分同名記錄尚不能確認是同一實體，已分別保留，記錄數不等於去重後的實體總數。",
                   "處理範圍：{d} 份文件、{c} 張卡片、{b} 批有效提取，補查 {r} 輪。", "停止原因", "結果可能遺漏，不能據此宣稱全庫已查全。",
-                  "⚠️ 語義複審未完成（調用失敗），以上記錄未經相關性把關，可能包含僅字面關聯的無關條目。"),
+                  "⚠️ 語義複審未完成，部分或全部保留記錄尚未經過相關性複審。"),
         'en': ("Extracted **{n} records with source evidence** from the processed materials; this is not a definitive total for the knowledge base.",
                "Some same-name records could not be confirmed as the same entity and remain separate. The record count is not a unique-entity count.",
                "Scope: {d} documents, {c} chunks, {b} valid extraction batches, {r} follow-up rounds.", "Stopped because", "Results may omit items and do not establish exhaustive coverage.",
-               "⚠️ The relevance review could not run (model call failed); the records above were not screened and may include keyword-only matches."),
+                  "⚠️ The relevance review is incomplete. Some or all retained records still need relevance review."),
         'ja': ("処理した資料から、原文の証拠が付いた **{n} 件の記録** を抽出しました。全体の確定総数ではありません。",
                "同名でも同一の実体か確認できない記録は別々に残しています。記録数は重複排除後の実体総数ではありません。",
                "処理範囲：文書 {d} 件、チャンク {c} 件、有効な抽出 {b} バッチ、追加検索 {r} 回。", "停止理由", "漏れがあり得るため、全件を検索できたことを意味しません。",
-               "⚠️ 関連性レビューが実行できませんでした（呼び出し失敗）。上記の記録はスクリーニングされておらず、無関係な項目を含む可能性があります。"),
+                  "⚠️ 関連性レビューが未完了です。保持した記録の一部または全部は関連性が未確認です。"),
     }
     header, duplicate, scope, stopped, caveat, verify_warning = templates.get(language, templates['en'])
     lines = [header.format(n=len(records))]

@@ -185,7 +185,8 @@ def preserve_deadline_wording(answer: str, constraint: dict) -> str:
     return answer
 
 
-def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, ...] = ()) -> dict:
+def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, ...] = (), *,
+                    fields_only: bool = False) -> dict:
     """Report checked and missing anchors. Leave unsupported question shapes unjudged."""
     question = _normalize(question)
     for term in scope_terms:
@@ -196,11 +197,12 @@ def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, 
     checks: dict[str, bool] = {}
 
     identifiers = []
-    for match in _ID.finditer(question):
-        code = match[0]
-        literal = re.compile(rf"(?<![a-z0-9-]){re.escape(code)}(?![a-z0-9-])")
-        identifiers.append(code.upper())
-        checks[code.upper()] = any(literal.search(text) for text in evidence)
+    if not fields_only:
+        for match in _ID.finditer(question):
+            code = match[0]
+            literal = re.compile(rf"(?<![a-z0-9-]){re.escape(code)}(?![a-z0-9-])")
+            identifiers.append(code.upper())
+            checks[code.upper()] = any(literal.search(text) for text in evidence)
 
     def field_value(name, request, anchor, value, *, before=0):
         if re.search(request, question):
@@ -242,4 +244,6 @@ def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, 
               "checked": list(checks), "missing": missing}
     if date_fields:
         result["date_fields"] = date_fields
+    if identifiers:
+        result["identifier_fields"] = identifiers
     return result

@@ -33,6 +33,7 @@ import re
 import sys
 import time
 from contextvars import ContextVar
+from dataclasses import replace
 from pathlib import Path
 
 # 本服务只访问本机依赖（Qdrant/Ollama）与 LLM API（已验证无代理可直连）。
@@ -48,6 +49,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import anyio
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+
+from src.mcp_search_limits import (  # noqa: E402
+    MCP_SEARCH_DEFAULT_TOP_K, MCP_SEARCH_MAX_TOP_K, MCP_SEARCH_DEFAULT_TOKENS, MCP_SEARCH_MAX_TOKENS,
+)
 
 # 关闭 SDK 默认的 DNS 重绑定防护（它只放行 localhost/127.0.0.1 的 Host 头，
 # 局域网 IP 访问会 421 Misdirected Request）。真实鉴权由 _TokenAuthMiddleware
@@ -196,7 +201,7 @@ def _answer_in_scope(question: str, *, filters: dict | None, user_groups, userna
             filters=effective_filters(scope_filters(filters, user_groups, username)),
             evidence_meta={"coverage": "complete", "reason": "no_matching_projects"},
         )
-    cfg = get_config()
+    cfg = kwargs.get("config") or get_config()
     kwargs.setdefault("use_query_understanding", cfg.query_understanding)
     kwargs.setdefault("use_hybrid", cfg.hybrid_search)
     kwargs.setdefault("use_rerank", cfg.rerank_enabled)
@@ -214,7 +219,8 @@ def _history(history: list[dict] | None) -> list[dict]:
 
 
 def _run_context_query(question, top_k, ctx, *, tool, use_llm, domain, status, doc_type,
-                       department, project, business_direction, history):
+                       department, project, business_direction, history, search_max_tokens=None,
+                       search_auto_top_k=False):
     from src.pipeline import QAResult
     from src.query_scope import conversation_project, extract_scope, project_reference, selected_project_text
 
@@ -255,8 +261,11 @@ def _run_context_query(question, top_k, ctx, *, tool, use_llm, domain, status, d
             log(result)
             return result, None
 
-    result = _answer_in_scope(question, top_k=top_k, filters=filters, history=recent,
-                              user_groups=groups, username=username, use_llm=use_llm)
+    kwargs = dict(filters=filters, history=recent, user_groups=groups, username=username, use_llm=use_llm)
+    if tool == "knowledge_search":
+        result, top_k = _search_with_budget(question, top_k, search_max_tokens, search_auto_top_k, kwargs)
+    else:
+        result = _answer_in_scope(question, top_k=top_k, **kwargs)
     details = result.evidence_meta or {}
     if has_project:
         diagnostics["project_source"] = "project_argument"
@@ -268,6 +277,28 @@ def _run_context_query(question, top_k, ctx, *, tool, use_llm, domain, status, d
         diagnostics["project_source"] = "question"
     log(result)
     return result, None
+
+
+def _search_with_budget(question, top_k, max_tokens, auto_top_k, kwargs):
+    from src.config import get_config
+
+    automatic = frozenset(key for key, enabled in (("top_k", auto_top_k),
+                                                   ("max_evidence_tokens", max_tokens is None)) if enabled)
+    cfg = get_config()
+    per_document = cfg.context_max_per_doc
+    if top_k > MCP_SEARCH_DEFAULT_TOP_K or (max_tokens or 0) > MCP_SEARCH_DEFAULT_TOKENS:
+        per_document = max(per_document, min(top_k, 6))
+    result = _answer_in_scope(question, top_k=top_k, evidence_max_tokens=max_tokens, adaptive_evidence=automatic,
+                              config=replace(cfg, context_max_tokens=MCP_SEARCH_DEFAULT_TOKENS,
+                                             context_max_per_doc=per_document), **kwargs)
+    details = result.evidence_meta or {}
+    budget = details.get("context_budget", {})
+    expanded = budget.get("expanded_by", [])
+    top_k = budget.get("effective_top_k", MCP_SEARCH_MAX_TOP_K if "top_k" in expanded else top_k)
+    result.evidence_meta = {**details, "budget_adjustment": {
+        "automatic": sorted(automatic), "expanded_by": sorted(expanded), "effective_top_k": top_k,
+    }}
+    return result, top_k
 
 
 def _sources_payload(sources: list[dict]) -> list[dict]:
@@ -440,18 +471,20 @@ def _tool_knowledge_qa_impl(
 @_with_domain_codes
 def _tool_knowledge_search_impl(
     question: str,
-    top_k: int = 5,
+    top_k: int | None = None,
     domain: str | None = None,
     status: str | None = None,
     ctx=None,
     *, doc_type: str | None = None, department: str | None = None,
     project: str | int | None = None, business_direction: str | int | None = None,
     history: list[dict] | None = None,
+    max_evidence_tokens: int | None = None,
 ) -> str:
     """在长城互联网企业知识库中检索相关片段（制度规范、项目资料、技术文档、会议纪要等企业内部资料），不调用 LLM 生成答案（零生成成本、更快）。
 
     使用时机：需要企业内部资料的原文证据、或想在回答前先核实知识库内容时使用；
     返回片段与相关度分数，供 Agent 自行推理。
+    evidence_budget 标明实际返回量和触发的预算限制。连续阅读长文档时，用文档 ID、版本和章节调用 get_document。
     分数语义：score 为混合检索（向量+BM25 关键词）经 RRF 融合归一化的相关度，
     0~1 之间可比（双通道同命中更高）；channels 字段标明证据来自哪个检索通道。
     证据边界：知识库检索结果是可引用的企业资料证据；coverage=partial/unknown 时不能声称已列全或给出全库确定总数。
@@ -468,7 +501,9 @@ def _tool_knowledge_search_impl(
     Args:
         question: 检索问题或关键词。可明确指定项目、业务方向、归属部门和文档类型，
             例如「查低空监管平台项目的验收资料」；只查文件清单时可返回目录元数据。
-        top_k: 正文片段的召回数量，默认 5，范围 1~10；文件清单按目录预算返回。
+        top_k: 普通正文检索的目标卡片数，范围 1~12。省略时从 5 开始，有明确缺证且卡片预算受限时可自动扩容。
+        max_evidence_tokens: 可选，语义检索资料的估算 token 上限，范围 1000~8000。省略时普通检索约 4000，
+            项目比较按项目分配，有明确缺证且预算受限时可自动扩容。语义列举和文件清单各有独立的默认预算。
         domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active/archive/expired）
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
@@ -479,20 +514,40 @@ def _tool_knowledge_search_impl(
     """
     if not question or not question.strip():
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
+    from src.context import estimate_tokens
     from src.permissions import classify_visibility
 
+    auto_top_k = top_k is None
+    top_k = MCP_SEARCH_DEFAULT_TOP_K if auto_top_k else max(1, min(int(top_k), MCP_SEARCH_MAX_TOP_K))
+    if max_evidence_tokens is not None:
+        max_evidence_tokens = max(1000, min(int(max_evidence_tokens), MCP_SEARCH_MAX_TOKENS))
     result, error = _run_context_query(
-        question.strip(), max(1, min(int(top_k), 10)), ctx, tool="knowledge_search", use_llm=False,
+        question.strip(), top_k, ctx, tool="knowledge_search", use_llm=False,
         domain=domain, status=status, doc_type=doc_type, department=department,
         project=project, business_direction=business_direction, history=history,
+        search_max_tokens=max_evidence_tokens, search_auto_top_k=auto_top_k,
     )
     if error is not None:
         return json.dumps({"error": error}, ensure_ascii=False)
+    details = getattr(result, "evidence_meta", None) or {}
+    context_budget = details.get("context_budget", {})
+    truncated_by = context_budget.get("truncated_by", [])
+    coverage = "partial" if truncated_by else details.get("coverage", "unknown")
     return json.dumps(
         {
             "query": question.strip(),
-            "coverage": (getattr(result, "evidence_meta", None) or {}).get("coverage", "unknown"),
-            "coverage_details": getattr(result, "evidence_meta", None) or {},
+            "coverage": coverage,
+            "coverage_details": {**details, "coverage": coverage},
+            "evidence_budget": {
+                "top_k": details.get("budget_adjustment", {}).get("effective_top_k", top_k),
+                "max_evidence_tokens": context_budget.get("max_tokens"),
+                "returned_matches": len(result.retrieved),
+                "estimated_text_tokens": estimate_tokens("\n\n".join(item.text for item in result.retrieved)),
+                "truncated": bool(truncated_by),
+                "truncated_by": truncated_by,
+                "automatic": details.get("budget_adjustment", {}).get("automatic", []),
+                "expanded_by": details.get("budget_adjustment", {}).get("expanded_by", []),
+            },
             "filters_applied": _public_filters(result.filters),
             "matches": [
                 {
@@ -523,7 +578,9 @@ def _tool_knowledge_search_impl(
                 for i, item in enumerate(result.retrieved, start=1)
             ],
             "refused": not result.retrieved,
-            "reason": (result.evidence_meta or {}).get("support_notice") or (result.evidence_meta or {}).get("scope_notice"),
+            "reason": (details.get("support_notice") or details.get("scope_notice") or
+                       ("资料超过本次证据预算，请提高 max_evidence_tokens 或缩小检索范围。"
+                        if not result.retrieved and "max_evidence_tokens" in truncated_by else None)),
         },
         ensure_ascii=False,
         indent=2,
@@ -937,19 +994,20 @@ async def knowledge_qa(question: str, top_k: int = 5, domain: str | None = None,
                           project=project, business_direction=business_direction))
 
 
-async def knowledge_search(question: str, top_k: int = 5, domain: str | None = None,
+async def knowledge_search(question: str, top_k: int | None = None, domain: str | None = None,
                            status: str | None = None,
                            ctx: Context | None = None, *, doc_type: str | None = None,
                            department: str | None = None,
                            project: str | int | None = None,
                            business_direction: str | int | None = None,
-                           history: list[dict] | None = None) -> str:
+                           history: list[dict] | None = None,
+                           max_evidence_tokens: int | None = None) -> str:
     """在知识库中检索原文片段。多项目预算比较按项目返回证据及缺项。"""
     return await anyio.to_thread.run_sync(
         functools.partial(_tool_knowledge_search_impl, question, top_k, domain,
                           status, ctx, doc_type=doc_type, department=department,
                           project=project, business_direction=business_direction,
-                          history=history))
+                          history=history, max_evidence_tokens=max_evidence_tokens))
 
 
 async def knowledge_digest(topic: str, domain: str | None = None,

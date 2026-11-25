@@ -69,6 +69,40 @@ class EnumerationProcessingTests(IngestHarness):
         self.assertGreater(outcome.stats['valid_batches'], 1)
         self.assertEqual(outcome.stats['stop_reason'], 'document_read')
 
+    def test_single_document_reads_tail_hit_before_scanning_under_call_budget(self):
+        body = '\n\n'.join(f'## 第{i}章\n\n' + '这部分是普通说明和无关背景。' * 75 for i in range(1, 8))
+        body += '\n\n## 附件\n\n项目乙 PRJ-102 使用RAG完成验收。'
+        doc = self.note(body)
+        cfg = replace(self.cfg, enum_max_calls=2)
+        llm = FakeExtractor()
+        with mock.patch('src.pipeline.get_llm_client', return_value=llm):
+            result = answer_question('这份文档里使用RAG完成验收的项目有哪些？', use_query_understanding=False,
+                                     use_rerank=False, config=cfg, filters={'source': doc['source']},
+                                     user_groups=['all'])
+        self.assertEqual([record['name'] for record in result.enumerated_items], ['项目乙'])
+        first = json.loads(llm.inputs[0][0][-1]['content'])['materials'][0]
+        self.assertIn('项目乙 PRJ-102', first['text'])
+        stage = result.evidence_meta['stage2']
+        self.assertEqual((stage['calls'], stage['verify_status']), (2, 'complete'))
+        self.assertEqual(result.evidence_meta['coverage'], 'partial')
+
+    def test_source_ordered_pages_keep_version_scope_and_include_legacy_cards(self):
+        doc = self.note('## 开头\n\n' + '普通背景说明。' * 220 +
+                        '\n\n## 后续\n\n' + '这是第二部分正文。' * 220)
+        self.note('不可见的其他文档', 'hidden.md', groups=['finance'])
+        filters = {'document_id': doc['document_id'], 'version': doc['version'],
+                   **scope_filters({'status': 'active'}, ['hr'])}
+        cards = self.store.ordered_document_cards(filters, 100)
+        legacy = cards[1]
+        self.store.client.delete_payload(self.cfg.qdrant_collection, ['chunk_index'], points=[legacy['id']])
+        ids, cursor = [], None
+        while True:
+            page, cursor = self.store.source_ordered_card_page(filters, cursor, limit=2)
+            ids.extend(row['id'] for row in page)
+            if cursor is None:
+                break
+        self.assertEqual(ids, [cards[0]['id'], *(card['id'] for card in cards[2:]), legacy['id']])
+
     def test_merges_shared_verified_identifier_and_preserves_sources(self):
         self.note('项目甲 PRJ-101 使用RAG完成检索。', 'a.md')
         self.note('项目乙 PRJ-101 使用RAG完成问答。', 'b.md')
@@ -123,6 +157,8 @@ class EnumerationProcessingTests(IngestHarness):
         self.note('项目甲 PRJ-101 使用RAG。')
         outcome = self.run_processing(route='cross_document', cfg=replace(self.cfg, enum_max_calls=1))
         self.assertEqual(outcome.stats['calls'], 1)
+        self.assertEqual(outcome.stats['verify_status'], 'not_reviewed')
+        self.assertEqual(outcome.stats['verify_reason'], 'call_budget')
         self.assertEqual(outcome.stats['stop_reason'], 'call_budget')
         self.assertEqual(len(outcome.records), 1)
         answer = render_records(outcome, coverage='partial')
@@ -131,7 +167,7 @@ class EnumerationProcessingTests(IngestHarness):
         self.assertIn('项目文件夹里有哪些文档', render_records(
             outcome, coverage='partial', inventory_hint=True))
 
-    def test_short_documents_share_one_extraction_batch_and_leave_room_for_followup(self):
+    def test_short_documents_share_one_batch_and_leave_room_for_review(self):
         for index, name in enumerate("甲乙丙丁", 1):
             self.note(f'项目{name} PRJ-10{index} 使用RAG。', f'{index}.md')
         llm = FakeExtractor()
@@ -139,7 +175,9 @@ class EnumerationProcessingTests(IngestHarness):
                                       cfg=replace(self.cfg, enum_max_calls=2))
         self.assertEqual(outcome.stats['valid_batches'], 1)
         self.assertEqual(outcome.stats['processed_documents'], 4)
-        self.assertEqual(outcome.stats['stop_reason'], 'no_more_queries')
+        self.assertEqual(outcome.stats['stop_reason'], 'call_budget')
+        self.assertEqual(outcome.stats['calls'], 2)
+        self.assertEqual(outcome.stats['verify_status'], 'complete')
         self.assertEqual(len(outcome.records), 4)
         self.assertEqual(len(json.loads(llm.inputs[0][0][-1]['content'])['materials']), 4)
 
@@ -327,7 +365,8 @@ class EnumerationProcessingTests(IngestHarness):
         fake.chat.completions.create.return_value = SimpleNamespace(
             choices=[SimpleNamespace(message=SimpleNamespace(content='{}'), finish_reason='stop')], usage=None)
         with mock.patch('src.llm.OpenAI', return_value=fake):
-            client = LLMClient(replace(self.cfg, llm_api_key='test', llm_base_url='https://example.invalid/v1'))
+            client = LLMClient(replace(self.cfg, llm_model='test-model', llm_api_key='test',
+                                       llm_base_url='https://example.invalid/v1'))
         client.chat([{'role': 'user', 'content': 'test'}], timeout=2.0, max_tokens=128)
         fake.with_options.assert_called_once_with(timeout=2.0, max_retries=0)
         self.assertEqual(fake.chat.completions.create.call_args.kwargs['max_tokens'], 128)
@@ -453,6 +492,54 @@ class EnumerationProcessingTests(IngestHarness):
         self.assertEqual(len(outcome.sources), 1)
         # fail-open 不能是静默的：输出里必须可见标注复审未完成
         self.assertIn('语义复审未完成', render_records(outcome))
+
+    def test_incomplete_verdicts_keep_unreviewed_records_and_count_review_usage(self):
+        self.note('项目甲 PRJ-101 使用RAG。')
+        self.note('项目乙 PRJ-102 使用RAG。', 'b.md')
+        llm = self._verify_llm(FakeExtractor(), verdicts=[
+            {'index': 1, 'relevant': False}, {'index': 2, 'relevant': 'false'},
+        ])
+        outcome = self.run_processing(llm=llm, cfg=replace(self.cfg, enum_max_calls=2))
+        self.assertEqual([r['name'] for r in outcome.records], ['项目乙'])
+        self.assertEqual(outcome.stats['verify_status'], 'partial')
+        self.assertEqual(outcome.stats['verify_checked'], 1)
+        self.assertEqual(outcome.stats['calls'], len(outcome.calls))
+        self.assertEqual(outcome.stats['calls'], 2)
+        self.assertGreater(outcome.stats['estimated_tokens'], 0)
+        self.assertIn('语义复审未完成', render_records(outcome))
+
+    def test_review_uses_remaining_deadline_and_tokens(self):
+        self.note('项目甲 PRJ-101 使用RAG。')
+        cfg = replace(self.cfg, enum_max_seconds=20, enum_max_tokens=6500)
+        for extraction_seconds in (17, 20):
+            with self.subTest(extraction_seconds=extraction_seconds):
+                llm = FakeExtractor()
+                original = llm.chat
+                now = 100.0
+
+                def chat(messages, usage_out=None, **options):
+                    nonlocal now
+                    raw, elapsed = original(messages, usage_out=usage_out, **options)
+                    if messages[0]['content'] == EXTRACTION_PROMPT:
+                        now += extraction_seconds
+                        usage_out.update(input=5500, output=0)
+                    return raw, elapsed
+
+                llm.chat = chat
+                with mock.patch('src.enumeration_processing.time') as clock:
+                    clock.monotonic.side_effect = lambda: now
+                    outcome = self.run_processing(llm=llm, cfg=cfg)
+                self.assertEqual(len(outcome.records), 1)
+                if extraction_seconds == 20:
+                    self.assertEqual(outcome.stats['verify_reason'], 'time_budget')
+                    self.assertEqual(outcome.stats['calls'], 1)
+                else:
+                    messages, options = llm.inputs[-1]
+                    self.assertEqual(messages[0]['content'], VERIFICATION_PROMPT)
+                    self.assertEqual(options['timeout'], 3)
+                    self.assertLess(options['max_tokens'], 1000)
+                    self.assertEqual(outcome.stats['verify_status'], 'complete')
+                    self.assertEqual(outcome.stats['calls'], 2)
 
     def test_relevance_review_can_be_disabled(self):
         self.note('项目甲 PRJ-101 使用RAG。')

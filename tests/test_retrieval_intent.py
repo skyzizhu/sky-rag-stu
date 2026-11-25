@@ -1,7 +1,9 @@
 """Check explicit file scopes, time intent and version evidence through normal retrieval."""
 
 import json
+from dataclasses import replace
 from datetime import date
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from src import mcp_server, pipeline
@@ -9,6 +11,7 @@ from src.prompt import build_messages
 from src.query_scope import extract_scope
 from src.query_understanding import QueryUnderstanding
 from src.retrieval_intent import compares_versions, enumerated_sub_queries, explicit_file_dates
+from src.retriever import RetrievedItem
 from tests._helpers import IngestHarness
 
 
@@ -138,3 +141,63 @@ class RetrievalIntentTests(IngestHarness):
         self.assertEqual(reply["coverage_details"]["route"], "version_comparison")
         self.assertEqual([m["status"] for m in reply["matches"]], ["active", "expired"])
         self.assertEqual(len({m["version"] for m in reply["matches"]}), 2)
+
+    def test_version_fact_is_checked_and_expanded_only_on_its_side(self):
+        question = "对比新旧版本的预算分别是多少？"
+        fixture = [("active", "现行版本 DPC-551 的预算为 300 万元。"),
+                   ("active", "现行版实施说明。"), ("active", "现行版交接记录。"),
+                   ("expired", "历史版本实施说明。"), ("expired", "历史版本交接记录。"),
+                   ("expired", "历史版本 DPC-550 的预算为 200 万元。")]
+        candidates = [RetrievedItem(i, 1 / i, text, {"document_id": str(i), "chunk_id": f"d{i}_0000",
+                                    "source": f"d{i}.md", "status": status, "allowed_groups": ["all"],
+                                    "version": "1.0" if status == "active" else "0.9"}, "关键词")
+                      for i, (status, text) in enumerate(fixture, 1)]
+
+        def retrieve(_question, *, top_k, filters, **kwargs):
+            return [replace(item) for item in candidates if item.metadata["status"] in filters["status"]][:top_k]
+
+        with patch("src.pipeline.get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
+            web, meta = self.evidence(question, use_query_understanding=False)
+            fixed = json.loads(mcp_server._tool_knowledge_search_impl(question, top_k=5))
+            auto = json.loads(mcp_server._tool_knowledge_search_impl(question))
+            _, distinct_ids = self.evidence("对比新旧版本 DPC-550 和 DPC-551 的预算分别是多少？",
+                                           top_k=12, use_query_understanding=False)
+            id_question = "对比新旧版本中 DPC-550 和 DPC-551 的实施要求"
+            id_fixed = json.loads(mcp_server._tool_knowledge_search_impl(id_question, top_k=5))
+            id_auto = json.loads(mcp_server._tool_knowledge_search_impl(id_question))
+
+        self.assertEqual(meta["evidence_support"]["status"], "partial")
+        self.assertEqual(meta["evidence_support"]["by_side"]["current"]["status"], "supported")
+        self.assertEqual(meta["version_comparison"]["missing_fields"], {"historical": ["预算金额"]})
+        self.assertIn("历史版本的预算金额", web.context)
+        self.assertEqual(fixed["coverage_details"]["version_comparison"]["missing_fields"], {"historical": ["预算金额"]})
+        self.assertEqual(auto["coverage_details"]["version_comparison"]["missing_fields"], {})
+        self.assertEqual(auto["evidence_budget"]["expanded_by"], ["top_k"])
+        self.assertEqual([m["source"] for m in auto["matches"] if m["status"] == "active"], ["d1.md", "d2.md"])
+        self.assertTrue(any(m["status"] == "expired" and "200 万元" in m["text"] for m in auto["matches"]))
+        self.assertEqual(distinct_ids["evidence_support"]["status"], "supported")
+        self.assertEqual(id_fixed["coverage_details"]["evidence_support"]["missing"], ["DPC-550"])
+        self.assertEqual(id_auto["coverage_details"]["evidence_support"]["missing"], [])
+        self.assertEqual(id_auto["evidence_budget"]["expanded_by"], ["top_k"])
+        self.assertEqual([m["source"] for m in id_auto["matches"] if m["status"] == "active"], ["d1.md", "d2.md"])
+
+    def test_compare_only_checks_each_explicitly_requested_version_field(self):
+        current = self.write_note("现行版本结算金额为 300 万元。", "current-settlement.md")
+        old = self.write_note("历史版本预算为 200 万元。", "historical-budget.md", "archive/learning/general")
+        self.ingest([current, old])
+        examples = ("对比现行版和历史版：现行版的结算金额是多少？历史版的预算是多少？",
+                    "对比现行版的结算金额和历史版的预算分别是多少？",
+                    "对比现行版与历史版。现行版：结算金额是多少？历史版：预算是多少？")
+        for question in examples:
+            with self.subTest(question=question):
+                _, meta = self.evidence(question, use_query_understanding=False)
+                mcp = json.loads(mcp_server._tool_knowledge_search_impl(question))
+                for details in (meta, mcp["coverage_details"]):
+                    support = details["evidence_support"]
+                    self.assertEqual(support["status"], "supported")
+                    self.assertEqual(support["by_side"]["current"]["checked"], ["结算金额"])
+                    self.assertEqual(support["by_side"]["historical"]["checked"], ["预算金额"])
+                    self.assertEqual(details["version_comparison"]["missing_fields"], {})
+
+        _, shared = self.evidence("现行版和历史版的预算分别是多少？", use_query_understanding=False)
+        self.assertEqual(shared["version_comparison"]["missing_fields"], {"current": ["预算金额"]})
