@@ -1,0 +1,2963 @@
+{
+  "model": "deepseek-flash",
+  "documents": 28,
+  "cards": 94,
+  "rows": [
+    {
+      "case": "CX20_SEMANTIC",
+      "variant": "before",
+      "question": "请跨项目盘点，哪些项目在立项报告或章程里明确要求做数据安全测评或按等保标准建设？",
+      "grade": {
+        "expected": [
+          "天枢",
+          "昆仑",
+          "星云"
+        ],
+        "supported": [
+          "天枢",
+          "昆仑",
+          "星云"
+        ],
+        "extra_supported": [],
+        "unsupported_records": [],
+        "missing": {}
+      },
+      "steps": [
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1074,
+            "input_cached": 128,
+            "output": 2042,
+            "finish_reason": "stop"
+          },
+          "timeout": 80.95299999997951
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1600,
+            "input_cached": 128,
+            "output": 635,
+            "finish_reason": "stop"
+          },
+          "timeout": 64.875
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1603,
+            "input_cached": 128,
+            "output": 134,
+            "finish_reason": "stop"
+          },
+          "timeout": 60.92200000002049
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 848,
+            "input_cached": 128,
+            "output": 67,
+            "finish_reason": "stop"
+          },
+          "timeout": 59.04700000002049
+        },
+        {
+          "stage": "plan",
+          "usage": {
+            "input": 255,
+            "input_cached": 0,
+            "output": 299,
+            "finish_reason": "stop"
+          },
+          "timeout": 55.93700000003446
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1016,
+            "input_cached": 128,
+            "output": 73,
+            "finish_reason": "stop"
+          },
+          "timeout": 53.57799999997951
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1672,
+            "input_cached": 256,
+            "output": 81,
+            "finish_reason": "stop"
+          },
+          "timeout": 52.51500000001397
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1659,
+            "input_cached": 128,
+            "output": 88,
+            "finish_reason": "stop"
+          },
+          "timeout": 51.06200000003446
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1705,
+            "input_cached": 128,
+            "output": 102,
+            "finish_reason": "stop"
+          },
+          "timeout": 50.14000000001397
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 2611,
+            "input_cached": 128,
+            "output": 104,
+            "finish_reason": "stop"
+          },
+          "timeout": 48.84400000004098
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1617,
+            "input_cached": 128,
+            "output": 107,
+            "finish_reason": "stop"
+          },
+          "timeout": 47.60900000005495
+        },
+        {
+          "stage": "review",
+          "usage": {
+            "input": 692,
+            "input_cached": 256,
+            "output": 1524,
+            "finish_reason": "stop"
+          },
+          "timeout": 55.25
+        }
+      ],
+      "metadata": {
+        "route": "cross_document",
+        "coverage": "partial",
+        "stage2": {
+          "status": "executed",
+          "rounds": 1,
+          "queries": 1,
+          "batches": 10,
+          "valid_batches": 10,
+          "split_batches": 0,
+          "cards_read": 52,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_checked": 3,
+          "verify_error": false,
+          "verify_status": "complete",
+          "verify_reason": "",
+          "stop_reason": "call_budget",
+          "elapsed": 46.75,
+          "calls": 12,
+          "estimated_tokens": 23424,
+          "candidate_documents": 19,
+          "processed_documents": 19,
+          "items": 3,
+          "possible_duplicates": 0
+        },
+        "selected_documents_meta": [
+          {
+            "document_id": "doc_60766eee",
+            "version": "1.0",
+            "source": "天枢项目立项报告.docx",
+            "path": "projects/天枢项目/天枢项目立项报告.docx"
+          },
+          {
+            "document_id": "doc_ecea4ab0",
+            "version": "1.1",
+            "source": "星云项目章程.md",
+            "path": "projects/星云项目/星云项目章程.md"
+          },
+          {
+            "document_id": "doc_69f5580d",
+            "version": "1.0",
+            "source": "昆仑项目立项报告.md",
+            "path": "projects/昆仑项目/昆仑项目立项报告.md"
+          },
+          {
+            "document_id": "doc_fca426bf",
+            "version": "1.0",
+            "source": "星海信息安全管理制度.md",
+            "path": "work/星海信息安全管理制度.md"
+          },
+          {
+            "document_id": "doc_bf461aa2",
+            "version": "1.0",
+            "source": "北斗项目总结报告.md",
+            "path": "projects/北斗项目/北斗项目总结报告.md"
+          },
+          {
+            "document_id": "doc_bfaabc02",
+            "version": "1.0",
+            "source": "昆仑项目启动新闻.html",
+            "path": "reference/星海简介/昆仑项目启动新闻.html"
+          },
+          {
+            "document_id": "doc_365d7e19",
+            "version": "2.1",
+            "source": "星海财务报销制度_v2.1.md",
+            "path": "work/星海财务报销制度_v2.1.md"
+          },
+          {
+            "document_id": "doc_7f342d58",
+            "version": "1.0",
+            "source": "星海员工手册_2024版.md",
+            "path": "work/星海员工手册_2024版.md"
+          },
+          {
+            "document_id": "doc_2688a2af",
+            "version": "1.0",
+            "source": "星海RAG技术培训笔记.md",
+            "path": "learning/星海RAG技术培训笔记.md"
+          },
+          {
+            "document_id": "doc_fb095750",
+            "version": "1.0",
+            "source": "公司简介.html",
+            "path": "reference/星海简介/公司简介.html"
+          },
+          {
+            "document_id": "doc_58d19e44",
+            "version": "1.0",
+            "source": "星海产品培训_基础篇.docx",
+            "path": "learning/星海产品培训_基础篇.docx"
+          },
+          {
+            "document_id": "doc_581f7816",
+            "version": "1.0",
+            "source": "沧海项目验收报告.docx",
+            "path": "projects/沧海项目/沧海项目验收报告.docx"
+          }
+        ]
+      },
+      "records": [
+        {
+          "name": "天枢项目",
+          "identity": "",
+          "evidence": [
+            {
+              "source_id": "5261442a-057e-4a65-913d-d0e57f6baf45:0",
+              "quote": "本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。",
+              "metadata": {
+                "document_id": "doc_60766eee",
+                "chunk_id": "doc_60766eee_v1.0_0002",
+                "source": "天枢项目立项报告.docx",
+                "path": "projects/天枢项目/天枢项目立项报告.docx",
+                "file_type": "docx",
+                "indexed_at": "2026-11-25 10:40:01",
+                "title": "天枢项目立项报告",
+                "effective_date": "",
+                "section": "三、数据安全要求",
+                "section_path": "三、数据安全要求",
+                "page": null,
+                "domain": "projects",
+                "doc_type": "",
+                "department": "研发部",
+                "topic": [],
+                "tags": [],
+                "classification": "内部",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-20",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "eb6bccf929349b02dba0ad375884b43b",
+                "owner": "wangfang",
+                "chunk_index": 2,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false,
+                "project_id": 2
+              }
+            },
+            {
+              "source_id": "cb2f01fc-54dd-4716-b14d-4f0b79a7314c:0",
+              "quote": "天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。",
+              "metadata": {
+                "document_id": "doc_60766eee",
+                "chunk_id": "doc_60766eee_v1.0_0000",
+                "source": "天枢项目立项报告.docx",
+                "path": "projects/天枢项目/天枢项目立项报告.docx",
+                "file_type": "docx",
+                "indexed_at": "2026-11-25 10:40:01",
+                "title": "天枢项目立项报告",
+                "effective_date": "",
+                "section": "一、项目基本信息",
+                "section_path": "一、项目基本信息",
+                "page": null,
+                "domain": "projects",
+                "doc_type": "",
+                "department": "研发部",
+                "topic": [],
+                "tags": [],
+                "classification": "内部",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-20",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "eb6bccf929349b02dba0ad375884b43b",
+                "owner": "wangfang",
+                "chunk_index": 0,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false,
+                "project_id": 2
+              }
+            }
+          ],
+          "citations": [
+            1,
+            2
+          ]
+        },
+        {
+          "name": "星云项目",
+          "identity": "",
+          "evidence": [
+            {
+              "source_id": "43d9bff5-377b-4793-b137-ff5a4f318e9b:0",
+              "quote": "星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。",
+              "metadata": {
+                "document_id": "doc_ecea4ab0",
+                "chunk_id": "doc_ecea4ab0_v1.1_0000",
+                "source": "星云项目章程.md",
+                "path": "projects/星云项目/星云项目章程.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:10",
+                "title": "星云项目章程",
+                "effective_date": "",
+                "section": "项目概况",
+                "section_path": "星云项目章程 > 项目概况",
+                "page": null,
+                "domain": "projects",
+                "doc_type": "项目章程",
+                "department": "研发部",
+                "topic": [],
+                "tags": [],
+                "classification": "内部",
+                "version": "1.1",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-20",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "1e10dd3ac877247c7a074fc8ba1cc70f",
+                "owner": "wangfang",
+                "chunk_index": 0,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "sections": [
+                  "项目概况",
+                  "项目里程碑",
+                  "协作约定",
+                  "数据安全"
+                ],
+                "section_paths": [
+                  "星云项目章程 > 项目概况",
+                  "星云项目章程 > 项目里程碑",
+                  "星云项目章程 > 协作约定",
+                  "星云项目章程 > 数据安全"
+                ],
+                "_ingest_pending": false,
+                "project_id": 1
+              }
+            },
+            {
+              "source_id": "43d9bff5-377b-4793-b137-ff5a4f318e9b:0",
+              "quote": "项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。",
+              "metadata": {
+                "document_id": "doc_ecea4ab0",
+                "chunk_id": "doc_ecea4ab0_v1.1_0000",
+                "source": "星云项目章程.md",
+                "path": "projects/星云项目/星云项目章程.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:10",
+                "title": "星云项目章程",
+                "effective_date": "",
+                "section": "项目概况",
+                "section_path": "星云项目章程 > 项目概况",
+                "page": null,
+                "domain": "projects",
+                "doc_type": "项目章程",
+                "department": "研发部",
+                "topic": [],
+                "tags": [],
+                "classification": "内部",
+                "version": "1.1",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-20",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "1e10dd3ac877247c7a074fc8ba1cc70f",
+                "owner": "wangfang",
+                "chunk_index": 0,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "sections": [
+                  "项目概况",
+                  "项目里程碑",
+                  "协作约定",
+                  "数据安全"
+                ],
+                "section_paths": [
+                  "星云项目章程 > 项目概况",
+                  "星云项目章程 > 项目里程碑",
+                  "星云项目章程 > 协作约定",
+                  "星云项目章程 > 数据安全"
+                ],
+                "_ingest_pending": false,
+                "project_id": 1
+              }
+            }
+          ],
+          "citations": [
+            3
+          ]
+        },
+        {
+          "name": "昆仑项目",
+          "identity": "",
+          "evidence": [
+            {
+              "source_id": "20f490d8-c3bb-49ef-b579-c82dc4be5cbe:0",
+              "quote": "平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。",
+              "metadata": {
+                "document_id": "doc_69f5580d",
+                "chunk_id": "doc_69f5580d_v1.0_0000",
+                "source": "昆仑项目立项报告.md",
+                "path": "projects/昆仑项目/昆仑项目立项报告.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:11",
+                "title": "昆仑项目立项报告",
+                "effective_date": "",
+                "section": "项目基本信息",
+                "section_path": "昆仑项目立项报告 > 项目基本信息",
+                "page": null,
+                "domain": "projects",
+                "doc_type": "立项报告",
+                "department": "研发部",
+                "topic": [],
+                "tags": [],
+                "classification": "内部",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-20",
+                "project_id": 4,
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "3989950d4174ab45c0e81a54efff2229",
+                "owner": "wangfang",
+                "chunk_index": 0,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "sections": [
+                  "项目基本信息",
+                  "关键技术指标（KPI）",
+                  "里程碑",
+                  "数据安全"
+                ],
+                "section_paths": [
+                  "昆仑项目立项报告 > 项目基本信息",
+                  "昆仑项目立项报告 > 关键技术指标（KPI）",
+                  "昆仑项目立项报告 > 里程碑",
+                  "昆仑项目立项报告 > 数据安全"
+                ],
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            4
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "document_id": "doc_60766eee",
+          "chunk_id": "doc_60766eee_v1.0_0002",
+          "source": "天枢项目立项报告.docx",
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "file_type": "docx",
+          "indexed_at": "2026-11-25 10:40:01",
+          "title": "天枢项目立项报告",
+          "effective_date": "",
+          "section": "三、数据安全要求",
+          "section_path": "三、数据安全要求",
+          "page": null,
+          "domain": "projects",
+          "doc_type": "",
+          "department": "研发部",
+          "topic": [],
+          "tags": [],
+          "classification": "内部",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-20",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "eb6bccf929349b02dba0ad375884b43b",
+          "owner": "wangfang",
+          "chunk_index": 2,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "project_id": 2,
+          "rank": 1,
+          "score": 0.0,
+          "text": "本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。",
+          "channels": "分批提取",
+          "source_id": "5261442a-057e-4a65-913d-d0e57f6baf45:0"
+        },
+        {
+          "document_id": "doc_60766eee",
+          "chunk_id": "doc_60766eee_v1.0_0000",
+          "source": "天枢项目立项报告.docx",
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "file_type": "docx",
+          "indexed_at": "2026-11-25 10:40:01",
+          "title": "天枢项目立项报告",
+          "effective_date": "",
+          "section": "一、项目基本信息",
+          "section_path": "一、项目基本信息",
+          "page": null,
+          "domain": "projects",
+          "doc_type": "",
+          "department": "研发部",
+          "topic": [],
+          "tags": [],
+          "classification": "内部",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-20",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "eb6bccf929349b02dba0ad375884b43b",
+          "owner": "wangfang",
+          "chunk_index": 0,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "project_id": 2,
+          "rank": 2,
+          "score": 0.0,
+          "text": "天枢项目立项报告\n\n# 一、项目基本信息\n项目负责人：周红。项目预算：200 万元。项目周期：2024-02 至 2025-01。参与部门：研发部、市场部。天枢项目与星云项目共享测试环境与设备台账。",
+          "channels": "分批提取",
+          "source_id": "cb2f01fc-54dd-4716-b14d-4f0b79a7314c:0"
+        },
+        {
+          "document_id": "doc_ecea4ab0",
+          "chunk_id": "doc_ecea4ab0_v1.1_0000",
+          "source": "星云项目章程.md",
+          "path": "projects/星云项目/星云项目章程.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:10",
+          "title": "星云项目章程",
+          "effective_date": "",
+          "section": "项目概况",
+          "section_path": "星云项目章程 > 项目概况",
+          "page": null,
+          "domain": "projects",
+          "doc_type": "项目章程",
+          "department": "研发部",
+          "topic": [],
+          "tags": [],
+          "classification": "内部",
+          "version": "1.1",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-20",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "1e10dd3ac877247c7a074fc8ba1cc70f",
+          "owner": "wangfang",
+          "chunk_index": 0,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "sections": [
+            "项目概况",
+            "项目里程碑",
+            "协作约定",
+            "数据安全"
+          ],
+          "section_paths": [
+            "星云项目章程 > 项目概况",
+            "星云项目章程 > 项目里程碑",
+            "星云项目章程 > 协作约定",
+            "星云项目章程 > 数据安全"
+          ],
+          "_ingest_pending": false,
+          "project_id": 1,
+          "rank": 3,
+          "score": 0.0,
+          "text": "星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元，\n项目周期 2024-01 至 2024-09。项目负责人：陈明。\n项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。",
+          "channels": "分批提取",
+          "source_id": "43d9bff5-377b-4793-b137-ff5a4f318e9b:0"
+        },
+        {
+          "document_id": "doc_69f5580d",
+          "chunk_id": "doc_69f5580d_v1.0_0000",
+          "source": "昆仑项目立项报告.md",
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:11",
+          "title": "昆仑项目立项报告",
+          "effective_date": "",
+          "section": "项目基本信息",
+          "section_path": "昆仑项目立项报告 > 项目基本信息",
+          "page": null,
+          "domain": "projects",
+          "doc_type": "立项报告",
+          "department": "研发部",
+          "topic": [],
+          "tags": [],
+          "classification": "内部",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-20",
+          "project_id": 4,
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "3989950d4174ab45c0e81a54efff2229",
+          "owner": "wangfang",
+          "chunk_index": 0,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "sections": [
+            "项目基本信息",
+            "关键技术指标（KPI）",
+            "里程碑",
+            "数据安全"
+          ],
+          "section_paths": [
+            "昆仑项目立项报告 > 项目基本信息",
+            "昆仑项目立项报告 > 关键技术指标（KPI）",
+            "昆仑项目立项报告 > 里程碑",
+            "昆仑项目立项报告 > 数据安全"
+          ],
+          "_ingest_pending": false,
+          "rank": 4,
+          "score": 0.0,
+          "text": "平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。",
+          "channels": "分批提取",
+          "source_id": "20f490d8-c3bb-49ef-b579-c82dc4be5cbe:0"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **天枢项目**：本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。 [1][2]\n\n2. **星云项目**：星云项目为 X-2000 量产与数据平台建设项目，立项预算 135 万元， 项目周期 2024-01 至 2024-09。项目负责人：陈明。 [3]\n\n3. **昆仑项目**：平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。 [4]\n\n处理范围：19 份文档、52 张卡片、10 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+      "max_calls": 12,
+      "accepted_before_review": [
+        "天枢",
+        "昆仑",
+        "星云"
+      ]
+    },
+    {
+      "case": "CX20_SEMANTIC",
+      "variant": "after",
+      "question": "请跨项目盘点，哪些项目在立项报告或章程里明确要求做数据安全测评或按等保标准建设？",
+      "grade": {
+        "expected": [
+          "天枢",
+          "昆仑",
+          "星云"
+        ],
+        "supported": [
+          "天枢",
+          "昆仑",
+          "星云"
+        ],
+        "extra_supported": [],
+        "unsupported_records": [],
+        "missing": {}
+      },
+      "steps": [
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1074,
+            "input_cached": 896,
+            "output": 912,
+            "finish_reason": "stop"
+          },
+          "timeout": 80.96899999992456
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1600,
+            "input_cached": 1408,
+            "output": 346,
+            "finish_reason": "stop"
+          },
+          "timeout": 74.25
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1603,
+            "input_cached": 1408,
+            "output": 109,
+            "finish_reason": "stop"
+          },
+          "timeout": 70.96899999992456
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 848,
+            "input_cached": 640,
+            "output": 88,
+            "finish_reason": "stop"
+          },
+          "timeout": 69.875
+        },
+        {
+          "stage": "plan",
+          "usage": {
+            "input": 255,
+            "input_cached": 0,
+            "output": 267,
+            "finish_reason": "stop"
+          },
+          "timeout": 68.54699999990407
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1066,
+            "input_cached": 128,
+            "output": 30,
+            "finish_reason": "stop"
+          },
+          "timeout": 65.59399999992456
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1622,
+            "input_cached": 384,
+            "output": 58,
+            "finish_reason": "stop"
+          },
+          "timeout": 64.42199999990407
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1659,
+            "input_cached": 1408,
+            "output": 80,
+            "finish_reason": "stop"
+          },
+          "timeout": 63.59399999992456
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1705,
+            "input_cached": 1536,
+            "output": 27,
+            "finish_reason": "stop"
+          },
+          "timeout": 62.375
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 2611,
+            "input_cached": 2432,
+            "output": 34,
+            "finish_reason": "stop"
+          },
+          "timeout": 61.546999999904074
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1617,
+            "input_cached": 1408,
+            "output": 85,
+            "finish_reason": "stop"
+          },
+          "timeout": 60.01599999994505
+        },
+        {
+          "stage": "review",
+          "usage": {
+            "input": 578,
+            "input_cached": 384,
+            "output": 221,
+            "finish_reason": "stop"
+          },
+          "timeout": 67.71899999992456
+        }
+      ],
+      "metadata": {
+        "route": "cross_document",
+        "coverage": "partial",
+        "stage2": {
+          "status": "executed",
+          "rounds": 1,
+          "queries": 1,
+          "batches": 10,
+          "valid_batches": 10,
+          "split_batches": 0,
+          "cards_read": 52,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_checked": 3,
+          "verify_error": false,
+          "verify_status": "complete",
+          "verify_reason": "",
+          "stop_reason": "call_budget",
+          "elapsed": 23.875,
+          "calls": 12,
+          "estimated_tokens": 20309,
+          "candidate_documents": 19,
+          "processed_documents": 19,
+          "items": 3,
+          "possible_duplicates": 0
+        },
+        "selected_documents_meta": [
+          {
+            "document_id": "doc_60766eee",
+            "version": "1.0",
+            "source": "天枢项目立项报告.docx",
+            "path": "projects/天枢项目/天枢项目立项报告.docx"
+          },
+          {
+            "document_id": "doc_ecea4ab0",
+            "version": "1.1",
+            "source": "星云项目章程.md",
+            "path": "projects/星云项目/星云项目章程.md"
+          },
+          {
+            "document_id": "doc_69f5580d",
+            "version": "1.0",
+            "source": "昆仑项目立项报告.md",
+            "path": "projects/昆仑项目/昆仑项目立项报告.md"
+          },
+          {
+            "document_id": "doc_fca426bf",
+            "version": "1.0",
+            "source": "星海信息安全管理制度.md",
+            "path": "work/星海信息安全管理制度.md"
+          },
+          {
+            "document_id": "doc_bf461aa2",
+            "version": "1.0",
+            "source": "北斗项目总结报告.md",
+            "path": "projects/北斗项目/北斗项目总结报告.md"
+          },
+          {
+            "document_id": "doc_bfaabc02",
+            "version": "1.0",
+            "source": "昆仑项目启动新闻.html",
+            "path": "reference/星海简介/昆仑项目启动新闻.html"
+          },
+          {
+            "document_id": "doc_365d7e19",
+            "version": "2.1",
+            "source": "星海财务报销制度_v2.1.md",
+            "path": "work/星海财务报销制度_v2.1.md"
+          },
+          {
+            "document_id": "doc_7f342d58",
+            "version": "1.0",
+            "source": "星海员工手册_2024版.md",
+            "path": "work/星海员工手册_2024版.md"
+          },
+          {
+            "document_id": "doc_2688a2af",
+            "version": "1.0",
+            "source": "星海RAG技术培训笔记.md",
+            "path": "learning/星海RAG技术培训笔记.md"
+          },
+          {
+            "document_id": "doc_fb095750",
+            "version": "1.0",
+            "source": "公司简介.html",
+            "path": "reference/星海简介/公司简介.html"
+          },
+          {
+            "document_id": "doc_58d19e44",
+            "version": "1.0",
+            "source": "星海产品培训_基础篇.docx",
+            "path": "learning/星海产品培训_基础篇.docx"
+          },
+          {
+            "document_id": "doc_581f7816",
+            "version": "1.0",
+            "source": "沧海项目验收报告.docx",
+            "path": "projects/沧海项目/沧海项目验收报告.docx"
+          }
+        ]
+      },
+      "records": [
+        {
+          "name": "天枢项目",
+          "identity": "",
+          "evidence": [
+            {
+              "source_id": "5261442a-057e-4a65-913d-d0e57f6baf45:0",
+              "quote": "本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。",
+              "metadata": {
+                "document_id": "doc_60766eee",
+                "chunk_id": "doc_60766eee_v1.0_0002",
+                "source": "天枢项目立项报告.docx",
+                "path": "projects/天枢项目/天枢项目立项报告.docx",
+                "file_type": "docx",
+                "indexed_at": "2026-11-25 10:40:01",
+                "title": "天枢项目立项报告",
+                "effective_date": "",
+                "section": "三、数据安全要求",
+                "section_path": "三、数据安全要求",
+                "page": null,
+                "domain": "projects",
+                "doc_type": "",
+                "department": "研发部",
+                "topic": [],
+                "tags": [],
+                "classification": "内部",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-20",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "eb6bccf929349b02dba0ad375884b43b",
+                "owner": "wangfang",
+                "chunk_index": 2,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false,
+                "project_id": 2
+              }
+            }
+          ],
+          "citations": [
+            1
+          ]
+        },
+        {
+          "name": "星云项目",
+          "identity": "",
+          "evidence": [
+            {
+              "source_id": "43d9bff5-377b-4793-b137-ff5a4f318e9b:0",
+              "quote": "项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。",
+              "metadata": {
+                "document_id": "doc_ecea4ab0",
+                "chunk_id": "doc_ecea4ab0_v1.1_0000",
+                "source": "星云项目章程.md",
+                "path": "projects/星云项目/星云项目章程.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:10",
+                "title": "星云项目章程",
+                "effective_date": "",
+                "section": "项目概况",
+                "section_path": "星云项目章程 > 项目概况",
+                "page": null,
+                "domain": "projects",
+                "doc_type": "项目章程",
+                "department": "研发部",
+                "topic": [],
+                "tags": [],
+                "classification": "内部",
+                "version": "1.1",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-20",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "1e10dd3ac877247c7a074fc8ba1cc70f",
+                "owner": "wangfang",
+                "chunk_index": 0,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "sections": [
+                  "项目概况",
+                  "项目里程碑",
+                  "协作约定",
+                  "数据安全"
+                ],
+                "section_paths": [
+                  "星云项目章程 > 项目概况",
+                  "星云项目章程 > 项目里程碑",
+                  "星云项目章程 > 协作约定",
+                  "星云项目章程 > 数据安全"
+                ],
+                "_ingest_pending": false,
+                "project_id": 1
+              }
+            }
+          ],
+          "citations": [
+            2
+          ]
+        },
+        {
+          "name": "昆仑项目",
+          "identity": "",
+          "evidence": [
+            {
+              "source_id": "20f490d8-c3bb-49ef-b579-c82dc4be5cbe:0",
+              "quote": "平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。",
+              "metadata": {
+                "document_id": "doc_69f5580d",
+                "chunk_id": "doc_69f5580d_v1.0_0000",
+                "source": "昆仑项目立项报告.md",
+                "path": "projects/昆仑项目/昆仑项目立项报告.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:11",
+                "title": "昆仑项目立项报告",
+                "effective_date": "",
+                "section": "项目基本信息",
+                "section_path": "昆仑项目立项报告 > 项目基本信息",
+                "page": null,
+                "domain": "projects",
+                "doc_type": "立项报告",
+                "department": "研发部",
+                "topic": [],
+                "tags": [],
+                "classification": "内部",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-20",
+                "project_id": 4,
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "3989950d4174ab45c0e81a54efff2229",
+                "owner": "wangfang",
+                "chunk_index": 0,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "sections": [
+                  "项目基本信息",
+                  "关键技术指标（KPI）",
+                  "里程碑",
+                  "数据安全"
+                ],
+                "section_paths": [
+                  "昆仑项目立项报告 > 项目基本信息",
+                  "昆仑项目立项报告 > 关键技术指标（KPI）",
+                  "昆仑项目立项报告 > 里程碑",
+                  "昆仑项目立项报告 > 数据安全"
+                ],
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            3
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "document_id": "doc_60766eee",
+          "chunk_id": "doc_60766eee_v1.0_0002",
+          "source": "天枢项目立项报告.docx",
+          "path": "projects/天枢项目/天枢项目立项报告.docx",
+          "file_type": "docx",
+          "indexed_at": "2026-11-25 10:40:01",
+          "title": "天枢项目立项报告",
+          "effective_date": "",
+          "section": "三、数据安全要求",
+          "section_path": "三、数据安全要求",
+          "page": null,
+          "domain": "projects",
+          "doc_type": "",
+          "department": "研发部",
+          "topic": [],
+          "tags": [],
+          "classification": "内部",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-20",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "eb6bccf929349b02dba0ad375884b43b",
+          "owner": "wangfang",
+          "chunk_index": 2,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "project_id": 2,
+          "rank": 1,
+          "score": 0.0,
+          "text": "本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。",
+          "channels": "分批提取",
+          "source_id": "5261442a-057e-4a65-913d-d0e57f6baf45:0"
+        },
+        {
+          "document_id": "doc_ecea4ab0",
+          "chunk_id": "doc_ecea4ab0_v1.1_0000",
+          "source": "星云项目章程.md",
+          "path": "projects/星云项目/星云项目章程.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:10",
+          "title": "星云项目章程",
+          "effective_date": "",
+          "section": "项目概况",
+          "section_path": "星云项目章程 > 项目概况",
+          "page": null,
+          "domain": "projects",
+          "doc_type": "项目章程",
+          "department": "研发部",
+          "topic": [],
+          "tags": [],
+          "classification": "内部",
+          "version": "1.1",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-20",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "1e10dd3ac877247c7a074fc8ba1cc70f",
+          "owner": "wangfang",
+          "chunk_index": 0,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "sections": [
+            "项目概况",
+            "项目里程碑",
+            "协作约定",
+            "数据安全"
+          ],
+          "section_paths": [
+            "星云项目章程 > 项目概况",
+            "星云项目章程 > 项目里程碑",
+            "星云项目章程 > 协作约定",
+            "星云项目章程 > 数据安全"
+          ],
+          "_ingest_pending": false,
+          "project_id": 1,
+          "rank": 2,
+          "score": 0.0,
+          "text": "项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。",
+          "channels": "分批提取",
+          "source_id": "43d9bff5-377b-4793-b137-ff5a4f318e9b:0"
+        },
+        {
+          "document_id": "doc_69f5580d",
+          "chunk_id": "doc_69f5580d_v1.0_0000",
+          "source": "昆仑项目立项报告.md",
+          "path": "projects/昆仑项目/昆仑项目立项报告.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:11",
+          "title": "昆仑项目立项报告",
+          "effective_date": "",
+          "section": "项目基本信息",
+          "section_path": "昆仑项目立项报告 > 项目基本信息",
+          "page": null,
+          "domain": "projects",
+          "doc_type": "立项报告",
+          "department": "研发部",
+          "topic": [],
+          "tags": [],
+          "classification": "内部",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-20",
+          "project_id": 4,
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "3989950d4174ab45c0e81a54efff2229",
+          "owner": "wangfang",
+          "chunk_index": 0,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "sections": [
+            "项目基本信息",
+            "关键技术指标（KPI）",
+            "里程碑",
+            "数据安全"
+          ],
+          "section_paths": [
+            "昆仑项目立项报告 > 项目基本信息",
+            "昆仑项目立项报告 > 关键技术指标（KPI）",
+            "昆仑项目立项报告 > 里程碑",
+            "昆仑项目立项报告 > 数据安全"
+          ],
+          "_ingest_pending": false,
+          "rank": 3,
+          "score": 0.0,
+          "text": "平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。",
+          "channels": "分批提取",
+          "source_id": "20f490d8-c3bb-49ef-b579-c82dc4be5cbe:0"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **3 条带原文证据的记录**；这不是全库确定总数。\n\n1. **天枢项目**：本系统按等级保护三级建设，上线前须完成第三方数据安全测评，测评费用已列入项目预算。 [1]\n\n2. **星云项目**：项目数据平台按等级保护三级标准建设，涉及的数据安全测评费用已列入预算。 [2]\n\n3. **昆仑项目**：平台按等级保护三级标准建设，上线前须完成第三方数据安全测评。 [3]\n\n处理范围：19 份文档、52 张卡片、10 批有效提取，补查 1 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+      "max_calls": 12,
+      "accepted_before_review": [
+        "天枢",
+        "昆仑",
+        "星云"
+      ]
+    },
+    {
+      "case": "CONTRACT_LIMIT",
+      "variant": "after",
+      "question": "复测长合同中，列出全部强制交付核验条款的编号。",
+      "grade": {
+        "expected": [
+          "REQ-101",
+          "REQ-102",
+          "REQ-103",
+          "REQ-104",
+          "REQ-105",
+          "REQ-106",
+          "REQ-107",
+          "REQ-108",
+          "REQ-109",
+          "REQ-110",
+          "REQ-111",
+          "REQ-112"
+        ],
+        "supported": [
+          "REQ-101",
+          "REQ-102",
+          "REQ-103",
+          "REQ-104",
+          "REQ-105",
+          "REQ-106",
+          "REQ-107",
+          "REQ-108",
+          "REQ-109",
+          "REQ-110",
+          "REQ-111",
+          "REQ-112"
+        ],
+        "extra_supported": [],
+        "unsupported_records": [],
+        "missing": {}
+      },
+      "steps": [
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 898,
+            "input_cached": 128,
+            "output": 761,
+            "finish_reason": "stop"
+          },
+          "timeout": 80.98399999993853
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 894,
+            "input_cached": 128,
+            "output": 681,
+            "finish_reason": "stop"
+          },
+          "timeout": 76.09299999999348
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1816,
+            "input_cached": 128,
+            "output": 359,
+            "finish_reason": "stop"
+          },
+          "timeout": 71.42200000002049
+        },
+        {
+          "stage": "review",
+          "usage": {
+            "input": 966,
+            "input_cached": 256,
+            "output": 308,
+            "finish_reason": "stop"
+          },
+          "timeout": 77.875
+        }
+      ],
+      "metadata": {
+        "route": "document",
+        "coverage": "partial",
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 3,
+          "valid_batches": 3,
+          "split_batches": 0,
+          "cards_read": 16,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_checked": 12,
+          "verify_error": false,
+          "verify_status": "complete",
+          "verify_reason": "",
+          "stop_reason": "call_budget",
+          "elapsed": 15.437999999965541,
+          "calls": 4,
+          "estimated_tokens": 7161,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 12,
+          "possible_duplicates": 0
+        },
+        "selected_documents_meta": [
+          {
+            "document_id": "doc_14269071",
+            "version": "1.0",
+            "source": "复测长合同.md",
+            "path": "work/audit_enum/复测长合同.md"
+          }
+        ]
+      },
+      "records": [
+        {
+          "name": "强制交付核验条款 REQ-103",
+          "identity": "REQ-103",
+          "evidence": [
+            {
+              "source_id": "115d6f2d-f885-430b-8fd0-78e683341b78:0",
+              "quote": "强制交付核验条款 REQ-103：必须提交第 3 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0008",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 3 章",
+                "section_path": "复测长合同 > 第 3 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 8,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            1
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-112",
+          "identity": "REQ-112",
+          "evidence": [
+            {
+              "source_id": "13e53223-f779-40f2-ba27-7bdb68d6d46f:0",
+              "quote": "强制交付核验条款 REQ-112：必须提交第 12 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0035",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 12 章",
+                "section_path": "复测长合同 > 第 12 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 35,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            2
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-104",
+          "identity": "REQ-104",
+          "evidence": [
+            {
+              "source_id": "31e15d39-1c97-4569-8b20-79a9f08e9e84:0",
+              "quote": "强制交付核验条款 REQ-104：必须提交第 4 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0011",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 4 章",
+                "section_path": "复测长合同 > 第 4 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 11,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            3
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-108",
+          "identity": "REQ-108",
+          "evidence": [
+            {
+              "source_id": "340bba1c-c5b4-48b6-a01c-7fd630c7b617:0",
+              "quote": "强制交付核验条款 REQ-108：必须提交第 8 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0023",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 8 章",
+                "section_path": "复测长合同 > 第 8 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 23,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            4
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-106",
+          "identity": "REQ-106",
+          "evidence": [
+            {
+              "source_id": "4c46b79d-8971-4945-8f0c-59f6661550db:0",
+              "quote": "强制交付核验条款 REQ-106：必须提交第 6 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0017",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 6 章",
+                "section_path": "复测长合同 > 第 6 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 17,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            5
+          ]
+        },
+        {
+          "name": "REQ-109",
+          "identity": "REQ-109",
+          "evidence": [
+            {
+              "source_id": "88f72347-b19d-4f27-8b04-27662d67fbf7:0",
+              "quote": "强制交付核验条款 REQ-109：必须提交第 9 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0026",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 9 章",
+                "section_path": "复测长合同 > 第 9 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 26,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            6
+          ]
+        },
+        {
+          "name": "REQ-111",
+          "identity": "REQ-111",
+          "evidence": [
+            {
+              "source_id": "92a91a5f-1920-4774-b43b-1defe700285d:0",
+              "quote": "强制交付核验条款 REQ-111：必须提交第 11 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0032",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 11 章",
+                "section_path": "复测长合同 > 第 11 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 32,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            7
+          ]
+        },
+        {
+          "name": "REQ-102",
+          "identity": "REQ-102",
+          "evidence": [
+            {
+              "source_id": "a67045f4-4817-4114-9917-27ac49e4971b:0",
+              "quote": "强制交付核验条款 REQ-102：必须提交第 2 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0005",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 2 章",
+                "section_path": "复测长合同 > 第 2 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 5,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            8
+          ]
+        },
+        {
+          "name": "REQ-105",
+          "identity": "REQ-105",
+          "evidence": [
+            {
+              "source_id": "aaf69b52-06f6-4c4c-91a0-9e3ee279c85b:0",
+              "quote": "强制交付核验条款 REQ-105：必须提交第 5 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0014",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 5 章",
+                "section_path": "复测长合同 > 第 5 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 14,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            9
+          ]
+        },
+        {
+          "name": "REQ-101",
+          "identity": "REQ-101",
+          "evidence": [
+            {
+              "source_id": "d490022e-5181-4c82-adc4-25389be193fa:0",
+              "quote": "强制交付核验条款 REQ-101：必须提交第 1 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0002",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 1 章",
+                "section_path": "复测长合同 > 第 1 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 2,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            10
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-107",
+          "identity": "REQ-107",
+          "evidence": [
+            {
+              "source_id": "dc1fbb2c-32b2-4240-b6b4-664f11a4f3d6:0",
+              "quote": "强制交付核验条款 REQ-107：必须提交第 7 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0020",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 7 章",
+                "section_path": "复测长合同 > 第 7 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 20,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            11
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-110",
+          "identity": "REQ-110",
+          "evidence": [
+            {
+              "source_id": "faeb1d1c-69e8-4371-a58a-d4f1ee2a0ac3:0",
+              "quote": "强制交付核验条款 REQ-110：必须提交第 10 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0029",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 10 章",
+                "section_path": "复测长合同 > 第 10 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 29,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            12
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0008",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 3 章",
+          "section_path": "复测长合同 > 第 3 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 8,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 1,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-103：必须提交第 3 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "115d6f2d-f885-430b-8fd0-78e683341b78:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0035",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 12 章",
+          "section_path": "复测长合同 > 第 12 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 35,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 2,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-112：必须提交第 12 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "13e53223-f779-40f2-ba27-7bdb68d6d46f:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0011",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 4 章",
+          "section_path": "复测长合同 > 第 4 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 11,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 3,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-104：必须提交第 4 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "31e15d39-1c97-4569-8b20-79a9f08e9e84:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0023",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 8 章",
+          "section_path": "复测长合同 > 第 8 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 23,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 4,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-108：必须提交第 8 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "340bba1c-c5b4-48b6-a01c-7fd630c7b617:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0017",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 6 章",
+          "section_path": "复测长合同 > 第 6 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 17,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 5,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-106：必须提交第 6 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "4c46b79d-8971-4945-8f0c-59f6661550db:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0026",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 9 章",
+          "section_path": "复测长合同 > 第 9 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 26,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 6,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-109：必须提交第 9 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "88f72347-b19d-4f27-8b04-27662d67fbf7:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0032",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 11 章",
+          "section_path": "复测长合同 > 第 11 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 32,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 7,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-111：必须提交第 11 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "92a91a5f-1920-4774-b43b-1defe700285d:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0005",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 2 章",
+          "section_path": "复测长合同 > 第 2 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 5,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 8,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-102：必须提交第 2 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "a67045f4-4817-4114-9917-27ac49e4971b:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0014",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 5 章",
+          "section_path": "复测长合同 > 第 5 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 14,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 9,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-105：必须提交第 5 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "aaf69b52-06f6-4c4c-91a0-9e3ee279c85b:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0002",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 1 章",
+          "section_path": "复测长合同 > 第 1 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 2,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 10,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-101：必须提交第 1 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "d490022e-5181-4c82-adc4-25389be193fa:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0020",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 7 章",
+          "section_path": "复测长合同 > 第 7 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 20,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 11,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-107：必须提交第 7 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "dc1fbb2c-32b2-4240-b6b4-664f11a4f3d6:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0029",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 10 章",
+          "section_path": "复测长合同 > 第 10 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 29,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 12,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-110：必须提交第 10 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "faeb1d1c-69e8-4371-a58a-d4f1ee2a0ac3:0"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **12 条带原文证据的记录**；这不是全库确定总数。\n\n1. **强制交付核验条款 REQ-103**：强制交付核验条款 REQ-103：必须提交第 3 项的签字证明。 [1]\n\n2. **强制交付核验条款 REQ-112**：强制交付核验条款 REQ-112：必须提交第 12 项的签字证明。 [2]\n\n3. **强制交付核验条款 REQ-104**：强制交付核验条款 REQ-104：必须提交第 4 项的签字证明。 [3]\n\n4. **强制交付核验条款 REQ-108**：强制交付核验条款 REQ-108：必须提交第 8 项的签字证明。 [4]\n\n5. **强制交付核验条款 REQ-106**：强制交付核验条款 REQ-106：必须提交第 6 项的签字证明。 [5]\n\n6. **REQ-109**：强制交付核验条款 REQ-109：必须提交第 9 项的签字证明。 [6]\n\n7. **REQ-111**：强制交付核验条款 REQ-111：必须提交第 11 项的签字证明。 [7]\n\n8. **REQ-102**：强制交付核验条款 REQ-102：必须提交第 2 项的签字证明。 [8]\n\n9. **REQ-105**：强制交付核验条款 REQ-105：必须提交第 5 项的签字证明。 [9]\n\n10. **REQ-101**：强制交付核验条款 REQ-101：必须提交第 1 项的签字证明。 [10]\n\n11. **强制交付核验条款 REQ-107**：强制交付核验条款 REQ-107：必须提交第 7 项的签字证明。 [11]\n\n12. **强制交付核验条款 REQ-110**：强制交付核验条款 REQ-110：必须提交第 10 项的签字证明。 [12]\n\n处理范围：1 份文档、16 张卡片、3 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+      "max_calls": 4,
+      "accepted_before_review": [
+        "REQ-101",
+        "REQ-102",
+        "REQ-103",
+        "REQ-104",
+        "REQ-105",
+        "REQ-106",
+        "REQ-107",
+        "REQ-108",
+        "REQ-109",
+        "REQ-110",
+        "REQ-111",
+        "REQ-112"
+      ]
+    },
+    {
+      "case": "CONTRACT_LIMIT",
+      "variant": "before",
+      "question": "复测长合同中，列出全部强制交付核验条款的编号。",
+      "grade": {
+        "expected": [
+          "REQ-101",
+          "REQ-102",
+          "REQ-103",
+          "REQ-104",
+          "REQ-105",
+          "REQ-106",
+          "REQ-107",
+          "REQ-108",
+          "REQ-109",
+          "REQ-110",
+          "REQ-111",
+          "REQ-112"
+        ],
+        "supported": [
+          "REQ-103",
+          "REQ-104",
+          "REQ-106",
+          "REQ-108",
+          "REQ-112"
+        ],
+        "extra_supported": [],
+        "unsupported_records": [],
+        "missing": {
+          "REQ-101": "reading",
+          "REQ-102": "reading",
+          "REQ-105": "reading",
+          "REQ-107": "reading",
+          "REQ-109": "reading",
+          "REQ-110": "reading",
+          "REQ-111": "reading"
+        }
+      },
+      "steps": [
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1995,
+            "input_cached": 128,
+            "output": 559,
+            "finish_reason": "stop"
+          },
+          "timeout": 81.0
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 2297,
+            "input_cached": 128,
+            "output": 368,
+            "finish_reason": "stop"
+          },
+          "timeout": 77.98400000005495
+        },
+        {
+          "stage": "extract",
+          "usage": {
+            "input": 1998,
+            "input_cached": 128,
+            "output": 340,
+            "finish_reason": "stop"
+          },
+          "timeout": 75.39100000006147
+        },
+        {
+          "stage": "review",
+          "usage": {
+            "input": 671,
+            "input_cached": 384,
+            "output": 201,
+            "finish_reason": "stop"
+          },
+          "timeout": 81.39100000006147
+        }
+      ],
+      "metadata": {
+        "route": "document",
+        "coverage": "partial",
+        "stage2": {
+          "status": "executed",
+          "rounds": 0,
+          "queries": 0,
+          "batches": 3,
+          "valid_batches": 3,
+          "split_batches": 0,
+          "cards_read": 16,
+          "rejected_items": 0,
+          "errors": 0,
+          "document_budget_hit": false,
+          "card_budget_hit": false,
+          "selection_truncated": false,
+          "verify_removed": 0,
+          "verify_checked": 5,
+          "verify_error": false,
+          "verify_status": "complete",
+          "verify_reason": "",
+          "stop_reason": "call_budget",
+          "elapsed": 10.390999999945052,
+          "calls": 4,
+          "estimated_tokens": 10135,
+          "candidate_documents": 1,
+          "processed_documents": 1,
+          "items": 5,
+          "possible_duplicates": 0
+        },
+        "selected_documents_meta": [
+          {
+            "document_id": "doc_14269071",
+            "version": "1.0",
+            "source": "复测长合同.md",
+            "path": "work/audit_enum/复测长合同.md"
+          }
+        ]
+      },
+      "records": [
+        {
+          "name": "强制交付核验条款 REQ-103",
+          "identity": "REQ-103",
+          "evidence": [
+            {
+              "source_id": "115d6f2d-f885-430b-8fd0-78e683341b78:0",
+              "quote": "强制交付核验条款 REQ-103：必须提交第 3 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0008",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 3 章",
+                "section_path": "复测长合同 > 第 3 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 8,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            1
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-112",
+          "identity": "REQ-112",
+          "evidence": [
+            {
+              "source_id": "13e53223-f779-40f2-ba27-7bdb68d6d46f:0",
+              "quote": "强制交付核验条款 REQ-112：必须提交第 12 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0035",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 12 章",
+                "section_path": "复测长合同 > 第 12 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 35,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            2
+          ]
+        },
+        {
+          "name": "REQ-104",
+          "identity": "REQ-104",
+          "evidence": [
+            {
+              "source_id": "31e15d39-1c97-4569-8b20-79a9f08e9e84:0",
+              "quote": "强制交付核验条款 REQ-104：必须提交第 4 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0011",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 4 章",
+                "section_path": "复测长合同 > 第 4 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 11,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            3
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-108",
+          "identity": "REQ-108",
+          "evidence": [
+            {
+              "source_id": "340bba1c-c5b4-48b6-a01c-7fd630c7b617:0",
+              "quote": "强制交付核验条款 REQ-108：必须提交第 8 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0023",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 8 章",
+                "section_path": "复测长合同 > 第 8 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 23,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            4
+          ]
+        },
+        {
+          "name": "强制交付核验条款 REQ-106",
+          "identity": "REQ-106",
+          "evidence": [
+            {
+              "source_id": "4c46b79d-8971-4945-8f0c-59f6661550db:0",
+              "quote": "强制交付核验条款 REQ-106：必须提交第 6 项的签字证明。",
+              "metadata": {
+                "document_id": "doc_14269071",
+                "chunk_id": "doc_14269071_v1.0_0017",
+                "source": "复测长合同.md",
+                "path": "work/audit_enum/复测长合同.md",
+                "file_type": "md",
+                "indexed_at": "2026-11-25 10:40:14",
+                "title": "复测长合同",
+                "effective_date": "",
+                "section": "第 6 章",
+                "section_path": "复测长合同 > 第 6 章",
+                "page": null,
+                "domain": "work",
+                "doc_type": "合同",
+                "department": "",
+                "topic": [],
+                "tags": [],
+                "classification": "公开",
+                "version": "1.0",
+                "status": "active",
+                "created_at": "2026-11-25",
+                "updated_at": "2026-11-25",
+                "document_version": "",
+                "document_version_status": "undeclared",
+                "document_version_source": "",
+                "document_version_evidence": [],
+                "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+                "owner": "",
+                "chunk_index": 17,
+                "overlap_chars": 0,
+                "chunk_joiner": "\n\n",
+                "_ingest_pending": false
+              }
+            }
+          ],
+          "citations": [
+            5
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0008",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 3 章",
+          "section_path": "复测长合同 > 第 3 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 8,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 1,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-103：必须提交第 3 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "115d6f2d-f885-430b-8fd0-78e683341b78:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0035",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 12 章",
+          "section_path": "复测长合同 > 第 12 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 35,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 2,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-112：必须提交第 12 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "13e53223-f779-40f2-ba27-7bdb68d6d46f:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0011",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 4 章",
+          "section_path": "复测长合同 > 第 4 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 11,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 3,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-104：必须提交第 4 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "31e15d39-1c97-4569-8b20-79a9f08e9e84:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0023",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 8 章",
+          "section_path": "复测长合同 > 第 8 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 23,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 4,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-108：必须提交第 8 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "340bba1c-c5b4-48b6-a01c-7fd630c7b617:0"
+        },
+        {
+          "document_id": "doc_14269071",
+          "chunk_id": "doc_14269071_v1.0_0017",
+          "source": "复测长合同.md",
+          "path": "work/audit_enum/复测长合同.md",
+          "file_type": "md",
+          "indexed_at": "2026-11-25 10:40:14",
+          "title": "复测长合同",
+          "effective_date": "",
+          "section": "第 6 章",
+          "section_path": "复测长合同 > 第 6 章",
+          "page": null,
+          "domain": "work",
+          "doc_type": "合同",
+          "department": "",
+          "topic": [],
+          "tags": [],
+          "classification": "公开",
+          "version": "1.0",
+          "status": "active",
+          "created_at": "2026-11-25",
+          "updated_at": "2026-11-25",
+          "document_version": "",
+          "document_version_status": "undeclared",
+          "document_version_source": "",
+          "document_version_evidence": [],
+          "version_content_hash": "c4913c85a794f582befa17dcae74f0a8",
+          "owner": "",
+          "chunk_index": 17,
+          "overlap_chars": 0,
+          "chunk_joiner": "\n\n",
+          "_ingest_pending": false,
+          "rank": 5,
+          "score": 0.0,
+          "text": "强制交付核验条款 REQ-106：必须提交第 6 项的签字证明。",
+          "channels": "分批提取",
+          "source_id": "4c46b79d-8971-4945-8f0c-59f6661550db:0"
+        }
+      ],
+      "answer": "**结果不完整，可能有遗漏。**\n\n本次从已处理资料中整理出 **5 条带原文证据的记录**；这不是全库确定总数。\n\n1. **强制交付核验条款 REQ-103**：强制交付核验条款 REQ-103：必须提交第 3 项的签字证明。 [1]\n\n2. **强制交付核验条款 REQ-112**：强制交付核验条款 REQ-112：必须提交第 12 项的签字证明。 [2]\n\n3. **REQ-104**：强制交付核验条款 REQ-104：必须提交第 4 项的签字证明。 [3]\n\n4. **强制交付核验条款 REQ-108**：强制交付核验条款 REQ-108：必须提交第 8 项的签字证明。 [4]\n\n5. **强制交付核验条款 REQ-106**：强制交付核验条款 REQ-106：必须提交第 6 项的签字证明。 [5]\n\n处理范围：1 份文档、16 张卡片、3 批有效提取，补查 0 轮。\n\n停止原因：达到模型调用预算。结果可能遗漏，不能据此宣称全库已查全。",
+      "max_calls": 4,
+      "accepted_before_review": [
+        "REQ-103",
+        "REQ-104",
+        "REQ-106",
+        "REQ-108",
+        "REQ-112"
+      ]
+    }
+  ]
+}
