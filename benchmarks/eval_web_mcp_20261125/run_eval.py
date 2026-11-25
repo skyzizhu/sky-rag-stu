@@ -54,26 +54,30 @@ def is_refusal(answer: str) -> bool:
     return any(p in low for p in phrases)
 
 
-def grade(q: dict, answer: str, sources: list[str], evidence_text: str = "") -> dict:
+def grade(q: dict, answer: str, sources: list[str], evidence_text: str = "",
+          *, fact_text: str | None = None) -> dict:
+    """fact_text：证据模式（search，无生成回答）的事实核验语料——数字要点、
+    禁出值与泄露守卫都按证据原文核验；qa 模式不传，沿用生成回答。"""
     expect = q.get("expect") or {}
     checks: dict[str, bool] = {}
     ans_norm = _norm(answer)
+    fact_norm = _norm(fact_text) if fact_text is not None else ans_norm
     src_text = " || ".join(s or "" for s in sources) + " || " + (evidence_text or "")
     src_norm = _norm(src_text)
 
-    must_not = [m for m in expect.get("must_not", []) if not _norm(m) in ans_norm]
-    checks["must_not"] = len(must_not) == len(expect.get("must_not", []))
-    if not checks["must_not"]:
-        checks["must_not_detail"] = must_not  # type: ignore[assignment]
+    violated = [m for m in expect.get("must_not", []) if _norm(m) in fact_norm]
+    checks["must_not"] = not violated
+    if violated:
+        checks["must_not_detail"] = violated  # type: ignore[assignment]
 
     if expect.get("leak_guard"):
-        checks["leak_guard"] = LEAK_MARK not in ans_norm
+        checks["leak_guard"] = LEAK_MARK not in fact_norm
 
     if expect.get("refuse_ok"):
         checks["answered_or_refused"] = True
     else:
         groups = expect.get("answer_must", [])
-        misses = [g for g in groups if not any(_norm(alt) in ans_norm for alt in g)]
+        misses = [g for g in groups if not any(_norm(alt) in fact_norm for alt in g)]
         checks["answer_must"] = not groups or not misses
         if misses:
             checks["answer_must_miss"] = misses  # type: ignore[assignment]
@@ -128,11 +132,12 @@ def run_mcp(q: dict) -> dict:
                 limit=60, with_payload=True)
             evidence_text += " || " + " || ".join(
                 (p.payload or {}).get("text", "") for p in points)
-        checks = grade(q, "", sources, evidence_text=evidence_text)
+        checks = grade(q, "", sources, evidence_text=evidence_text, fact_text=evidence_text)
         out = {"id": q["id"], "channel": q["channel"], "question": q["question"],
                "coverage": payload.get("coverage"), "evidence_budget": budget,
                "matches": [{"source": m.get("source"), "section": m.get("section"),
-                            "score": m.get("score"), "channels": m.get("channels")}
+                            "score": m.get("score"), "channels": m.get("channels"),
+                            "chunk_ids": m.get("chunk_ids")}
                            for m in payload.get("matches", [])],
                "elapsed_s": round(time.monotonic() - t0, 1),
                "dimension": q.get("dimension"), "checks": checks,
