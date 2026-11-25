@@ -146,6 +146,7 @@ class QueryEvidenceTests(IngestHarness):
             self.assertEqual(result.evidence_meta["answer_status"], "insufficient_evidence")
             with mock.patch.object(mcp_server, "_answer_in_scope", return_value=result):
                 response = json.loads(mcp_server._tool_knowledge_qa_impl("Xtools 的降噪效果如何？"))
+            self.assertIn("evidence_notice", response)  # 方案A：证据随行信任边界声明
         self.assertTrue(response["refused"])
         self.assertEqual(response["answer_status"], "insufficient_evidence")
         self.assertTrue(response["sources"])
@@ -196,6 +197,7 @@ class QueryEvidenceTests(IngestHarness):
                  mock.patch("src.pipeline.get_llm_client", side_effect=AssertionError("unexpected generation")):
                 result = answer_question(query, use_llm=True, use_query_understanding=False, use_rerank=False)
                 response = json.loads(mcp_server._tool_knowledge_search_impl(query))
+                self.assertIn("evidence_notice", response)  # 方案A：证据随行信任边界声明
                 self.assertEqual(result.sources, [])
                 self.assertIn(reason, result.evidence_meta["evidence_support"]["missing"])
                 self.assertEqual(response["matches"], [])
