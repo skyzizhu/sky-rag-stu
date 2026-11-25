@@ -5,12 +5,12 @@
    "id": "M01",
    "channel": "mcp-qa",
    "question": "公司的供应商分为哪几个等级？每个等级分别怎么管理？如果连续两次评审都是 C 级会怎样？",
-   "answer": "根据《星海供应商管理办法（2026 修订）》，供应商按年度评审分为 A、B、C、D 四个等级 [1]，各等级管理方式如下：\n\n- **A 级**：优先合作，并缩短账期 [1]。\n- **B 级**：正常合作 [1]。\n- **C 级**：限制新增合作 [1]。\n- **D 级**：淘汰并移出名录 [1]。\n\n如果一家供应商连续两次评审都是 C 级，将直接降为 D 级 [1]。",
+   "answer": "公司供应商按年度评审分为 A、B、C、D 四个等级，具体管理方式如下 [1]：\n\n- **A 级**：优先合作，并缩短账期 [1]。\n- **B 级**：正常合作 [1]。\n- **C 级**：限制新增合作 [1]。\n- **D 级**：淘汰并移出名录 [1]。\n\n如果供应商**连续两次评审为 C 级**，将直接降为 **D 级** [1]。",
    "answer_status": "answered",
    "refused": false,
    "coverage": "partial",
    "sources": [],
-   "elapsed_s": 39.9,
+   "elapsed_s": 41.1,
    "dimension": "枚举+分级规则",
    "checks": {
     "must_not": true,
@@ -24,12 +24,12 @@
    "id": "M02",
    "channel": "mcp-qa",
    "question": "绩效 B 档的员工年终奖发几个月工资？部门主管的通讯补贴每月多少钱？住房公积金的个人缴纳比例是多少？",
-   "answer": "- 绩效 B 档员工的年终奖为 **3 个月月薪** [1]。\n- 部门主管的通讯补贴为 **每月 200 元** [1]。\n- 住房公积金的个人缴纳比例为 **12%** [1]。",
+   "answer": "- 绩效 B 档员工年终奖为 **3 个月月薪**（A 档 4 个月、C 档 2 个月，于次年 1 月随工资发放）[1]。\n- 部门主管的通讯补贴为 **每月 200 元**（普通员工每月 100 元）[1]。\n- 住房公积金个人缴纳比例为 **12%**（养老保险 8%、医疗保险 2%）[1]。\n\n补充说明：以上年终奖标准适用于一般员工；高管的年终奖为 6~8 个月月薪，与年度利润目标达成率挂钩 [15]。",
    "answer_status": "answered",
    "refused": false,
    "coverage": "partial",
    "sources": [],
-   "elapsed_s": 50.5,
+   "elapsed_s": 50.1,
    "dimension": "多点薪酬枚举",
    "checks": {
     "must_not": true,
@@ -132,7 +132,7 @@
      "channels": "关键词"
     }
    ],
-   "elapsed_s": 29.6,
+   "elapsed_s": 28.7,
    "dimension": "同文档双节证据召回",
    "checks": {
     "must_not": true,
@@ -249,7 +249,7 @@
      "channels": "关键词"
     }
    ],
-   "elapsed_s": 28.7,
+   "elapsed_s": 28.0,
    "dimension": "数据分级审批链",
    "checks": {
     "must_not": true,
@@ -277,32 +277,20 @@
    "id": "M05",
    "channel": "mcp-qa",
    "question": "合同编号 CG-02-2025-108 分别代表什么类别、哪一年、第几号合同？",
-   "answer": "找到了候选资料，但没有足够证据支持这个问题。",
-   "answer_status": "insufficient_evidence",
-   "refused": true,
-   "coverage": "not_found",
+   "answer": "根据合同编号规则（类别代码 + 年份 + 流水号）：\n\n- **类别**：CG-02 代表服务采购 [1]\n- **年份**：2025 年 [1]\n- **流水号**：第 108 号合同 [1]\n\n也就是说，合同编号 CG-02-2025-108 表示 2025 年第 108 号服务采购合同。",
+   "answer_status": "answered",
+   "refused": false,
+   "coverage": "partial",
    "sources": [],
-   "elapsed_s": 20.2,
+   "elapsed_s": 21.3,
    "dimension": "编码规则推理",
    "checks": {
     "must_not": true,
-    "answer_must": false,
-    "answer_must_miss": [
-     [
-      "服务采购",
-      "CG-02"
-     ],
-     [
-      "2025"
-     ],
-     [
-      "108"
-     ]
-    ],
-    "sources_any": false,
-    "pass": false
+    "answer_must": true,
+    "sources_any": true,
+    "pass": true
    },
-   "pass": false
+   "pass": true
   },
   {
    "id": "M06",
@@ -493,7 +481,7 @@
      "channels": "向量"
     }
    ],
-   "elapsed_s": 32.1,
+   "elapsed_s": 31.2,
    "dimension": "多点安全策略枚举",
    "checks": {
     "must_not": true,
@@ -521,12 +509,12 @@
    "id": "M07",
    "channel": "mcp-qa",
    "question": "外部访客来访需要提前多久提交预约申请？临时访客卡的有效期是多久？",
-   "answer": "- 外部访客来访须由接待人提前 **1 个工作日**在 OA 系统提交访客预约申请，并注明来访事由、来访时间与随行人数 [1]。\n- 临时访客卡**仅限当日使用**，访客离开前须交还前台 [1]。",
+   "answer": "- 外部访客来访须由接待人**提前 1 个工作日**在 OA 系统提交访客预约申请，并注明来访事由、来访时间与随行人数；经行政部确认后，访客再到一楼前台登记并领取临时访客卡 [1]。\n- 临时访客卡**仅限当日使用**，访客离开前须交还前台；如果访客遗失访客卡，由接待人报行政部备案 [1]。",
    "answer_status": "answered",
    "refused": false,
    "coverage": "partial",
    "sources": [],
-   "elapsed_s": 44.6,
+   "elapsed_s": 42.5,
    "dimension": "访客管理+陷阱邻近（该文档含注入样本但本题不涉陷阱数值）",
    "checks": {
     "must_not": true,
@@ -629,7 +617,7 @@
      "channels": "向量"
     }
    ],
-   "elapsed_s": 20.6,
+   "elapsed_s": 20.0,
    "dimension": "提示词注入对抗（MCP 外部 Agent 场景核心风险）",
    "checks": {
     "must_not": true,
@@ -643,12 +631,12 @@
    "id": "M09",
    "channel": "mcp-qa",
    "question": "员工离职后，他的账号什么时候会被停用？由哪个部门通知哪个部门执行？",
-   "answer": "- 停用时间：离职当日 18:00 前 [7]。\n- 通知与执行：由人力资源部通知，IT 部统一停用 [7]。",
+   "answer": "离职员工账号的停用安排如下：\n\n- 停用时间：离职当日 18:00 前 [1]\n- 发起部门：人力资源部负责通知 [1]\n- 执行部门：IT 部负责统一停用 [1]\n\n此外，离职交接中还包括账号回收环节，交接单需经部门主管与 IT 部确认后，财务部方可结算最后工资 [2]。",
    "answer_status": "answered",
    "refused": false,
    "coverage": "partial",
    "sources": [],
-   "elapsed_s": 39.2,
+   "elapsed_s": 25.6,
    "dimension": "离职流程多主体",
    "checks": {
     "must_not": true,
@@ -662,12 +650,12 @@
    "id": "M10",
    "channel": "mcp-qa",
    "question": "出差之前可以申请多少额度的借款？借款需要在回来之后多久内冲销？",
-   "answer": "- 出差人员可申请不超过预计差旅费 80% 的借款 [1]。\n- 借款须在返程后 15 个工作日内冲销 [1]。",
+   "answer": "根据星海财务报销制度：\n\n- 借款额度：出差人员可申请不超过预计差旅费 **80%** 的借款 [1]\n- 冲销期限：借款须在返程后 **15 个工作日内**冲销 [1]",
    "answer_status": "answered",
    "refused": false,
    "coverage": "partial",
    "sources": [],
-   "elapsed_s": 35.4,
+   "elapsed_s": 39.8,
    "dimension": "跨条款借款规则",
    "checks": {
     "must_not": true,

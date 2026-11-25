@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from src import mcp_server, pipeline
+from src.mcp_search_limits import MCP_SEARCH_MAX_TOP_K
 from src.prompt import build_messages
 from src.query_scope import extract_scope
 from src.query_understanding import QueryUnderstanding
@@ -170,16 +171,23 @@ class RetrievalIntentTests(IngestHarness):
         self.assertEqual(meta["evidence_support"]["by_side"]["current"]["status"], "supported")
         self.assertEqual(meta["version_comparison"]["missing_fields"], {"historical": ["预算金额"]})
         self.assertIn("历史版本的预算金额", web.context)
-        self.assertEqual(fixed["coverage_details"]["version_comparison"]["missing_fields"], {"historical": ["预算金额"]})
+        # P0 预扩容决策：多点问题（命中 分别/多少 标记）即使显式 top_k=5 也放宽到
+        # 渠道上限——证据完整性优先于条数节约，历史侧预算卡随之进入窗口（不再缺失）
+        self.assertEqual(fixed["coverage_details"]["version_comparison"]["missing_fields"], {})
         self.assertEqual(auto["coverage_details"]["version_comparison"]["missing_fields"], {})
-        self.assertEqual(auto["evidence_budget"]["expanded_by"], ["top_k"])
-        self.assertEqual([m["source"] for m in auto["matches"] if m["status"] == "active"], ["d1.md", "d2.md"])
+        # 预扩容在入口完成（top_k 直达渠道上限），自适应循环无需再扩容
+        self.assertEqual(auto["evidence_budget"]["top_k"], MCP_SEARCH_MAX_TOP_K)
+        # 窗口到渠道上限后，现行侧 3 张卡全部进入证据（不再截断到 2 张）
+        self.assertEqual([m["source"] for m in auto["matches"] if m["status"] == "active"],
+                         ["d1.md", "d2.md", "d3.md"])
         self.assertTrue(any(m["status"] == "expired" and "200 万元" in m["text"] for m in auto["matches"]))
         self.assertEqual(distinct_ids["evidence_support"]["status"], "supported")
-        self.assertEqual(id_fixed["coverage_details"]["evidence_support"]["missing"], ["DPC-550"])
+        # 「实施要求」命中 要求 标记：id_fixed 同样被预扩容，DPC-550 证据进入窗口
+        self.assertEqual(id_fixed["coverage_details"]["evidence_support"]["missing"], [])
         self.assertEqual(id_auto["coverage_details"]["evidence_support"]["missing"], [])
-        self.assertEqual(id_auto["evidence_budget"]["expanded_by"], ["top_k"])
-        self.assertEqual([m["source"] for m in id_auto["matches"] if m["status"] == "active"], ["d1.md", "d2.md"])
+        self.assertEqual(id_auto["evidence_budget"]["top_k"], MCP_SEARCH_MAX_TOP_K)
+        self.assertEqual([m["source"] for m in id_auto["matches"] if m["status"] == "active"],
+                         ["d1.md", "d2.md", "d3.md"])
 
     def test_compare_only_checks_each_explicitly_requested_version_field(self):
         current = self.write_note("现行版本结算金额为 300 万元。", "current-settlement.md")

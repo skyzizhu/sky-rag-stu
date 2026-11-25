@@ -16,6 +16,13 @@ _POLICY_QUESTION = re.compile(r"是否|有没有|有沒有|如何|怎么|怎麼|
 _NUMBER = r"(?:[0-9]+(?:[,，][0-9]{3})*(?:\.[0-9]+)?|[零〇一二两兩三四五六七八九十百千万萬亿億点點]+)"
 _MONEY = re.compile(rf"(?:(?:￥|¥|\$)\s*{_NUMBER}|{_NUMBER}\s*(?:元|万元|萬元|亿元|億元|人民币|人民幣|美元|欧元|歐元|港元)|(?:为|為|[:=|])\s*[0-9][0-9,.]*(?![0-9,.年月日]))")
 _THRESHOLD_VALUE = re.compile(rf"(?:{_NUMBER}\s*(?:毫秒|秒|分钟|分鐘|小时|小時|摄氏度|攝氏度|℃|°c|ntu|%|ppm|mg/l|分贝|分貝)|(?:为|為|[:=|])\s*[0-9][0-9,.]*)", re.I)
+# V3.9.1（评测 W07）：阈值取值并入货币数值——制度原文的阈值规则多写作
+# 「金额达到 50 万元…审批」，货币单位不在严格单位表里。
+_THRESHOLD_VALUE_OR_MONEY = re.compile(rf"(?:{_THRESHOLD_VALUE.pattern}|{_MONEY.pattern})", re.I)
+# V3.9.1（评测 M05）：编号解读类问法——编号是解读对象而非定位锚点。
+_ID_MEANING_ASK = re.compile(
+    r"代表|含义|含義|意思|编号规则|編號規則|编码规则|編碼規則|构成|構成|解读|解讀"
+    r"|怎么编|怎麼編|如何编|如何編|什么类别|什麼類別|哪一年|第几|第幾")
 _RUN_COUNT = re.compile(rf"{_NUMBER}\s*(?:次|轮|輪|场|場|批)")
 _MONTH = (r"jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|"
           r"aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?")
@@ -197,12 +204,20 @@ def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, 
     checks: dict[str, bool] = {}
 
     identifiers = []
+    id_meaning_ask = bool(_ID_MEANING_ASK.search(question))
     if not fields_only:
         for match in _ID.finditer(question):
             code = match[0]
             literal = re.compile(rf"(?<![a-z0-9-]){re.escape(code)}(?![a-z0-9-])")
             identifiers.append(code.upper())
-            checks[code.upper()] = any(literal.search(text) for text in evidence)
+            found = any(literal.search(text) for text in evidence)
+            if not found and id_meaning_ask:
+                # V3.9.1（评测 M05）：解读类问题（编号代表什么/编号规则）里，语料只需
+                # 含编码规则章节（含示例解码），不可能含问题中的编号本身——缺号不再
+                # 作为门槛字段（否则证据门禁会把编码规则证据整份否决）。定位类问法
+                # （「XX-001 合同金额多少」）行为不变。
+                continue
+            checks[code.upper()] = found
 
     def field_value(name, request, anchor, value, *, before=0):
         if re.search(request, question):
@@ -215,8 +230,17 @@ def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, 
         field_value("预算金额", r"[预預]算", r"[预預]算", _MONEY)
         field_value("结算金额", r"[结結]算(?:金[额額]|[总總][额額]|款[项項])", r"[结結]算", _MONEY)
         measured = bool(re.search(r"[实實][测測].{0,6}[阈閾][值値]", question))
-        threshold = r"[实實][测測].{0,6}[阈閾][值値]|[阈閾][值値].{0,6}[实實][测測]" if measured else r"[阈閾][值値]"
-        field_value("实测阈值" if measured else "阈值", r"[阈閾][值値]", threshold, _THRESHOLD_VALUE)
+        if measured:
+            field_value("实测阈值", r"[阈閾][值値]",
+                        r"[实實][测測].{0,6}[阈閾][值値]|[阈閾][值値].{0,6}[实實][测測]",
+                        _THRESHOLD_VALUE)
+        else:
+            # V3.9.1（评测 W07）：锚点放宽到阈值表述词（阈值/上限/标准/金额/费用）、
+            # 取值并入货币数值——「两个阈值分别是多少」在制度原文里写成
+            # 「合同金额达到 50 万元的…审批」，数值与「阈值」二字不相邻甚至
+            # 通篇无「阈值」措辞。实测阈值（性能/水质类）仍保持严格锚点与单位。
+            _TH_ANCHOR = r"[阈閾][值値]|[上上]限|标准|標準|金额|金額|费用|費用"
+            field_value("阈值", r"[阈閾][值値]", _TH_ANCHOR, _THRESHOLD_VALUE_OR_MONEY)
         field_value("验证次数", r"(?:[验驗][证證]|[测測][试試]|演[练練])次[数數]",
                     r"[验驗][证證]|[测測][试試]|演[练練]", _RUN_COUNT)
 
@@ -237,7 +261,8 @@ def assess_evidence(question: str, passages: list[str], scope_terms: tuple[str, 
     if not checks:
         return {}
     missing = [label for label, supported in checks.items() if not supported]
-    has_required_id = not identifiers or any(checks[code] for code in identifiers)
+    has_required_id = (not identifiers or any(checks.get(code) for code in identifiers)
+                       or id_meaning_ask)
     blocking = not has_required_id or (len(missing) == len(checks)
                                        and any(label not in date_fields for label in checks))
     result = {"status": "unsupported" if blocking else ("partial" if missing else "supported"),

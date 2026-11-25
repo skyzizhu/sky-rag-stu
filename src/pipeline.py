@@ -1196,6 +1196,7 @@ def query_evidence(
     project_context: dict | None = None,
     evidence_max_tokens: int | None = None,
     adaptive_evidence: frozenset[str] = frozenset(),
+    folder_derived_domain: str | None = None,
 ) -> tuple[QAResult, dict]:
     """Evidence 统一查询入口（V3.9）：检索半程（意图→检索→融合→筛选→组装）。
 
@@ -1240,7 +1241,11 @@ def query_evidence(
     # 选了领域时以手动为准。import 置于函数内与其他 scope 引入一致。
     from src.query_scope import domain_folder_scope
     folder_domain = domain_folder_scope(question)
+    # V3.9.1（评测 W01）：记录领域是否来自问题文本的口头说法（如「归档目录里…」），
+    # 区别于界面手动选择——版本对比通道据此把该范围只绑定历史一侧。
+    # answer_stream 在自己的早退目录检查前已注入并透传，避免重复判定失真。
     if folder_domain and not (filters or {}).get("domain"):
+        folder_derived_domain = folder_domain
         filters = {**(filters or {}), "domain": folder_domain}
 
     if enumeration_route(question, True) == "catalog":
@@ -1376,11 +1381,24 @@ def query_evidence(
     staff_total = is_staff_total_question(question)
     if staff_total:
         enumeration_mode = False
-    version_scopes = comparison_statuses(filters) if compares_versions(question) else None
+    if compares_versions(question):
+        # V3.9.1（评测 W01）：下方既有规则「单一推断状态/来源不能代表对比两侧」
+        # 的领域延伸——「和归档目录里的旧版相比」中，口头领域（folder_derived_domain）
+        # 描述的是历史一侧的落点，不应把现行一侧也压进该范围（否则现行侧
+        # statuses 为空、整侧不检索，对比只剩单边）。现行侧保持默认可见范围，
+        # 仅历史侧保留该领域过滤；界面显式状态筛选仍完全尊重（维持旧行为）。
+        if (filters or {}).get("status") or not folder_derived_domain:
+            version_scopes = comparison_statuses(filters)
+        else:
+            version_scopes = comparison_statuses(
+                {k: v for k, v in (filters or {}).items() if k != "domain"})
+    else:
+        version_scopes = None
     if version_scopes is not None:
         # One inferred status or source cannot represent both sides of a comparison.
         qu_filters.pop("status", None)
         qu_filters.pop("source", None)
+        qu_filters.pop("domain", None)  # V3.9.1（W01）：同规则延伸到 QU 推断的领域
         enumeration_mode = False
     spoken_scope = {} if scope_issue else extract_scope(
         scope_question, getattr(qu, "metadata_scope", None) if qu and qu.ok else None)
@@ -1580,8 +1598,13 @@ def query_evidence(
         for key, label, _ in VERSION_SIDES:
             statuses = version_scopes[key]
             if statuses:
+                side_filters = {**merged_filters, "status": list(statuses)}
+                if key == "current" and folder_derived_domain:
+                    # V3.9.1（评测 W01）：现行一侧不受口头领域（「归档目录」）约束——
+                    # 该范围只描述历史版本的落点；历史侧沿用 merged_filters 保留它。
+                    side_filters.pop("domain", None)
                 result.retrieved.extend(retriever.retrieve(
-                    question, top_k=recall_k, filters={**merged_filters, "status": list(statuses)},
+                    question, top_k=recall_k, filters=side_filters,
                     trace=None, use_hybrid=use_hybrid, diagnostics=retrieval_diagnostics,
                 ))
         searched_statuses = [status for statuses in version_scopes.values() for status in statuses]
@@ -2359,7 +2382,11 @@ def answer_stream(
     # 自己的早退目录检查，domain 注入必须在此之前完成，两个出口行为才一致。
     from src.query_scope import domain_folder_scope
     folder_domain = domain_folder_scope(question)
+    # V3.9.1（评测 W01）：answer_stream 的注入点——口头领域需透传给 query_evidence，
+    # 版本对比通道据此把该范围只绑定历史一侧（与 query_evidence 注入点一致）。
+    folder_derived_domain = None
     if folder_domain and not (filters or {}).get("domain"):
+        folder_derived_domain = folder_domain
         filters = {**(filters or {}), "domain": folder_domain}
     epoch_at_start = (index_epoch.current(), retrieval_acl_revision())
 
@@ -2524,7 +2551,8 @@ def answer_stream(
         use_rerank=use_rerank, history=history, use_llm=use_llm,
         on_progress=_p, config=cfg, conversation_context=memory_text,
         user_groups=user_groups, username=username, project_context=project_context,
-        evidence_max_tokens=evidence_max_tokens, adaptive_evidence=adaptive_evidence)
+        evidence_max_tokens=evidence_max_tokens, adaptive_evidence=adaptive_evidence,
+        folder_derived_domain=folder_derived_domain)
     _attach_conversation(result)
     result.evidence_meta = evidence_meta   # V3.9：MCP 证据模式透出 coverage
     result.trace[:0] = trace   # 早期节点（就绪/提问/会话记忆）并入时间线头部
