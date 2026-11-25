@@ -899,8 +899,8 @@ class UserBody(BaseModel):
     username: str
     password: str
     department_id: int
-    real_name: str = ""
-    note: str = ""
+    real_name: str = Field(default="", max_length=64)
+    note: str = Field(default="", max_length=1000)
 
 
 @app.post("/api/users")
@@ -1052,8 +1052,8 @@ class TransferBody(BaseModel):
 
 
 class ProfileBody(BaseModel):
-    real_name: str = ""
-    note: str = ""
+    real_name: str = Field(default="", max_length=64)
+    note: str = Field(default="", max_length=1000)
 
 
 @app.post("/api/users/{user_id}/profile")
@@ -1241,8 +1241,8 @@ def api_reveal_ingest_file(request: Request, log_id: int = PathParam(ge=1, le=2*
 @app.get("/api/llm/costs")
 def api_llm_costs(_: dict = Depends(require_admin_api),
                   days: int = Query(0, ge=0, le=365),
-                  username: str = "",
-                  entry: str | None = None,
+                  username: str = Query("", max_length=80),
+                  entry: str | None = Query(None, max_length=80),
                   username_exact: bool = False,
                   page: int = Query(1, ge=1),
                   page_size: int = Query(20, ge=1, le=100)):
@@ -1298,8 +1298,8 @@ class RegisterBody(ContextFields):
     password: str
     password_confirm: str
     department_id: int  # 必填：注册必须归属部门；部门由管理员在后台创建
-    real_name: str = ""  # V3.9.1：注册可填真实姓名/职责备注（选填，与后台员工档案同字段）
-    note: str = ""
+    real_name: str = Field(default="", max_length=64)   # V3.9.1：注册可填真实姓名/职责备注
+    note: str = Field(default="", max_length=1000)
 
 
 class LoginBody(ContextFields):
@@ -1550,8 +1550,9 @@ class ChangePasswordBody(ContextFields):
 
 class SelfProfileBody(ContextFields):
     username: str
-    real_name: str = ""
-    note: str = ""
+    front_auth: str = ""  # Streamlit 服务端转发的浏览器登录态 Cookie（凭证边界，V3.9.1）
+    real_name: str = Field(default="", max_length=64)
+    note: str = Field(default="", max_length=1000)
 
 
 def _active_employee_or_none(username: str):
@@ -1569,7 +1570,7 @@ def api_change_password(body: ChangePasswordBody, request: Request):
     user = _active_employee_or_none(username)
     if user is None:
         return JSONResponse({"ok": False, "detail": "登录态已失效，请重新登录"}, status_code=401)
-    logged, ok = body.old_password, False
+    ok = False
     if body.new_password != body.new_password_confirm:
         detail, code = "两次输入的新密码不一致", 400
     elif body.new_password == body.old_password:
@@ -1600,8 +1601,22 @@ def api_change_password(body: ChangePasswordBody, request: Request):
 
 @app.post("/auth/profile")
 def api_self_profile(body: SelfProfileBody, request: Request):
-    """员工自助维护真实姓名与职责备注；账户名/部门/权限只能由管理员改。"""
+    """员工自助维护真实姓名与职责备注；账户名/部门/权限只能由管理员改。
+
+    凭证边界：username 必须与 front_auth 登录态 Cookie 匹配（浏览器直连时读
+    Cookie，经 Streamlit 转发时由服务端附带），否则拒绝——8700 对局域网开放，
+    不能信任请求体里的裸用户名（V3.9.1 审查修复）。
+    """
     username = (body.username or "").strip()
+    cookie_value = body.front_auth or (request.cookies.get("front_auth", "")
+                                       if request is not None else "")
+    verified = auth_db.verify_session_cookie(cookie_value)
+    if not verified or verified != username:
+        auth_db.log_auth_event("update_profile", username or "?", success=False,
+                               detail="登录态缺失或与账户不匹配", entry="web",
+                               ip=(body.client_ip or _web_ip(request)),
+                               user_agent=body.user_agent, accept_language=body.accept_language)
+        return JSONResponse({"ok": False, "detail": "登录态已失效，请重新登录"}, status_code=401)
     user = _active_employee_or_none(username)
     if user is None:
         return JSONResponse({"ok": False, "detail": "登录态已失效，请重新登录"}, status_code=401)
@@ -1610,6 +1625,8 @@ def api_self_profile(body: SelfProfileBody, request: Request):
                            ip=(body.client_ip or _web_ip(request)),
                            user_agent=body.user_agent, accept_language=body.accept_language)
     user = auth_db.get_user(username)
+    if user is None:  # 更新与重读之间被并发删除：以本次提交值为准
+        return {"ok": True, "real_name": body.real_name.strip(), "note": body.note.strip()}
     return {"ok": True, "real_name": user["real_name"], "note": user["note"]}
 
 

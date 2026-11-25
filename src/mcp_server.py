@@ -54,6 +54,26 @@ from src.mcp_search_limits import (  # noqa: E402
     MCP_SEARCH_DEFAULT_TOP_K, MCP_SEARCH_MAX_TOP_K, MCP_SEARCH_DEFAULT_TOKENS, MCP_SEARCH_MAX_TOKENS,
 )
 
+# V3.9.1（评测 M03/M04）：多点枚举/多问意图标记——命中即预扩容检索窗口。
+# 此类问题的答案要点分散在多个章节，默认 5 条会截断缺失数字要点。
+_SEARCH_MULTIPOINT_MARKERS = (
+    "哪些", "分别", "列举", "上限", "退还", "比例", "要求", "审批",
+    "几个", "多少", "标准", "须", "需要", "应当",
+)
+
+
+def _multipoint_preexpansion(question: str, top_k: int,
+                             max_evidence_tokens: int | None) -> tuple[int, int]:
+    """多点枚举/多问意图预扩容：命中标记时放宽到渠道上限（top_k=12、证据 8000）。
+
+    仅影响 knowledge_search 的证据召回窗口（该工具不生成回答，不增加 LLM 调用）；
+    返回给 Agent 的是元数据+片段，不会挤占其上下文。未命中标记则保持原值。
+    """
+    if any(m in (question or "") for m in _SEARCH_MULTIPOINT_MARKERS):
+        return MCP_SEARCH_MAX_TOP_K, MCP_SEARCH_MAX_TOKENS
+    return top_k, (max_evidence_tokens if max_evidence_tokens is not None
+                   else MCP_SEARCH_DEFAULT_TOKENS)
+
 # 关闭 SDK 默认的 DNS 重绑定防护（它只放行 localhost/127.0.0.1 的 Host 头，
 # 局域网 IP 访问会 421 Misdirected Request）。真实鉴权由 _TokenAuthMiddleware
 # 对每个请求强制校验 PAT——重绑定防护针对的是"无鉴权本机服务"，此处多余。
@@ -521,6 +541,11 @@ def _tool_knowledge_search_impl(
     top_k = MCP_SEARCH_DEFAULT_TOP_K if auto_top_k else max(1, min(int(top_k), MCP_SEARCH_MAX_TOP_K))
     if max_evidence_tokens is not None:
         max_evidence_tokens = max(1000, min(int(max_evidence_tokens), MCP_SEARCH_MAX_TOKENS))
+    # V3.9.1（评测 M03/M04）：多点枚举/多问意图的问题，答案要点分散在多个章节，
+    # 默认 5 条会截断（truncated_by:[top_k]）——命中标记即预扩容到渠道上限，
+    # 让缺失的数字要点进入证据窗口。显式较小的 top_k 同样放宽：多点问题的
+    # 证据完整性优先于条数节约（返回的都是元数据，不会挤占 Agent 上下文）。
+    top_k, max_evidence_tokens = _multipoint_preexpansion(question, top_k, max_evidence_tokens)
     result, error = _run_context_query(
         question.strip(), top_k, ctx, tool="knowledge_search", use_llm=False,
         domain=domain, status=status, doc_type=doc_type, department=department,

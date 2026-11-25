@@ -29,9 +29,13 @@ class ProfileSelfServiceTests(TempAuthDB):
             new_password_confirm=confirm or new, client_ip="127.0.0.1")
         return admin_app.api_change_password(body, request=None)
 
-    def _profile(self, real_name="新名字", note="新职责", username="worker"):
+    def _profile(self, real_name="新名字", note="新职责", username="worker",
+                 front_auth=None):
+        # front_auth=None → 自动签发与 username 匹配的有效 Cookie；显式传入则用传入值
+        cookie = auth_db.make_session_cookie(username) if front_auth is None else front_auth
         body = admin_app.SelfProfileBody(
-            username=username, real_name=real_name, note=note, client_ip="127.0.0.1")
+            username=username, real_name=real_name, note=note,
+            front_auth=cookie, client_ip="127.0.0.1")
         return admin_app.api_self_profile(body, request=None)
 
     def test_change_password_requires_correct_old_password(self):
@@ -66,13 +70,24 @@ class ProfileSelfServiceTests(TempAuthDB):
         self.assertEqual(resp["note"], "现场工程师")
         self.assertEqual(auth_db.get_user("worker")["real_name"], "王五")
 
+    def test_profile_rejects_missing_or_mismatched_cookie(self):
+        # 无 Cookie（裸用户名）：直接拒绝——8700 对局域网开放，不能信任请求体里的用户名
+        self.assertEqual(self._profile(front_auth="").status_code, 401)
+        # 有效 Cookie 但与目标账户不匹配：拒绝冒名改写
+        self.assertEqual(
+            self._profile(real_name="冒名", username="worker",
+                          front_auth=auth_db.make_session_cookie("someone-else")).status_code, 401)
+        self.assertEqual(auth_db.get_user("worker")["real_name"], "老名字")
+
     def test_profile_and_password_rejected_for_disabled_user(self):
         auth_db.update_user(self.uid, status="disabled")
-        self.assertEqual(self._profile().status_code, 401)
+        # 持本人有效 Cookie：账户被停用时同样拒绝
+        self.assertEqual(self._profile(front_auth=auth_db.make_session_cookie("worker")).status_code, 401)
         self.assertEqual(self._change_password().status_code, 401)
 
     def test_unknown_user_rejected(self):
-        self.assertEqual(self._profile(username="ghost").status_code, 401)
+        self.assertEqual(self._profile(username="ghost",
+                                       front_auth=auth_db.make_session_cookie("ghost")).status_code, 401)
         self.assertEqual(self._change_password(username="ghost").status_code, 401)
 
 

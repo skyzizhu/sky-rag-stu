@@ -30,7 +30,13 @@ from streamlit.elements.lib.dialog import DialogWidth
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.app_settings import PRICE_DEFAULTS, SETTINGS_KEYS, load_app_settings, save_app_settings  # noqa: E402
+from src.app_settings import (
+    PRICE_DEFAULTS,
+    SETTINGS_KEYS,
+    load_app_settings,
+    normalize_choices,
+    save_app_settings,
+)  # noqa: E402
 from src import auth_client  # noqa: E402  # V3.7 登录/注册/偏好（FastAPI 认证服务 8700）
 from src import auth_db, projects  # noqa: E402
 from src.permissions import scope_filters, visible_groups, write_group_options  # noqa: E402
@@ -88,9 +94,12 @@ from src.usage_reporting import usage_for_log  # noqa: E402
 from src.plugin import get_installed_plugins, is_installed, install_plugin, uninstall_plugin, PLUGIN_REGISTRY
 from src.sessions import (
     SESSIONS_DIR,
+    count_sessions,
+    delete_all_sessions,
     delete_session,
     SessionConflict,
     list_sessions,
+    list_sessions_page,
     load_session,
     new_session_id,
     save_session,
@@ -175,9 +184,31 @@ def confirm_session_delete() -> None:
             st.session_state.messages = []
             st.session_state["conversation_state"] = {}
             st.query_params.pop("session", None)
-        # 删除后会话数量变化会让 Expander 以新组件重建；下一次渲染强制保持展开。
-        st.session_state["keep_history_expanded_once"] = True
         st.session_state.pop("delete_session_request", None)
+        st.rerun()
+
+
+@st.dialog(t("history.clear.confirm.title"), width="small")
+def confirm_history_clear() -> None:
+    """清空全部历史会话前二次确认；只清当前登录用户自己的会话。"""
+    owner = str((st.session_state.get("auth_user") or {}).get("username") or "")
+    if not owner:
+        return
+    st.write(t("history.clear.confirm.msg"))
+    cancel_col, confirm_col = st.columns(2)
+    if cancel_col.button(t("common.cancel"), width="stretch"):
+        st.rerun()
+    if confirm_col.button(t("history.clear.confirm.yes"), type="primary",
+                          icon=":material/delete_sweep:", width="stretch"):
+        removed = delete_all_sessions(username=owner)
+        # 当前会话文件必在删除范围内：同步重置本地状态，避免"复活"
+        st.session_state["session_id"] = new_session_id()
+        st.session_state.messages = []
+        st.session_state["conversation_state"] = {}
+        st.query_params.pop("session", None)
+        st.query_params.pop("load", None)
+        st.session_state.pop("history_page", None)  # 页码归位
+        st.toast(t("history.clear.ok", n=removed), icon="✅")
         st.rerun()
 
 
@@ -471,23 +502,28 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebarUserContent"] > *,
 [data-testid="stSidebarUserContent"] > * > [data-testid="stVerticalBlock"] {display:contents !important;}
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_brand) {order:1 !important;}
-/* V3.7.2 用户信息卡：Logo 下方留出呼吸间距，卡片分层样式 */
+/* V3.9.1 用户信息卡：品牌色渐变点缀 + 左侧竖条 + 柔和阴影的轻卡片 */
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo) {
   order:2 !important;
-  margin: 12px 10px 10px 0 !important;
+  margin: 10px 10px 8px 0 !important;
 }
 [data-testid="stSidebarUserContent"] [data-testid="stLayoutWrapper"]:has(.st-key-sidebar_userinfo)
   [data-testid="stVerticalBlock"] {gap: 0 !important; padding: 0 !important;}
-.user-card { display:flex; align-items:center; gap:10px; padding:9px 12px;
-  background: var(--bg-secondary, rgba(148,163,184,.10));
-  border: 1px solid var(--border-subtle, rgba(148,163,184,.25));
-  border-radius: 12px; }
-.user-card .avatar { width:38px; height:38px; border-radius:50%; flex:none;
-  background:linear-gradient(135deg,#2563EB,#4F46E5); color:#fff;
+.user-card { position:relative; display:flex; align-items:center; gap:12px;
+  padding: 11px 14px 11px 18px;
+  background: linear-gradient(135deg, rgba(99,102,241,.10), rgba(139,92,246,.04)),
+              var(--bg-secondary, #fff);
+  border: 1px solid rgba(99,102,241,.26);
+  border-radius: 14px; box-shadow: 0 6px 18px rgba(49,46,129,.10); overflow:hidden; }
+.user-card::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: linear-gradient(180deg,#6366F1,#8B5CF6); }
+.user-card .avatar { width:40px; height:40px; border-radius:12px; flex:none;
+  background:linear-gradient(135deg,#2563EB,#7C3AED); color:#fff;
   font-weight:700; font-size:.95rem; display:flex; align-items:center;
-  justify-content:center; box-shadow:0 2px 8px rgba(37,99,235,.30); }
-.user-card .u-name { font-weight:700; font-size:.86rem; }
-.user-card .u-sub { color:var(--text-muted, #8a93a6); font-size:.72rem; margin-top:1px; }
+  justify-content:center; box-shadow:0 3px 10px rgba(79,70,229,.35); }
+.user-card .u-name { font-weight:700; font-size:.88rem; letter-spacing:.01em;
+  color:var(--text-primary,#182033); }
+.user-card .u-sub { color:var(--text-muted,#64748B); font-size:.72rem; margin-top:2px; }
 .user-card .u-note { color:var(--text-muted, #8a93a6); font-size:.72rem; margin-top:3px;
   white-space:normal; word-break:break-all; line-height:1.5; }
 /* V3.7.2 表单控件全局加清晰边框：下拉/输入/多选未聚焦时也有明确可点击边界 */
@@ -573,14 +609,23 @@ div[data-baseweb="radio"] label {color: var(--text-secondary) !important;}
 [data-testid="stChatMessage"]:has(.user-bubble) [data-testid="stMarkdownContainer"] {
   display:flex !important;justify-content:flex-end !important;align-items:flex-start !important;width:100% !important;}
 [data-testid="stChatMessage"]:has(.user-bubble) [data-testid="stMarkdown"] {width:100% !important;}
-/* 检索进行中：气泡里只有状态行时垂直居中（答案流式开始后进度行清空，选择器失效恢复常规排版） */
-[data-testid="stChatMessage"]:has(.chat-progress-line) {padding-top: 10px; padding-bottom: 10px;
+/* 检索进行中：气泡里只有状态行时垂直居中（答案流式开始后进度行清空，选择器失效恢复常规排版）；
+   V3.9.1：min-height 64→48，收起等待期的高度 */
+[data-testid="stChatMessage"]:has(.chat-progress-line) {padding-top: 8px; padding-bottom: 8px;
   align-items: center !important;}
 [data-testid="stChatMessage"]:has(.chat-progress-line) [data-testid="stChatMessageContent"],
 [data-testid="stChatMessage"]:has(.chat-progress-line) [data-testid="stMarkdownContainer"] {
   display: flex !important; flex-direction: column; justify-content: center !important;}
-[data-testid="stChatMessage"]:has(.chat-progress-line) [data-testid="stMarkdownContainer"] {min-height: 64px;}
+[data-testid="stChatMessage"]:has(.chat-progress-line) [data-testid="stMarkdownContainer"] {min-height: 48px;}
 .chat-progress-line {display: flex; align-items: center;}
+/* V3.9.1：聊天头像增大 6px（Streamlit 默认约 40px → 46px），仅作用于图片头像 */
+[data-testid="stChatMessage"] img[data-testid="stChatMessageAvatarImage"],
+[data-testid="stChatMessage"] [data-testid="stChatMessageAvatar"] img {
+  width: 46px !important; height: 46px !important; border-radius: 50% !important;
+  object-fit: cover !important;}
+[data-testid="stChatMessage"] [data-testid="stChatMessageAvatar"],
+[data-testid="stChatMessage"] div[data-testid="stChatMessageAvatarImage"] {
+  width: 46px !important; height: 46px !important;}
 [data-testid="stBottom"], [data-testid="stBottom"] > div {background: transparent !important;
   border: none !important; box-shadow: none !important;}
 [data-testid="stBottom"] {position: fixed !important; bottom: 10px !important;
@@ -855,6 +900,13 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
   border-radius: 10px 10px 0 0 !important; background: var(--bg-sidebar) !important;}
 .st-key-dom_list_head p {margin: 0 !important; font-size: .74rem !important; font-weight: 700;
   color: var(--text-secondary) !important; letter-spacing: .02em;}
+/* V3.9.1：侧边栏导航不再折叠（View N more/View less），全部平铺由页面滚动；
+   历史会话列表字号微调大（标题链接与时间/消息行） */
+[data-testid="stSidebarNavViewButton"] {display: none !important;}
+[data-testid="stSidebarNav"] [data-testid="stSidebarNavItems"],
+[data-testid="stSidebarNav"] {max-height: none !important; overflow: visible !important;}
+.st-key-history_section a[data-testid="stPageLink-NavLink"] {font-size: .95rem !important;}
+.st-key-history_section [data-testid="stCaptionContainer"] p {font-size: .82rem !important;}
 /* 行与行紧贴：每行各自被包在 stLayoutWrapper 里，父级 stVerticalBlock 有全局 gap:16px；
    用负外边距抵消相邻行之间的 gap，形成连续表格（不影响其他块） */
 [data-testid="stLayoutWrapper"]:has(> [class*="st-key-dom_row_"]) {margin: -16px 0 0 !important; padding: 0 !important;}
@@ -909,6 +961,9 @@ st.markdown(CSS, unsafe_allow_html=True)
 
 # 主题覆盖：非"跟随系统"时强制对应主题
 _theme = st.session_state.get("theme", "system")
+# V3.9.1：大字号模式——放大根字号，全部 rem 文本等比放大（无障碍）
+if st.session_state.get("ui_font_scale") == "large":
+    st.markdown("<style>html{font-size:112% !important;}</style>", unsafe_allow_html=True)
 if _theme == "dark":
     st.markdown("<style>:root{--bg-primary:#0B0F1A!important;--bg-secondary:#111827!important;"
                 "--bg-card:rgba(17,24,39,.6)!important;--bg-sidebar:linear-gradient(180deg,#0F1523,#0B1018)!important;"
@@ -966,7 +1021,7 @@ def persist_app_settings() -> None:
     登录前的登录页仍以全局文件的旧值（或系统默认）作为种子。
     """
     data = {k: st.session_state[k] for k in SETTINGS_KEYS if k in st.session_state}
-    personal = {k: data.pop(k) for k in ("language", "theme") if k in data}
+    personal = {k: data.pop(k) for k in ("language", "theme", "ui_font_scale") if k in data}
     data["installed_plugins"] = get_installed_plugins()
     save_app_settings(data)
     user = st.session_state.get("auth_user")
@@ -1359,16 +1414,28 @@ def _validate_upload_visibility(groups, users) -> None:
 
 
 def _apply_user_prefs(username: str) -> None:
-    """登录后把该用户的界面偏好套到 session（覆盖默认值）。"""
-    prefs = auth_client.get_prefs(username) or {}
+    """登录后把该用户的界面偏好套到 session（覆盖默认值）。
+
+    同一用户在同一会话只应用一次：脚本每次运行都会经过 try_restore_session，
+    若每次都套用旧偏好，用户刚在通用设置里点选、还没保存的新值会被吞掉，
+    radio 也会因控件状态与会话值冲突而丢选中（V3.9.1 修复）。
+    应用后把语言/主题控件内部状态同步为已应用值，避免控件与会话值冲突。
+    """
+    if st.session_state.get("prefs_applied_for") == username:
+        return
+    # 套用前走与全局文件一致的白名单校验：损坏/手改的偏好行直接丢弃，不崩页面
+    prefs = normalize_choices(auth_client.get_prefs(username) or {})
     for key, value in prefs.items():
         if key in SETTINGS_KEYS and key != "installed_plugins":
             st.session_state[key] = value
-    # V3.9.1 修复「点完语言后主题单选框丢选中」：语言/主题的控件内部状态若与会话值
-    # 脱节，radio/segmented-control 会以控件旧状态渲染出"无选中"。这里清掉控件状态，
-    # 强制下一帧按（刚套用的）会话值重建控件。
-    for widget_key in ("set_theme_ui", "set_language_ui"):
-        st.session_state.pop(widget_key, None)
+    # 语言/主题控件键在套用偏好的同时一次性同步（本会话仅此一次，不会与用户点击竞争）
+    if "theme" in st.session_state:
+        st.session_state["set_theme_ui"] = st.session_state["theme"]
+    if "language" in st.session_state:
+        st.session_state["set_language_ui"] = st.session_state["language"]
+    if "ui_font_scale" in st.session_state:
+        st.session_state["set_font_scale_ui"] = st.session_state["ui_font_scale"]
+    st.session_state["prefs_applied_for"] = username
 
 
 front_host_global = "localhost:8501"  # 由 auth_gate 每次渲染时更新
@@ -1524,7 +1591,7 @@ def auth_gate() -> bool:
         st.stop()
     st.markdown(
         f'<div style="text-align:center;margin:7vh 0 6px;">'
-        f'<div style="font-size:40px">🧠</div>'
+        f'<img src="{LOGO_DATA_URI}" alt="长城互联网" style="height:52px;margin-bottom:6px;">'
         f'<h1 style="margin:8px 0 4px;">{t("auth.title")}</h1>'
         f'<div style="color:var(--text-muted)">{t("auth.subtitle")}</div></div>',
         unsafe_allow_html=True,
@@ -1877,6 +1944,25 @@ def page_chat():
     st.session_state.setdefault("conversation_state", {})
     if st.session_state.get("chat_save_conflict"):
         st.warning(t("chat.save_conflict"))
+    # V3.9.1：用户聊天头像——姓名首字符的 SVG 头像（与侧边栏用户卡一致），替换 🙋 emoji
+    _pc_user = st.session_state.get("auth_user") or {}
+    _pc_initial = (str(_pc_user.get("real_name") or _pc_user.get("username") or "·").strip()[:1]
+                   or "·")
+    _pc_avatar_uri = (
+        "data:image/svg+xml;base64,"
+        + _b64.b64encode(
+            (
+                '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">'
+                '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
+                '<stop offset="0" stop-color="#2563EB"/><stop offset="1" stop-color="#7C3AED"/>'
+                "</linearGradient></defs>"
+                '<rect width="64" height="64" rx="32" fill="url(#g)"/>'
+                f'<text x="32" y="34" text-anchor="middle" dominant-baseline="central" '
+                f'font-size="30" fill="#fff" font-family="system-ui, sans-serif" '
+                f'font-weight="700">{html.escape(_pc_initial)}</text></svg>'
+            ).encode("utf-8")
+        ).decode()
+    )
     if "messages" not in st.session_state:
         st.session_state.messages = []
     # 「开启新会话」并入 hero 蓝卡右侧：有消息才显示——空会话点了也只是把空状态重置一遍
@@ -1922,7 +2008,8 @@ def page_chat():
 
     for message in st.session_state.messages:
         # V3.9.1：助手头像不再用品牌 logo（宽图被头像框裁剪难看），回落 Streamlit 默认机器人图标
-        with st.chat_message(message["role"], avatar="🙋" if message["role"] == "user" else None):
+        with st.chat_message(message["role"],
+                             avatar=_pc_avatar_uri if message["role"] == "user" else None):
             if message["role"] == "user":
                 st.markdown(f'<div class="user-bubble">{html.escape(message["content"])}</div>',
                             unsafe_allow_html=True)
@@ -1949,7 +2036,7 @@ def page_chat():
     def _process_question(question: str) -> None:
         st.session_state.messages.append({"role": "user", "content": question,
                                           "created_at": datetime.now().isoformat(timespec="seconds")})
-        with st.chat_message("user", avatar="🙋"):
+        with st.chat_message("user", avatar=_pc_avatar_uri):
             st.markdown(f'<div class="user-bubble">{html.escape(question)}</div>',
                         unsafe_allow_html=True)
         scroll_chat_to_latest(
@@ -1963,6 +2050,10 @@ def page_chat():
                 _save_current_chat()
                 return
             progress_ph = st.empty()  # 实时进度占位符
+            # V3.9.1：占位符创建后立即写一行反馈——answer_stream 的首个进度回调
+            # 要等 QU 阶段启动才触发，这里先给"已在处理"的即时视觉反馈
+            progress_ph.markdown('<div class="chat-progress-line">⏳ 正在处理您的问题…</div>',
+                                 unsafe_allow_html=True)
             # 提前初始化：流式中途出错时还能拿到占位符与半截内容，
             # 把悬挂的光标换成"回答中断"标注，而不是让 ▌ 一直闪
             answer_ph = None
@@ -2014,9 +2105,17 @@ def page_chat():
                     )
                 progress_ph.empty()
                 answer_ph = st.empty()
+                # V3.9.1 流式渲染节流：每个 delta 都对全量文本重跑 format_answer_markdown
+                # 并整段重绘，长回答会 O(n²) 变慢；这里按时间节流（≥120ms 才重绘一次），
+                # 尾部光标与最终答案不受影响
+                import time as _time
+                _last_paint = 0.0
                 for delta in deltas:
                     full_text += delta
-                    answer_ph.markdown(format_answer_markdown(full_text) + " ▌")
+                    now = _time.perf_counter()
+                    if now - _last_paint >= 0.12:
+                        _last_paint = now
+                        answer_ph.markdown(format_answer_markdown(full_text) + " ▌")
                 formatted_answer = format_answer_markdown(result.answer or "")
                 answer_ph.markdown(formatted_answer)
                 progress_ph.empty()
@@ -3297,6 +3396,9 @@ def page_general_settings():
 
     # ---------- 界面语言（点击选择，全部平铺；含「跟随系统」） ----------
     current_lang = st.session_state.get("language", FOLLOW_SYSTEM)
+    # 控件键仅在不存在时按会话值初始化（首次渲染/登录套用后由 _apply_user_prefs 同步）；
+    # 渲染期间绝不用会话值反向覆盖控件状态——那会吞掉用户刚点选的新值（V3.9.1 修复）
+    st.session_state.setdefault("set_language_ui", current_lang)
     lang_keys = [FOLLOW_SYSTEM] + LANGUAGE_ORDER
     lang_choice = st.segmented_control(
         t("set.language"), lang_keys,
@@ -3306,6 +3408,9 @@ def page_general_settings():
     )
     if lang_choice and lang_choice != current_lang:
         st.session_state["language"] = lang_choice
+        # 语言变化会重建主题控件的选项标签——清掉主题控件状态让其按会话值重新挂载，
+        # 否则 Streamlit 前端按旧标签匹配选中项会丢失选中（V3.9.1 实测修复）。
+        st.session_state.pop("set_theme_ui", None)
         persist_app_settings()
         st.rerun()  # 立即以新语言重绘（导航、页面标题同步切换）
     if current_lang == FOLLOW_SYSTEM:
@@ -3319,6 +3424,7 @@ def page_general_settings():
     st.markdown(f'<div class="section-title">{t("set.theme.section")}</div>', unsafe_allow_html=True)
     theme_keys = ["system", "light", "dark"]
     current_theme = st.session_state.get("theme", "system")
+    st.session_state.setdefault("set_theme_ui", current_theme)
     theme_choice = st.radio(t("set.theme"), theme_keys,
                             format_func=lambda k: t(f"theme.{k}"),
                             index=theme_keys.index(current_theme) if current_theme in theme_keys else 0,
@@ -3327,6 +3433,21 @@ def page_general_settings():
         st.session_state["theme"] = theme_choice
         persist_app_settings()
         st.rerun()
+
+    # ---------- 字号大小（V3.9.1：个人偏好，standard / large） ----------
+    st.divider()
+    current_scale = st.session_state.get("ui_font_scale", "standard")
+    st.session_state.setdefault("set_font_scale_ui", current_scale)
+    scale_choice = st.segmented_control(
+        t("set.font_scale"), ["standard", "large"],
+        format_func=lambda c: t(f"fontscale.{c}"),
+        default=current_scale if current_scale in ("standard", "large") else "standard",
+        key="set_font_scale_ui",
+    )
+    if scale_choice and scale_choice != current_scale:
+        st.session_state["ui_font_scale"] = scale_choice
+        persist_app_settings()
+        st.rerun()  # 立即以新字号重绘
 
 
 # ---------------------------------------------------------------- 页面 5：检索设置
@@ -3578,25 +3699,30 @@ with st.sidebar:
             """,
             unsafe_allow_html=True,
         )
-    # V3.7.2 用户信息卡：紧跟 Logo 下方一行（姓名/部门 + @账户 + 职责备注）
+    # V3.7.2 用户信息卡：紧跟 Logo 下方。第一行 @账户/真实姓名；第二行 部门标签 · 职责备注
     _top_user = st.session_state.get("auth_user") or {}
     if _top_user:
-        _display_name = str(_top_user.get("real_name") or _top_user.get("username") or "")
-        _dep_label = str(_top_user.get("department") or "")
+        _username = html.escape(str(_top_user.get("username") or ""))
+        _real = str(_top_user.get("real_name") or "").strip()
+        # V3.9.1：账户名与真实姓名合并为一行「@user/姓名」，卡片更紧凑
+        _name_line = f"@{_username}" + (f"/{html.escape(_real)}" if _real else "")
         _role_label = ""
-        _avatar_char = html.escape((_display_name or "·")[:1])
-        _note_line = (f'<div class="u-note">{html.escape(str(_top_user.get("note") or ""))}</div>'
-                      if _top_user.get("note") else "")
+        _avatar_char = html.escape((_real or _top_user.get("username") or "·")[:1])
+        _dep = str(_top_user.get("department") or "").strip()
+        _note = str(_top_user.get("note") or "").strip()
+        _meta_parts = []
+        if _dep:
+            _meta_parts.append(f'<span class="u-dept">{html.escape(_dep)}</span>')
+        if _note:
+            _meta_parts.append(html.escape(_note))
+        _meta_line = ('<div class="u-sub">' + ' · '.join(_meta_parts) + '</div>') if _meta_parts else ''
         with st.container(key="sidebar_userinfo"):
             st.markdown(
                 f'<div class="user-card">'
                 f'<div class="avatar">{_avatar_char}</div>'
                 f'<div style="min-width:0;">'
-                f'<div class="u-name">{html.escape(_display_name)}'
-                f'<span class="u-dept">{html.escape(str(_top_user.get("department") or ""))}</span>'
-                f'{_role_label}</div>'
-                f'<div class="u-sub">@{html.escape(str(_top_user.get("username") or ""))}</div>'
-                f'{_note_line}'
+                f'<div class="u-name">{_name_line}</div>'
+                f'{_meta_line}'
                 f'</div></div>',
                 unsafe_allow_html=True,
             )
@@ -3748,9 +3874,13 @@ def page_domains():
     DOMAIN_COLS = [2.3, 1.05, 1.35, 0.85, 0.85, 0.85]
     with st.container(key="dom_list_head"):
         head = st.columns(DOMAIN_COLS)
-        for col, key in zip(head, ("dommgr.col.domain", "dommgr.col.status", "dommgr.col.stat",
-                                   "dommgr.col.edit", "dommgr.col.toggle", "dommgr.col.delete")):
-            col.markdown(f"**{t(key)}**")
+        # V3.9.1：后三列与数据行的全宽按钮一致居中（按钮文字在列内居中，表头左对齐会错位约 45px）
+        for i, (col, key) in enumerate(zip(head, ("dommgr.col.domain", "dommgr.col.status", "dommgr.col.stat",
+                                                  "dommgr.col.edit", "dommgr.col.toggle", "dommgr.col.delete"))):
+            if i >= 3:
+                col.markdown(f'<div style="text-align:center;font-weight:700">{t(key)}</div>', unsafe_allow_html=True)
+            else:
+                col.markdown(f"**{t(key)}**")
     for d in domain_reg.load_domains():
         code = d["code"]
         stat = usage.get(code) or {}
@@ -3858,7 +3988,10 @@ def page_profile():
     with st.container(border=True):
         st.markdown(f'<div class="section-title">{t("profile.perms.title")}</div>',
                     unsafe_allow_html=True)
-        assigned = [p for p in (user.get("permissions") or []) if p in _PROFILE_PERM_LABELS]
+        # maintenance/plugins 人人固有（导航放行），已分配组不重复展示；
+        # 这两项权限的价值在于解锁页内增强功能（知识库维护区 / 安装卸载）
+        assigned = [p for p in (user.get("permissions") or [])
+                    if p in _PROFILE_PERM_LABELS and p not in ("maintenance", "plugins")]
 
         def _perm_pills(label_keys):
             chips = [f'<span class="pill">{t(k)}</span>' for k in label_keys]
@@ -3911,7 +4044,13 @@ def page_profile():
             nt = st.text_input(t("profile.note"), value=user.get("note") or "",
                                max_chars=200)
             if st.form_submit_button(t("profile.edit.btn"), type="primary", width="stretch"):
-                data, err = auth_client.update_self_profile(username, rn.strip(), nt.strip())
+                # 凭证边界：转发浏览器 front_auth 登录态，后台校验 username 与之一致
+                try:
+                    front_cookie = st.context.cookies.get("front_auth", "")
+                except Exception:
+                    front_cookie = ""
+                data, err = auth_client.update_self_profile(
+                    username, rn.strip(), nt.strip(), session_cookie=front_cookie)
                 if err:
                     st.error(err)
                 else:
@@ -3920,6 +4059,95 @@ def page_profile():
                     st.session_state["auth_user"] = _au
                     st.toast(t("profile.edit.ok"), icon="✅")
                     st.rerun()
+
+
+# ---------------------------------------------------------------- 页面：历史会话（V3.9.1 自侧边栏迁入）
+HISTORY_PAGE_SIZE = 10
+
+
+def _history_prev_page():
+    st.session_state["history_page"] = max(1, st.session_state.get("history_page", 1) - 1)
+
+
+def _history_next_page():
+    st.session_state["history_page"] = st.session_state.get("history_page", 1) + 1  # 渲染时钳制上界
+
+
+def page_history():
+    """历史会话：查看/打开/删除自己的问答会话（人人可用，无权限门槛），带分页。"""
+    _au = st.session_state.get("auth_user") or {}
+    username = str(_au.get("username") or "")
+    if not username:
+        st.warning(t("auth.api.down"))
+        st.stop()
+    total = count_sessions(username or None)
+    total_pages = max(1, -(-total // HISTORY_PAGE_SIZE))
+    page = min(max(1, st.session_state.get("history_page", 1)), total_pages)
+    st.session_state["history_page"] = page  # 钳制回写：总页数收缩后旧页码不再吞点击
+    sessions, total = list_sessions_page(page, HISTORY_PAGE_SIZE, username or None)
+    st.markdown(f'<div class="section-title">🕘 {t("nav.history")}</div>', unsafe_allow_html=True)
+    st.caption(t("sidebar.history", n=total))
+
+    with st.container(border=True, key="history_section"):
+        head = st.columns([3.2, 1])
+        head[0].markdown(f'<div class="section-title">🕘 {t("nav.history")}</div>',
+                         unsafe_allow_html=True)
+        # V3.9.1：一键清空自己的全部历史会话（仅本人；删除前二次确认）
+        if head[1].button(t("history.clear.btn"), key="history_clear_btn",
+                          help=t("history.clear.help"), icon=":material/mop:",
+                          type="tertiary", width="stretch"):
+            st.session_state["history_clear_request"] = True
+            st.rerun()
+        if sessions:
+            for s in sessions:
+                title = s["title"].strip() or t("sidebar.untitled")
+                # 当前正在聊的会话加标记，方便区分"继续聊"和"翻旧会话"
+                is_current = s["session_id"] == st.session_state.get("session_id")
+                label = ("▶ " + title[:30]) if is_current else title[:32]
+                updated = s["updated_at"]
+                when = updated[5:16] if len(updated) >= 16 else updated
+                item = st.columns([3.4, 1])
+                with item[0]:
+                    st.page_link(
+                        chat_page,
+                        label=label,
+                        query_params={"load": s["session_id"]},
+                        width="stretch",
+                    )
+                    st.caption(f"{when}　·　" + t("sidebar.msg_count", n=s["count"]))
+
+                def _request_del_cb(sid=s["session_id"], session_title=title):
+                    st.session_state["delete_session_request"] = {
+                        "session_id": sid,
+                        "title": session_title,
+                    }
+                item[1].button(
+                    t("sidebar.delete"),
+                    key=f"del_{s['session_id']}",
+                    on_click=_request_del_cb,
+                    help=t("sidebar.delete.help", title=title),
+                    icon=":material/delete:",
+                    type="tertiary",
+                    width="stretch",
+                )
+        else:
+            st.markdown(
+                '<div style="text-align:center;font-size:.78rem;color:var(--text-muted);padding:14px 6px;line-height:1.7;">'
+                f'{t("sidebar.empty").replace("<br/>", "<br>")}</div>', unsafe_allow_html=True)
+
+    # 分页：上一页 / 页码提示 / 下一页（总数变化时页码自动收敛）
+    if total_pages > 1:
+        nav_cols = st.columns([1, 1, 2, 1, 1])
+        nav_cols[1].button("‹ 上一页", key="history_prev",
+                           disabled=page <= 1, width="stretch",
+                           on_click=_history_prev_page)
+        nav_cols[2].markdown(
+            f'<div style="text-align:center;font-size:.8rem;color:var(--text-secondary);'
+            f'padding-top:6px;">第 {page} / {total_pages} 页 · 共 {total} 条</div>',
+            unsafe_allow_html=True)
+        nav_cols[3].button("下一页 ›", key="history_next",
+                           disabled=page >= total_pages, width="stretch",
+                           on_click=_history_next_page)
 
 
 # ---------------------------------------------------------------- 页面 10：学习笔记
@@ -3954,6 +4182,7 @@ _user_perms = set(_auth_user.get("permissions") or [])
 
 chat_page = st.Page(page_chat, title=t("nav.chat"), icon="💬", url_path="chat", default=True)
 profile_page = st.Page(page_profile, title=t("nav.profile"), icon="👤", url_path="profile")
+history_page = st.Page(page_history, title=t("nav.history"), icon="🕘", url_path="history")
 upload_page = st.Page(page_upload, title=t("nav.upload"), icon="📤", url_path="upload")
 manage_page = st.Page(page_manage, title=t("nav.manage"), icon="🗂", url_path="manage")
 domains_page = st.Page(page_domains, title=t("nav.domains"), icon="🧭", url_path="domains")
@@ -3983,62 +4212,16 @@ if "retrieval_settings" in _user_perms:
 # 维护操作页人人可达（页内"知识库维护"区块按权限显隐；缓存管理是个人功能）
 settings_pages.append(maintenance_page)
 settings_pages.extend([status_page, params_page])
+# V3.9.1：个人中心组置于「设置」上方（账户/历史会话/学习资料一站式入口）
+employee_nav[t("nav.group.profile")] = [profile_page, history_page, learning_page]
 employee_nav[t("nav.group.settings")] = settings_pages
-# V3.9.1：个人中心放在「设置」组下方（人人可用，无权限门槛）
-employee_nav[t("nav.group.profile")] = [profile_page]
-employee_nav[t("nav.group.learn")] = [learning_page]
 employee_nav[t("nav.group.plugins")] = [plugins_page]
 pg = st.navigation(employee_nav)
 
 pg.run()
 
 with st.sidebar:
-    with st.container(key="sidebar_footer"):
-        _sidebar_user = st.session_state.get("auth_user") or {}
-        sessions = list_sessions(10,
-                                 username=str(_sidebar_user.get("username") or "") or None)
-        keep_history_expanded = st.session_state.pop("keep_history_expanded_once", False)
-        with st.expander(
-            t("sidebar.history", n=len(sessions)),
-            expanded=keep_history_expanded,
-        ):
-            if sessions:
-                for s in sessions:
-                    with st.container(key=f"session_item_{s['session_id']}"):
-                        title = s["title"].strip() or t("sidebar.untitled")
-                        # 当前正在聊的会话加标记，方便区分"继续聊"和"翻旧会话"
-                        is_current = s["session_id"] == st.session_state.get("session_id")
-                        label = ("▶ " + title[:22]) if is_current else title[:24]
-                        with st.container(key=f"hs_{s['session_id']}"):
-                            st.page_link(
-                                chat_page,
-                                label=label,
-                                query_params={"load": s["session_id"]},
-                                width="stretch",
-                            )
-                        def _request_del_cb(sid=s["session_id"], session_title=title):
-                            st.session_state["delete_session_request"] = {
-                                "session_id": sid,
-                                "title": session_title,
-                            }
-                        st.button(
-                            t("sidebar.delete"),
-                            key=f"del_{s['session_id']}",
-                            on_click=_request_del_cb,
-                            help=t("sidebar.delete.help", title=title),
-                            icon=":material/delete:",
-                            type="tertiary",
-                        )
-                        updated = s["updated_at"]
-                        when = updated[5:16] if len(updated) >= 16 else updated
-                        st.caption(f"{when}　·　" + t("sidebar.msg_count", n=s["count"]))
-            else:
-                st.markdown(
-                    '<div style="text-align:center;font-size:.72rem;color:var(--text-muted);padding:18px 6px;line-height:1.7;">'
-                    f'{t("sidebar.empty")}</div>', unsafe_allow_html=True)
-
-        # V3.9.1：侧边栏底部的系统状态卡已按用户要求移除（MCP 探测开销随之省去）；
-        # 完整服务状态仍在「设置 → 系统状态」页查看。
+    # V3.9.1：历史会话已迁入「个人中心」页；系统状态卡已移除（完整状态在设置 → 系统状态）。
 
     # V3.7.2 登出按钮：独立容器吸附侧边栏最底部（sticky 钉底），
     # 点击后弹确认框（confirm_logout），确认才真正退出
@@ -4051,6 +4234,8 @@ with st.sidebar:
 
 if st.session_state.get("delete_session_request"):
     confirm_session_delete()
+elif st.session_state.pop("history_clear_request", None):
+    confirm_history_clear()
 elif st.session_state.get("manage_remove_request"):
     confirm_manage_remove()
 elif st.session_state.get("logout_request"):

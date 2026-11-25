@@ -42,6 +42,10 @@ _JS = """
 export default function(component) {
   const { data } = component;
   const map = data.map || {};
+  // 单例守卫：Streamlit 每次 rerun 都会重新调用本函数，旧观察器不清理会随
+  // 交互次数线性累积（每次 DOM 变化都重复扫描）。en（空映射）无需监听，直接断开。
+  if (globalThis.skyFormHintObserver) globalThis.skyFormHintObserver.disconnect();
+  if (!Object.keys(map).length) return;
   const translate = (root) => {
     if (!root || !root.querySelectorAll) return;
     const nodes = root.matches && root.matches('[data-testid="InputInstructions"]')
@@ -50,7 +54,7 @@ export default function(component) {
       const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
       let n = walker.nextNode();
       while (n) {
-        if (map[n.textContent]) n.textContent = map[n.textContent];
+        if (Object.prototype.hasOwnProperty.call(map, n.textContent)) n.textContent = map[n.textContent];
         n = walker.nextNode();
       }
     }
@@ -61,6 +65,7 @@ export default function(component) {
     if (!scheduled) { scheduled = true; setTimeout(scan, 60); }
   });
   observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  globalThis.skyFormHintObserver = observer;
   scan();
 }
 """

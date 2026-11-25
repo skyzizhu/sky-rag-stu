@@ -199,14 +199,20 @@ def delete_session(session_id: str, username: str | None = None) -> bool:
 
 
 def list_sessions(limit: int = 50, username: str | None = None,
-                  is_admin: bool = False) -> list[dict]:
-    """列出会话（按更新时间倒序）：[{session_id, title, updated_at, date, count}]。
+                  is_admin: bool = False, offset: int = 0) -> list[dict]:
+    """列出会话（按会话文件≈创建时间倒序）：[{session_id, title, updated_at, date, count}]。
 
     username=None 仅列出无归属的个人记录，不能列出其他用户的记录。
     传入用户名只显示该用户的会话；is_admin 只额外允许列出无归属的旧记录。
+    offset：跳过前 N 条有效记录（历史会话页分页用），与 limit 组合成翻页窗口。
+    分页基于稳定的创建序——会话续聊更新 updated_at 不会导致翻页漂移；
+    updated_at 仅用于条目展示。
     """
+    if limit <= 0:
+        return []
     out = []
     seen = set()
+    skipped = 0
     directory = _user_directory(username)
     if not SESSIONS_DIR.exists():
         return out
@@ -231,6 +237,9 @@ def list_sessions(limit: int = 50, username: str | None = None,
         if not _SESSION_ID_RE.fullmatch(sid or '') or sid != path.stem or sid in seen:
             continue
         seen.add(sid)
+        if skipped < max(0, offset):  # 分页窗口之外的先跳过（去重在跳过前完成）
+            skipped += 1
+            continue
         out.append({
             "session_id": sid,
             "title": data.get("title", "未命名会话"),
@@ -241,6 +250,103 @@ def list_sessions(limit: int = 50, username: str | None = None,
         if len(out) >= limit:
             break
     return out
+
+
+def count_sessions(username: str | None = None, is_admin: bool = False) -> int:
+    """有效会话总数（与 list_sessions 同一过滤/去重规则，供历史会话页分页计算页数）。"""
+    seen = set()
+    directory = _user_directory(username)
+    if not SESSIONS_DIR.exists():
+        return 0
+    paths = list(SESSIONS_DIR.glob(f'????????/{directory}/*.json'))
+    if is_admin and directory != 'anonymous':
+        paths.extend(SESSIONS_DIR.glob('????????/anonymous/*.json'))
+    count = 0
+    for path in sorted(paths, reverse=True):
+        if path.suffix != ".json" or path.stem.endswith(".tmp"):
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        owner = data.get("username") or ""
+        if not _owner_matches(data, username, path, directory) and not (
+            is_admin and not owner and _owner_matches(data, None, path, 'anonymous')
+        ):
+            continue
+        sid = data.get("session_id", path.stem)
+        if not _SESSION_ID_RE.fullmatch(sid or '') or sid != path.stem or sid in seen:
+            continue
+        seen.add(sid)
+        count += 1
+    return count
+
+
+def delete_all_sessions(username: str | None = None) -> int:
+    """删除该用户的全部会话文件，返回成功删除的数量。
+
+    逐个经 delete_session 删除：文件锁与归属校验全程生效，绝不触碰他人会话；
+    损坏/临时文件自然跳过。
+    """
+    removed = 0
+    for s in list_sessions(limit=1000000, username=username):
+        if delete_session(s["session_id"], username=username):
+            removed += 1
+    return removed
+
+
+def list_sessions_page(page: int = 1, size: int = 10,
+                       username: str | None = None,
+                       is_admin: bool = False) -> tuple[list[dict], int]:
+    """历史会话页专用：一次扫描同时返回 (页内条目, 过滤后总数)。
+
+    与 list_sessions/count_sessions 同一过滤、去重与排序规则；相比
+    「count 一次 + list 一次」省一半的会话文件解析开销。
+    """
+    target_page = max(1, page)
+    size = max(1, size)
+    items, total = [], 0
+    seen = set()
+    skipped = 0
+    directory = _user_directory(username)
+    if not SESSIONS_DIR.exists():
+        return items, total
+    paths = list(SESSIONS_DIR.glob(f'????????/{directory}/*.json'))
+    if is_admin and directory != 'anonymous':
+        paths.extend(SESSIONS_DIR.glob('????????/anonymous/*.json'))
+    for path in sorted(paths, reverse=True):
+        if path.suffix != ".json" or path.stem.endswith(".tmp"):
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        owner = data.get("username") or ""
+        if not _owner_matches(data, username, path, directory) and not (
+            is_admin and not owner and _owner_matches(data, None, path, 'anonymous')
+        ):
+            continue
+        sid = data.get("session_id", path.stem)
+        if not _SESSION_ID_RE.fullmatch(sid or '') or sid != path.stem or sid in seen:
+            continue
+        seen.add(sid)
+        total += 1
+        if skipped < (target_page - 1) * size:
+            skipped += 1
+            continue
+        if len(items) < size:
+            items.append({
+                "session_id": sid,
+                "title": data.get("title", "未命名会话"),
+                "updated_at": data.get("updated_at", ""),
+                "date": sid[:8],
+                "count": len(data.get("messages", [])),
+            })
+    return items, total
 
 
 def new_session_id() -> str:

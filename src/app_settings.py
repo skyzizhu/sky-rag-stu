@@ -28,6 +28,7 @@ SETTINGS_KEYS = [
     "answer_eval",
     "theme",
     "language",
+    "ui_font_scale",
     "installed_plugins",
     # 模型单价（元 / 百万 tokens，B16.1 费用估算用；默认 DeepSeek 官方价，可按服务商价目表改）
     "llm_price_input",
@@ -101,12 +102,19 @@ def _normalize_choices(settings: dict) -> dict:
         settings.pop("theme")
     if settings.get("language") not in (None, "system", "zh-CN", "zh-TW", "en", "ja"):
         settings.pop("language")
+    # 字号档位白名单（V3.9.1：个人偏好，standard / large）
+    if settings.get("ui_font_scale") not in (None, "standard", "large"):
+        settings.pop("ui_font_scale")
     # 插件清单：必须是字符串列表
     plugins = settings.get("installed_plugins")
     if plugins is not None and (not isinstance(plugins, list)
                                 or not all(isinstance(x, str) for x in plugins)):
         settings.pop("installed_plugins")
     return settings
+
+
+# 公开别名：偏好套用（app._apply_user_prefs）复用同一份白名单校验
+normalize_choices = _normalize_choices
 
 
 def load_app_settings() -> dict:

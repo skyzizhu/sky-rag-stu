@@ -719,7 +719,7 @@ function dashboardIngestion(stats, period) {
     {name: '失败', count: stats.failed, color: '#c44855'},
     {name: '未完成', count: stats.running, color: '#be7919'},
   ] : [];
-  return `<div class="card"><h3>入库与检索统计</h3>
+  return `<div class="card"><h3>入库统计</h3>
     <div class="dash-subtitle">${esc(period.start)} 至 ${esc(period.end)}${stats ? ` · ${dashNum(stats.batches)} 个入库批次` : ''}</div>
     <div class="dash-pie-tools"><select aria-label="工作台统计范围" onchange="dashboardChangeDays(this.value)">
       ${[7, 30, 90].map(n => `<option value="${n}" ${n === dashboardDays ? 'selected' : ''}>最近 ${n} 天</option>`).join('')}

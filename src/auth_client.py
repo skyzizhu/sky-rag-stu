@@ -152,9 +152,11 @@ def change_password(username: str, old_password: str, new_password: str,
         **browser_context()})
 
 
-def update_self_profile(username: str, real_name: str, note: str) -> tuple[dict | None, str]:
+def update_self_profile(username: str, real_name: str, note: str,
+                        session_cookie: str = "") -> tuple[dict | None, str]:
     return _post_json("/auth/profile", {
         "username": username, "real_name": real_name, "note": note,
+        "front_auth": session_cookie,
         **browser_context()})
 
 
