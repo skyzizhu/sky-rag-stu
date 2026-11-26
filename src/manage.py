@@ -158,8 +158,70 @@ def revoke_document_user(username: str) -> int:
     return len(changed_documents)
 
 
+def _legacy_unassigned_bucket(relative_path: str) -> tuple[str, str] | None:
+    """V3.9.2：旧未关联桶 <领域>/(public|public-unassigned)/<…> → (领域, 余下层级)。
+
+    新约定 basic_knowledge、项目目录、归档路径均返回 None（不搬迁）。"""
+    parts = relative_path.split("/")
+    if len(parts) >= 3 and parts[0] != "archive" and parts[1] in ("public", "public-unassigned"):
+        return parts[0], "/".join(parts[2:])
+    return None
+
+
+def _relocate_legacy_unassigned_file(relative_path: str, username: str) -> str:
+    """重新入库前搬迁：旧桶文件移入 basic_knowledge/<操作者>/（移动=新文档）。
+
+    旧路径的台账与向量同步清除；生效权限（含 内部/受限）作为人工覆盖随迁到
+    新路径，杜绝搬迁后权限意外变宽；其余人工覆盖（标题/类型等）同样随迁。"""
+    from src.project_directories import preview_directory
+
+    domain, rest = _legacy_unassigned_bucket(relative_path)
+    cfg = get_config()
+    target_dir = preview_directory(cfg.knowledge_dir, domain, None, username=username)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    source = cfg.knowledge_dir / relative_path
+    dest = target_dir / Path(rest).name
+    stem, suffix = dest.stem, dest.suffix
+    attempt = 1
+    while dest.exists():
+        dest = target_dir / f"{stem}-{attempt}{suffix}"
+        attempt += 1
+    shutil.move(str(source), str(dest))
+    new_rel = dest.relative_to(cfg.knowledge_dir).as_posix()
+
+    from src import index_state as istate
+    state = istate.load_state(strict=True)
+    old_entry = state.get(relative_path) or {}
+    overrides = dict(old_entry.get("overrides") or {})
+    store = get_vector_store()
+    acl = (_visibility_snapshot(state, relative_path, store).get("value")
+           or _visibility_snapshot(state, relative_path, store).get("manual") or {})
+    if acl.get("allowed_groups") is not None:
+        overrides["allowed_groups"] = acl["allowed_groups"]
+    if acl.get("allowed_users"):
+        overrides["allowed_users"] = acl["allowed_users"]
+    if overrides:
+        merged_entry = dict(state.get(new_rel) or {})
+        merged_entry["overrides"] = overrides
+        state[new_rel] = merged_entry
+        istate.save_state(state, strict=True)
+    remove_documents([relative_path], delete_files=False)
+    return new_rel
+
+
 def reingest(relative_path: str, owner: str | None = None) -> dict:
-    """重新解析并入库单个文件（文件修改后手动刷新用）。owner：操作者（审计/溯源）。"""
+    """重新解析并入库单个文件（文件修改后手动刷新用）。owner：操作者（审计/溯源）。
+
+    V3.9.2：旧未关联桶（<领域>/public[/…-unassigned]）的文件重新入库时，先搬迁到
+    basic_knowledge/<操作者>/ 再入库——移动=新文档：doc_id/版本重置，旧路径的台账
+    与向量同步清除；生效权限作为人工覆盖随迁，避免搬迁后权限意外变宽。"""
+    relocated_from = _legacy_unassigned_bucket(relative_path)
+    if relocated_from:
+        new_rel = _relocate_legacy_unassigned_file(relative_path, owner or "")
+        inner = reingest(new_rel, owner=owner)
+        return {"message": (f"已按新目录规则搬迁并重新入库：{relative_path} → {new_rel}"
+                            f"（{inner['summary'].total_chunks} 张卡片）"),
+                "relocated_to": new_rel, "summary": inner["summary"]}
     path, _, cfg = _resolve(relative_path)
     summary = ingest_files(paths=[path], owner=owner)
     if summary.ok_files == 0:
