@@ -1,0 +1,287 @@
+  163  st.write        DYNAMIC  dialog.delete_session.text | title
+  164  st.caption      DYNAMIC  dialog.delete_session.caption
+  197  st.write        DYNAMIC  history.clear.confirm.msg
+  217  st.write        DYNAMIC  auth.logout.confirm.msg
+ 1153  st.error        DYNAMIC  perm.denied
+ 1204  st.selectbox    DYNAMIC  common.project
+ 1304  st.caption      DYNAMIC  visibility.employees.help
+ 1341  st.caption      DYNAMIC  visibility.employees.selected
+ 1368  st.radio        DYNAMIC  visibility.level
+ 1404  st.write        DYNAMIC  , 
+ 1592  st.markdown     DYNAMIC  auth.title | auth.subtitle
+ 2194  st.markdown     DYNAMIC  upload.title
+ 2846  st.markdown     DYNAMIC  upload.dir_status
+ 2873  st.markdown     DYNAMIC  manage.title
+ 2874  st.caption      DYNAMIC  manage.caption
+ 3086  st.caption      DYNAMIC  manage.page_stats
+ 3381  st.markdown     DYNAMIC  manage.cards.title
+ 3394  st.markdown     DYNAMIC  set.general.title
+ 3395  st.caption      DYNAMIC  set.general.caption
+ 3424  st.markdown     DYNAMIC  set.theme.section
+ 3428  st.radio        DYNAMIC  set.theme
+ 3456  st.markdown     DYNAMIC  set.retrieval.title
+ 3457  st.caption      DYNAMIC  set.retrieval.caption
+ 3468  st.radio        DYNAMIC  set.scope
+ 3477  st.markdown     DYNAMIC  set.enhance.title
+ 3478  st.toggle       DYNAMIC  set.qu
+ 3482  st.toggle       DYNAMIC  set.hybrid
+ 3486  st.toggle       DYNAMIC  set.rerank
+ 3490  st.toggle       DYNAMIC  set.eval
+ 3494  st.toggle       DYNAMIC  set.debug
+ 3502  st.markdown     DYNAMIC  set.model.title
+ 3503  st.caption      DYNAMIC  set.model.caption
+ 3505  st.markdown     DYNAMIC  set.model.current
+ 3511  st.markdown     DYNAMIC  set.price.title
+ 3512  st.caption      DYNAMIC  set.price.caption
+ 3526  st.markdown     DYNAMIC  maint.title
+ 3527  st.caption      DYNAMIC  maint.caption
+ 3568  st.markdown     DYNAMIC  maint.cache
+ 3592  st.markdown     DYNAMIC  statuspage.title
+ 3597  st.button       DYNAMIC  statuspage.rerun
+ 3600  st.caption      DYNAMIC  statuspage.caption
+ 3605  st.markdown     DYNAMIC  params.title
+ 3606  st.subheader    DYNAMIC  params.group.general
+ 3636  st.subheader    DYNAMIC  params.group.mcp
+ 3645  st.caption      DYNAMIC  params.mcp.caption
+ 3647  st.subheader    DYNAMIC  params.group.enumeration
+ 3660  st.caption      DYNAMIC  params.enumeration.caption
+ 3662  st.subheader    DYNAMIC  params.group.processing
+ 3671  st.caption      DYNAMIC  params.processing.caption
+ 3672  st.subheader    DYNAMIC  params.group.conversation
+ 3677  st.caption      DYNAMIC  params.conversation.caption
+ 3678  st.caption      DYNAMIC  params.caption
+ 3732  st.markdown     DYNAMIC  plugin.title
+ 3763  st.caption      DYNAMIC  plugin.footer
+ 3773  st.write        DYNAMIC  dommgr.delete.confirm.msg
+ 3830  st.caption      DYNAMIC  　·　 | dommgr.field.code | dommgr.field.code.help
+ 3858  st.markdown     DYNAMIC  dommgr.title
+ 3859  st.caption      DYNAMIC  dommgr.caption
+ 3864  st.button       DYNAMIC  dommgr.add.title
+ 3968  st.markdown     DYNAMIC  profile.title
+ 3969  st.caption      DYNAMIC  profile.caption
+ 4088  st.markdown     DYNAMIC  nav.history
+ 4089  st.caption      DYNAMIC  sidebar.history
+ 4155  st.markdown     DYNAMIC  learn.title
+ 4156  st.caption      DYNAMIC  learn.caption
+  211  st.toast        DYNAMIC  history.clear.ok
+  247  st.warning      DYNAMIC  services.vector_unavailable
+  249  st.error        DYNAMIC  
+  275  st.error        DYNAMIC  perm.denied
+  281  st.error        DYNAMIC  dialog.remove.disk
+  282  st.caption      DYNAMIC  dialog.remove.disk.caption
+  285  st.info         DYNAMIC  dialog.remove.index
+  286  st.caption      DYNAMIC  dialog.remove.index.caption
+  369  st.warning      DYNAMIC  chat.session_unavailable
+ 1162  st.error        DYNAMIC  perm.denied
+ 1213  st.caption      DYNAMIC  project.direction
+ 1339  st.info         DYNAMIC  visibility.employees.no_matches
+ 1372  st.caption      DYNAMIC  visibility.public.hint
+ 1384  st.multiselect  DYNAMIC  visibility.departments
+ 1395  st.button       DYNAMIC  visibility.employees.choose
+ 1519  st.caption      DYNAMIC  auth.persist.note
+ 1590  st.error        DYNAMIC  auth.api.down
+ 1703  st.markdown     DYNAMIC  ** | ** | eval.signals.title
+ 1765  st.markdown     DYNAMIC  ** | ** | eval.cost.title
+ 1767  st.markdown     DYNAMIC  eval.cost.total | calls | input | input_cached | output
+ 1799  st.caption      DYNAMIC  chat.context.status | recent_messages | recalled_indices | chat.context.summary. | summary_status | not_needed
+ 1814  st.caption      DYNAMIC  sources.metadata_scope
+ 1816  st.caption      DYNAMIC  sources.coverage.range | matched_documents | processed_documents | candidate_documents
+ 1825  st.caption      DYNAMIC  sources.processing | items | valid_batches | rounds
+ 1828  st.caption      DYNAMIC  sources.processing.stop | stop_reason | processing_error
+ 1946  st.warning      DYNAMIC  chat.save_conflict
+ 1985  st.markdown     DYNAMIC  chat.hero.title | chat.hero.sub
+ 2184  st.chat_input   DYNAMIC  chat.input
+ 2238  st.file_uploader DYNAMIC  upload.dropzone
+ 2242  st.button       DYNAMIC  upload.start
+ 2300  st.markdown     DYNAMIC  dir.title
+ 2301  st.caption      DYNAMIC  dir.caption
+ 2406  st.button       DYNAMIC  dir.start
+ 2565  st.info         DYNAMIC  ingest.nothing_changed
+ 2615  st.markdown     DYNAMIC  ** | ** | upload.conflict.title
+ 2793  st.info         DYNAMIC  dir.copied
+ 2817  st.success      DYNAMIC  ingest.done | .1f
+ 2825  st.caption      DYNAMIC  ingest.breakdown
+ 2854  st.markdown     DYNAMIC  blue |  · 
+ 2866  st.info         DYNAMIC  upload.dir_missing
+ 2881  st.caption      DYNAMIC  manage.sum.caption
+ 2882  st.text_input   DYNAMIC  manage.sum.topic
+ 2888  st.button       DYNAMIC  manage.sum.button
+ 2920  st.info         DYNAMIC  manage.empty
+ 3023  st.info         DYNAMIC  manage.no_match
+ 3196  st.info         DYNAMIC  manage.multi_note
+ 3220  st.caption      DYNAMIC  manage.detail.cards | document_id | chunks
+ 3221  st.caption      DYNAMIC  version.detail | document_version | version.empty | manual | version.manual | document_version_source | document_version_source
+ 3224  st.caption      DYNAMIC  version.revision_note
+ 3272  st.text_input   DYNAMIC  common.doc_type
+ 3290  st.selectbox    DYNAMIC  common.department
+ 3311  st.selectbox    DYNAMIC  common.project
+ 3329  st.markdown     DYNAMIC  ** | ** | visibility.edit.title
+ 3349  st.text_input   DYNAMIC  manage.edit.title.label
+ 3352  st.text_input   DYNAMIC  manage.edit.topic
+ 3354  st.text_input   DYNAMIC  manage.edit.version
+ 3357  st.text_input   DYNAMIC  version.col.declared
+ 3359  st.checkbox     DYNAMIC  version.confirm
+ 3361  st.button       DYNAMIC  manage.edit.save
+ 3417  st.caption      DYNAMIC  　·　🌐  |  →  | set.language.caption | lang.system
+ 3419  st.caption      DYNAMIC  set.language.caption
+ 3508  st.caption      DYNAMIC  set.model.local_note
+ 3518  st.number_input DYNAMIC  
+ 3536  st.markdown     DYNAMIC  maint.kb
+ 3537  st.checkbox     DYNAMIC  maint.confirm
+ 3576  st.button       DYNAMIC  maint.cache.clear
+ 3583  st.metric       DYNAMIC  maint.cache.mine
+ 3584  st.button       DYNAMIC  maint.cache.mine.clear
+ 3595  st.markdown     DYNAMIC   **
+ 3692  st.markdown     DYNAMIC  
+            <div class="brand-block">
+              <img class="brand-logo" src=" | brand.slogan
+ 3788  st.toast        DYNAMIC  dommgr.delete.ok
+ 3800  st.text_input   DYNAMIC  dommgr.field.desc
+ 3832  st.text_input   DYNAMIC  dommgr.field.name
+ 3836  st.text_input   DYNAMIC  dommgr.field.desc
+ 3928  st.markdown     DYNAMIC  dommgr.unreg.title
+ 3929  st.caption      DYNAMIC  dommgr.unreg.caption
+ 3965  st.warning      DYNAMIC  auth.api.down
+ 3973  st.markdown     DYNAMIC  profile.info.title
+ 3989  st.markdown     DYNAMIC  profile.perms.title
+ 4001  st.caption      DYNAMIC  profile.perms.inherent
+ 4004  st.caption      DYNAMIC  profile.perms.assigned
+ 4014  st.markdown     DYNAMIC  profile.pw.title
+ 4039  st.markdown     DYNAMIC  profile.edit.title
+ 4081  st.warning      DYNAMIC  auth.api.down
+ 4159  st.markdown     DYNAMIC  utf-8
+ 4161  st.info         DYNAMIC  learn.missing
+ 4174  st.error        DYNAMIC  services.unavailable
+  178  st.error        DYNAMIC  chat.session_unavailable
+  291  st.write        DYNAMIC  • 
+ 1328  st.checkbox     DYNAMIC  
+ 1398  st.caption      DYNAMIC  visibility.employees.selected
+ 1616  st.text_input   DYNAMIC  auth.username
+ 1617  st.text_input   DYNAMIC  auth.password
+ 1633  st.info         DYNAMIC  auth.no_departments
+ 1678  st.markdown     DYNAMIC  eval.overall | eval.band.
+ 1680  st.caption      DYNAMIC  eval.score.formula
+ 1690  st.markdown     DYNAMIC  ** | **　 |  ` | /10`　·　 | score | eval.band.
+ 1700  st.caption      DYNAMIC  eval.failed | error
+ 1790  st.caption      DYNAMIC  eval.cost.estimated
+ 1792  st.caption      DYNAMIC  eval.cost.price_hint
+ 1803  st.caption      DYNAMIC  chat.context.invalidated
+ 1820  st.warning      DYNAMIC  sources.coverage.partial
+ 1831  st.warning      DYNAMIC  sources.processing.fallback
+ 1834  st.write        DYNAMIC  sources.empty
+ 1868  st.markdown     DYNAMIC  
+ 1871  st.markdown     DYNAMIC  
+ 1884  st.caption      DYNAMIC  debug.caption
+ 1979  st.button       DYNAMIC  chat.new_session
+ 2040  st.markdown     DYNAMIC  
+ 2215  st.markdown     DYNAMIC  upload.attribution
+ 2241  st.caption      DYNAMIC  upload.selected | .0f
+ 2338  st.file_uploader DYNAMIC  dir.pick
+ 2384  st.info         DYNAMIC  dir.pick_hint
+ 2400  st.radio        DYNAMIC  dir.exists_mode
+ 2427  st.markdown     DYNAMIC  web.title
+ 2428  st.caption      DYNAMIC  web.caption
+ 2430  st.text_input   DYNAMIC  web.url
+ 2453  st.button       DYNAMIC  web.ingest
+ 2573  st.error        DYNAMIC  
+ 2602  st.error        DYNAMIC  
+ 2619  st.markdown     DYNAMIC  📄 `
+ 2620  st.caption      DYNAMIC  
+ 2630  st.caption      DYNAMIC  upload.conflict.new_files
+ 2686  st.info         DYNAMIC  upload.skipped_dup
+ 2688  st.info         DYNAMIC  ingest.nothing_changed
+ 2780  st.warning      DYNAMIC  dir.no_docs
+ 2790  st.warning      DYNAMIC  dir.copied_none | , 
+ 2820  st.error        DYNAMIC  ingest.fail
+ 2823  st.info         DYNAMIC  ingest.nothing_changed
+ 3226  st.warning      DYNAMIC  version.conflict
+ 3233  st.markdown     DYNAMIC  [( | )]( | manage.detail.origin | url | url
+ 3388  st.markdown     DYNAMIC  
+ 3563  st.success      DYNAMIC  maint.clear_only.done
+ 3579  st.success      DYNAMIC  maint.cache.clear.done
+ 3586  st.success      DYNAMIC  maint.cache.mine.clear.done
+ 3720  st.markdown     DYNAMIC  
+ 3743  st.markdown     DYNAMIC  plugin.desc | description
+ 3744  st.markdown     DYNAMIC  plugin.version | version | module
+ 4008  st.caption      DYNAMIC  profile.perms.none_assigned
+ 4017  st.text_input   DYNAMIC  profile.pw.old
+ 4018  st.text_input   DYNAMIC  profile.pw.new
+ 4019  st.text_input   DYNAMIC  profile.pw.confirm
+ 4020  st.caption      DYNAMIC  profile.pw.note
+ 4042  st.text_input   DYNAMIC  profile.real_name
+ 4044  st.text_input   DYNAMIC  profile.note
+ 4134  st.markdown     DYNAMIC  sidebar.empty
+ 4230  st.button       DYNAMIC  auth.logout
+ 1322  st.button       DYNAMIC  visibility.employees.
+ 1400  st.caption      DYNAMIC  visibility.restricted.required
+ 1529  st.text_input   DYNAMIC  auth.username
+ 1531  st.selectbox    DYNAMIC  auth.department
+ 1536  st.text_input   DYNAMIC  auth.password
+ 1537  st.text_input   DYNAMIC  auth.password.confirm
+ 1636  st.text_input   DYNAMIC  auth.username
+ 1637  st.selectbox    DYNAMIC  auth.department
+ 1641  st.text_input   DYNAMIC  auth.password
+ 1642  st.text_input   DYNAMIC  auth.password.confirm
+ 1697  st.markdown     DYNAMIC  
+ 1822  st.caption      DYNAMIC  sources.coverage.unknown
+ 1886  st.markdown     DYNAMIC  debug.pipeline_hint_body
+ 1907  st.markdown     DYNAMIC  debug.recall_table
+ 2014  st.markdown     DYNAMIC  content
+ 2017  st.markdown     DYNAMIC  content
+ 2048  st.error        DYNAMIC  chat.no_api_key
+ 2375  st.success      DYNAMIC  dir.selected | .1f
+ 2378  st.caption      DYNAMIC  dir.target_hint
+ 2662  st.error        DYNAMIC  
+ 2683  st.error        DYNAMIC  
+ 2736  st.error        DYNAMIC  
+ 2747  st.error        DYNAMIC  
+ 2773  st.error        DYNAMIC  
+ 2862  st.markdown     DYNAMIC  .1f
+ 2916  st.caption      DYNAMIC  manage.sum.sources | source
+ 3232  st.caption      DYNAMIC  manage.col.url | title
+ 3283  st.error        DYNAMIC  
+ 3304  st.error        DYNAMIC  
+ 3324  st.error        DYNAMIC  
+ 3549  st.success      DYNAMIC  maint.rebuild.done
+ 3551  st.error        DYNAMIC  maint.rebuild.fail
+ 3785  st.error        DYNAMIC  
+ 3811  st.toast        DYNAMIC  dommgr.add.ok | code
+ 3847  st.toast        DYNAMIC  dommgr.edit.ok
+ 3902  st.caption      DYNAMIC  dommgr.stat.short | files | cards
+ 1303  st.text_input   DYNAMIC  visibility.employees.search
+ 1540  st.text_input   DYNAMIC  auth.real_name
+ 1542  st.text_input   DYNAMIC  auth.note
+ 1895  st.markdown     DYNAMIC  debug.what | summary
+ 2167  st.error        DYNAMIC  
+ 2174  st.error        DYNAMIC  chat.unexpected
+ 2381  st.error        DYNAMIC  
+ 2480  st.success      DYNAMIC  🎉  | message
+ 2701  st.error        DYNAMIC  
+ 2704  st.error        DYNAMIC  chat.unexpected
+ 2805  st.error        DYNAMIC  
+ 2808  st.error        DYNAMIC  chat.unexpected
+ 3343  st.error        DYNAMIC  
+ 3378  st.error        DYNAMIC  
+ 3556  st.error        DYNAMIC  
+ 3941  st.toast        DYNAMIC  dommgr.unreg.ok | code
+ 4025  st.error        DYNAMIC  profile.pw.mismatch
+ 4060  st.toast        DYNAMIC  profile.edit.ok
+ 1547  st.error        DYNAMIC  auth.no_departments
+ 1647  st.error        DYNAMIC  auth.pwd.mismatch
+ 1894  st.info         DYNAMIC  debug.node_status | status
+ 1898  st.markdown     DYNAMIC  
+ 2482  st.error        DYNAMIC  web.failed
+ 3546  st.error        DYNAMIC  
+ 4027  st.error        DYNAMIC  profile.pw.same_as_old
+ 1549  st.error        DYNAMIC  auth.pwd.mismatch
+ 1649  st.error        DYNAMIC  auth.pwd.short
+ 1903  st.markdown     DYNAMIC  
+ 1905  st.caption      DYNAMIC  debug.empty
+ 2463  st.write        DYNAMIC  web.status.fetch
+ 4029  st.error        DYNAMIC  auth.pwd.short
+ 1551  st.error        DYNAMIC  auth.pwd.short
+ 4035  st.toast        DYNAMIC  profile.pw.ok
+ 1659  st.success      DYNAMIC  auth.register.ok
+ 1563  st.success      DYNAMIC  auth.register.ok
+ 2469  st.write        DYNAMIC  
+---- 共 284 处候选 ----
