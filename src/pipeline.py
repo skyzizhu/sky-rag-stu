@@ -339,6 +339,13 @@ def _ingest_files_impl(
     departments_by_rel: dict[str, dict] = {}
     visibility_by_rel: dict[str, dict] = {}
     llm = get_llm_client() if cfg.auto_tag else None
+    # V3.9.1 doc_type 软约束词表：台账里已登记的非空类型，供自动标签的 LLM
+    # 归类时优先选用（入库人填写值永远优先，词表只兜未分类的文件）。
+    registered_doc_types = sorted({
+        (entry.get("doc_type_info") or {}).get("value", "").strip()
+        for entry in (previous_state or {}).values()
+        if isinstance(entry, dict) and (entry.get("doc_type_info") or {}).get("value", "").strip()
+    })
     registered_directories = managed_directory_names()
     updated_paths = set(summary.updated_files)
     for path, rel, current_hash in processed:
@@ -401,15 +408,29 @@ def _ingest_files_impl(
             else:
                 # 内容未变的强制重入库必须沿用台账版本，不能回落到默认 1.0。
                 parsed.metadata["version"] = prev_version
-        # V3.3 自动打标签：topic/tags 皆空时由 LLM 补全（失败静默跳过，不阻断入库）
-        if cfg.auto_tag and llm and not parsed.metadata["topic"] and not parsed.metadata["tags"]:
+        # V3.3 自动打标签；V3.9.1 同一次 LLM 调用顺带补 doc_type（软约束）：
+        # 人工档案/文件声明/上传默认/目录推断都没给类型（resolve_doc_type 值为空）
+        # 时，才让 LLM 按已登记类型词表归一个最贴切的类型——填写值永远优先，
+        # 绝不覆盖；失败静默跳过，不阻断入库。
+        need_labels = not parsed.metadata["topic"] and not parsed.metadata["tags"]
+        need_doc_type = not parsed.metadata["doc_type"]
+        if cfg.auto_tag and llm and (need_labels or need_doc_type):
             from src.auto_tagger import auto_tag
-            tagged = auto_tag(parsed.text[:800], llm=llm, config=cfg)
-            parsed.metadata["topic"] = tagged["topic"]
-            parsed.metadata["tags"] = tagged["tags"]
-            if tagged["topic"] or tagged["tags"]:
-                console_print(f"   🤖 自动标签 [{rel}]: "
-                              f"topic={parsed.metadata['topic']} tags={parsed.metadata['tags']}")
+            tagged = auto_tag(parsed.text[:800], llm=llm, config=cfg,
+                              doc_type_vocab=registered_doc_types)
+            if need_labels:
+                parsed.metadata["topic"] = tagged["topic"]
+                parsed.metadata["tags"] = tagged["tags"]
+                if tagged["topic"] or tagged["tags"]:
+                    console_print(f"   🤖 自动标签 [{rel}]: "
+                                  f"topic={parsed.metadata['topic']} tags={parsed.metadata['tags']}")
+            if need_doc_type and tagged.get("doc_type", ""):
+                try:
+                    parsed.metadata["doc_type"] = normalize_doc_type(tagged.get("doc_type", ""))
+                except ValueError:
+                    parsed.metadata["doc_type"] = ""  # LLM 输出含非法字符时静默放弃，保持未分类
+                if parsed.metadata["doc_type"]:
+                    console_print(f"   🤖 自动类型 [{rel}]: doc_type={parsed.metadata['doc_type']}")
         # V3.4 档案编辑：台账里的覆盖设置优先级最高（高于 Front Matter 与目录推断）
         overrides = state.get(rel, {}).get("overrides", {})
         for key, value in overrides.items():
