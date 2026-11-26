@@ -1218,6 +1218,8 @@ def query_evidence(
     evidence_max_tokens: int | None = None,
     adaptive_evidence: frozenset[str] = frozenset(),
     folder_derived_domain: str | None = None,
+    context_max_tokens: int | None = None,
+    context_max_per_doc: int | None = None,
 ) -> tuple[QAResult, dict]:
     """Evidence 统一查询入口（V3.9）：检索半程（意图→检索→融合→筛选→组装）。
 
@@ -1252,6 +1254,13 @@ def query_evidence(
         adaptive_evidence = frozenset()
     if evidence_max_tokens is not None:
         cfg = replace(cfg, context_max_tokens=evidence_max_tokens)
+    # V3.9.2：Web 检索设置的上下文预算覆盖（仅普通问答）——枚举通道在下方用
+    # ENUM_CTX_TOKENS/ENUM_CTX_ITEMS 整体接管预算，不随用户设置缩小；MCP 证据
+    # 通道不传这两个参数，不受影响。
+    if context_max_tokens:
+        cfg = replace(cfg, context_max_tokens=max(500, int(context_max_tokens)))
+    if context_max_per_doc:
+        cfg = replace(cfg, context_max_per_doc=max(1, int(context_max_per_doc)))
     top_k = top_k or cfg.top_k
 
     from src.permissions import scope_filters, classify_visibility
@@ -2390,6 +2399,8 @@ def answer_stream(
     conversation_state: dict | None = None,
     evidence_max_tokens: int | None = None,
     adaptive_evidence: frozenset[str] = frozenset(),
+    context_max_tokens: int | None = None,
+    context_max_per_doc: int | None = None,
 ):
     def _p(msg):
         if on_progress:
@@ -2488,7 +2499,11 @@ def answer_stream(
     cache_key = ("enumeration-processing-v2|" + cache_key
                  + f"|enum={ENUM_RECALL_K},{ENUM_CTX_ITEMS},{ENUM_CTX_TOKENS},"
                    f"{cfg.enum_rerank_docs},{cfg.enum_expand_docs},{cfg.enum_doc_cards}")
-    cache_key += f"|answer_budget={cfg.context_max_tokens},{cfg.context_max_per_doc},{cfg.rerank_recall_k},{cfg.llm_max_tokens}"
+    # V3.9.2：检索设置的上下文预算参与缓存键——同一问题在不同预算设置下答案不同，
+    # 否则用户改设置后重问会拿到旧预算的缓存答案（设置形同虚设）。
+    cache_key += (f"|answer_budget={context_max_tokens or cfg.context_max_tokens},"
+                  f"{context_max_per_doc or cfg.context_max_per_doc},"
+                  f"{cfg.rerank_recall_k},{cfg.llm_max_tokens}")
     cache_key += "|stage2=" + str(tuple(getattr(cfg, key) for key in (
         "enum_stage2_enabled", "enum_verify_enabled", "enum_max_rounds", "enum_queries_per_round", "enum_no_new_rounds",
         "enum_max_calls", "enum_max_seconds", "enum_max_tokens", "enum_batch_tokens", "enum_page_cards",
@@ -2586,7 +2601,9 @@ def answer_stream(
         on_progress=_p, config=cfg, conversation_context=memory_text,
         user_groups=user_groups, username=username, project_context=project_context,
         evidence_max_tokens=evidence_max_tokens, adaptive_evidence=adaptive_evidence,
-        folder_derived_domain=folder_derived_domain)
+        folder_derived_domain=folder_derived_domain,
+        context_max_tokens=context_max_tokens,
+        context_max_per_doc=context_max_per_doc)
     _attach_conversation(result)
     result.evidence_meta = evidence_meta   # V3.9：MCP 证据模式透出 coverage
     result.trace[:0] = trace   # 早期节点（就绪/提问/会话记忆）并入时间线头部
@@ -2846,6 +2863,8 @@ def answer_question(
     conversation_state: dict | None = None,
     evidence_max_tokens: int | None = None,
     adaptive_evidence: frozenset[str] = frozenset(),
+    context_max_tokens: int | None = None,
+    context_max_per_doc: int | None = None,
 ) -> QAResult:
     """完整问答链路（一次性返回完整答案）。use_llm=False 时只做检索（不花钱）。"""
     result, deltas = answer_stream(
@@ -2856,6 +2875,8 @@ def answer_question(
         username=username, session_id=session_id, conversation_state=conversation_state,
         evidence_max_tokens=evidence_max_tokens,
         adaptive_evidence=adaptive_evidence,
+        context_max_tokens=context_max_tokens,
+        context_max_per_doc=context_max_per_doc,
     )
     for _ in deltas:  # 消费生成器，把答案收集完整
         pass

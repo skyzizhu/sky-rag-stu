@@ -1,0 +1,913 @@
+{
+ "started": "2026-11-26 17:44",
+ "questions": [
+  "W02",
+  "W03",
+  "W04",
+  "W06",
+  "W08",
+  "W10"
+ ],
+ "configs": [
+  {
+   "summary": {
+    "config": "baseline-4000-3",
+    "tokens": 4000,
+    "per_doc": 3,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 13.1,
+    "wall_max": 30.6,
+    "ctx_tokens_avg": 2846,
+    "ctx_tokens_max": 3947
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 30.6,
+     "ctx_tokens": 3947,
+     "adopted": 12,
+     "answer_chars": 255,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "这笔 6 万元费用报销的审批与到账安排如下：\n\n- 按审批权限：单笔超过 5000 元，须经财务总监复核后由总经理审批；单笔超过 50000 元，还须提交经营管理会议审议 [1]。\n- 按标准报销流程，共四步：员工在 OA 提交报销单 → "
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 10.1,
+     "ctx_tokens": 2262,
+     "adopted": 5,
+     "answer_chars": 638,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "知识库中关于北京（一线城市）的住宿标准和餐费补贴存在**两套互相冲突的标准**，且资料未说明出差 3 天应计算几晚住宿，因此无法给出唯一确定的金额。\n\n**两套标准**\n- 《星海差旅管理办法（2025 修订）》：一线城市住宿每晚 450 "
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 7.3,
+     "ctx_tokens": 2869,
+     "adopted": 15,
+     "answer_chars": 158,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据星海财务报销制度（V2.1）的规定：\n\n- 报销发票必须为增值税发票，发票开具日期距报销申请日不得超过 **90 天**，逾期发票不予受理 [1]。\n- 电子发票报销时的额外要求是：须**查验真伪并截图留存** [1]。\n\n另外提醒：报"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 6.9,
+     "ctx_tokens": 267,
+     "adopted": 1,
+     "answer_chars": 143,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据备份与恢复管理办法》的职责规定 [1]：\n\n- **数据库管理员**：负责备份执行与监控；备份失败须在 1 小时内响应并处置 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认 [1]。\n\n关于响应时限：备份失败"
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 9.8,
+     "ctx_tokens": 3870,
+     "adopted": 12,
+     "answer_chars": 117,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据治理管理制度（V2.0）》中“数据生命周期”的规定：\n\n- 业务操作数据在线保留 2 年，期满后转入归档库，再保留 5 年；到期后由数据 Owner 评估销毁或延期 [6]。\n- 日志类数据在线保留 180 天 [6]。"
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 13.9,
+     "ctx_tokens": 3862,
+     "adopted": 13,
+     "answer_chars": 180,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- **逾期发票**：报销发票的开具日期距报销申请日不得超过 90 天；逾期发票不予受理，因此无法通过报销审核 [1]。\n- **虚报冒领报销款**：一经查实，公司会全额追回报销款，并按照公司奖惩制度处理；情节严重的，移交司法机关 [1]。"
+    }
+   ]
+  },
+  {
+   "summary": {
+    "config": "tokens-1000-3",
+    "tokens": 1000,
+    "per_doc": 3,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 9.6,
+    "wall_max": 11.7,
+    "ctx_tokens_avg": 842,
+    "ctx_tokens_max": 999
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 10.2,
+     "ctx_tokens": 987,
+     "adopted": 7,
+     "answer_chars": 203,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "**审批环节（单笔 6 万元报销）**\n- 单笔超过 5000 元，须先经财务总监复核，再由总经理审批 [1]。\n- 单笔超过 50000 元的重大支出，须提交经营管理会议审议 [1]。\n\n**到账时间**\n- 财务审核通过后，报销款在 5"
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 10.3,
+     "ctx_tokens": 921,
+     "adopted": 3,
+     "answer_chars": 284,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "按 2025 年修订的差旅办法，北京属于一线城市，住宿标准为每晚 450 元，餐费补贴为每人每天 120 元 [1]。据此：\n\n- 3 天餐费补贴：120 × 3 = 360 元 [1]\n- 住宿费：450 × 住宿晚数 [1]\n- 合计："
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 8.2,
+     "ctx_tokens": 938,
+     "adopted": 2,
+     "answer_chars": 66,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 报销发票的开具日期距报销申请日不得超过 **90 天**，逾期发票不予受理 [1]。\n- 电子发票须查验真伪并截图留存 [1]。"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 8.6,
+     "ctx_tokens": 267,
+     "adopted": 1,
+     "answer_chars": 138,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据备份与恢复管理办法》的职责规定：\n\n- **数据库管理员**：负责备份执行与监控；备份失败须在 1 小时内响应处置 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认 [1]。\n\n关于备份失败的响应时限：**必须"
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 11.7,
+     "ctx_tokens": 999,
+     "adopted": 4,
+     "answer_chars": 115,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 业务操作数据在线保留 **2 年**，期满后转入归档库，再保留 **5 年**，到期由数据 Owner 评估销毁或延期 [2]。\n- 日志类数据在线保留 **180 天** [2]。\n- 涉及诉讼的数据按法务要求冻结 [2]。"
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 8.8,
+     "ctx_tokens": 938,
+     "adopted": 2,
+     "answer_chars": 246,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据知识库资料，这两种情况的处理方式如下：\n\n**1. 逾期发票（发票开具日期距报销申请日超过 90 天）**\n- 报销发票必须为增值税发票，且发票开具日期距报销申请日不得超过 90 天；逾期发票不予受理 [1]。\n\n**2. 虚报冒领报销"
+    }
+   ]
+  },
+  {
+   "summary": {
+    "config": "tokens-2000-3",
+    "tokens": 2000,
+    "per_doc": 3,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 11.8,
+    "wall_max": 18.4,
+    "ctx_tokens_avg": 1693,
+    "ctx_tokens_max": 2000
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 18.4,
+     "ctx_tokens": 1953,
+     "adopted": 6,
+     "answer_chars": 217,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 这笔报销为 6 万元，属于“单笔超过 5000 元”，须经财务总监复核后由总经理审批；同时属于“单笔超过 50000 元的重大支出”，还须提交经营管理会议审议 [1]。\n- 标准报销流程共四步：员工在 OA 提交报销单 → 部门主管审批"
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 14.8,
+     "ctx_tokens": 1964,
+     "adopted": 4,
+     "answer_chars": 328,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "按现行《星海差旅管理办法（2025修订）》，北京属于一线城市，住宿标准为每晚 450 元，餐费补贴为每人每天 120 元；该办法自 2025-01-01 起施行，并取代《员工手册》中的差旅报销标准条款 [1]。\n\n- 3 天餐费补贴：120"
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 8.9,
+     "ctx_tokens": 2000,
+     "adopted": 9,
+     "answer_chars": 74,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 报销发票开具日期距报销申请日不得超过 **90 天**；逾期发票不予受理 [1]。\n- 电子发票报销时，还须**查验真伪并截图留存** [1]。"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 7.0,
+     "ctx_tokens": 267,
+     "adopted": 1,
+     "answer_chars": 152,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据备份与恢复管理办法》的职责规定：\n\n- **数据库管理员**：负责备份执行与监控；备份失败须在 1 小时内响应处置 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认；超期备份也需经数据负责人确认后方可销毁 [1"
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 10.4,
+     "ctx_tokens": 1998,
+     "adopted": 5,
+     "answer_chars": 157,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据治理管理制度（V2.0）》中的“数据生命周期”要求 [1]：\n\n- 业务操作数据在线保留 **2 年**，期满后转入归档库，再保留 **5 年**，到期由数据 Owner 评估销毁或延期 [1]。\n- 日志类数据在线保留 **"
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 11.6,
+     "ctx_tokens": 1977,
+     "adopted": 6,
+     "answer_chars": 331,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "**关于逾期发票**\n\n- 报销发票的开具日期距报销申请日不得超过 90 天，逾期发票不予受理 [1]。也就是说，超过 90 天的发票会被财务直接拒绝受理，不能作为报销凭证。\n\n**关于虚报冒领**\n\n- 虚报冒领报销款项的，一经查实将全额"
+    }
+   ]
+  },
+  {
+   "summary": {
+    "config": "tokens-8000-3",
+    "tokens": 8000,
+    "per_doc": 3,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 13.4,
+    "wall_max": 22.4,
+    "ctx_tokens_avg": 3590,
+    "ctx_tokens_max": 6264
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 18.9,
+     "ctx_tokens": 1970,
+     "adopted": 5,
+     "answer_chars": 227,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "这笔 6 万元报销同时满足“单笔超过 5000 元”和“单笔超过 50000 元”这两个条件。除标准流程中的部门主管审批外，还需：\n\n- 财务总监复核；\n- 总经理审批；\n- 提交经营管理会议审议。[1]\n\n标准报销流程共 4 步：\n\n- "
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 22.4,
+     "ctx_tokens": 2262,
+     "adopted": 5,
+     "answer_chars": 345,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "按《星海差旅管理办法（2025修订）》，北京属于一线城市：住宿每晚 450 元，餐费补贴每人每天 120 元；该办法自 2025-01-01 起施行，并取代员工手册中的差旅报销标准条款[1]。\n\n- 餐费补贴：120 元/天 × 3 天 ="
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 10.4,
+     "ctx_tokens": 4561,
+     "adopted": 12,
+     "answer_chars": 73,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 增值税发票的开具日期距报销申请日不得超过 **90 天**，逾期发票不予受理 [1]。\n- 电子发票的额外要求：须查验真伪并截图留存 [1]。"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 4.8,
+     "ctx_tokens": 267,
+     "adopted": 1,
+     "answer_chars": 135,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据备份与恢复管理办法》：\n\n- **数据库管理员**：负责备份执行与监控；备份失败须在 1 小时内响应处置 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认 [1]。\n- **备份失败的响应时限**：须在 **1"
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 11.7,
+     "ctx_tokens": 6217,
+     "adopted": 14,
+     "answer_chars": 154,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据治理管理制度（V2.0）》\"六、数据生命周期\"的规定：\n\n- 业务操作数据在线保留 **2 年**，期满后转入归档库再保留 **5 年**，到期由数据 Owner 评估销毁或延期 [3]。\n- 日志类数据在线保留 **180 "
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 12.0,
+     "ctx_tokens": 6264,
+     "adopted": 13,
+     "answer_chars": 233,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 逾期发票：报销发票的开具日期距报销申请日不得超过 90 天，逾期发票不予受理。因此，发票超过 90 天的报销申请不会被接收，也就是无法通过报销流程。[1]\n- 虚报冒领：如果员工虚报冒领报销款项，一经查实，公司将全额追回，并按公司奖惩制"
+    }
+   ]
+  },
+  {
+   "summary": {
+    "config": "perdoc-4000-1",
+    "tokens": 4000,
+    "per_doc": 1,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 9.6,
+    "wall_max": 10.8,
+    "ctx_tokens_avg": 2641,
+    "ctx_tokens_max": 3947
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 10.6,
+     "ctx_tokens": 3947,
+     "adopted": 12,
+     "answer_chars": 314,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "**审批环节（单笔 6 万元）**\n- 因单笔金额超过 5000 元，须先经财务总监复核，再由总经理审批 [1]\n- 因单笔金额超过 50000 元，属于重大支出，还须提交经营管理会议审议 [1]\n\n**报销款到账时间**\n- 财务审核通过"
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 10.8,
+     "ctx_tokens": 2262,
+     "adopted": 5,
+     "answer_chars": 450,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "按现行有效的《星海差旅管理办法（2025 修订）》计算，小张去北京出差 3 天，住宿费与餐费补贴合计最多为 **1710 元**：\n\n- 住宿：北京属于一线城市，每晚 450 元，450 × 3 = 1350 元 [1]\n- 餐费补贴：每人"
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 9.4,
+     "ctx_tokens": 2869,
+     "adopted": 15,
+     "answer_chars": 104,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 报销发票的开具日期距报销申请日不得超过 **90 天**，逾期发票不予受理 [1]。\n- 电子发票的额外要求是：须**查验真伪并截图留存** [1]。\n- 另外，报销发票必须为**增值税发票** [1]。"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 7.6,
+     "ctx_tokens": 267,
+     "adopted": 1,
+     "answer_chars": 140,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据资料中的职责划分：\n\n- **数据库管理员**：负责备份执行与监控；备份失败须在 **1 小时内**响应处置 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认 [1]。\n\n关于备份失败的响应时限，资料明确要求数据库管理员"
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 10.7,
+     "ctx_tokens": 3817,
+     "adopted": 10,
+     "answer_chars": 164,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据治理管理制度（V2.0）》的「数据生命周期」规定：\n\n- 业务操作数据在线保留 **2 年**，期满后转入归档库再保留 **5 年**，到期由数据 Owner 评估销毁或延期 [2]。\n- 日志类数据在线保留 **180 天*"
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 8.5,
+     "ctx_tokens": 2683,
+     "adopted": 12,
+     "answer_chars": 197,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "**关于逾期发票（超过 90 天）**\n\n- 报销发票的开具日期距离报销申请日不得超过 90 天，逾期发票不予受理 [1]。\n\n**关于虚报冒领报销款**\n\n- 一经查实，将全额追回相关款项，并按公司的奖惩制度处理 [1]。\n- 情节严重的"
+    }
+   ]
+  },
+  {
+   "summary": {
+    "config": "perdoc-4000-2",
+    "tokens": 4000,
+    "per_doc": 2,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 12.0,
+    "wall_max": 16.4,
+    "ctx_tokens_avg": 3660,
+    "ctx_tokens_max": 3972
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 14.3,
+     "ctx_tokens": 3947,
+     "adopted": 12,
+     "answer_chars": 236,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "这笔 6 万元报销的审批环节和到账时间如下：\n\n- 单笔金额超过 5000 元，因此须经财务总监复核后由总经理审批 [1]。\n- 单笔金额超过 50000 元，属于重大支出，还须提交经营管理会议审议 [1]。\n- 结合标准报销流程，报销单应"
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 11.1,
+     "ctx_tokens": 2262,
+     "adopted": 5,
+     "answer_chars": 748,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "关于北京的住宿标准与餐费补贴，知识库中存在两套互相冲突的标准，且出差 3 天对应几晚住宿未明确，因此无法给出唯一确定的“最多报销金额”。\n\n**冲突点：**\n\n- 《星海差旅管理办法（2025 修订）》规定：一线城市住宿每晚 450 元，餐"
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 10.6,
+     "ctx_tokens": 3971,
+     "adopted": 11,
+     "answer_chars": 68,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 报销发票的开具日期距报销申请日不得超过 **90 天**，逾期发票不予受理 [1]。\n- 电子发票还需查验真伪，并截图留存 [1]。"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 16.4,
+     "ctx_tokens": 3972,
+     "adopted": 15,
+     "answer_chars": 156,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据备份与恢复管理办法_v1.1》，数据库管理员和数据负责人的职责分工如下 [1]：\n\n- **数据库管理员**：负责备份执行与监控 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认 [1]。\n\n关于备份失败后的响"
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 9.9,
+     "ctx_tokens": 3846,
+     "adopted": 9,
+     "answer_chars": 127,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据治理管理制度（V2.0）》中的“数据生命周期”规定：\n\n- 业务操作数据在线保留 **2 年**，期满后转入归档库再保留 **5 年**，到期由数据 Owner 评估销毁或延期 [3]。\n- 日志类数据在线保留 **180 天"
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 9.4,
+     "ctx_tokens": 3959,
+     "adopted": 12,
+     "answer_chars": 181,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 逾期发票：发票开具日期距报销申请日不得超过 90 天，逾期发票不予受理，因此报销申请会因发票不合规而无法通过受理 [1]。\n- 虚报冒领报销款：一经查实，将全额追回虚报冒领的款项，并按公司奖惩制度处理；情节严重的，移交司法机关 [1]。"
+    }
+   ]
+  },
+  {
+   "summary": {
+    "config": "perdoc-4000-5",
+    "tokens": 4000,
+    "per_doc": 5,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 12.6,
+    "wall_max": 19.5,
+    "ctx_tokens_avg": 2940,
+    "ctx_tokens_max": 3948
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 19.5,
+     "ctx_tokens": 3444,
+     "adopted": 13,
+     "answer_chars": 164,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 6 万元报销的审批权限：单笔超过 5000 元，须经财务总监复核后由总经理审批；单笔超过 50000 元，还须提交经营管理会议审议。[1]\n- 标准报销流程共 4 步：员工在 OA 提交报销单 → 部门主管审批 → 财务审核 → 出纳打"
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 14.9,
+     "ctx_tokens": 2262,
+     "adopted": 5,
+     "answer_chars": 223,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "按《星海差旅管理办法（2025 修订）》的北京标准计算，在已通过 OA 出差审批的前提下：\n\n- 住宿费：450 元/晚 × 3 晚 = 1350 元\n- 餐费补贴：120 元/天 × 3 天 = 360 元\n- 合计最多：1710 元\n\n"
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 9.2,
+     "ctx_tokens": 3871,
+     "adopted": 13,
+     "answer_chars": 75,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 报销发票的开具日期距报销申请日**不得超过 90 天**；逾期发票不予受理 [1]。\n- 电子发票报销时，还须**查验真伪并截图留存** [1]。"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 10.2,
+     "ctx_tokens": 267,
+     "adopted": 1,
+     "answer_chars": 145,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据备份与恢复管理办法》中「四、职责」的规定：\n\n- **数据库管理员**：负责备份执行与监控；如果备份失败，必须在 **1 小时内**响应处置 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认 [1]。\n\n补充："
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 11.0,
+     "ctx_tokens": 3846,
+     "adopted": 9,
+     "answer_chars": 154,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据治理管理制度（V2.0）》的数据生命周期规定 [3]：\n\n- 业务操作数据在线保留 **2 年**，期满后转入归档库再保留 **5 年**，到期由数据 Owner 评估销毁或延期 [3]。\n- 日志类数据在线保留 **180 "
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 10.8,
+     "ctx_tokens": 3948,
+     "adopted": 12,
+     "answer_chars": 427,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "**关于逾期发票（开具日期距报销申请日超过 90 天）**\n- 财务报销制度要求报销发票必须为增值税发票，且发票开具日期距报销申请日不得超过 90 天；对于逾期发票，制度明确规定不予受理 [1]。\n- 也就是说，这类发票无法通过财务审核环节"
+    }
+   ]
+  },
+  {
+   "summary": {
+    "config": "tight-1000-1",
+    "tokens": 1000,
+    "per_doc": 1,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 9.7,
+    "wall_max": 12.8,
+    "ctx_tokens_avg": 842,
+    "ctx_tokens_max": 999
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 10.5,
+     "ctx_tokens": 987,
+     "adopted": 7,
+     "answer_chars": 297,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "**审批环节（6 万元报销）**\n- 单笔超过 5000 元，须先经财务总监复核，再由总经理审批 [1]。\n- 单笔超过 50000 元属于重大支出，还须提交经营管理会议审议 [1]。6 万元已超过 5 万元，因此这一环节适用。\n\n**到账"
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 12.8,
+     "ctx_tokens": 921,
+     "adopted": 3,
+     "answer_chars": 280,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "按现行《星海差旅管理办法（2025修订）》，北京属于一线城市，住宿标准为每晚450元，餐费补贴为每人每天120元；该办法自2025-01-01起施行，并取代《员工手册》中的差旅报销标准条款[1]。\n\n- 餐费补贴：120 × 3 = 360"
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 7.0,
+     "ctx_tokens": 938,
+     "adopted": 2,
+     "answer_chars": 75,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 报销发票的开票日期距报销申请日不得超过 **90 天**，逾期发票不予受理 [1]。\n- 电子发票报销时，还须**查验真伪并截图留存** [1]。"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 6.8,
+     "ctx_tokens": 267,
+     "adopted": 1,
+     "answer_chars": 149,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据备份与恢复管理办法》第四章“职责”，分工如下：\n\n- **数据库管理员**：负责备份执行与监控；备份失败须在 1 小时内响应处置 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认 [1]。\n\n关于备份失败的响应"
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 9.9,
+     "ctx_tokens": 999,
+     "adopted": 4,
+     "answer_chars": 175,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据治理管理制度（V2.0）》第六节“数据生命周期”的规定：\n\n- 业务操作数据在线保留 **2 年**，期满后转入归档库 [2]\n- 转入归档库后再保留 **5 年**，到期由数据 Owner 评估是销毁还是延期 [2]\n- 日"
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 10.9,
+     "ctx_tokens": 938,
+     "adopted": 2,
+     "answer_chars": 177,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "**关于逾期发票：**\n- 报销发票的开具日期距报销申请日不得超过 90 天，逾期发票不予受理 [1]。\n\n**关于虚报冒领报销款：**\n- 一经查实，将全额追回虚报冒领的款项，并按公司奖惩制度处理 [1]。\n- 情节严重的，移交司法机关处"
+    }
+   ]
+  },
+  {
+   "summary": {
+    "config": "loose-8000-5",
+    "tokens": 8000,
+    "per_doc": 5,
+    "passed": 6,
+    "total": 6,
+    "pass_rate": 1.0,
+    "wall_avg": 16.5,
+    "wall_max": 40.0,
+    "ctx_tokens_avg": 3391,
+    "ctx_tokens_max": 6217
+   },
+   "rows": [
+    {
+     "id": "W02",
+     "pass": true,
+     "wall_s": 18.3,
+     "ctx_tokens": 3628,
+     "adopted": 13,
+     "answer_chars": 167,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 6 万元报销属于单笔超过 5000 元，须经财务总监复核后由总经理审批；同时单笔超过 50000 元，属于重大支出，还须提交经营管理会议审议。[1]\n- 标准报销流程共四步：员工在 OA 提交报销单 → 部门主管审批 → 财务审核 → "
+    },
+    {
+     "id": "W03",
+     "pass": true,
+     "wall_s": 40.0,
+     "ctx_tokens": 2262,
+     "adopted": 5,
+     "answer_chars": 381,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "知识库中存在两套 2025 年差旅标准，且“出差 3 天”对应几晚住宿并未明确，因此无法给出唯一金额。\n\n- 《星海差旅管理办法（2025 修订）》规定：北京住宿每晚 450 元、餐费补贴每天 120 元，并明确自 2025-01-01 起"
+    },
+    {
+     "id": "W04",
+     "pass": true,
+     "wall_s": 10.8,
+     "ctx_tokens": 3475,
+     "adopted": 13,
+     "answer_chars": 70,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "- 报销发票开具日期距报销申请日不得超过 **90 天**，逾期发票不予受理 [1]。\n- 电子发票还须**查验真伪并截图留存** [1]。"
+    },
+    {
+     "id": "W06",
+     "pass": true,
+     "wall_s": 6.3,
+     "ctx_tokens": 267,
+     "adopted": 1,
+     "answer_chars": 182,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据备份与恢复管理办法》的职责规定 [1]：\n\n- **数据库管理员**：负责备份执行与监控；备份失败时，数据库管理员必须在 1 小时内响应处置 [1]。\n- **数据负责人**：负责保留策略审批与演练结果确认；此外，超期备份须经"
+    },
+    {
+     "id": "W08",
+     "pass": true,
+     "wall_s": 11.4,
+     "ctx_tokens": 6217,
+     "adopted": 14,
+     "answer_chars": 157,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "根据《星海数据治理管理制度（V2.0）》的数据生命周期规定 [2]：\n\n- 业务操作数据在线保留 **2 年**，期满后转入归档库再保留 **5 年**；到期后由数据 Owner 评估销毁或延期 [2]。\n- 日志类数据在线保留 **180"
+    },
+    {
+     "id": "W10",
+     "pass": true,
+     "wall_s": 12.0,
+     "ctx_tokens": 4496,
+     "adopted": 15,
+     "answer_chars": 151,
+     "checks": {
+      "must_not": true,
+      "answer_must": true,
+      "sources_any": true
+     },
+     "answer_head": "**逾期发票报销的处理**\n- 报销发票的开具日期距报销申请日不得超过 90 天，逾期发票不予受理，因此超过 90 天的发票无法通过报销审核 [1]。\n\n**虚报冒领报销款的处理**\n- 一经查实，公司将全额追回虚报冒领的款项，并按公司奖惩"
+    }
+   ]
+  }
+ ]
+}

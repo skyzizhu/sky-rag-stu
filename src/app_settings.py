@@ -20,6 +20,8 @@ _LEGACY_PATH = PROJECT_ROOT / "storage" / "settings.json"  # 旧位置（storage
 # 不再持久化、不再按人回读；_normalize_choices 仍容忍旧文件里的这些键，便于后期恢复。
 SETTINGS_KEYS = [
     "top_k",
+    "context_max_tokens",
+    "context_max_per_doc",
     "scope_choice",
     "debug_mode",
     "query_understanding",
@@ -91,6 +93,13 @@ def _normalize_choices(settings: dict) -> dict:
     tk = settings.get("top_k")
     if tk is not None and (not isinstance(tk, int) or isinstance(tk, bool) or not 1 <= tk <= 10):
         settings.pop("top_k")
+    # V3.9.2：上下文预算（Web 普通问答；枚举通道与 MCP 不受影响）——范围外移除回退 .env 默认
+    cmt = settings.get("context_max_tokens")
+    if cmt is not None and (not isinstance(cmt, int) or isinstance(cmt, bool) or not 1000 <= cmt <= 8000):
+        settings.pop("context_max_tokens")
+    cpd = settings.get("context_max_per_doc")
+    if cpd is not None and (not isinstance(cpd, int) or isinstance(cpd, bool) or not 1 <= cpd <= 10):
+        settings.pop("context_max_per_doc")
     # 模型单价：非负数字（bool 是 int 子类，要排除），否则移除（回退默认单价）
     for key in ("llm_price_input", "llm_price_input_cached", "llm_price_output"):
         price = settings.get(key)

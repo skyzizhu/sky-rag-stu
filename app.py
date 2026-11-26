@@ -140,6 +140,8 @@ def _is_hidden_relpath(parts: tuple[str, ...]) -> bool:
 
 # 跨页面共享的设置项：在「设置与状态」里改，问答页即时生效
 st.session_state.setdefault("top_k", cfg.top_k)
+st.session_state.setdefault("context_max_tokens", cfg.context_max_tokens)
+st.session_state.setdefault("context_max_per_doc", cfg.context_max_per_doc)
 # V3.9.1：领域/文档类型/归属部门/可见密级四项检索筛选暂时隐藏（后期再评估恢复）——
 # 不初始化 session 键，settings.json / 个人偏好里的旧值不再加载（见 build_filters 与 SETTINGS_KEYS）。
 st.session_state.setdefault("scope_choice", "active")
@@ -2104,6 +2106,8 @@ def page_chat():
                         history=chat_history,
                         session_id=st.session_state["session_id"],
                         conversation_state=st.session_state["conversation_state"],
+                        context_max_tokens=st.session_state["context_max_tokens"],
+                        context_max_per_doc=st.session_state["context_max_per_doc"],
                         on_progress=_show_progress,
                         user_groups=_user_groups,
                         username=str((st.session_state.get("auth_user") or {}).get("username") or ""),
@@ -3474,6 +3478,15 @@ def page_retrieval_settings():
     st.slider(t("set.top_k"), 1, 10,
               value=st.session_state["top_k"], key="set_top_k",
               on_change=_sync_setting("top_k", "set_top_k"))
+    # V3.9.2：上下文预算——仅作用于 Web 普通问答；枚举通道与 MCP 渠道不受影响
+    st.slider(t("set.context_tokens"), 1000, 8000, step=500,
+              value=st.session_state["context_max_tokens"], key="set_context_tokens",
+              on_change=_sync_setting("context_max_tokens", "set_context_tokens"),
+              help=t("set.context_tokens.help"))
+    st.slider(t("set.per_doc"), 1, 10,
+              value=st.session_state["context_max_per_doc"], key="set_per_doc",
+              on_change=_sync_setting("context_max_per_doc", "set_per_doc"),
+              help=t("set.per_doc.help"))
     st.radio(t("set.scope"), scope_codes,
              format_func=lambda s: t(f"scope.{s}"),
              index=scope_codes.index(st.session_state["scope_choice"])
@@ -3618,6 +3631,8 @@ def page_params_overview():
         (t("params.chunk_size"), cfg.chunk_size, t("params.chunk_size.note")),
         (t("params.chunk_overlap"), cfg.chunk_overlap, t("params.chunk_overlap.note")),
         (t("params.top_k"), st.session_state["top_k"], t("params.top_k.note")),
+        (t("params.context_tokens"), st.session_state["context_max_tokens"], t("params.context_tokens.note")),
+        (t("params.per_doc"), st.session_state["context_max_per_doc"], t("params.per_doc.note")),
         (t("params.context_max_tokens"), cfg.context_max_tokens, t("params.context_max_tokens.note")),
         (t("params.llm_max_tokens"), cfg.llm_max_tokens, t("params.llm_max_tokens.note")),
         (t("params.rerank_recall_k"), cfg.rerank_recall_k, t("params.rerank_recall_k.note")),
