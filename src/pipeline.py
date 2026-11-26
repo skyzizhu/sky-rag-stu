@@ -1442,13 +1442,26 @@ def query_evidence(
                 scope_issue = context_project.get("issue", "project_reference")
     scope_meta = {"metadata_scope": spoken_scope} if spoken_scope else {}
     if scope_issue:
+        # V3.9.1（多轮回归 UX 打磨·级别一）：裸指代守卫触发时引用上一轮提问，
+        # 让用户明白为何要重写名称、如何继续——守卫语义不变（仍拒绝猜测指代）。
+        reference_hint = ""
+        if scope_issue == "project_reference" and history:
+            for msg in reversed(history):
+                if (isinstance(msg, dict) and msg.get("role") == "user"
+                        and isinstance(msg.get("content"), str) and msg["content"].strip()):
+                    prev = " ".join(msg["content"].split())
+                    if len(prev) > 40:
+                        prev = prev[:40] + "…"
+                    reference_hint = (f"您上一轮询问的是：「{prev}」。"
+                                      "如需继续追问同一对象，请在问题中直接写明其名称。")
+                    break
         messages = {
             "negated": "暂不支持用问句排除指定的项目、业务方向、归属部门或文档类型。请改为指定要查的范围。",
             "multiple": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。",
             "unresolved": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。",
             "empty": "指定范围内没有匹配的项目。",
             "conflict": "问题中指定的范围与已选筛选条件没有交集，请调整后重试。",
-            "project_reference": "请先选择项目，或在问题里写明要查询的项目名称。",
+            "project_reference": "请先选择项目，或在问题里写明要查询的项目名称。" + reference_hint,
             "project_reference_ambiguous": "这段对话里最近提到了多个项目，请写明这次要查哪一个。",
         }
         if scope_issue in ("unresolved", "multiple"):
