@@ -1155,6 +1155,11 @@ def require_perm(perm: str) -> bool:
     return False
 
 
+def _uploader_username() -> str:
+    """当前登录用户名——未关联项目入库时的 basic_knowledge 子目录层。"""
+    return str((st.session_state.get("auth_user") or {}).get("username") or "")
+
+
 def _viewer_filters() -> dict:
     username = (st.session_state.get("auth_user") or {}).get("username")
     user = auth_db.get_user(username) if username else None
@@ -2374,7 +2379,8 @@ def page_upload():
                 )
                 st.success(t("dir.selected", n=len(decoded_entries),
                              kb=f"{total_kb:.1f}", docs=supported_count))
-                target = preview_directory(cfg.knowledge_dir, dir_domain, dir_project).relative_to(cfg.knowledge_dir).as_posix()
+                target = preview_directory(cfg.knowledge_dir, dir_domain, dir_project,
+                                           username=_uploader_username()).relative_to(cfg.knowledge_dir).as_posix()
                 st.caption(t("dir.target_hint", domain=target, roots=root_text))
             except ValueError as exc:
                 roots = []
@@ -2510,7 +2516,8 @@ def _plan_frontend_upload(files, target_dir, groups, users, doc_type, department
         ledger = istate.load_state()
         if any(Path(name).name.casefold() == INFO_NAME for name, _ in files):
             raise ValueError(f"{INFO_NAME} 是入库目录的保留说明文件")
-        destination = preview_directory(cfg.knowledge_dir, target_dir, project_id).relative_to(cfg.knowledge_dir).as_posix()
+        destination = preview_directory(cfg.knowledge_dir, target_dir, project_id,
+                                        username=_uploader_username()).relative_to(cfg.knowledge_dir).as_posix()
         return plan_uploads(files, destination, ledger, cfg.knowledge_dir,
                             blocked_paths=_upload_blocked_paths(ledger) | other_project_paths(ledger, project_id))
     except (ApiException, VectorStoreError, OSError, ValueError) as exc:
@@ -2673,7 +2680,8 @@ def _run_upload(files, plan, choices, groups, *, default_doc_type: str | None = 
             if plan:
                 destination = upload_directory(
                     cfg.knowledge_dir, domain, default_project_id,
-                    expected=(cfg.knowledge_dir / plan[0].target).parent)
+                    expected=(cfg.knowledge_dir / plan[0].target).parent,
+                    username=_uploader_username())
             with destination:
                 to_ingest, skipped = execute_uploads(
                     plan, files, cfg.knowledge_dir, choices,
@@ -2764,7 +2772,8 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool
                 Path(rel) for rel, entry in ledger.items()
                 if entry.get("project_id") == default_project_id and without_storage_directory(rel, registered) == rel
             }
-            with upload_directory(cfg.knowledge_dir, dir_domain, default_project_id) as domain_dir:
+            with upload_directory(cfg.knowledge_dir, dir_domain, default_project_id,
+                                  username=_uploader_username()) as domain_dir:
                 saved, copied_roots = write_directory_import(
                     grouped, domain_dir, merge=merge, blocked_paths=blocked_paths,
                     knowledge_dir=cfg.knowledge_dir, legacy_paths=legacy_paths,

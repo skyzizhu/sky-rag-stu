@@ -11,8 +11,10 @@ from src import auth_db, projects
 from src.name_codes import pinyin_code
 
 INFO_NAME = "_info.md"
-PUBLIC_DIR = "public"
-_LEGACY_PUBLIC_FALLBACK = "public-unassigned"
+# V3.9.2：未关联文件的托管目录由 public 改为 basic_knowledge，并按入库用户名再分一层。
+# 旧约定的 public / public-unassigned 成为历史桶名——历史文件仍在其中，路径推断照常剥离。
+BASIC_KNOWLEDGE_DIR = "basic_knowledge"
+LEGACY_BUCKETS = ("public-unassigned", "public")
 _PROJECT_MARKER = "<!-- rag-managed-directory: project -->"
 _PUBLIC_MARKER = "<!-- rag-managed-directory: public -->"
 _INFO_MARKERS = {_PROJECT_MARKER.encode("ascii"), _PUBLIC_MARKER.encode("ascii")}
@@ -45,10 +47,19 @@ def _directories(conn, domain: str) -> dict[int, str]:
     return dict(conn.execute("SELECT project_id, dirname FROM project_directories WHERE domain=?", (domain,)))
 
 
-def _public_directory(knowledge_dir: Path, domain: str, registered: dict[int, str]) -> Path:
-    # Preserve a project that already claimed 'public' before the name was reserved.
-    name = _LEGACY_PUBLIC_FALLBACK if PUBLIC_DIR in registered.values() else PUBLIC_DIR
-    return knowledge_dir / domain / name
+def _basic_directory(knowledge_dir: Path, domain: str, registered: dict[int, str],
+                     username: str | None = None) -> tuple[Path, Path]:
+    """未关联文件的托管目录：<领域>/basic_knowledge/<入库用户名>/。
+
+    basic_knowledge 为保留名（被项目历史占用时回退 -unassigned 后缀）。
+    返回 (桶根, 落盘目录)——桶根放说明文件，落盘目录带用户名层；
+    未关联上传必带登录用户，防御性兜底：用户名缺失时直接落桶根。"""
+    name = BASIC_KNOWLEDGE_DIR
+    if name in registered.values():
+        name = f"{name}-unassigned"
+    bucket = knowledge_dir / domain / name
+    user = (username or "").strip()
+    return bucket, (bucket / user if user else bucket)
 
 
 def managed_directory_names() -> set[tuple[str, str]]:
@@ -60,15 +71,22 @@ def managed_directory_names() -> set[tuple[str, str]]:
 
 
 def without_storage_directory(relative_path: str, registered: set[tuple[str, str]]) -> str:
-    """Use the user's original hierarchy when inferring metadata from folders."""
+    """推断元数据时剥掉系统合成的托管目录层，保留用户原始层级。
+
+    basic_knowledge 下还有一层入库用户名目录（同为合成层），一并剥离；
+    旧约定的 public / public-unassigned 只有一层；项目登记目录同样剥离。"""
     parts = relative_path.split("/")
     domain_index = 1 if parts[0] == "archive" else 0
-    if len(parts) > domain_index + 2:
-        domain, directory = parts[domain_index:domain_index + 2]
-        if directory == PUBLIC_DIR or (domain, directory) in registered or (
-            directory == _LEGACY_PUBLIC_FALLBACK and (domain, PUBLIC_DIR) in registered
-        ):
-            del parts[domain_index + 1]
+    domain = parts[domain_index]
+    bucket_index = domain_index + 1
+    if len(parts) > bucket_index + 1:
+        bucket = parts[bucket_index]
+        if bucket == BASIC_KNOWLEDGE_DIR:
+            del parts[bucket_index]          # 托管桶层
+            if len(parts) > bucket_index + 1:
+                del parts[bucket_index]      # 入库用户名层
+        elif bucket in LEGACY_BUCKETS or (domain, bucket) in registered:
+            del parts[bucket_index]
     return "/".join(parts)
 
 
@@ -95,7 +113,8 @@ def _destination(conn, knowledge_dir: Path, domain: str, project_id: int) -> tup
         stem = f"project-{project_id}"
     if re.fullmatch(r"con|prn|aux|nul|(?:com|lpt)[0-9]", stem):
         stem = f"project_{stem}"
-    occupied = {PUBLIC_DIR, _LEGACY_PUBLIC_FALLBACK, *(name.casefold() for name in registered.values())}
+    occupied = {BASIC_KNOWLEDGE_DIR, *LEGACY_BUCKETS,
+                *(name.casefold() for name in registered.values())}
     if parent.is_dir():
         occupied.update(path.name.casefold() for path in parent.iterdir())
     name, suffix = stem, 1
@@ -105,11 +124,13 @@ def _destination(conn, knowledge_dir: Path, domain: str, project_id: int) -> tup
     return parent / name, project, False
 
 
-def preview_directory(knowledge_dir: Path, domain: str, project_id: int | None) -> Path:
+def preview_directory(knowledge_dir: Path, domain: str, project_id: int | None,
+                      *, username: str | None = None) -> Path:
     domain = _upload_domain_code(domain)
     with closing(auth_db._connect()) as conn:
         if project_id is None:
-            return _public_directory(knowledge_dir, domain, _directories(conn, domain))
+            _, target = _basic_directory(knowledge_dir, domain, _directories(conn, domain), username)
+            return target
         return _destination(conn, knowledge_dir, domain, project_id)[0]
 
 
@@ -158,18 +179,19 @@ def _validate_directory(knowledge_dir: Path, directory: Path) -> None:
 
 @contextmanager
 def upload_directory(knowledge_dir: Path, domain: str, project_id: int | None,
-                     *, expected: Path | None = None):
+                     *, expected: Path | None = None, username: str | None = None):
     """Serialize allocation and writes. The caller creates folders only when saving."""
     domain = _upload_domain_code(domain)
     with closing(auth_db._connect()) as conn, conn:
         conn.execute("BEGIN IMMEDIATE")
         if project_id is None:
-            directory = _public_directory(knowledge_dir, domain, _directories(conn, domain))
+            bucket, directory = _basic_directory(
+                knowledge_dir, domain, _directories(conn, domain), username)
             _validate_directory(knowledge_dir, directory)
             if expected is not None and directory != expected:
                 raise ValueError("上传目录已变更，请重新确认上传")
             yield directory
-            _write_public_info(directory)
+            _write_public_info(bucket)  # 说明文件放桶根，描述整桶用途
             return
         directory, project, registered = _destination(conn, knowledge_dir, domain, project_id)
         if expected is not None and directory != expected:

@@ -5,7 +5,9 @@ from types import SimpleNamespace
 from unittest import mock
 
 from src import auth_db, projects
-from src.project_directories import INFO_NAME, is_generated_info, other_project_paths, preview_directory, upload_directory
+from src.project_directories import (INFO_NAME, is_generated_info, other_project_paths,
+                                     preview_directory, upload_directory,
+                                     without_storage_directory)
 from src.upload_plan import NEW, VERSION_OF, plan_uploads, write_directory_import
 from tests._helpers import TempAuthDB
 
@@ -49,25 +51,30 @@ class ProjectDirectoryTests(TempAuthDB):
                 directory, merge=True, knowledge_dir=self.knowledge, legacy_paths={legacy})
         self.assertEqual(saved, [old, directory / "folder" / "nested" / "new.md"])
         self.assertEqual(old.read_bytes(), b"updated")
-        with upload_directory(self.knowledge, "learning", None) as public:
+        # V3.9.2：未关联上传落 basic_knowledge/<入库用户名>/，说明文件放桶根
+        with upload_directory(self.knowledge, "learning", None, username="liqiang") as target:
             write_directory_import({directory.name: [(("unassigned.md",), b"unassigned")]},
-                                   public, merge=True, knowledge_dir=self.knowledge)
-        self.assertEqual(public.name, "public")
-        self.assertTrue((public / directory.name / "unassigned.md").is_file())
-        info = public / INFO_NAME
+                                   target, merge=True, knowledge_dir=self.knowledge)
+        self.assertEqual(target.parent.name, "basic_knowledge")
+        self.assertEqual(target.name, "liqiang")
+        self.assertTrue((target / directory.name / "unassigned.md").is_file())
+        info = target.parent / INFO_NAME
         self.assertTrue(is_generated_info(info))
         self.assertIn("本目录存放入库时未选择项目的资料", info.read_text(encoding="utf-8"))
 
-    def test_public_is_reserved_for_unassigned_files(self):
+    def test_basic_knowledge_is_reserved_for_unassigned_files(self):
         project = self.project("Public")
-        public = preview_directory(self.knowledge, "learning", None)
-        self.assertEqual(public.name, "public")
+        target = preview_directory(self.knowledge, "learning", None, username="liqiang")
+        self.assertEqual(target.parent.name, "basic_knowledge")
+        self.assertEqual(target.name, "liqiang")
+        # 项目拼音 "public" 与保留桶名冲突时依次避开：basic_knowledge/public 均为保留
         self.assertEqual(preview_directory(self.knowledge, "learning", project["id"]).name, "public-1")
-        with upload_directory(self.knowledge, "learning", None, expected=public):
+        with upload_directory(self.knowledge, "learning", None, expected=target,
+                              username="liqiang"):
             pass
-        self.assertFalse(public.exists())
+        self.assertFalse(target.exists())
         with self.assertRaisesRegex(ValueError, "通过知识库管理归档"):
-            preview_directory(self.knowledge, "archive", None)
+            preview_directory(self.knowledge, "archive", None, username="liqiang")
 
     def test_old_project_named_public_keeps_its_directory(self):
         project = self.project("Public")
@@ -75,10 +82,22 @@ class ProjectDirectoryTests(TempAuthDB):
             conn.execute("INSERT INTO project_directories VALUES (?, ?, ?)",
                          ("learning", project["id"], "public"))
         self.assertEqual(preview_directory(self.knowledge, "learning", project["id"]).name, "public")
-        self.assertEqual(preview_directory(self.knowledge, "learning", None).name, "public-unassigned")
+        # 未关联桶已迁到 basic_knowledge；public 成为历史保留名
+        self.assertEqual(preview_directory(self.knowledge, "learning", None).name,
+                         "basic_knowledge")
+
+    def test_unassigned_without_username_falls_back_to_bucket_root(self):
+        target = preview_directory(self.knowledge, "learning", None)
+        self.assertEqual(target, self.knowledge / "learning" / "basic_knowledge")
+        with upload_directory(self.knowledge, "learning", None) as bucket_root:
+            self.assertEqual(bucket_root, self.knowledge / "learning" / "basic_knowledge")
+            bucket_root.mkdir(parents=True)
+            (bucket_root / "note.md").write_text("x", encoding="utf-8")
+        # 有落盘文件时桶根生成说明文件；纯预览（未写文件）不创建任何目录
+        self.assertTrue(is_generated_info(bucket_root / INFO_NAME))
 
     def test_project_info_marker_preserves_ordinary_markdown(self):
-        public = self.knowledge / "learning" / "public"
+        public = self.knowledge / "learning" / "basic_knowledge"
         public.mkdir(parents=True)
         info = public / INFO_NAME
         info.write_text("# A user's Markdown file", encoding="utf-8")
@@ -86,6 +105,38 @@ class ProjectDirectoryTests(TempAuthDB):
             pass
         self.assertFalse(is_generated_info(info))
         self.assertEqual(info.read_text(encoding="utf-8"), "# A user's Markdown file")
+
+    def test_without_storage_directory_strips_bucket_and_username_layers(self):
+        registered = {("learning", "public")}
+        # 新约定：basic_knowledge + 入库用户名两层一并剥离
+        self.assertEqual(
+            without_storage_directory("learning/basic_knowledge/liqiang/folder/file.md", registered),
+            "learning/folder/file.md")
+        self.assertEqual(
+            without_storage_directory("learning/basic_knowledge/liqiang/file.md", registered),
+            "learning/file.md")
+        # 防御：桶根直放（无用户名层）只剥一层
+        self.assertEqual(
+            without_storage_directory("learning/basic_knowledge/file.md", registered),
+            "learning/file.md")
+        # 旧约定 public 仍剥一层；用户自有层级保留
+        self.assertEqual(
+            without_storage_directory("learning/public/notes/old.md", registered),
+            "learning/notes/old.md")
+        self.assertEqual(
+            without_storage_directory("learning/public-unassigned/old.md", registered),
+            "learning/old.md")
+        # 项目登记目录剥离；非托管目录不动
+        self.assertEqual(
+            without_storage_directory("learning/dikong/deep/file.md", {("learning", "dikong")}),
+            "learning/deep/file.md")
+        self.assertEqual(
+            without_storage_directory("learning/自定义目录/file.md", set()),
+            "learning/自定义目录/file.md")
+        # archive 前缀偏移一位
+        self.assertEqual(
+            without_storage_directory("archive/2024/basic_knowledge/liqiang/file.md", set()),
+            "archive/2024/file.md")
 
     def test_same_name_version_only_targets_the_selected_project(self):
         files = [("report.md", b"new version")]
@@ -95,3 +146,7 @@ class ProjectDirectoryTests(TempAuthDB):
         decision, = plan_uploads(files, "learning/newdir", ledger, self.knowledge,
                                  blocked_paths=other_project_paths(ledger, 1))
         self.assertEqual(decision.options, [VERSION_OF + own, NEW])
+
+
+if __name__ == "__main__":
+    unittest.main()
