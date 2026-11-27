@@ -1,9 +1,8 @@
-# 🧠 自己动手搭的个人知识库
+# 🧠 企业知识库
 
-> 在自己电脑上从 0 到 1 搭一个 RAG 个人知识库：把你的文档喂进去，然后用大白话提问，
-> 系统会帮你查资料、给答案、标出处。
+> 可在企业内部部署的 RAG 知识库。员工可以用自然语言查询企业资料，获得带来源引用的回答。
 >
-> 这既是一个能天天用的知识库工具，也是一份「边做边学 RAG」的学习笔记。
+> 本仓库也记录了 RAG 的设计与实现，便于学习和二次开发。
 
 ## 📖 文档导航
 
@@ -12,17 +11,17 @@
 | **系统学习 RAG**（每个节点做什么、注意什么、Metadata 格式、提示词规则） | 📄 [**prd.md**](prd.md) —— 产品需求文档，本项目的学习主文档 |
 | **RAG 易错问题清单**（两条流水线里容易忽略的坑：症状→后果→解法，真实踩坑记录） | ⚠️ [**rag_pitfalls.md**](rag_pitfalls.md) —— 复盘手册 |
 | 完整开发过程（V1/V2/V3 逐项清单） | [personal_rag_development_plan.md](personal_rag_development_plan.md) |
-| 知识库管理机制的设计 | [Personal RAG — 知识库管理开发计划.md](Personal%20RAG%20—%20知识库管理开发计划.md) |
+| 知识库管理机制的设计 | [知识库管理开发计划](Personal%20RAG%20—%20知识库管理开发计划.md) |
 | 怎么安装、怎么用 | 就在本 README，往下看 ↓ |
 
 ---
 
 ## 一、这个项目是什么
 
-**一句话**：一个跑在自己 Mac 上的私人问答系统。
+**一句话**：一套面向企业资料的智能检索问答系统。
 
-- 把你的笔记、需求文档、会议纪要、网页剪藏放进 `knowledge/` 文件夹；
-- 用自然语言提问，比如「chunk_size 初始设多少？」；
+- 将制度、需求文档、会议纪要等企业资料放进 `knowledge/` 文件夹；
+- 用自然语言提问，比如「采购申请需要经过哪些审批？」；
 - 系统自动找出最相关的知识片段，让本地 Ollama 或云端大模型基于这些片段回答，并**标明每条答案出自哪个文件、哪一页**；
 - 资料库里没有的内容，它会老实说不知道，不编造。
 
@@ -534,7 +533,7 @@ python scripts/test_km_scenarios.py            # 知识库管理机制自动测�
 ### 给 Agent 用：MCP 接口（V3.3 新增）
 
 除了给人用的 Web 界面，本 RAG 还能作为**工具**接入任何支持 MCP（Model Context Protocol）
-的 Agent（Claude Desktop、Cursor、ZCode 等）——Agent 会自动调用你的个人知识库回答问题。
+的 Agent（Claude Desktop、Cursor、ZCode 等）。Agent 可以调用企业知识库检索资料、回答问题。
 
 **工具集**（按 `MCP_MODE` 注册：`query` 提供 search/status，`answer` 提供 qa/digest/status；两种模式均提供 get_document/list_documents）：
 
@@ -560,7 +559,7 @@ python scripts/test_km_scenarios.py            # 知识库管理机制自动测�
 ```json
 {
   "mcpServers": {
-    "sky-personal-rag": {
+    "enterprise-knowledge-base": {
       "command": "/Users/你的用户名/sky-rag-stu/.venv/bin/python",
       "args": ["/Users/你的用户名/sky-rag-stu/src/mcp_server.py"]
     }
