@@ -110,6 +110,12 @@ class ContentFlagPayloadTests(unittest.TestCase):
         self.assertIn(KIND_ROLE_MARKER, [f["kind"] for f in sources[0]["content_flags"]])
         self.assertEqual(sources[1]["content_flags"], [])
 
+    def test_sources_flags_do_not_expose_text_beyond_the_excerpt(self):
+        excerpt = "业务说明。" * 40
+        source, = mcp_server._sources_payload([{"text": excerpt + "\n\n" + TRAP_1}])
+        self.assertEqual(source["excerpt"], excerpt)
+        self.assertEqual(source["content_flags"], [])
+
     def test_items_payload_evidence_carry_flags(self):
         items = mcp_server._items_payload([
             {"item": "演练样本", "evidence": [{"source_id": 1, "quote": TRAINING_SAMPLE, "metadata": {}}]}])

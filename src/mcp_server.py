@@ -338,8 +338,10 @@ def _search_with_budget(question, top_k, max_tokens, auto_top_k, kwargs):
 def _sources_payload(sources: list[dict]) -> list[dict]:
     """来源瘦身：只保留 Agent 需要的字段，去掉渲染专用信息。channels 标明
     来源来自哪个检索通道（向量/关键词/文档展开/分批提取），与相关度同尺可解读。"""
-    return [
-        {
+    payload = []
+    for s in sources:
+        excerpt = (s.get("text") or "")[:200]
+        payload.append({
             "rank": s.get("rank"),
             "source": s.get("source"),
             "document_id": s.get("document_id"),
@@ -360,11 +362,11 @@ def _sources_payload(sources: list[dict]) -> list[dict]:
             "classification": s.get("classification"),
             "version": s.get("version"),
             "status": s.get("status"),
-            "excerpt": (s.get("text") or "")[:200],
-            "content_flags": flag_instruction_like(s.get("text") or ""),
-        }
-        for s in sources
-    ]
+            "excerpt": excerpt,
+            # 标记只引用本次返回的内容，不把截断范围外的正文带回响应。
+            "content_flags": flag_instruction_like(excerpt),
+        })
+    return payload
 
 
 def _items_payload(items: list[dict]) -> list[dict]:

@@ -91,22 +91,24 @@ def _block_bounds(text: str, start: int, end: int) -> tuple[int, int]:
 def _quote_around(text: str, start: int, end: int) -> str:
     """命中所在的句子：标题行以行为界，其余在块内按句末标点切分；空白折叠，超长截断。"""
     line_start = text.rfind("\n", 0, start) + 1
-    if text[line_start:].lstrip().startswith("#"):  # 入库卡片里标题与下一段之间没有空行，标题自成一句
-        line_end = text.find("\n", end)
-        quote = " ".join(text[line_start:line_end if line_end >= 0 else len(text)].split())
-        return quote.lstrip("# ").strip()
-    block_start, block_end = _block_bounds(text, start, end)
-    left = start
-    while left > block_start and text[left - 1] not in _SENTENCE_END:
-        left -= 1
-    right = end
-    while right < block_end and text[right] not in _SENTENCE_END:
-        right += 1
-    if right < block_end:
-        right += 1  # 含句末标点
-    quote = " ".join(text[left:right].split()).lstrip("# ").strip()
+    line_end = text.find("\n", end)
+    line = text[line_start:line_end if line_end >= 0 else len(text)]
+    if line.lstrip().startswith("#"):
+        excerpt = line  # 标题自成一句，不带入紧随其后的正文
+    else:
+        block_start, block_end = _block_bounds(text, start, end)
+        left = start
+        while left > block_start and text[left - 1] not in _SENTENCE_END:
+            left -= 1
+        right = end
+        while right < block_end and text[right] not in _SENTENCE_END:
+            right += 1
+        if right < block_end:
+            right += 1  # 含句末标点
+        excerpt = text[left:right]
+    quote = " ".join(excerpt.split()).lstrip("# ").strip()
     if len(quote) > MAX_QUOTE_CHARS:
-        quote = quote[:MAX_QUOTE_CHARS] + "…"
+        return quote[:MAX_QUOTE_CHARS - 1] + "…"
     return quote
 
 
