@@ -32,6 +32,7 @@ class IngestAuditTests(IngestHarness):
         self.use_fakes()
         self.addCleanup(self.store.client.close)
         self.st = mock.MagicMock()
+        # V3.9.2：未关联项目的上传落 basic_knowledge/<登录用户>/，本类桩的登录用户是 li
         self.st.session_state = {"auth_user": {"username": "li", "department": "研发"}}
         self.st.context = SimpleNamespace(ip_address="192.0.2.11")
         self.browser_context = {
@@ -40,7 +41,7 @@ class IngestAuditTests(IngestHarness):
         }
         self.env = load_functions(
             ["_new_ingest_audit", "_plan_frontend_upload", "_validate_upload_visibility", "_clean_directory_name",
-             "_run_upload", "_do_directory_upload"],
+             "_run_upload", "_do_directory_upload", "_uploader_username"],
             dict(st=self.st, cfg=self.cfg, projects=projects, Path=Path, re=re, t=lambda key, **kwargs: key,
                  auth_client=SimpleNamespace(browser_context=lambda: self.browser_context),
                  IngestAudit=IngestAudit, IngestItem=IngestItem, normalize_doc_type=normalize_doc_type,
@@ -103,7 +104,7 @@ class IngestAuditTests(IngestHarness):
         self.env["_show_management_error"].assert_called_once_with(fault)
         row, = self.logs(entry="file", outcome="failed")
         self.assertEqual((row["source_path"], row["reason"]), ("note.md", "preflight"))
-        self.assertFalse((self.knowledge / "learning/public/note.md").exists())
+        self.assertFalse((self.knowledge / "learning/basic_knowledge").exists())
 
     def test_old_unassigned_document_updates_in_place(self):
         original = self.knowledge / "learning/old.md"
@@ -112,7 +113,7 @@ class IngestAuditTests(IngestHarness):
         self.upload([("old.md", b"# Old\n\nThe next version of the same document.")])
         row, = self.logs()
         self.assertEqual((row["path"], row["reason"]), ("learning/old.md", "new_revision"))
-        self.assertFalse((self.knowledge / "learning/public").exists())
+        self.assertFalse((self.knowledge / "learning/basic_knowledge").exists())
 
     def test_old_audit_table_migrates_and_invalid_browser_ip_uses_current_connection(self):
         self.upload([("old.md", b"# Old\n\nOriginally recorded before migration.")])
@@ -126,7 +127,7 @@ class IngestAuditTests(IngestHarness):
         current, old = self.logs()
         self.assertEqual(current["ip"], "192.0.2.11")
         self.assertTrue(current["fingerprint"])
-        self.assertEqual((old["id"], old["path"], old["fingerprint"]), (old_id, "learning/public/old.md", ""))
+        self.assertEqual((old["id"], old["path"], old["fingerprint"]), (old_id, "learning/basic_knowledge/li/old.md", ""))
 
     def test_directory_logs_original_paths_and_per_file_failure(self):
         parse = pipeline.parse_file
@@ -146,10 +147,10 @@ class IngestAuditTests(IngestHarness):
         rows = {row["file_name"]: row for row in self.logs(entry="directory")}
         self.assertEqual(rows["a.md"]["outcome"], "ingested")
         self.assertEqual(rows["broken.md"]["source_path"], "other/broken.md")
-        self.assertEqual(rows["broken.md"]["path"], "learning/public/other/broken.md")
+        self.assertEqual(rows["broken.md"]["path"], "learning/basic_knowledge/li/other/broken.md")
         self.assertEqual(rows["broken.md"]["reason"], "parse_failed")
         self.assertEqual(rows["extra.bin"]["reason"], "unsupported_type")
-        self.assertEqual({d["path"] for d in self.store.list_documents()}, {"learning/public/team/a.md"})
+        self.assertEqual({d["path"] for d in self.store.list_documents()}, {"learning/basic_knowledge/li/team/a.md"})
 
     def test_web_logs_real_snapshot_and_fetch_failure_without_url_query(self):
         url = "https://example.invalid/article?access_token=hidden#fragment"
@@ -169,11 +170,12 @@ class IngestAuditTests(IngestHarness):
                         with self.assertRaises(OSError):
                             ingest_web_page(url, domain="learning", audit=audit)
                     else:
-                        ingest_web_page(url, domain="learning", audit=audit)
+                        # V3.9.2：未关联项目的网页同样落在 basic_knowledge/<入库用户>/
+                        ingest_web_page(url, domain="learning", audit=audit, owner="li")
         failed, ingested = self.logs(entry="web")
         self.assertEqual(failed["reason"], "fetch")
         self.assertEqual(ingested["outcome"], "ingested")
-        self.assertTrue(ingested["path"].startswith("learning/public/"))
+        self.assertTrue(ingested["path"].startswith("learning/basic_knowledge/li/"))
         self.assertTrue(ingested["path"].endswith(".md"))
         self.assertGreater(ingested["bytes"], 0)
         self.assertEqual(ingested["source_path"], "https://example.invalid/article")
@@ -211,7 +213,7 @@ class IngestAuditTests(IngestHarness):
             {"username": "li", "real_name": ""},
             {"username": "staff", "real_name": ""},
         ])
-        self.assertEqual(result["logs"][0]["absolute_path"], str((self.knowledge / "learning/public/test.md").resolve()))
+        self.assertEqual(result["logs"][0]["absolute_path"], str((self.knowledge / "learning/basic_knowledge/li/test.md").resolve()))
 
     def test_ingest_log_api_labels_internal_permission_groups(self):
         from src.admin_app import api_logs_ingest
@@ -244,16 +246,16 @@ class IngestAuditTests(IngestHarness):
             with self.assertRaises(HTTPException) as forwarded:
                 api_reveal_ingest_file(admin_request(host="192.0.2.4:8700"), log_id)
             self.assertEqual(forwarded.exception.status_code, 403)
-            for unsafe_or_missing in ("../outside.md", "learning/missing.md", str(self.knowledge / "learning/public/test.md")):
+            for unsafe_or_missing in ("../outside.md", "learning/missing.md", str(self.knowledge / "learning/basic_knowledge/test.md")):
                 with mock.patch("src.ingest_audit.get_log_path", return_value=unsafe_or_missing):
                     with self.assertRaises(HTTPException) as unavailable:
                         api_reveal_ingest_file(admin_request(), log_id)
                     self.assertEqual(unavailable.exception.status_code, 404)
             startfile.assert_not_called()
             self.assertEqual(api_reveal_ingest_file(admin_request(), log_id), {"ok": True})
-            startfile.assert_called_once_with(str((self.knowledge / "learning/public").resolve()), "open")
+            startfile.assert_called_once_with(str((self.knowledge / "learning/basic_knowledge/li").resolve()), "open")
         with mock.patch("src.admin_app.get_config", return_value=self.cfg), \
              mock.patch("src.admin_app.sys.platform", "darwin"), mock.patch("subprocess.Popen") as finder:
             self.assertEqual(api_reveal_ingest_file(admin_request(), log_id), {"ok": True})
             self.assertEqual(finder.call_args.args[0],
-                             ["/usr/bin/open", "-R", str((self.knowledge / "learning/public/test.md").resolve())])
+                             ["/usr/bin/open", "-R", str((self.knowledge / "learning/basic_knowledge/li/test.md").resolve())])

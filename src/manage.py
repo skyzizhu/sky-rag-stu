@@ -699,7 +699,9 @@ def ingest_web_page(url: str, domain: str = "reference",
     else:
         state = istate.load_state()
         blocked_paths = blocked_paths | other_project_paths(state, default_project_id)
-        with upload_directory(knowledge_dir, domain, default_project_id) as destination:
+        # V3.9.2：未关联项目的网页同样落在 basic_knowledge/<入库用户>/（owner=界面传入的登录用户名）；
+        # 已有同 URL 快照时 save_web_snapshot 仍复用原路径，不因入库人不同而重复存一份。
+        with upload_directory(knowledge_dir, domain, default_project_id, username=owner) as destination:
             existing_paths = tuple(knowledge_dir / rel for rel, entry in state.items()
                                    if entry.get("project_id") == default_project_id
                                    and not rel.startswith("archive/")

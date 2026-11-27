@@ -340,7 +340,7 @@ class DocumentTypeUploadContractTests(IngestHarness):
         )["id"]
         self.env = load_functions(
             ["_validate_upload_visibility", "_clean_directory_name", "_upload_files", "_upload_signature", "_plan_frontend_upload", "_start_upload",
-             "_render_upload_confirmation", "_run_upload", "_do_directory_upload"],
+             "_render_upload_confirmation", "_run_upload", "_do_directory_upload", "_uploader_username"],
             dict(st=self.st, cfg=self.cfg, Path=Path, re=__import__("re"), projects=projects, auth_db=auth_db,
                  IngestItem=IngestItem, _new_ingest_audit=mock.MagicMock(),
                  normalize_doc_type=normalize_doc_type, normalize_department=normalize_department,
@@ -372,11 +372,13 @@ class DocumentTypeUploadContractTests(IngestHarness):
         self.st.radio.assert_not_called()
 
     def test_new_and_renamed_files_forward_only_default_type(self):
-        old = self.knowledge / "learning/public/note.md"
-        old.parent.mkdir()
+        # V3.9.2：未关联项目的上传落 basic_knowledge/<登录用户>/，本类桩的登录用户是 fake
+        target = "learning/basic_knowledge/fake"
+        old = self.knowledge / target / "note.md"
+        old.parent.mkdir(parents=True)
         old.write_bytes(b"existing")
         files = [("note.md", b"new body")]
-        plan = self.env["plan_uploads"](files, "learning/public", {}, self.knowledge)
+        plan = self.env["plan_uploads"](files, target, {}, self.knowledge)
         self.env["_run_upload"](files, plan, {0: "copy"}, ["all"], default_doc_type=" 技术方案 ")
         kwargs = self.ingest_mock.call_args.kwargs
         self.assertEqual(kwargs["default_doc_type"], "技术方案")
@@ -409,7 +411,7 @@ class DocumentTypeUploadContractTests(IngestHarness):
         upload = SimpleNamespace(name="fresh.md", getvalue=lambda: b"body")
         self.env["_start_upload"]([upload], "learning", ["all"], default_doc_type="  ")
         self.assertIsNone(self.ingest_mock.call_args.kwargs["default_doc_type"])
-        self.assertTrue((self.knowledge / "learning/public/fresh.md").is_file())
+        self.assertTrue((self.knowledge / "learning/basic_knowledge/fake/fresh.md").is_file())
 
     def test_invalid_default_does_not_write_files(self):
         upload = SimpleNamespace(name="fresh.md", getvalue=lambda: b"body")
@@ -431,10 +433,10 @@ class DocumentTypeUploadContractTests(IngestHarness):
             actual_root = "技术方案" if merge else "技术方案-2"
             other_root = "会议纪要" if merge else "会议纪要-2"
             expected = {
-                str((self.knowledge / "learning/public" / actual_root / "nested/a.md").resolve()): " 技术方案 /nested/a.md",
-                str((self.knowledge / "learning/public" / actual_root / "需求文档/c.md").resolve()): " 技术方案 /需求文档/c.md",
-                str((self.knowledge / "learning/public" / other_root / "b.md").resolve()): "会议纪要/b.md",
-                str((self.knowledge / "learning/public" / other_root / "ignored.bin").resolve()): "会议纪要/ignored.bin",
+                str((self.knowledge / "learning/basic_knowledge/fake" / actual_root / "nested/a.md").resolve()): " 技术方案 /nested/a.md",
+                str((self.knowledge / "learning/basic_knowledge/fake" / actual_root / "需求文档/c.md").resolve()): " 技术方案 /需求文档/c.md",
+                str((self.knowledge / "learning/basic_knowledge/fake" / other_root / "b.md").resolve()): "会议纪要/b.md",
+                str((self.knowledge / "learning/basic_knowledge/fake" / other_root / "ignored.bin").resolve()): "会议纪要/ignored.bin",
             }
             self.assertEqual(kwargs["doc_type_paths"], expected)
             self.assertEqual(len(kwargs["paths"]), 3)

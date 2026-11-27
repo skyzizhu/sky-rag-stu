@@ -55,7 +55,8 @@ class SnapshotOriginTests(IngestHarness):
         self.assertEqual(Path(first["file_path"]), Path(again["file_path"]))
         # 标题在文件头里：标题变了 = 快照内容变了 = 重新入库为新版本（不是新文档、不多一份文件）
         self.assertTrue(again["message"].startswith("网页已入库"))  # 重新入库为新版本
-        snapshots = [path for path in (self.cfg.knowledge_dir / "reference/public").glob("*.md")
+        # V3.9.2：未关联项目的网页快照落 basic_knowledge/<入库用户>/（本用例未传 owner，故为桶根）
+        snapshots = [path for path in (self.cfg.knowledge_dir / "reference/basic_knowledge").glob("*.md")
                      if not is_generated_info(path)]
         self.assertEqual(snapshots, [Path(first["file_path"])])
 

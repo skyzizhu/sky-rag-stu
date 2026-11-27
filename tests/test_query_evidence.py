@@ -400,31 +400,32 @@ class McpDocumentToolsTests(IngestHarness):
     def test_knowledge_search_auto_expands_only_the_limit_blocking_a_fact(self):
         from src.retriever import RetrievedItem
 
-        question = "设备 DPC-550 的预算是多少？"
-        hits = [RetrievedItem(i, 1 / i, f"DPC-550 设备说明第 {i} 页。", {
+        # V3.9.1 预扩容后，带「多少」等标记的问题在入口直接放到渠道上限（见下一个用例）。
+        # 这里用不含标记的问法检验自适应循环：只放宽卡住事实的那一项限制。
+        # 前 6 条与 DPC-550 无关（编号锚点不在窗口内），第 7 条才出现该设备。
+        hits = [RetrievedItem(i, 1 / i, f"DPC-{560 + i} 设备说明第 {i} 页。", {
             "document_id": f"d{i}", "chunk_id": f"d{i}_0000", "source": f"d{i}.md", "version": "1.0",
         }, "关键词") for i in range(1, 8)]
 
         def retrieve(query, *, top_k, **kwargs):
             return hits[:top_k]
 
+        question = "设备 DPC-550 的预算"
         with mock.patch("src.pipeline.get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
             missing = self._call("knowledge_search", question)
             self.assertEqual(missing["evidence_budget"]["expanded_by"], [])
             self.assertEqual(missing["evidence_budget"]["top_k"], 5)
+            self.assertEqual(missing["coverage_details"]["evidence_support"]["missing"], ["DPC-550"])
             hits[6] = replace(hits[6], text="DPC-550 的预算为 200 万元。")
-            simple = self._call("knowledge_search", "DPC-550 设备说明")
+            simple = self._call("knowledge_search", "DPC-560 设备说明")
             self.assertEqual(simple["evidence_budget"]["top_k"], 5)
             self.assertEqual(simple["evidence_budget"]["expanded_by"], [])
             result = self._call("knowledge_search", question)
-            fixed = self._call("knowledge_search", question, top_k=5)
 
         self.assertEqual(result["evidence_budget"]["top_k"], 12)
         self.assertEqual(result["evidence_budget"]["max_evidence_tokens"], 4000)
         self.assertEqual(result["evidence_budget"]["expanded_by"], ["top_k"])
         self.assertTrue(any("200 万元" in match["text"] for match in result["matches"]))
-        self.assertEqual(fixed["evidence_budget"]["top_k"], 5)
-        self.assertEqual(fixed["evidence_budget"]["expanded_by"], [])
 
         hits[:] = [replace(hits[0], text="DPC-550 的预算为 200 万元。" + "背景。" * 1900)]
         with mock.patch("src.pipeline.get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
@@ -432,6 +433,25 @@ class McpDocumentToolsTests(IngestHarness):
         self.assertEqual(result["evidence_budget"]["top_k"], 5)
         self.assertEqual(result["evidence_budget"]["max_evidence_tokens"], 8000)
         self.assertEqual(result["evidence_budget"]["expanded_by"], ["max_evidence_tokens"])
+
+    def test_multipoint_question_is_pre_expanded_even_with_a_small_explicit_top_k(self):
+        from src.retriever import RetrievedItem
+
+        question = "设备 DPC-550 的预算是多少？"  # 含「多少」标记
+        hits = [RetrievedItem(i, 1 / i, f"DPC-550 设备说明第 {i} 页。", {
+            "document_id": f"d{i}", "chunk_id": f"d{i}_0000", "source": f"d{i}.md", "version": "1.0",
+        }, "关键词") for i in range(1, 8)]
+        hits[6] = replace(hits[6], text="DPC-550 的预算为 200 万元。")
+        retrieve = mock.Mock(side_effect=lambda query, *, top_k, **kwargs: hits[:top_k])
+        with mock.patch("src.pipeline.get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
+            auto = self._call("knowledge_search", question)
+            fixed = self._call("knowledge_search", question, top_k=5)
+        # V3.9.1：多点/取值类问题在入口即放到渠道上限，显式给小的 top_k 同样放宽
+        for payload in (auto, fixed):
+            budget = payload["evidence_budget"]
+            self.assertEqual((budget["top_k"], budget["max_evidence_tokens"]), (12, 8000))
+            self.assertEqual(budget["expanded_by"], [])
+            self.assertTrue(any("200 万元" in match["text"] for match in payload["matches"]))
 
     def test_mcp_resolves_two_limits_within_one_retrieval(self):
         from src.retriever import RetrievedItem
@@ -448,10 +468,13 @@ class McpDocumentToolsTests(IngestHarness):
             fixed = self._call("knowledge_search", question, max_evidence_tokens=4000)
         budget = result["evidence_budget"]
         self.assertEqual((budget["top_k"], budget["max_evidence_tokens"]), (12, 8000))
-        self.assertEqual(set(budget["expanded_by"]), {"top_k", "max_evidence_tokens"})
+        # V3.9.1 预扩容：带「多少」标记的问题在入口即放到渠道上限，两项限制一次解决，
+        # 自适应循环无需再放宽；仍然只检索一次
+        self.assertEqual(budget["expanded_by"], [])
         self.assertTrue(any("200 万元" in match["text"] for match in result["matches"]))
-        self.assertEqual(fixed["evidence_budget"]["max_evidence_tokens"], 4000)
-        self.assertEqual(fixed["coverage_details"]["evidence_support"]["missing"], ["预算金额"])
+        # 显式给小的 token 预算同样被放宽：证据完整性优先于条数节约
+        self.assertEqual(fixed["evidence_budget"]["max_evidence_tokens"], 8000)
+        self.assertEqual(fixed["coverage_details"]["evidence_support"]["missing"], [])
 
     def test_get_document_full_stitches_single(self):
         payload = self._call("get_document", [self.document_id], mode="full")

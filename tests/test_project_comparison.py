@@ -89,13 +89,14 @@ class ProjectComparisonTests(IngestHarness):
         self.assertEqual(search["evidence_budget"]["max_evidence_tokens"], 8000)
         self.assertEqual([entry["sources"] for entry in search["coverage_details"]["comparison"]["projects"]], [[1], [2], []])
 
-    def test_mcp_comparison_redistributes_only_to_project_with_budget_omission(self):
+    def _mcp_comparison(self, question):
+        """走真实 MCP search 的项目对比通道，记录每个项目分支拿到的 token 预算。"""
         query_evidence = pipeline.query_evidence
         questions = []
         sky = self.project_ids["星云项目"]
         other = self.project_ids["天枢项目"]
 
-        def query(question, *args, **kwargs):
+        def query(question, *args, **kwargs):  # 顶层以 question= 关键字调入，形参名不能改
             if question == "项目预算金额":
                 [project_id] = kwargs["filters"]["project_id"]
                 questions.append((project_id, kwargs["evidence_max_tokens"]))
@@ -109,12 +110,26 @@ class ProjectComparisonTests(IngestHarness):
 
         with patch.object(pipeline, "query_evidence", side_effect=query), \
              patch.object(pipeline, "get_retriever", return_value=SimpleNamespace(retrieve=retrieve)):
-            response = json.loads(mcp_server._tool_knowledge_search_impl("星云和天枢两个项目的预算分别是多少？"))
+            response = json.loads(mcp_server._tool_knowledge_search_impl(question))
+        return sky, other, questions, response
+
+    def test_mcp_comparison_redistributes_only_to_project_with_budget_omission(self):
+        # V3.9.1 预扩容后，带「分别/多少」标记的问法在入口即放到渠道上限（见下一个用例）；
+        # 这里用不含标记的问法检验预算重分配：默认预算对半分，不够的一方借余量重查。
+        sky, other, questions, response = self._mcp_comparison("对比星云和天枢两个项目的预算")
         self.assertEqual(questions[:2], [(sky, 2000), (other, 2000)])
         self.assertEqual(len(questions), 3)
         self.assertEqual(questions[2][0], other)
         self.assertGreater(questions[2][1], 3000)
         self.assertEqual(response["evidence_budget"]["expanded_by"], ["max_evidence_tokens"])
+        self.assertFalse(response["coverage_details"]["comparison"]["missing"])
+        self.assertEqual([p["sources"] for p in response["coverage_details"]["comparison"]["projects"]], [[1], [2]])
+
+    def test_mcp_comparison_with_multipoint_marker_is_pre_expanded(self):
+        # 带标记：入口即 8000 tokens，两个项目各分 4000，长卡片一次放下，无需重分配
+        sky, other, questions, response = self._mcp_comparison("星云和天枢两个项目的预算分别是多少？")
+        self.assertEqual(questions, [(sky, 4000), (other, 4000)])
+        self.assertEqual(response["evidence_budget"]["expanded_by"], [])
         self.assertFalse(response["coverage_details"]["comparison"]["missing"])
         self.assertEqual([p["sources"] for p in response["coverage_details"]["comparison"]["projects"]], [[1], [2]])
 

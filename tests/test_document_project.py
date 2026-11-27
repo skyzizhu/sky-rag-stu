@@ -104,7 +104,8 @@ class DocumentProjectTests(IngestHarness):
             project = ingest_web_page(url, domain="reference", default_project_id=self.project_id)["file_path"]
             self.assertEqual(ingest_web_page(url, domain="reference")["file_path"], unassigned)
         self.assertNotEqual(unassigned, project)
-        self.assertEqual(Path(unassigned).parent.name, "public")
+        # V3.9.2：未关联项目落 basic_knowledge/<入库用户>/；本用例未传 owner，故为桶根
+        self.assertEqual(Path(unassigned).parent.name, "basic_knowledge")
         self.assertEqual(Path(project).parent.name, "dikongjianguanpingtai")
 
     def test_mcp_project_and_direction_filters_respect_permissions_and_live_assignment(self):
@@ -155,7 +156,9 @@ class DocumentProjectTests(IngestHarness):
         from src.project_directories import upload_directory
 
         for project_id in (None, self.project_id):
-            with upload_directory(self.knowledge, "learning", project_id) as directory:
+            # V3.9.2：界面入库总是带登录用户名；未关联项目落 basic_knowledge/<用户名>/，
+            # 托管桶与用户名两层都是系统合成层，推断时一并剥离，用户的 team/rag 层级保留
+            with upload_directory(self.knowledge, "learning", project_id, username="alice") as directory:
                 path = directory / "team" / "rag" / "report.md"
                 path.parent.mkdir(parents=True)
                 path.write_text("# 验收报告\n\n验收要求和流程。" * 8, encoding="utf-8")
@@ -167,12 +170,12 @@ class DocumentProjectTests(IngestHarness):
         for document in docs:
             cards = self.store.get_all_cards({"document_id": document["document_id"]})
             self.assertTrue(all(card["payload"]["topic"] == ["RAG"] for card in cards))
-        public_path = "learning/public/team/rag/report.md"
-        self.assertIn(public_path, self.ledger())
+        unassigned_path = "learning/basic_knowledge/alice/team/rag/report.md"  # 托管桶 + 入库用户名
+        self.assertIn(unassigned_path, self.ledger())
         for department, expected_count in (("hr", 2), ("finance", 0)):
             with mock.patch.object(mcp_server, "_identity_from_ctx", return_value=([department], "tester", {})):
-                public_listing = json.loads(mcp_server._tool_list_documents_impl(domain="learning"))
-                self.assertEqual(len(public_listing["documents"]), expected_count)
+                unassigned_listing = json.loads(mcp_server._tool_list_documents_impl(domain="learning"))
+                self.assertEqual(len(unassigned_listing["documents"]), expected_count)
 
     def test_mcp_distinguishes_invalid_and_empty_scopes_and_skips_generation(self):
         from src.pipeline import QAResult

@@ -1,5 +1,7 @@
 {
   "top_k": 5,
+  "context_max_tokens": 4000,
+  "context_max_per_doc": 3,
   "scope_choice": "active",
   "debug_mode": true,
   "query_understanding": true,

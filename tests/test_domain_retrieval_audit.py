@@ -291,16 +291,24 @@ class WebIngestDomainTests(_RetrievalCase):
         """⑥ 选了 finance：卡片属于 finance、分类生效，按 finance 能检索到。"""
         domains.create_domain("finance", "财务")
         result = self.ingest_page(domain="finance", category="policies")
-        self.assertEqual(Path(result["file_path"]).parent, self.knowledge / "finance" / "public")
+        # V3.9.2：未关联项目落 basic_knowledge（本用例未传 owner，故为桶根）
+        self.assertEqual(Path(result["file_path"]).parent, self.knowledge / "finance" / "basic_knowledge")
         [doc] = self.store.list_documents()
         self.assertEqual((doc["domain"], doc["category"]), ("finance", "policies"))
         self.assertEqual(self.sources("报销流程", domain="finance"), {doc["source"]})
         self.assertEqual(self.sources("报销流程", domain="reference"), set())
 
+    def test_unassigned_web_page_lands_in_uploader_directory(self):
+        """V3.9.2：未关联项目的网页与文件、目录一致，落在 basic_knowledge/<入库用户>/。"""
+        domains.create_domain("finance", "财务")
+        result = self.ingest_page(domain="finance", owner="alice")
+        self.assertEqual(Path(result["file_path"]).parent,
+                         self.knowledge / "finance" / "basic_knowledge" / "alice")
+
     def test_default_snapshot_lives_in_domain_and_can_be_reused(self):
         result = self.ingest_page()
         path = Path(result["file_path"])
-        self.assertEqual(path.parent, self.knowledge / "reference" / "public")
+        self.assertEqual(path.parent, self.knowledge / "reference" / "basic_knowledge")
         text = path.read_text(encoding="utf-8")
         self.assertNotIn("\ndomain:", text)    # 不写默认值：存量网页重抓不会无故升版本
         self.assertNotIn("\ncategory:", text)

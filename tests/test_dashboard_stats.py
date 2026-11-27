@@ -51,7 +51,8 @@ class DashboardAggregationTests(TempAuthDB):
                    ("alice", "损坏用量", "{", "2026-11-19T10:00:00")])
         with mock.patch("src.app_settings.load_app_settings", return_value={
                 "llm_price_input": 2, "llm_price_input_cached": 0.5, "llm_price_output": 3}):
-            response = admin_app.api_llm_costs({}, days=0, username="ali", page=999, page_size=20)
+            # 直调路由函数时 FastAPI 不会解析 Query 默认值，entry 须显式传入（线上由框架注入）
+            response = admin_app.api_llm_costs({}, days=0, username="ali", entry=None, page=999, page_size=20)
         self.assertEqual(response["total_rows"], 306)
         self.assertEqual(response["totals"], {
             "input": 30600, "input_cached": 6120, "output": 9180, "calls": 612, "cost": 0.08})
