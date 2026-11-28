@@ -4,7 +4,7 @@
 
 布局：左侧是菜单（顶部为 Logo 与 Slogan），右侧是对应页面。菜单分两组：
     知识库：💬 知识库问答（横幅 + 流式回答 + 来源卡片）
-            📤 上传文档（按领域目录入库，逐文件结果）
+            📤 上传文档（按知识板块目录入库，逐文件结果）
             🗂 知识库管理（统计 / 筛选 / 归档·恢复·移除·重新入库）
     设置：🔍 检索设置 · 🧹 维护操作 · 📊 系统状态 · 🧾 参数总览
 """
@@ -66,7 +66,7 @@ from src.manage import (  # noqa: E402
     update_metadata,
 )
 from src.web_fetcher import read_snapshot_origin  # noqa: E402  # 识别网页快照（管理页）
-from src import domains as domain_reg  # noqa: E402  # V3.8 领域注册表（编号=数据身份，名称仅显示）
+from src import domains as domain_reg  # noqa: E402  # V3.8 知识板块注册表（编号=数据身份，名称仅显示）
 from src.i18n import (  # noqa: E402
     FOLLOW_SYSTEM,
     LANGUAGE_ORDER,
@@ -122,10 +122,10 @@ cfg = get_config()
 # 上传页格式显示：按类别归组（文档 → 表格 → 演示 → 图片 → 网页），仅影响显示顺序；
 # 实际接受范围仍以 parser 白名单（SUPPORTED_EXTENSIONS，带点）为准
 _UPLOAD_TYPE_GROUPS = [
-    ("文档", [".doc", ".docx", ".wps", ".pdf", ".md", ".txt", ".rtf"]),
-    ("表格", [".xls", ".xlsx", ".et"]),
-    ("演示", [".ppt", ".pptx", ".dps"]),
-    ("图片", [".png", ".jpg", ".jpeg", ".bmp"]),
+    ("文档", [".doc", ".docx", ".docm", ".wps", ".pdf", ".md", ".txt", ".rtf"]),
+    ("表格", [".xls", ".xlsx", ".et", ".csv", ".tsv"]),
+    ("演示", [".ppt", ".pptx", ".pptm", ".dps"]),
+    ("图片", [".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".gif", ".webp"]),
     ("网页", [".html", ".htm"]),
 ]
 SUPPORTED_UPLOAD_TYPES = [ext.lstrip(".") for _label, exts in _UPLOAD_TYPE_GROUPS
@@ -142,7 +142,7 @@ def _is_hidden_relpath(parts: tuple[str, ...]) -> bool:
 st.session_state.setdefault("top_k", cfg.top_k)
 st.session_state.setdefault("context_max_tokens", cfg.context_max_tokens)
 st.session_state.setdefault("context_max_per_doc", cfg.context_max_per_doc)
-# V3.9.1：领域/文档类型/归属部门/可见密级四项检索筛选暂时隐藏（后期再评估恢复）——
+# V3.9.1：知识板块/文档类型/归属部门/可见密级四项检索筛选暂时隐藏（后期再评估恢复）——
 # 不初始化 session 键，settings.json / 个人偏好里的旧值不再加载（见 build_filters 与 SETTINGS_KEYS）。
 st.session_state.setdefault("scope_choice", "active")
 st.session_state.setdefault("debug_mode", True)
@@ -499,7 +499,8 @@ html, body, .stApp, .stMarkdown, input, textarea {
   overflow-y:auto !important;overflow-x:hidden !important;}
 [data-testid="stSidebarContent"] > * {flex-shrink:0 !important;}  /* 防止内容超高时 flex 子项被压扁互相重叠 */
 [data-testid="stSidebarHeader"] {position:absolute !important;top:18px !important;right:9px !important;
-  z-index:20 !important;width:auto !important;height:auto !important;padding:0 !important;}
+  z-index:20 !important;width:auto !important;height:auto !important;padding:0 !important;
+  border-bottom:none !important;}  /* 去掉自带的下边框：header 移位后该线残留并横在用户信息卡上方 */
 [data-testid="stSidebarUserContent"] {display:contents !important;}
 [data-testid="stSidebarUserContent"] > *,
 [data-testid="stSidebarUserContent"] > * > [data-testid="stVerticalBlock"] {display:contents !important;}
@@ -546,7 +547,7 @@ html, body, .stApp, .stMarkdown, input, textarea {
 .user-card .u-dept { display:inline-block; padding:1px 8px; margin-left:6px;
   border-radius:9px; font-size:.68rem; background:rgba(99,102,241,.14);
   color:var(--accent-text, #4F46E5); font-weight:600; vertical-align:2px; }
-[data-testid="stSidebarNav"] {order:3 !important; margin-top: 6px !important;}
+[data-testid="stSidebarNav"] {order:3 !important; margin-top: 16px !important;}
 /* 导航文字颜色跟随主题变量（Streamlit 内置导航用固定主题色，深色下看不清） */
 [data-testid="stSidebarNav"] a,
 [data-testid="stSidebarNav"] a span,
@@ -574,7 +575,7 @@ html, body, .stApp, .stMarkdown, input, textarea {
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
   background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(139,92,246,.1));
   color: #818CF8 !important; border-left: 2px solid #818CF8;}
-.brand-block {padding: 8px 4px 14px; margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle);
+.brand-block {padding: 8px 4px 14px; margin-bottom: 8px;
               display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 7px;}
 .brand-logo {height: 46px; max-width: 100%; object-fit: contain; background: #fff;
              border-radius: 8px; padding: 4px 8px; box-shadow: 0 4px 14px rgba(0,0,0,.12);}
@@ -894,7 +895,7 @@ div[data-baseweb="select"] > div {border-radius: 10px !important;
 /* ==================== 标题与标签颜色修复 ==================== */
 .section-title {color: var(--text-primary) !important; opacity: 1 !important;}
 
-/* ---------- 领域管理：表格化列表（V3.9.1）----------
+/* ---------- 知识板块管理：表格化列表（V3.9.1）----------
    行容器带 key（dom_row_<code> / dom_list_head），用 CSS 补表头、分隔线与悬停高亮；
    亮/暗主题通过现有文本变量适配。 */
 .st-key-dom_list_head {padding: 8px 14px !important; margin-top: 6px; margin-bottom: 0 !important;
@@ -1041,7 +1042,7 @@ def _sync_setting(canonical_key: str, widget_key: str):
 
 
 def domain_label(domain: str) -> str:
-    """「code · 名称」；名称优先用领域管理里设置的，未设置时用内置多语言标签。
+    """「code · 名称」；名称优先用知识板块管理里设置的，未设置时用内置多语言标签。
 
     纯显示：编号才是数据身份（卡片 payload / 过滤条件 / 缓存键都只认编号），
     改名称不影响任何检索。
@@ -1051,7 +1052,7 @@ def domain_label(domain: str) -> str:
 
 
 def _domain_index(codes: list[str], preferred: str) -> int:
-    """下拉框默认选中项：首选领域被停用 / 删除时退回第一项。"""
+    """下拉框默认选中项：首选知识板块被停用 / 删除时退回第一项。"""
     return codes.index(preferred) if preferred in codes else 0
 
 
@@ -1129,7 +1130,7 @@ def tag(text: str, color: str = "blue") -> str:
 def build_filters() -> dict:
     """把设置页的检索设置翻译成 Metadata Filter（值为语言无关的代码）。
 
-    V3.9.1：限定知识领域、文档类型、归属部门、可见密级四项筛选暂时隐藏，
+    V3.9.1：限定知识板块、文档类型、归属部门、可见密级四项筛选暂时隐藏，
     已保存的旧值不再读取/应用/写入——避免"界面看不见但仍在收窄"的残留过滤；
     底层 metadata 过滤机制（vector_store.build_filter）原样保留，恢复时从
     git 历史找回本函数与设置页的对应控件。检索范围（status）继续生效。
@@ -2289,6 +2290,12 @@ def page_upload():
     root.querySelectorAll('[data-testid="stFileUploaderDropzoneInstructions"] span').forEach(function(span) {{
       if (/per file/.test(span.textContent) && !/文档/.test(span.textContent)) {{
         span.innerHTML = GROUPED + '<br>' + SIZE;
+        // 格式清单变长后单行放不下：放开换行并允许在斜杠处断行，避免被截断
+        span.style.whiteSpace = 'normal';
+        span.style.display = 'inline-block';
+        span.style.maxWidth = '100%';
+        span.style.wordBreak = 'break-all';
+        span.style.lineHeight = '1.45';
       }}
     }});
   }}
@@ -2308,7 +2315,10 @@ def page_upload():
     with tab_dir:
         st.markdown(t("dir.title"))
         st.caption(t("dir.caption"))
-        # V3.7.2 归属设置卡片：领域与可见部门收进带边框容器
+        # 报告 G5 / 决策6：目录导入只收支持的格式——格式清单与上传框小字同源
+        # （_UPLOAD_TYPE_GROUPS ∩ parser 白名单），新增格式只改一处，界面自动跟上
+        st.caption(t("dir.formats", types=types_grouped))
+        # V3.7.2 归属设置卡片：知识板块与可见部门收进带边框容器
         with st.container(border=True):
             _dir_codes = [c for c in domain_reg.enabled_codes() if c != "archive"]
             domain_col, project_col = st.columns(2)
@@ -2724,7 +2734,7 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool
                          default_department: str | None = None,
                          default_project_id: int | None = None,
                          default_allowed_users: list[str] | None = None):
-    """把浏览器选中的目录写入领域目录，然后增量入库。
+    """把浏览器选中的目录写入知识板块目录，然后增量入库。
 
     V3.8：同名目录已存在时默认合并（merge=True）——没变的跳过、改了的升版本、
     新增的入库，源目录里已删除的文件保留；merge=False 为另存副本目录（原行为）。
@@ -2750,10 +2760,17 @@ def _do_directory_upload(entries, dir_domain, batch_id, groups=None, merge: bool
         grouped: dict[str, list[tuple[tuple[str, ...], bytes]]] = {}
         original_indices: dict[str, list[int]] = {}
         try:
+            # 报告 G5 / 决策6：不支持的文件默认不复制（此前会写入知识目录、管理台
+            # 却不显示，留下"孤儿文件"）；审计按原始索引记 unsupported_type。
+            from src.upload_plan import split_supported_entries
+
+            entries, unsupported_indices = split_supported_entries(entries)
+            for index in unsupported_indices:
+                audit.skip(index, "unsupported_type")
             for index, (parts, content) in enumerate(entries):
                 root = _clean_directory_name(parts[0])
                 grouped.setdefault(root, []).append((parts[1:], content))
-                # 保留用户选择的原始根目录；不要使用领域、清理后的名称或副本目录名。
+                # 保留用户选择的原始根目录；不要使用知识板块、清理后的名称或副本目录名。
                 original_indices.setdefault(root, []).append(index)
         except ValueError as exc:
             st.error(str(exc))
@@ -2865,7 +2882,7 @@ def _show_ingest_result(summary):
             first = p.relative_to(cfg.knowledge_dir).parts[0]
             by_domain[first] = by_domain.get(first, 0) + 1
         st.markdown(
-            # tag() 不转义、这里又允许 HTML：领域名称是用户填的，必须先转义
+            # tag() 不转义、这里又允许 HTML：知识板块名称是用户填的，必须先转义
             "　".join(tag(f"{html.escape(domain_label(d))} · {n}", "blue") for d, n in sorted(by_domain.items())),
             unsafe_allow_html=True,
         )
@@ -2946,7 +2963,7 @@ def page_manage():
     project_catalog = {p["id"]: p for p in projects.list_projects()}
     f1, f2, f3, f4, f5, f6 = st.columns([3, 1.2, 1.2, 1.2, 1.2, 1.3])
     keyword = f1.text_input(t("manage.search"), placeholder=t("manage.search.ph"))
-    dom_codes = ["all"] + domain_reg.all_codes()  # 含停用领域：其数据仍可检索与管理
+    dom_codes = ["all"] + domain_reg.all_codes()  # 含停用知识板块：其数据仍可检索与管理
     dom_filter = f2.selectbox(t("common.domain"), dom_codes,
                               format_func=lambda c: t("common.all") if c == "all" else domain_label(c))
     status_codes = ["all", "active", "archive"]
@@ -3473,7 +3490,7 @@ def page_retrieval_settings():
 
     # 值保存语言无关的代码（active/all/archive），显示时本地化；
     # 显式传入当前生效值，保证第一次打开就显示正确数据；变化时同步回 session。
-    # V3.9.1：限定知识领域、文档类型、归属部门、可见密级四项筛选暂时隐藏（后期再评估恢复），
+    # V3.9.1：限定知识板块、文档类型、归属部门、可见密级四项筛选暂时隐藏（后期再评估恢复），
     # 只保留 Top K 与检索范围；已保存的旧筛选值不再读取/应用/写入（见 build_filters）。
     st.slider(t("set.top_k"), 1, 10,
               value=st.session_state["top_k"], key="set_top_k",
@@ -3787,7 +3804,7 @@ def page_plugins():
     st.caption(t("plugin.footer"))
 
 
-# ---------------------------------------------------------------- 页面：领域管理（V3.8）
+# ---------------------------------------------------------------- 页面：知识板块管理（V3.8）
 @st.dialog(t("dommgr.delete.confirm.title"), width="small")
 @_guard_management_database
 def confirm_domain_delete() -> None:
@@ -3800,7 +3817,7 @@ def confirm_domain_delete() -> None:
         st.session_state.pop("domain_delete_request", None)
         st.rerun()
     if c2.button(t("dommgr.delete.confirm.yes"), type="primary", width="stretch"):
-        # 点确认时重新统计：确认框打开期间若有人往该领域上传了文件，同样拒绝删除
+        # 点确认时重新统计：确认框打开期间若有人往该知识板块上传了文件，同样拒绝删除
         try:
             stat = domain_reg.usage_by_domain(cfg.knowledge_dir, istate.load_state(),
                                               store.list_documents()).get(code)
@@ -3816,7 +3833,7 @@ def confirm_domain_delete() -> None:
 @st.dialog(t("dommgr.add.title"), width="small")
 @_guard_management_database
 def add_domain_dialog() -> None:
-    """新增领域弹框（V3.9.1 列表化改造）：编号是数据身份，创建后不可改。"""
+    """新增知识板块弹框（V3.9.1 列表化改造）：编号是数据身份，创建后不可改。"""
     with st.form("domain_add_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         new_code = c1.text_input(t("dommgr.field.code"), help=t("dommgr.field.code.help"))
@@ -3874,7 +3891,7 @@ def edit_domain_dialog() -> None:
 
 @_guard_management_database
 def page_domains():
-    """领域管理：增 / 改名称与描述 / 启停 / 删除（只能删空领域）/ 登记未登记目录。
+    """知识板块管理：增 / 改名称与描述 / 启停 / 删除（只能删空知识板块）/ 登记未登记目录。
 
     铁律：编号是数据身份，创建后不可改；名称只用于显示——改名不碰文件、卡片、向量与过滤条件。
     """
@@ -3892,7 +3909,7 @@ def page_domains():
     documents = store.list_documents()
     usage = domain_reg.usage_by_domain(cfg.knowledge_dir, istate.load_state(), documents)
 
-    # ② 领域列表（V3.9.1 表格化）：表头 + 一行一领域，行间分隔线、悬停高亮；
+    # ② 知识板块列表（V3.9.1 表格化）：表头 + 一行一知识板块，行间分隔线、悬停高亮；
     #    行内直接提供 编辑/停用|启用/删除；编辑走弹框（domain_edit_request），
     #    删除仍走确认框（domain_delete_request）
     DOMAIN_COLS = [2.3, 1.05, 1.35, 0.85, 0.85, 0.85]
@@ -3945,7 +3962,7 @@ def page_domains():
                 st.session_state["domain_delete_request"] = code
                 st.rerun()
 
-    # ③ 未登记目录：有文件却没登记为领域的文件夹（入库时被兜底归到 reference）
+    # ③ 未登记目录：有文件却没登记为知识板块的文件夹（入库时被兜底归到 reference）
     unregistered = domain_reg.unregistered_dirs(cfg.knowledge_dir)
     if unregistered:
         st.divider()
@@ -4227,7 +4244,7 @@ if "upload" in _user_perms:
     employee_nav[t("nav.group.knowledge")].append(upload_page)
 if "manage" in _user_perms:
     employee_nav[t("nav.group.knowledge")].append(manage_page)
-if "domains" in _user_perms:  # V3.8 领域管理：独立权限（管理后台分配）
+if "domains" in _user_perms:  # V3.8 知识板块管理：独立权限（管理后台分配）
     employee_nav[t("nav.group.knowledge")].append(domains_page)
 settings_pages = [general_page]
 if "retrieval_settings" in _user_perms:

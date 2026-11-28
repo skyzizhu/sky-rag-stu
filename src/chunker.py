@@ -361,7 +361,7 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
         if file_type in {"pptx", "ppt", "dps"}:
             heading_stack.clear()
         raw = _split_by_sections_raw(page_text, heading_stack)
-        if file_type in {"xlsx", "xls", "et"}:
+        if file_type in {"xlsx", "xls", "et", "csv", "tsv"}:  # 表格类：按行组原样切，不做章节合并
             sections = raw
         else:
             max_prefix = max((est_tokens(prefix(section.path)) + 1 for section in raw), default=0)
@@ -370,7 +370,7 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
             header = prefix(section.path)
             budget = size - est_tokens(header) - bool(header)
             paragraphs = _bind_title_paragraphs(_split_paragraphs(section.text), budget)
-            pieces = (_spreadsheet_pieces(section.text, budget) if file_type in {"xlsx", "xls", "et"}
+            pieces = (_spreadsheet_pieces(section.text, budget) if file_type in {"xlsx", "xls", "et", "csv", "tsv"}
                       else _pack_with_overlap(paragraphs, budget, min(overlap, budget // 2)))
             for piece in pieces:
                 page = str(page_start) if page_start else None
@@ -380,7 +380,7 @@ def chunk_document(doc: ParsedDocument, config: AppConfig | None = None) -> list
                 metadata["chunk_index"] = len(chunks)
                 metadata["overlap_chars"] = piece.overlap_chars
                 metadata["chunk_joiner"] = piece.joiner
-                if file_type in {"xlsx", "xls", "et"} and piece.overlap_chars:
+                if file_type in {"xlsx", "xls", "et", "csv", "tsv"} and piece.overlap_chars:
                     metadata["repeated_table_header"] = True
                 metadata["section"] = section.leaf
                 metadata["section_path"] = section.path

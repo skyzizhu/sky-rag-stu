@@ -21,7 +21,6 @@ from pathlib import Path
 
 import requests
 import urllib3
-from bs4 import BeautifulSoup
 
 from src.config import PROJECT_ROOT
 
@@ -35,6 +34,61 @@ _HEADERS = {
 
 _TIMEOUT = 15  # 秒
 _MAX_BYTES = 5 * 1024 * 1024  # 单页正文上限 5 MB：恶意/超大页面不至耗尽内存
+_HTML_CONTENT_TYPES = {"text/html", "application/xhtml+xml"}
+
+
+def _ensure_web_content(body: bytes, content_type: str) -> None:
+    """报告 U2：链接必须真的指向网页。PDF/压缩包等二进制链接按文本读只会入库乱码。
+
+    以响应头 Content-Type 为准；个别服务器类型标错但内容确实是 HTML 时放行
+    （按前 1 KB 里能否找到 <html 标签判断）。
+    """
+    ctype = (content_type or "").split(";")[0].strip().lower()
+    if not ctype or ctype in _HTML_CONTENT_TYPES or ctype == "text/plain":
+        return
+    head = body[:1024].lstrip().lower()
+    looks_html = head.startswith(b"<!doctype html") or head.startswith(b"<html") or b"<html" in head
+    if looks_html:
+        return
+    if head.startswith(b"%pdf-"):
+        detected = "PDF 文件"
+    elif head.startswith(b"pk\x03\x04"):
+        detected = "Office 文档 / 压缩包"
+    else:
+        detected = "非网页内容"
+    raise ValueError(
+        f"链接指向的不是网页（Content-Type: {ctype}，内容疑似{detected}），暂不支持按网页入库该链接")
+
+
+def _decode_html(body: bytes, content_type: str) -> str:
+    """报告 U1/U6：编码按 响应头声明 → 页面 meta 声明 → 自动探测 的顺序确定，
+    字节整体解码一次（旧的按 64KB 分块各自解码会切碎多字节字符，产生零星乱码）。
+
+    旧实现只信 requests 的猜测：响应头不带字符集时按西欧编码解，中文页面整页
+    乱码还因为"字数够多"绕过内容过短检查照常入库。
+    """
+    candidates: list[str] = []
+    match = re.search(r"charset\s*=\s*\"?([A-Za-z0-9_\-]+)", content_type or "", re.IGNORECASE)
+    if match:
+        candidates.append(match.group(1))
+    head = body[:4096].decode("ascii", errors="ignore")  # meta 标签本身是 ASCII，扫前 4KB 即可
+    match = re.search(r"charset\s*=\s*[\"']?([A-Za-z0-9_\-]+)", head, re.IGNORECASE)
+    if match:
+        candidates.append(match.group(1))
+    for encoding in dict.fromkeys(candidates):  # 去重且保持顺序
+        try:
+            return body.decode(encoding)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    try:
+        from charset_normalizer import from_bytes
+
+        best = from_bytes(body).best()
+        if best is not None:
+            return str(best)
+    except Exception:
+        pass
+    return body.decode("utf-8", errors="replace")
 
 
 def fetch_html(url: str) -> tuple[str, bool]:
@@ -55,68 +109,34 @@ def fetch_html(url: str) -> tuple[str, bool]:
                                 stream=True, verify=False)
         cert_skipped = True
     resp.raise_for_status()
-    # 流式读取并截断：timeout 只约束单次读，不限总量
-    parts: list[str] = []
+    # 先收齐字节（封顶 5 MB），再按报告 U1 的编码链路整体解码
+    parts: list[bytes] = []
     total = 0
     for chunk in resp.iter_content(chunk_size=65536, decode_unicode=False):
         total += len(chunk)
         if total > _MAX_BYTES:
             break
-        parts.append(chunk.decode(resp.encoding or "utf-8", errors="replace"))
+        parts.append(chunk)
     resp.close()
-    return "".join(parts), cert_skipped
+    body = b"".join(parts)
+    content_type = resp.headers.get("Content-Type", "")
+    _ensure_web_content(body, content_type)
+    return _decode_html(body, content_type), cert_skipped
 
 
 def extract_text(html: str) -> dict:
-    """从 HTML 中提取正文纯文本 + 页面标题。
+    """从 HTML 中提取正文纯文本 + 页面标题（报告 U5）。
 
-    清理规则：
-    - 移除 <script>、<style>、<nav>、<header>、<footer>、<noscript>
-    - 保留 <h1>~<h6> 标题为 Markdown 格式（方便切片按章节拆分）
-    - 短行碎片（<15 字）合并进相邻段落
+    与网页文件上传共用 parser.html_to_text 这一份解析：表格转 Markdown、列表
+    保留标记、链接保留 URL——此前两入口各写各的，同一个网页两种入库结果。
+    抓取的正文保留短行合并（合并菜单/按钮碎片），与上传 HTML 的清洗行为对齐。
     """
-    soup = BeautifulSoup(html, "html.parser")
+    from src.parser import html_to_text
 
-    # 页面标题
-    title = soup.title.string.strip() if soup.title and soup.title.string else ""
+    text, title = html_to_text(html)
+    from src.cleaner import _merge_short_fragments
 
-    # 移除不需要的标签
-    for tag in soup(["script", "style", "noscript", "nav", "header", "footer",
-                     "iframe", "svg", "form", "button"]):
-        tag.decompose()
-
-    # 将标题标签转为 Markdown 格式（便于切片按章节拆分）
-    for level in range(1, 7):
-        for h in soup.find_all(f"h{level}"):
-            h.replace_with(f"{'#' * level} {h.get_text(strip=True)}")
-
-    # 提取纯文本
-    text = soup.get_text(separator="\n")
-
-    # 清理：去多余空行、短行碎片合并
-    lines = text.split("\n")
-    merged: list[str] = []
-    buffer = ""
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            if buffer:
-                merged.append(buffer)
-                buffer = ""
-            continue
-        if len(stripped) < 15:
-            buffer += (" " if buffer else "") + stripped
-            continue
-        if buffer:
-            merged.append(buffer)
-            buffer = ""
-        merged.append(line)
-    if buffer:
-        merged.append(buffer)
-
-    clean_text = "\n".join(merged)
-
-    return {"text": clean_text, "title": title}
+    return {"text": _merge_short_fragments(text), "title": title}
 
 
 def fetch_and_parse(url: str) -> dict:
@@ -178,9 +198,9 @@ def save_web_snapshot(url: str, text: str, title: str, domain: str = "reference"
                       destination: Path | None = None,
                       existing_paths: tuple[Path, ...] = (),
                       include_legacy: bool = False) -> Path:
-    """把新快照写入所选领域。已有 URL 复用原路径，保留文档 ID 和版本历史。
+    """把新快照写入所选知识板块。已有 URL 复用原路径，保留文档 ID 和版本历史。
 
-    同一网址改选领域时通过 Front Matter 更新领域。历史快照已有的分类声明随原文件保留。
+    同一网址改选知识板块时通过 Front Matter 更新知识板块。历史快照已有的分类声明随原文件保留。
     """
     import hashlib
 
@@ -228,13 +248,15 @@ def save_web_snapshot(url: str, text: str, title: str, domain: str = "reference"
     if category and category != "webpages":
         declared += f"category: {json.dumps(_sanitize_single_line(category), ensure_ascii=False)}\n"
 
-    # Front Matter：让入库时自动带上 URL 和来源信息
+    # Front Matter：让入库时自动带上 URL 和来源信息。
+    # 报告 U4：title/url 必须加引号——标题含半角冒号（"FAQ: 常见问题解答"）时
+    # YAML 解析失败，整个声明块被丢弃，来源网址与知识板块声明全部丢失。
     fm = f"""---
 source: {filename}
-title: {title or short_hash}
+title: {json.dumps(title or short_hash, ensure_ascii=False)}
 path: {rel_path}
 source_type: web
-source_url: {url}
+source_url: {json.dumps(url, ensure_ascii=False)}
 {declared}---
 
 # {title or url}

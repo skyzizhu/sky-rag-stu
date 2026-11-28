@@ -23,7 +23,11 @@ _STORAGE_FOLDER = re.compile(r"附件|图片|素材|备份|参考资料")
 # 简短的类型名仅用于目录；文件名中的裸关键词不猜测。
 _DIRECTORY_LABELS = {"方案", "需求", "设计", "测试", "验收", "报告", "手册", "会议"}
 _SHORT_LABELS = {"合同", "协议", "通知", "公告", "制度", "规范", "标准", "流程"}
-_KNOWN_EXTENSION = re.compile(r"\.(?:md|txt|docx?|pdf|pptx?|xlsx?|csv|tsv|rtf|html?)$", re.I)
+# 报告 G7：与 parser.SUPPORTED_EXTENSIONS 的白名单对齐（此前缺图片和 WPS 变体，
+# 同名文件换个格式就推断不出类型，如"合同.docx"能识别、"合同.jpg"不能）。
+_KNOWN_EXTENSION = re.compile(
+    r"\.(?:md|txt|docx?|docm|pdf|pptx?|pptm|xlsx?|csv|tsv|rtf|html?|wps|et|dps|"
+    r"png|jpe?g|bmp|tiff?|gif|webp)$", re.I)
 _DECORATION = re.compile(
     r"(?:\b(?:version|ver|v)\s*[:=_-]?\s*\d+(?:[._-]\d+)*\b"
     r"|(?:版本号?|第)\s*\d+(?:[._-]\d+)*\s*版?"

@@ -46,7 +46,7 @@ from src.mcp_search_limits import MCP_SEARCH_MAX_TOKENS, MCP_SEARCH_MAX_TOP_K
 from src.metadata import build_document_metadata, chunk_sequence, document_id_for, version_from_filename
 from src.permissions import classify_visibility, normalize_visibility
 from src.document_visibility import prune_user_grants, resolve_visibility
-from src.parser import ParsedDocument, SUPPORTED_EXTENSIONS, parse_file
+from src.parser import ParsedDocument, PAGE_MARKER_RE, SUPPORTED_EXTENSIONS, parse_file
 from src.project_directories import is_generated_info, managed_directory_names, without_storage_directory
 from src.project_comparison import (
     MAX_COMPARISON_PROJECTS, ProjectComparison, parse_project_comparison, project_facts, render_project_comparison,
@@ -121,6 +121,41 @@ def _skip_hidden(p: Path, root: Path) -> bool:
     """路径中任一段以点开头（隐藏目录，如 .rag_converted 转换缓存）→ 跳过。
     rglob("*") 会深入点目录，仅检查文件名不含点会让转换缓存被当新文档重复入库。"""
     return any(part.startswith(".") for part in p.relative_to(root).parts)
+
+
+# 报告 G1（2026-11-27 格式体检）：疑似提取失败的内容特征阈值。
+# 触发任意一条 → 默认不入库（不计台账指纹，修复来源后重新入库即可），并明确提示。
+# 此前只有"完全没提取到文字"会告警，乱码/垃圾/半截内容一律按成功入库。
+_MOJIBAKE_MIN_CHARS = 20       # 乱码/私用区字符至少出现这么多才计
+_MOJIBAKE_MAX_RATIO = 0.02     # 且占比超过 2%
+_PDF_EMPTY_PAGE_RATIO = 0.5    # 文字层页占比低于一半视为半截提取
+_PDF_EMPTY_PAGE_MIN = 3        # 至少 3 页的 PDF 才做空页统计（1~2 页交给 0 卡片告警）
+
+
+def _extraction_quality_problems(text: str, file_type: str) -> list[str]:
+    """提取质量体检：返回问题描述列表（空列表 = 通过）。"""
+    problems: list[str] = []
+    total = len(text)
+    if total == 0:
+        return problems  # 完全没文字的文件由 0 卡片告警单独处理
+    mojibake = text.count("\ufffd")
+    if mojibake >= _MOJIBAKE_MIN_CHARS and mojibake / total > _MOJIBAKE_MAX_RATIO:
+        problems.append(f"乱码字符占比过高（{mojibake}/{total}），常见原因是编码不识别或内容损坏")
+    private_use = sum(1 for ch in text if "\ue000" <= ch <= "\uf8ff")
+    if private_use >= _MOJIBAKE_MIN_CHARS and private_use / total > _MOJIBAKE_MAX_RATIO:
+        problems.append("私用区字符占比过高（通常是 PDF 字符映射缺失，读出来不是真实文字）")
+    if text.count("\x00") >= 10:
+        problems.append("正文包含二进制空字节，内容疑似损坏或格式不符")
+    if file_type == "pdf":
+        # PAGE_MARKER_RE 带捕获组：split 结果为 [前言, "1", 第1页正文, "2", 第2页正文, …]，偶数位是正文
+        parts = PAGE_MARKER_RE.split(text)
+        page_bodies = [part.strip() for part in parts[2::2]] if len(parts) > 1 else []
+        if len(page_bodies) >= _PDF_EMPTY_PAGE_MIN:
+            non_empty = sum(1 for body in page_bodies if body)
+            if non_empty / len(page_bodies) < _PDF_EMPTY_PAGE_RATIO:
+                problems.append(f"多数页面未提取到文字（{non_empty}/{len(page_bodies)} 页为空），"
+                                "可能是扫描件（开启 OCR 后重新入库）或页面内容不支持读取")
+    return problems
 
 
 def ingest_files(
@@ -363,6 +398,17 @@ def _ingest_files_impl(
             summary.failed_files.append(f"{rel}（解析期间文件内容已变化，请重试）")
             summary.file_errors[rel] = "file_changed"
             continue
+        if cfg.extraction_gate:
+            # 报告 G1：入库前的提取质量体检——乱码/私用区字符/空字节/PDF 空页占比。
+            # 不入库也不记台账指纹（与解析失败同策略）：修复来源（如开启 OCR、转正编码）
+            # 后重新入库即可，不会被增量判断永久跳过。
+            problems = _extraction_quality_problems(parsed.text, parsed.metadata["file_type"])
+            if problems:
+                summary.failed_files.append(f"{rel}（疑似提取失败：{'；'.join(problems)}）")
+                summary.file_errors[rel] = "poor_extraction"
+                continue
+        if parsed.front_matter.get("source_note"):
+            console_print(f"   ℹ️ [{rel}] {parsed.front_matter['source_note']}")
         parsed.metadata = build_document_metadata(
             relative_path=rel,
             source=path.name,
@@ -1266,12 +1312,12 @@ def query_evidence(
     from src.permissions import scope_filters, classify_visibility
     filters = scope_filters(filters, user_groups, username)
 
-    # 领域文件夹语义（R6-M09 延伸）：「项目文件夹/学习目录…」= 领域范围的口头
+    # 知识板块文件夹语义（R6-M09 延伸）：「项目文件夹/学习目录…」= 知识板块范围的口头
     # 说法——注入 domain 过滤让这类问法走零 LLM 目录通道拿完整清单；用户手动
-    # 选了领域时以手动为准。import 置于函数内与其他 scope 引入一致。
+    # 选了知识板块时以手动为准。import 置于函数内与其他 scope 引入一致。
     from src.query_scope import domain_folder_scope
     folder_domain = domain_folder_scope(question)
-    # V3.9.1（评测 W01）：记录领域是否来自问题文本的口头说法（如「归档目录里…」），
+    # V3.9.1（评测 W01）：记录知识板块是否来自问题文本的口头说法（如「归档目录里…」），
     # 区别于界面手动选择——版本对比通道据此把该范围只绑定历史一侧。
     # answer_stream 在自己的早退目录检查前已注入并透传，避免重复判定失真。
     if folder_domain and not (filters or {}).get("domain"):
@@ -1355,7 +1401,7 @@ def query_evidence(
             f"keyword_query（关键词，供关键词检索用）: {', '.join(qu.keyword_query) or '（未输出）'}\n"
             f"enumeration（计数/列举意图，触发召回扩容）: {qu.enumeration}\n"
             f"inventory_intent（文件盘点）: {qu.inventory_intent}\n"
-            f"inventory_domain（明确点名的领域）: {qu.inventory_domain or '（未输出）'}\n"
+            f"inventory_domain（明确点名的知识板块）: {qu.inventory_domain or '（未输出）'}\n"
             f"sub_queries（复合问题拆分，逐子查询检索）: {('；'.join(qu.sub_queries)) if qu.sub_queries else '（未输出，单信息需求）'}\n"
             f"time_range（模型识别的时间范围）: {qu.time_range or '（未输出）'}\n"
             f"文件日期过滤（按问句和手动选择确定）: {date_filters or '（无）'}\n"
@@ -1372,7 +1418,7 @@ def query_evidence(
             items=[
                 ("① 调用参数（发给 LLM 的完整请求）", request_dump),
                 ("② System Prompt（任务说明书全文）", qu.system_prompt),
-                ("③ User Prompt（时间+领域枚举+历史+原始问题）", qu.user_prompt),
+                ("③ User Prompt（时间+知识板块枚举+历史+原始问题）", qu.user_prompt),
                 ("④ LLM 原始输出（返回的 JSON 全文）", qu.raw_output or qu.error),
                 ("⑤ 返回字段逐项解析", fields_dump),
             ],
@@ -1413,10 +1459,10 @@ def query_evidence(
         enumeration_mode = False
     if compares_versions(question):
         # V3.9.1（评测 W01）：下方既有规则「单一推断状态/来源不能代表对比两侧」
-        # 的领域延伸——「和归档目录里的旧版相比」中，口头领域（folder_derived_domain）
+        # 的知识板块延伸——「和归档目录里的旧版相比」中，口头知识板块（folder_derived_domain）
         # 描述的是历史一侧的落点，不应把现行一侧也压进该范围（否则现行侧
         # statuses 为空、整侧不检索，对比只剩单边）。现行侧保持默认可见范围，
-        # 仅历史侧保留该领域过滤；界面显式状态筛选仍完全尊重（维持旧行为）。
+        # 仅历史侧保留该知识板块过滤；界面显式状态筛选仍完全尊重（维持旧行为）。
         if (filters or {}).get("status") or not folder_derived_domain:
             version_scopes = comparison_statuses(filters)
         else:
@@ -1428,7 +1474,7 @@ def query_evidence(
         # One inferred status or source cannot represent both sides of a comparison.
         qu_filters.pop("status", None)
         qu_filters.pop("source", None)
-        qu_filters.pop("domain", None)  # V3.9.1（W01）：同规则延伸到 QU 推断的领域
+        qu_filters.pop("domain", None)  # V3.9.1（W01）：同规则延伸到 QU 推断的知识板块
         enumeration_mode = False
     spoken_scope = {} if scope_issue else extract_scope(
         scope_question, getattr(qu, "metadata_scope", None) if qu and qu.ok else None)
@@ -1486,9 +1532,9 @@ def query_evidence(
                                       "如需继续追问同一对象，请在问题中直接写明其名称。")
                     break
         messages = {
-            "negated": "暂不支持用问句排除指定的项目、业务方向、归属部门或文档类型。请改为指定要查的范围。",
+            "negated": "暂不支持用问句排除指定的项目、业务领域、归属部门或文档类型。请改为指定要查的范围。",
             "multiple": "这次查询在同一字段指定了多个值。请先指定一个值，或分开查询。",
-            "unresolved": "无法识别所指定的检索范围，请核对项目、业务方向、归属部门或文档类型的名称。",
+            "unresolved": "无法识别所指定的检索范围，请核对项目、业务领域、归属部门或文档类型的名称。",
             "empty": "指定范围内没有匹配的项目。",
             "conflict": "问题中指定的范围与已选筛选条件没有交集，请调整后重试。",
             "project_reference": "请先选择项目，或在问题里写明要查询的项目名称。" + reference_hint,
@@ -1501,7 +1547,7 @@ def query_evidence(
             attempted = "、".join(str(value) for value in spoken_scope.values())
             if len(attempted) > 30:
                 attempted = attempted[:30] + "…"
-            notice = (f"「{attempted}」未匹配到已登记的项目、业务方向、归属部门或文档类型，"
+            notice = (f"「{attempted}」未匹配到已登记的项目、业务领域、归属部门或文档类型，"
                       "本次未按该条件过滤，以下为全库语义检索结果。" if attempted
                       else "问题在同一筛选字段出现了多个值，本次未按该条件过滤，以下为全库语义检索结果。")
             trace.append(make_node(
@@ -1538,10 +1584,10 @@ def query_evidence(
         if domain and selected_domain not in (None, "all", domain):
             domain_issue = "inventory_domain_conflict"
         domain_notices = {
-            "inventory_domain_negated": "文件清单暂不支持按排除条件筛选领域，请指定要盘点的领域。",
-            "inventory_domain_multiple": "这次列举涉及多个领域，请指定其中一个领域，或分别查询。",
-            "inventory_domain_unresolved": "未找到问句指定的领域，请核对领域名称后再查询文件清单。",
-            "inventory_domain_conflict": "问句指定的领域与当前筛选不一致，请调整领域后再查询文件清单。",
+            "inventory_domain_negated": "文件清单暂不支持按排除条件筛选知识板块，请指定要盘点的知识板块。",
+            "inventory_domain_multiple": "这次列举涉及多个知识板块，请指定其中一个知识板块，或分别查询。",
+            "inventory_domain_unresolved": "未找到问句指定的知识板块，请核对知识板块名称后再查询文件清单。",
+            "inventory_domain_conflict": "问句指定的知识板块与当前筛选不一致，请调整知识板块后再查询文件清单。",
         }
         if domain_issue in domain_notices:
             result.answer = domain_notices[domain_issue]
@@ -1643,7 +1689,7 @@ def query_evidence(
             if statuses:
                 side_filters = {**merged_filters, "status": list(statuses)}
                 if key == "current" and folder_derived_domain:
-                    # V3.9.1（评测 W01）：现行一侧不受口头领域（「归档目录」）约束——
+                    # V3.9.1（评测 W01）：现行一侧不受口头知识板块（「归档目录」）约束——
                     # 该范围只描述历史版本的落点；历史侧沿用 merged_filters 保留它。
                     side_filters.pop("domain", None)
                 result.retrieved.extend(retriever.retrieve(
@@ -2213,7 +2259,7 @@ def query_evidence(
         summary="把采用的卡片拼成一份带编号和出处的「资料附页」，随问题一起发给大模型；"
                 "同文档相邻卡片自动拼接，恢复被切片切断的上下文",
         items=[
-            ("组装规则", f"相关度降序编号 [1][2]…；每条标注来源/领域/章节/页码；"
+            ("组装规则", f"相关度降序编号 [1][2]…；每条标注来源/知识板块/章节/页码；"
              f"token 上限约 {context_cfg.context_max_tokens}"),
             ("相邻补全", "\n".join(merge_notes) if merge_notes else "（没有可拼接的相邻卡片）"),
             ("输出（最终 Context）", context),
@@ -2423,11 +2469,11 @@ def answer_stream(
     from src.permissions import scope_filters
     from src.auth_db import retrieval_acl_revision
     filters = scope_filters(filters, user_groups, username)
-    # 领域文件夹语义（R6-M09 延伸，与 query_evidence 注入点一致）：answer_stream 有
+    # 知识板块文件夹语义（R6-M09 延伸，与 query_evidence 注入点一致）：answer_stream 有
     # 自己的早退目录检查，domain 注入必须在此之前完成，两个出口行为才一致。
     from src.query_scope import domain_folder_scope
     folder_domain = domain_folder_scope(question)
-    # V3.9.1（评测 W01）：answer_stream 的注入点——口头领域需透传给 query_evidence，
+    # V3.9.1（评测 W01）：answer_stream 的注入点——口头知识板块需透传给 query_evidence，
     # 版本对比通道据此把该范围只绑定历史一侧（与 query_evidence 注入点一致）。
     folder_derived_domain = None
     if folder_domain and not (filters or {}).get("domain"):

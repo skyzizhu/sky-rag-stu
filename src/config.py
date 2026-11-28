@@ -156,6 +156,16 @@ class AppConfig:
     # OCR（图片文件 / 扫描版 PDF / Word 与 PDF 内嵌图）：关闭后跳过所有 OCR 环节，
     # 普通文字文档的入库不受任何影响
     ocr_enabled: bool = field(default_factory=lambda: _env_bool("OCR_ENABLED", True))
+    # 报告 G2（2026-11-27 格式体检）：识别行置信度低于该值的直接丢弃——低分行的内容
+    # 基本是识别噪声（实测一份真实 PPT 25% 的行低于 0.8）。0 关闭过滤。
+    ocr_min_confidence: float = field(default_factory=lambda: min(max(_env_float("OCR_MIN_CONFIDENCE", 0.6), 0.0), 0.99))
+    # 报告 G2 / 决策3（2026-11-28）：单文件 OCR 时间预算（秒）。超时后跳过剩余图片
+    # 并在入库日志提示"N 张图片未识别"；0 = 不限制。入库全程串行，预算防止一个
+    # 巨型文件（如上百张图的 PPT）占住入库队列太久。
+    ocr_time_budget: float = field(default_factory=lambda: max(0.0, _env_float("OCR_TIME_BUDGET", 120.0)))
+    # 报告 G1：入库前的提取质量体检（乱码/私用区字符/二进制空字节/PDF 空页占比），
+    # 疑似提取失败的文件默认不入库并明确提示；false 恢复"照常入库"的旧行为
+    extraction_gate: bool = field(default_factory=lambda: _env_bool("EXTRACTION_GATE", True))
 
     # 其他
     knowledge_dir: Path = field(

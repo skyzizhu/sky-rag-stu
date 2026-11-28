@@ -269,7 +269,7 @@ class DocumentTypeStructureTests(unittest.TestCase):
 
     def test_retrieval_filter_widgets_hidden_and_language_keys_kept(self):
         page = function("page_retrieval_settings")
-        # V3.9.1：领域/文档类型/归属部门/可见密级四项筛选暂时隐藏，设置页不得再渲染这些控件。
+        # V3.9.1：知识板块/文档类型/归属部门/可见密级四项筛选暂时隐藏，设置页不得再渲染这些控件。
         hidden_keys = {"set_domain", "set_doc_type", "set_department", "set_classification"}
         rendered_keys = {ast.literal_eval(k.value) for role in ("selectbox", "text_input")
                          for node in calls(page, role)
@@ -420,7 +420,8 @@ class DocumentTypeUploadContractTests(IngestHarness):
         self.assertFalse((self.knowledge / "learning/general/fresh.md").exists())
 
     def test_directory_original_paths_follow_writer_order_in_merge_and_copy(self):
-        # Interleaved roots, root cleanup, nested type folder, unsupported file.
+        # Interleaved roots, root cleanup, nested type folder; unsupported file is
+        # NOT copied and NOT in the writer mapping (2026-11-28 决策6，报告 G5).
         entries = [((" 技术方案 ", "nested", "a.md"), b"a"),
                    (("会议纪要", "b.md"), b"b"),
                    ((" 技术方案 ", "需求文档", "c.md"), b"c"),
@@ -436,7 +437,6 @@ class DocumentTypeUploadContractTests(IngestHarness):
                 str((self.knowledge / "learning/basic_knowledge/fake" / actual_root / "nested/a.md").resolve()): " 技术方案 /nested/a.md",
                 str((self.knowledge / "learning/basic_knowledge/fake" / actual_root / "需求文档/c.md").resolve()): " 技术方案 /需求文档/c.md",
                 str((self.knowledge / "learning/basic_knowledge/fake" / other_root / "b.md").resolve()): "会议纪要/b.md",
-                str((self.knowledge / "learning/basic_knowledge/fake" / other_root / "ignored.bin").resolve()): "会议纪要/ignored.bin",
             }
             self.assertEqual(kwargs["doc_type_paths"], expected)
             self.assertEqual(len(kwargs["paths"]), 3)
@@ -444,6 +444,8 @@ class DocumentTypeUploadContractTests(IngestHarness):
             self.assertEqual(kwargs["default_doc_type"], "自定义类型")
             self.assertTrue(kwargs["skip_unchanged"])
             self.assertEqual(kwargs["default_groups"], ["all"])
+            # 决策6：不支持的文件不落盘
+            self.assertFalse((self.knowledge / f"learning/basic_knowledge/fake/{other_root}/ignored.bin").exists())
 
 
 @unittest.skipIf(os.name == "nt", "Windows AppTest sockets are blocked by test network isolation")

@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import AbstractSet
 
+from src.parser import SUPPORTED_EXTENSIONS
+
 # ---- 动作 ----
 SKIP = "skip"                # 不写盘、不入库
 NEW_VERSION = "new_version"  # 覆盖同一位置的文件 → 新版本
@@ -136,6 +138,21 @@ def plan_uploads(files: list[tuple[str, bytes]], target_dir: str,
     return decisions
 
 
+def split_supported_entries(entries: list[tuple[tuple[str, ...], bytes]],
+                            ) -> tuple[list[tuple[tuple[str, ...], bytes]], list[int]]:
+    """目录导入（报告 G5 / 决策6）：不支持的文件默认不复制。
+
+    返回 (可入库的 entries, 不支持文件在原列表中的索引)——索引用于入库审计
+    记一笔 unsupported_type。此前不支持的文件也会写入知识目录，只在审计里
+    跳过，留下用户看不见、管理台不显示的"孤儿文件"。
+    """
+    supported = [entry for entry in entries
+                 if PurePosixPath(entry[0][-1]).suffix.lower() in SUPPORTED_EXTENSIONS]
+    unsupported_indices = [index for index, entry in enumerate(entries)
+                           if PurePosixPath(entry[0][-1]).suffix.lower() not in SUPPORTED_EXTENSIONS]
+    return supported, unsupported_indices
+
+
 def available_path(parent: Path, stem: str, suffix: str = "", *,
                    reserved: AbstractSet[Path] = frozenset()) -> Path:
     """不覆盖任何已有文件/目录的落盘位置：已存在时依次尝试 stem-2、stem-3 …"""
@@ -200,7 +217,7 @@ def write_directory_import(grouped: dict[str, list[tuple[tuple[str, ...], bytes]
                            blocked_paths: AbstractSet[Path] = frozenset(), on_saved=None,
                            knowledge_dir: Path | None = None,
                            legacy_paths: AbstractSet[Path] = frozenset()) -> tuple[list[Path], list[str]]:
-    """把浏览器选中的目录写入领域目录。返回 (导入涉及的全部文件路径, 实际顶层目录名)。
+    """把浏览器选中的目录写入知识板块目录。返回 (导入涉及的全部文件路径, 实际顶层目录名)。
 
     merge=True：写回同名目录；内容未变的文件不重写（保留修改时间），交给入库的
     增量判断跳过。源目录里已删除、但知识库目录里还在的文件不动（默认保留）。
