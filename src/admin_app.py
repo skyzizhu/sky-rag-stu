@@ -481,10 +481,10 @@ def api_service_control(key: str, action: str, _: dict = Depends(require_admin_a
 _DATA_TABLE_REMARKS = {
     'departments': '部门主数据、权限键及停用状态',
     'department_aliases': '部门名称及历史权限键的归属映射',
-    'business_directions': '业务方向主数据、编号及备注',
-    'projects': '项目主数据、业务方向及牵头部门',
+    'business_directions': '业务领域主数据、编号及备注',
+    'projects': '项目主数据、业务领域及牵头部门',
     'project_departments': '项目与参与部门的关联关系',
-    'project_directories': '领域内项目与目录名的绑定关系',
+    'project_directories': '知识板块内项目与目录名的绑定关系',
     'admins': '独立管理员账户、认证信息及管理身份状态',
     'users': '员工账户、所属部门、认证信息及权限配置',
     'document_user_revocations': '员工停用时记录的文档访问撤销标记',
@@ -657,7 +657,7 @@ def api_data_export(_: dict = Depends(require_admin_api)):
                         background=BackgroundTask(target.unlink, missing_ok=True))
 
 
-# ---------------------------------------------------------------- JSON API：业务方向（与权限部门独立）
+# ---------------------------------------------------------------- JSON API：业务领域（与权限部门独立）
 class BusinessDirectionBody(BaseModel):
     name: str = Field(max_length=80)
     code: str = Field(default='', max_length=64)
@@ -698,7 +698,7 @@ def api_business_direction_create(body: BusinessDirectionBody, request: Request,
 def api_business_direction_detail(direction_id: int, _: dict = Depends(require_admin_api)):
     direction = business_directions.get_direction(direction_id)
     if direction is None:
-        raise HTTPException(status_code=404, detail='业务方向不存在')
+        raise HTTPException(status_code=404, detail='业务领域不存在')
     return {'ok': True, 'business_direction': direction}
 
 
@@ -722,7 +722,7 @@ def api_business_direction_update(direction_id: int, body: BusinessDirectionEdit
     if before['note'] != after['note']:
         changes.append('备注已更新')
     _log_from_admin(request, 'business_direction_update', admin['username'],
-                    detail=f"编辑业务方向 #{direction_id}：" + ('；'.join(changes) or '无字段变更'))
+                    detail=f"编辑业务领域 #{direction_id}：" + ('；'.join(changes) or '无字段变更'))
     return {'ok': True, 'business_direction': after}
 
 
@@ -1086,8 +1086,15 @@ def api_user_transfer(user_id: int, body: TransferBody, request: Request,
 
 # ---------------------------------------------------------------- JSON API：访问令牌
 @app.get("/api/tokens")
-def api_tokens(_: dict = Depends(require_admin_api)):
-    return {"ok": True, "tokens": auth_db.list_tokens()}
+def api_tokens(status: Literal["", "active", "revoked"] = Query(""),
+               _: dict = Depends(require_admin_api)):
+    """令牌列表（2026-11-28 增加状态筛选：active=有效，revoked=已吊销，空=全部）。"""
+    tokens = auth_db.list_tokens()
+    if status == "active":
+        tokens = [token for token in tokens if not token["revoked"]]
+    elif status == "revoked":
+        tokens = [token for token in tokens if token["revoked"]]
+    return {"ok": True, "tokens": tokens}
 
 
 class TokenBody(BaseModel):
@@ -1187,18 +1194,22 @@ def _resolve_ingest_path(root: Path, relative: str) -> Path | None:
 
 @app.get("/api/logs/ingest")
 def api_logs_ingest(request: Request, page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
-                    username: str = Query("", max_length=80), keyword: str = Query("", max_length=256),
+                    department: str = Query("", max_length=32),
+                    project_id: int | None = Query(None, ge=0),
+                    business_direction: str = Query("", max_length=80),
+                    keyword: str = Query("", max_length=256),
                     batch_id: str = Query("", max_length=32),
-                    entry: Literal["", "file", "directory", "web"] = "",
                     outcome: Literal["", "running", "ingested", "skipped", "failed"] = "",
                     since: datetime | None = None, before: datetime | None = None,
                     _: dict = Depends(require_admin_api)):
+    # project_id=0 表示「未关联项目」（attributes 里没有 project_id 的记录）
     if any(date is not None and date.utcoffset() is None for date in (since, before)):
         raise HTTPException(status_code=422, detail="时间范围必须包含时区")
     if since is not None and before is not None and since >= before:
         raise HTTPException(status_code=422, detail="起始时间须早于截止时间")
-    result = ingest_audit.list_logs(page=page, page_size=page_size, username=username.strip(),
-                                   keyword=keyword.strip(), batch_id=batch_id, entry=entry,
+    result = ingest_audit.list_logs(page=page, page_size=page_size, department=department.strip(),
+                                   project_id=project_id, business_direction=business_direction.strip(),
+                                   keyword=keyword.strip(), batch_id=batch_id,
                                    outcome=outcome, since=since, before=before)
     root = get_config().knowledge_dir.resolve()
     reveal_available = _can_reveal_ingest_path(request)

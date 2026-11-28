@@ -81,7 +81,7 @@ def resolve_project_filter(project: str | int | None,
         business_direction = unicodedata.normalize('NFKC', business_direction).strip() or None
     if project is None and business_direction is None:
         return None
-    for value, label in ((project, '项目'), (business_direction, '主业务方向')):
+    for value, label in ((project, '项目'), (business_direction, '主业务领域')):
         if value is None or isinstance(value, str):
             continue
         if type(value) is not int or not 0 < value < 2**63:
@@ -120,9 +120,9 @@ def resolve_project_filter(project: str | int | None,
             else (business_direction, business_direction),
         ).fetchall()
         if not directions:
-            raise ValueError(f'找不到主业务方向「{business_direction}」，请使用准确的名称、编号或 ID')
+            raise ValueError(f'找不到主业务领域「{business_direction}」，请使用准确的名称、编号或 ID')
         if len(directions) > 1:
-            raise ValueError(f'主业务方向「{business_direction}」同时匹配多个主档，请使用 ID')
+            raise ValueError(f'主业务领域「{business_direction}」同时匹配多个主档，请使用 ID')
         direction_id = directions[0]['id']
         if selected is not None:
             return [selected['id']] if selected['direction_id'] == direction_id else []
@@ -161,7 +161,7 @@ def save_project(fields: ProjectFields, *, project_id: int | None = None,
         if fields.direction_id is not None and not conn.execute(
             'SELECT 1 FROM business_directions WHERE id=?', (fields.direction_id,),
         ).fetchone():
-            raise ValueError('所选业务方向不存在')
+            raise ValueError('所选业务领域不存在')
         departments = {row['id']: row['disabled'] for row in conn.execute(
             'SELECT id, disabled FROM departments'
         )}

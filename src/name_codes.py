@@ -1,4 +1,4 @@
-"""名称转小写 ASCII 拼音编号；纯本地转换，供部门和业务方向共用。"""
+"""名称转小写 ASCII 拼音编号；纯本地转换，供部门和业务领域共用。"""
 import re
 import unicodedata
 

@@ -52,7 +52,7 @@ def knowledge_inventory() -> dict:
     project_rows = projects.list_projects()
     directions = {row["id"]: {"name": row["name"], "projects": []}
                   for row in business_directions.list_directions()}
-    no_direction = {"name": "未关联业务方向", "projects": []}
+    no_direction = {"name": "未关联业务领域", "projects": []}
     try:
         document_projects = _indexed_projects(get_vector_store(), index_epoch.current(), int(monotonic() // 30))
         counts = Counter(document_projects)

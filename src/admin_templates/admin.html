@@ -344,7 +344,7 @@ function openDlg(title, bodyHtml, onOk, okText = '确认') {
   $('#dlg-body').innerHTML = bodyHtml;
   const ok = $('#dlg-ok');
   ok.textContent = okText;
-  ok.onclick = async () => { try { await onOk(); closeDlg(); }
+  ok.onclick = async () => { try { await onOk?.(); closeDlg(); }
                              catch (e) { toast(e.message, false); } };
   const dlg = $('#dlg');
   if (!dlg.open) dlg.showModal();  // 已打开时仅替换内容（员工对话框就地刷新用）
@@ -365,7 +365,7 @@ const TABS = [
     { id: 'emps', name: '员工管理', render: renderEmps },
   ] },
   { id: 'business-projects', name: '业务及项目管理', children: [
-    { id: 'business', name: '业务方向', render: renderBusinessDirections },
+    { id: 'business', name: '业务领域', render: renderBusinessDirections },
     { id: 'projects', name: '项目管理', render: renderProjects },
   ] },
   { id: 'ingestlog', name: '入库文件', render: renderIngestLog },
@@ -665,11 +665,11 @@ function dashboardInventoryPie(inventory, mode) {
     name: row.name, count: row.documents, color: palette[index],
   }));
   if (items.length > palette.length) segments.push({
-    name: mode === 'project' ? '其他项目' : '其他业务方向', color: '#6e80a7',
+    name: mode === 'project' ? '其他项目' : '其他业务领域', color: '#6e80a7',
     count: items.slice(palette.length).reduce((sum, row) => sum + row.documents, 0),
   });
   if (inventory.unlinked_documents > 0) segments.push({name: '未关联项目', count: inventory.unlinked_documents, color: '#a5afc0'});
-  return dashboardPie(segments, mode === 'project' ? '按项目分布' : '按业务方向分布', '份', '暂无有效索引文档');
+  return dashboardPie(segments, mode === 'project' ? '按项目分布' : '按业务领域分布', '份', '暂无有效索引文档');
 }
 function dashboardSetInventoryMode(mode) {
   const chart = $('#dash-inventory-pie');
@@ -682,7 +682,7 @@ function dashboardSetInventoryMode(mode) {
 function dashboardOverviewCounts(overview, inventory) {
   return [
     ['RAG可检索文档', inventory?.documents],
-    ['业务方向', inventory?.direction_count ?? overview.business_directions],
+    ['业务领域', inventory?.direction_count ?? overview.business_directions],
     ['项目', inventory?.project_count],
     ['部门', overview.departments],
     ['员工', overview.users],
@@ -693,7 +693,7 @@ function dashboardInventory(inventory) {
       ${inventory.available ? '' : '<p class="muted">暂时无法读取向量数据库，文档数待恢复后刷新。</p>'}
       ${inventory.available ? `
         <div class="dash-pie-tools" role="group" aria-label="资料分布统计口径">
-          <button type="button" class="mini secondary" data-dashboard-inventory-mode="direction" aria-pressed="${dashboardInventoryMode === 'direction'}" onclick="dashboardSetInventoryMode('direction')">按业务方向</button>
+          <button type="button" class="mini secondary" data-dashboard-inventory-mode="direction" aria-pressed="${dashboardInventoryMode === 'direction'}" onclick="dashboardSetInventoryMode('direction')">按业务领域</button>
           <button type="button" class="mini secondary" data-dashboard-inventory-mode="project" aria-pressed="${dashboardInventoryMode === 'project'}" onclick="dashboardSetInventoryMode('project')">按项目</button>
         </div>
         <div id="dash-inventory-pie">${dashboardInventoryPie(inventory, dashboardInventoryMode)}</div>` : ''}`;
@@ -730,7 +730,7 @@ function dashboardIngestion(stats, period) {
 function dashboardShowIngestFailures() {
   const period = dashboardIngestPeriod;
   if (!period) return;
-  Object.assign(ingestFilter, {username: '', keyword: '', entry: '', outcome: 'failed',
+  Object.assign(ingestFilter, {department: '', project_id: '', direction: '', keyword: '', outcome: 'failed',
     start: period.start, end: period.end, period, batch_id: '', page: 1});
   switchTab('ingestlog');
 }
@@ -748,7 +748,7 @@ async function renderDash() {
       <h3>快捷操作</h3>
       <div class="toolbar">
         <button type="button" onclick="switchTab('deps')">创建部门</button>
-        <button type="button" onclick="switchTab('business').then(() => document.querySelector('#business-form input[name=name]')?.focus())">新增业务方向</button>
+        <button type="button" onclick="switchTab('business').then(() => document.querySelector('#business-form input[name=name]')?.focus())">新增业务领域</button>
         <button type="button" onclick="switchTab('projects')">项目管理</button>
         <button type="button" onclick="switchTab('emps'); empCreateDlg()">创建员工</button>
         <button type="button" onclick="switchTab('tokens')">签发访问令牌</button>
@@ -756,7 +756,7 @@ async function renderDash() {
     </div>
     <div id="dash-overview-counts" class="dash-metrics dash-metrics-overview">${dashboardOverviewCounts(d)}</div>
     <div class="dash-pie-grid">
-      <div class="card"><h3>业务方向与项目</h3>
+      <div class="card"><h3>业务领域与项目</h3>
         <div id="dash-inventory" aria-live="polite"><p class="muted">正在读取当前知识库存量…</p></div>
       </div>
       ${dashboardIngestion(intake, s.period)}
@@ -1149,7 +1149,7 @@ async function svcStop() {
     }, '确认关闭');
 }
 
-/* ---------- 业务方向 ---------- */
+/* ---------- 业务领域 ---------- */
 let businessCodeTimer;
 let businessEditRequest = 0;
 async function renderBusinessDirections() {
@@ -1162,10 +1162,10 @@ async function renderBusinessDirections() {
   </tr>`).join('');
   $('#view').innerHTML = `
     <div class="card">
-      <h3>新增业务方向</h3>
+      <h3>新增业务领域</h3>
       <form id="business-form" class="business-form" onsubmit="businessCreate(event)">
         <div class="business-fields">
-          <label class="business-field">业务方向名称<input name="name" placeholder="例如：智慧园区" maxlength="80"
+          <label class="business-field">业务领域名称<input name="name" placeholder="例如：云端业务" maxlength="80"
             required oninput="businessNameChanged(this.form)"></label>
           <label class="business-field">英文 / 字母编号<input name="code" placeholder="输入名称后自动生成拼音"
             maxlength="64" pattern="[a-zA-Z][a-zA-Z0-9_]{0,63}"
@@ -1173,13 +1173,13 @@ async function renderBusinessDirections() {
         </div>
         <div class="muted business-code-hint" id="business-code-hint">自动生成无声调拼音，可手动修改为英文或调整多音字；编号不可重复。</div>
         <label class="business-field business-note">备注<textarea name="note" maxlength="1000" rows="3"
-          placeholder="可选，补充业务方向说明，最多 1000 个字符"></textarea></label>
-        <div class="business-actions"><button type="submit">创建业务方向</button></div>
+          placeholder="可选，补充业务领域说明，最多 1000 个字符"></textarea></label>
+        <div class="business-actions"><button type="submit">创建业务领域</button></div>
       </form>
     </div>
-    <div class="card"><h3>业务方向列表（${d.business_directions.length}）</h3>
+    <div class="card"><h3>业务领域列表（${d.business_directions.length}）</h3>
       <div style="overflow-x:auto"><table><tr><th>ID</th><th>名称</th><th>英文 / 字母编号</th><th>备注</th><th>创建时间</th><th>操作</th></tr>
-        ${rows || '<tr><td colspan="6" class="empty">暂无业务方向，请先创建</td></tr>'}
+        ${rows || '<tr><td colspan="6" class="empty">暂无业务领域，请先创建</td></tr>'}
       </table></div>
     </div>`;
 }
@@ -1229,7 +1229,7 @@ async function businessCreate(ev) {
     await api('POST', '/api/business-directions', {
       name: f.elements.name.value.trim(), code: f.elements.code.value.trim(), note: f.elements.note.value.trim(),
     });
-    toast('业务方向已创建');
+    toast('业务领域已创建');
     await renderBusinessDirections();
   } catch (e) { toast(e.message, false); }
   finally { button.disabled = false; }
@@ -1241,8 +1241,8 @@ async function businessEdit(id) {
   catch (e) { toast(e.message, false); return; }
   if (current !== 'business' || requestId !== businessEditRequest) return;
   const original = {name: direction.name, code: direction.code, note: direction.note};
-  openDlg('编辑业务方向', `<form id="business-edit-form" onsubmit="event.preventDefault()">
-    <label for="business-edit-name">业务方向名称</label>
+  openDlg('编辑业务领域', `<form id="business-edit-form" onsubmit="event.preventDefault()">
+    <label for="business-edit-name">业务领域名称</label>
     <input id="business-edit-name" name="name" value="${esc(direction.name)}" maxlength="80" required
       oninput="businessNameChanged(this.form)">
     <label for="business-edit-code">英文 / 字母编号</label>
@@ -1251,7 +1251,8 @@ async function businessEdit(id) {
       oninput="this.form.dataset.manualCode=this.value.trim() ? '1' : ''; if(!this.value.trim()) businessNameChanged(this.form)">
     <div class="muted business-code-hint" style="margin-top:8px">修改名称后自动生成拼音编号；手动填写后保留手填值，清空编号可恢复自动生成。</div>
     <label for="business-edit-note">备注</label>
-    <textarea id="business-edit-note" name="note" rows="4" maxlength="1000">${esc(direction.note)}</textarea>
+    <textarea id="business-edit-note" name="note" rows="4" maxlength="1000"
+      placeholder="业务领域备注记录">${esc(direction.note)}</textarea>
   </form>`, async () => {
     const form = document.querySelector('#business-edit-form');
     if (!form) throw new Error('编辑窗口已关闭');
@@ -1263,7 +1264,7 @@ async function businessEdit(id) {
         name: form.elements.name.value.trim(), code: form.elements.code.value.trim(),
         note: form.elements.note.value.trim(), original,
       });
-      toast('业务方向已更新');
+      toast('业务领域已更新');
       try { await renderBusinessDirections(); }
       catch (e) { toast('已保存，列表刷新失败：' + e.message, false); }
     } finally { button.disabled = false; }
@@ -1285,7 +1286,7 @@ async function renderProjects() {
     <h3>项目管理</h3>
     <div class="toolbar"><button type="button" onclick="openProject()">＋ 新建项目</button></div>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>项目名称</th><th>主业务方向</th><th>牵头部门</th><th>参与部门</th><th>操作</th></tr></thead>
+      <thead><tr><th>项目名称</th><th>主业务领域</th><th>牵头部门</th><th>参与部门</th><th>操作</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="5" class="empty">暂无项目</td></tr>'}</tbody>
     </table></div>
   </div>`;
@@ -1317,7 +1318,7 @@ async function openProject(id = null) {
     openDlg(project ? '编辑项目' : '新建项目', `<form id="project-form">
       <label for="project-name">项目名称</label>
       <input id="project-name" name="name" value="${esc(project?.name || '')}" maxlength="80" required>
-      <label for="project-direction">主业务方向</label>
+      <label for="project-direction">主业务领域</label>
       <select id="project-direction" name="direction_id"><option value="">未指定</option>${directions.join('')}</select>
       <label for="project-lead">牵头部门</label>
       <select id="project-lead" name="lead_department_id"><option value="">未指定</option>${leads.join('')}</select>
@@ -1526,7 +1527,7 @@ function genPwd() {
    empView（详情只读）/ empEdit（编辑：姓名·备注·权限·状态）/ empPwdDep（密码·部门） */
 const PERM_LABELS = { upload: "📤 上传知识", manage: "🗂 知识管理",
                       retrieval_settings: "🔍 检索设置", maintenance: "🧹 知识库维护",
-                      plugins: "🔌 插件管理（安装/卸载）", domains: "🧭 领域管理" };
+                      plugins: "🔌 插件管理（安装/卸载）", domains: "🧭 知识板块管理" };
 
 let empDlgRefresh = null;  // 当前打开的员工对话框刷新函数（操作成功后就地刷新，不关窗）
 
@@ -1772,15 +1773,15 @@ const ingestReasons = {
   save: '文件写入阶段失败', index: '索引阶段失败', file_missing: '文件不存在', parse_failed: '文件解析失败',
 };
 const ingestFields = {
-  domain: '领域', department: '归属部门', project_id: '项目 ID', project_name: '项目',
-  business_direction: '业务方向', doc_type: '文档类型', classification: '密级',
+  domain: '知识板块', department: '归属部门', project_id: '项目 ID', project_name: '项目',
+  business_direction: '业务领域', doc_type: '文档类型', classification: '密级',
   allowed_groups: '可见部门键', allowed_users: '可见员工', directory_mode: '导入方式',
   document_id: '文档 ID', title: '标题', file_type: '文件格式', topic: '主题', tags: '标签',
   status: '索引状态', version: '索引版本', document_version: '文档版本',
   document_version_status: '版本识别状态', document_version_source: '版本来源', chunks: '卡片数',
   owner: '入库人', source: '实际文件名', path: '库内路径',
 };
-const ingestFilter = { username: '', keyword: '', entry: '', outcome: '', start: '', end: '', period: null, batch_id: '', page: 1 };
+const ingestFilter = { department: '', project_id: '', direction: '', keyword: '', outcome: '', start: '', end: '', period: null, batch_id: '', page: 1 };
 let ingestLogRequest = 0;
 let ingestRows = new Map();
 let ingestDepartmentLabels = new Map();
@@ -1818,6 +1819,33 @@ function ingestAccess(attributes, limit = Infinity) {
 function ingestDetailField(label, value, wide = false) {
   return `<div${wide ? ' class="wide"' : ''}><dt>${esc(label)}</dt><dd>${esc(value) || '—'}</dd></div>`;
 }
+/* 2026-11-28：入库文件列表「权限」按钮——弹窗展示该文件入库时归档的完整检索权限 */
+function showIngestAccess(id) {
+  const row = ingestRows.get(id);
+  if (!row) return;
+  const attributes = row.attributes;
+  const level = attributes.classification;
+  const isGroups = level === '内部';
+  const tone = { '公开': 'on', '内部': 'neutral', '受限': 'admin' }[level] || 'neutral';
+  const names = isGroups ? (attributes.allowed_groups || []).map(key => ingestDepartmentLabels.get(key) || key)
+                         : (attributes.allowed_users || []).map(name => `@${name}`);
+  const unit = isGroups ? '个部门' : '名员工';
+  const listHtml = level === '公开'
+    ? '<div style="margin:2px 0">全体员工均可检索本文件。</div>'
+    : names.length
+      ? '<ul style="margin:2px 0 2px 18px;padding:0;line-height:1.6">' +
+        names.map(name => `<li>${esc(name)}</li>`).join('') +
+        `</ul><div class="muted" style="margin:2px 0">共 ${names.length} ${unit}。</div>`
+      : '<div class="muted" style="margin:2px 0">暂无授权对象——当前没有人能检索到本文件。</div>';
+  const note = level === '公开' ? '' :
+    `<div class="muted" style="margin-top:8px;font-size:12px">${isGroups ? '按入库时归档的可见部门授权（与「归属部门」档案字段无关）。' : '按入库时归档的可见员工授权。'}部门已删除时显示其权限键。如需调整，请在知识库管理页修改该文档。</div>`;
+  openDlg(`检索权限 · ${row.file_name || ''}`,
+    '<div style="font-size:13px">'
+    + `<div style="margin:2px 0"><b>密级：</b><span class="tag ${tone}">${esc(level || '未设置')}</span></div>`
+    + '<div style="margin:6px 0 2px"><b>授权对象：</b></div>'
+    + listHtml + note
+    + '</div>', () => {}, '关闭');
+}
 function showIngestDetail(id) {
   const row = ingestRows.get(id);
   if (!row) return;
@@ -1831,7 +1859,7 @@ function showIngestDetail(id) {
     </section>
     <section class="ingest-detail-section">
       <h4>归属与检索权限</h4><dl class="ingest-detail-grid">
-        ${ingestDetailField('业务方向', attributes.business_direction)}
+        ${ingestDetailField('业务领域', attributes.business_direction)}
         ${ingestDetailField('项目', ingestProject(attributes))}
         ${ingestDetailField('归属部门', attributes.department)}
         <div><dt>检索权限</dt><dd>${ingestAccess(attributes)}</dd></div>
@@ -1877,7 +1905,7 @@ async function revealIngestFile(id) {
 async function renderIngestLog() {
   const requestId = ++ingestLogRequest;
   const qs = new URLSearchParams({ page: ingestFilter.page });
-  for (const key of ['username', 'keyword', 'entry', 'outcome', 'batch_id']) {
+  for (const key of ['department', 'project_id', 'direction', 'keyword', 'outcome', 'batch_id']) {
     if (ingestFilter[key]) qs.set(key, ingestFilter[key]);
   }
   if (ingestFilter.period) {
@@ -1898,11 +1926,13 @@ async function renderIngestLog() {
   ingestDepartmentLabels = new Map(Object.entries(d.department_labels || {}));
   const options = (labels, key) => Object.entries(labels).map(([value, label]) =>
     `<option value="${value}" ${ingestFilter[key] === value ? 'selected' : ''}>${label}</option>`).join('');
-  const employeeOptions = (d.employee_options || []).map(({ username, real_name }) => {
-    const name = real_name.trim();
-    const label = name ? `${username} - ${name}` : username;
-    return `<option value="${esc(username)}" ${ingestFilter.username === username ? 'selected' : ''}>${esc(label)}</option>`;
-  }).join('');
+  // 2026-11-28：三个档案条件下拉（归属部门 / 项目 / 业务领域），数据源由后端随列表返回
+  const departmentOptions = (d.department_options || []).map(name =>
+    `<option value="${esc(name)}" ${ingestFilter.department === name ? 'selected' : ''}>${esc(name)}</option>`).join('');
+  const projectOptions = (d.project_options || []).map(({id, name}) =>
+    `<option value="${id}" ${String(ingestFilter.project_id) === String(id) ? 'selected' : ''}>${esc(name)}</option>`).join('');
+  const directionOptions = (d.direction_options || []).map(name =>
+    `<option value="${esc(name)}" ${ingestFilter.direction === name ? 'selected' : ''}>${esc(name)}</option>`).join('');
   const rows = d.logs.map(l => `<tr>
     <td class="muted">${esc(new Date(l.started_at).toLocaleString())}</td>
     <td><b>${esc(l.username) || '—'}</b><br><span class="muted">${esc(l.actor_department)}</span></td>
@@ -1915,15 +1945,20 @@ async function renderIngestLog() {
     <td class="wrap">${ingestAccess(l.attributes, 2)}</td>
     <td>${ingestOutcome(l)}
       <br><span class="muted">${esc(ingestReasons[l.reason] || '')}</span></td>
-    <td><button type="button" class="mini secondary" onclick="showIngestDetail(${l.id})">查看</button></td>
+      <td><button type="button" class="mini secondary" onclick="showIngestDetail(${l.id})">查看</button>
+        <button type="button" class="mini secondary" onclick="showIngestAccess(${l.id})">权限</button></td>
   </tr>`).join('');
   $('#view').innerHTML = `<div class="card">
     <h3>入库文件</h3>
     <div class="toolbar">
-      <select aria-label="按员工账户筛选" onchange="ingestFilterChange('username', this.value)">
-        <option value="">全部员工</option>${employeeOptions}</select>
+      <select aria-label="按归属部门筛选" onchange="ingestFilterChange('department', this.value)">
+        <option value="">全部部门</option>${departmentOptions}</select>
+      <select aria-label="按项目筛选" onchange="ingestFilterChange('project_id', this.value)">
+        <option value="">全部项目</option>
+        <option value="0" ${ingestFilter.project_id === '0' ? 'selected' : ''}>未关联项目</option>${projectOptions}</select>
+      <select aria-label="按业务领域筛选" onchange="ingestFilterChange('direction', this.value)">
+        <option value="">全部业务领域</option>${directionOptions}</select>
       <input aria-label="文件名或路径" placeholder="搜索文件名或路径" maxlength="256" value="${esc(ingestFilter.keyword)}" onchange="ingestFilterChange('keyword', this.value.trim())">
-      <select aria-label="入库入口" onchange="ingestFilterChange('entry', this.value)"><option value="">全部入口</option>${options(ingestEntries, 'entry')}</select>
       <select aria-label="入库结果" onchange="ingestFilterChange('outcome', this.value)"><option value="">全部结果</option>${options(ingestOutcomes, 'outcome')}</select>
       <label>起始日期 <input type="date" value="${esc(ingestFilter.start)}" onchange="ingestFilterChange('start', this.value)"></label>
       <label>截止日期 <input type="date" value="${esc(ingestFilter.end)}" onchange="ingestFilterChange('end', this.value)"></label>
@@ -1931,7 +1966,7 @@ async function renderIngestLog() {
       ${ingestFilter.batch_id ? `<button class="mini secondary" onclick="ingestFilterChange('batch_id', '')">清除批次筛选</button>` : ''}
     </div>
     ${!d.reveal_available && d.logs.some(l => l.absolute_path) ? '<p class="muted">在知识库所在电脑通过 localhost 打开管理后台，即可定位文件。</p>' : ''}
-    <div style="overflow-x:auto"><table><tr><th>开始时间</th><th>员工</th><th>文件与路径</th><th>业务方向</th>
+    <div style="overflow-x:auto"><table><tr><th>开始时间</th><th>员工</th><th>文件与路径</th><th>业务领域</th>
       <th>项目</th><th>归属部门</th><th title="本次入库记录中的实际可见范围">检索权限</th><th>结果</th><th>详情</th></tr>
       ${rows || '<tr><td colspan="9" class="empty">暂无符合条件的入库日志</td></tr>'}
     </table></div>
@@ -2030,7 +2065,7 @@ async function admDelete(id, username) {
 
 /* ---------- 访问令牌 ---------- */
 async function renderTokens() {
-  const d = await api('GET', '/api/tokens');
+  const d = await api('GET', '/api/tokens' + (tokenStatus ? `?status=${encodeURIComponent(tokenStatus)}` : ''));
   const users = (await api('GET', '/api/users')).users;
   const ownerDepartments = new Map(users.map(u => [u.username, u.department]));
   const userOpts = users.map(u => `<option value="${esc(u.username)}">${esc(u.username)}</option>`).join('');
@@ -2059,13 +2094,21 @@ async function renderTokens() {
       ${lastToken ? `<div class="log-detail" style="margin-top:12px"><b>刚签发的令牌（仅此一次，离开本页后无法再次查看）：</b><div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap"><span class="mono" style="overflow-wrap:anywhere">${esc(lastToken)}</span><button class="mini ghost" style="flex-shrink:0" data-token="${esc(lastToken)}" onclick="copyText(this.dataset.token, '完整令牌已复制到剪贴板')">📋 复制令牌</button></div><div class="muted" style="margin-top:8px">请立即复制并配置到 Agent 的 Authorization 头；吊销后立即失效。</div></div>` : ''}
     </div>
     <div class="card">
-      <h3>令牌列表（${d.tokens.length}）</h3>
+      <div class="toolbar" style="align-items:center">
+        <h3 style="margin:0">令牌列表（${d.tokens.length}）</h3>
+        <select aria-label="按状态筛选" onchange="tokenStatus=this.value; renderTokens()">
+          <option value="">全部状态</option>
+          <option value="active" ${tokenStatus === 'active' ? 'selected' : ''}>有效</option>
+          <option value="revoked" ${tokenStatus === 'revoked' ? 'selected' : ''}>已吊销</option>
+        </select>
+      </div>
       <table><tr><th>前缀</th><th>属主</th><th>备注</th><th>创建</th><th>最后使用</th><th>状态</th><th>操作</th></tr>
       ${rows || '<tr><td colspan="7" class="empty">还没有令牌</td></tr>'}</table>
     </div>`;
   lastToken = '';
 }
 let lastToken = '';
+let tokenStatus = '';
 async function tokenCreate(ev) {
   ev.preventDefault();
   const f = ev.target;
@@ -2235,7 +2278,7 @@ function actionLabel(a) {
     employee_create: '创建员工', employee_toggle: '停用/启用员工',
     employee_transfer: '调整部门', department_create: '创建部门',
     department_toggle: '停用/启用部门', department_delete: '删除部门',
-    business_direction_create: '创建业务方向',
+    business_direction_create: '创建业务领域',
     project_create: '创建项目', project_update: '编辑项目',
     admin_create: '新增管理员', admin_delete: '删除管理员',
     token_create: '签发令牌', token_revoke: '吊销令牌' };
@@ -2357,7 +2400,7 @@ function showQaLogDetail(id) {
   const inputLabels = {project_and_history: '项目和历史', project: '项目参数', history: '相关历史',
                        question: '本轮问题', missing: '缺少指代上下文'};
   const sourceLabels = {project_argument: '项目参数', history: '历史消息', question: '本轮问题',
-                        business_direction: '业务方向', none: '无'};
+                        business_direction: '业务领域', none: '无'};
   body.innerHTML = `<div class="muted">${esc(row.created_at)} · ${esc(row.username) || '—'} · ${esc(row.department) || '—'} · ${esc(qaEntryLabel[row.entry] || row.entry)}</div>
     <p><b>命中个数</b> ${sources.length} 个来源 <span class="muted">·</span> <b>耗时</b> ${esc(row.elapsed.toFixed(1))} 秒</p>
     ${field('问题', row.question)}

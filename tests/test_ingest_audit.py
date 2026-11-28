@@ -69,7 +69,7 @@ class IngestAuditTests(IngestHarness):
         content = b"---\ndoc_type: report\n---\n# Inspection\n\nComplete."
         self.upload([("report.md", content), ("duplicate.md", content)],
                     default_doc_type="plan", default_department="研发", default_project_id=project["id"])
-        rows = {row["file_name"]: row for row in self.logs(username="li", entry="file")}
+        rows = {row["file_name"]: row for row in self.logs()}
         report, duplicate = rows["report.md"], rows["duplicate.md"]
         self.assertEqual(report["batch_id"], duplicate["batch_id"])
         self.assertEqual((report["outcome"], duplicate["outcome"]), ("ingested", "skipped"))
@@ -102,7 +102,7 @@ class IngestAuditTests(IngestHarness):
                                                   ["all"], [], None, None, None)
         self.assertIsNone(result)
         self.env["_show_management_error"].assert_called_once_with(fault)
-        row, = self.logs(entry="file", outcome="failed")
+        row, = self.logs(outcome="failed")
         self.assertEqual((row["source_path"], row["reason"]), ("note.md", "preflight"))
         self.assertFalse((self.knowledge / "learning/basic_knowledge").exists())
 
@@ -144,7 +144,7 @@ class IngestAuditTests(IngestHarness):
                 (("other", "broken.md"), b"bad data"),
                 (("team", "extra.bin"), b"binary"),
             ], "learning", "batch", ["all"])
-        rows = {row["file_name"]: row for row in self.logs(entry="directory")}
+        rows = {row["file_name"]: row for row in self.logs()}
         self.assertEqual(rows["a.md"]["outcome"], "ingested")
         self.assertEqual(rows["broken.md"]["source_path"], "other/broken.md")
         self.assertEqual(rows["broken.md"]["path"], "learning/basic_knowledge/li/other/broken.md")
@@ -163,7 +163,7 @@ class IngestAuditTests(IngestHarness):
                     "web", [IngestItem("", source_path=source_url_for_log(url))],
                     "learning", ["all"], [], None, None, None,
                 ) as audit:
-                    pending = self.logs(entry="web", batch_id=audit.batch_id)[0]
+                    pending = self.logs(batch_id=audit.batch_id)[0]
                     self.assertEqual(pending["outcome"], "running")
                     self.assertIsNone(pending["finished_at"])
                     if failure:
@@ -172,7 +172,7 @@ class IngestAuditTests(IngestHarness):
                     else:
                         # V3.9.2：未关联项目的网页同样落在 basic_knowledge/<入库用户>/
                         ingest_web_page(url, domain="learning", audit=audit, owner="li")
-        failed, ingested = self.logs(entry="web")
+        failed, ingested = self.logs(outcome="failed") + self.logs(outcome="ingested")
         self.assertEqual(failed["reason"], "fetch")
         self.assertEqual(ingested["outcome"], "ingested")
         self.assertTrue(ingested["path"].startswith("learning/basic_knowledge/li/"))
@@ -205,14 +205,14 @@ class IngestAuditTests(IngestHarness):
         route = next(route for route in app.routes if route.path == "/api/logs/ingest")
         self.assertIn(require_admin_api, [dep.call for dep in route.dependant.dependencies])
         with mock.patch("src.admin_app.get_config", return_value=self.cfg):
-            result = api_logs_ingest(admin_request(), page=1, page_size=10, username="li", keyword="test", batch_id="",
-                                     entry="file", outcome="ingested", since=datetime(2020, 1, 1, tzinfo=timezone.utc))
+            result = api_logs_ingest(admin_request(), page=1, page_size=10, department="", project_id=None,
+                                     business_direction="", keyword="test", batch_id="",
+                                     outcome="ingested", since=datetime(2020, 1, 1, tzinfo=timezone.utc))
         self.assertEqual(result["total"], 1)
-        self.assertEqual(result["employee_options"], [
-            {"username": "editor", "real_name": "李明"},
-            {"username": "li", "real_name": ""},
-            {"username": "staff", "real_name": ""},
-        ])
+        # 2026-11-28：筛选下拉数据源改为 部门 / 项目 / 业务领域（员工与入口下拉已移除）
+        self.assertEqual(result["department_options"], [])
+        self.assertEqual(result["project_options"], [])
+        self.assertEqual(result["direction_options"], [])
         self.assertEqual(result["logs"][0]["absolute_path"], str((self.knowledge / "learning/basic_knowledge/li/test.md").resolve()))
 
     def test_ingest_log_api_labels_internal_permission_groups(self):
@@ -226,9 +226,101 @@ class IngestAuditTests(IngestHarness):
         with self.env["_new_ingest_audit"]("file", [item], "learning", [], [], None, None, None):
             pass
         with mock.patch("src.admin_app.get_config", return_value=self.cfg):
-            result = api_logs_ingest(admin_request(), page=1, page_size=10, username="li", keyword="", batch_id="")
+            result = api_logs_ingest(admin_request(), page=1, page_size=10, department="", project_id=None,
+                                     business_direction="", keyword="", batch_id="")
         self.assertEqual(result["department_labels"][department["permission_key"]], "研发中心")
         self.assertEqual(result["logs"][0]["attributes"]["department"], "交付中心")
+
+    def test_ingest_log_filters_by_department_project_and_direction(self):
+        """2026-11-28：入库文件列表按 归属部门 / 项目 / 业务领域 条件检索（替代原员工/入口筛选）。"""
+        direction = business_directions.create_direction("平台建设")
+        other_direction = business_directions.create_direction("低空经济")
+        department = auth_db.create_department("交付中心")
+        project = projects.save_project(projects.ProjectFields("监管平台", direction["id"], None, [], ""))
+        self.upload([("one.md", b"# One\n\nText one.")],
+                    default_department=department["name"], default_project_id=project["id"])
+        self.upload([("two.md", b"# Two\n\nText two.")])
+
+        def totals(**kwargs):
+            return list_logs(page=1, page_size=20, **kwargs)["total"]
+
+        names = {row["file_name"] for row in list_logs(page=1, page_size=20)["logs"]}
+        self.assertEqual(names, {"one.md", "two.md"})
+        self.assertEqual(totals(department="交付中心"), 1)
+        self.assertEqual(totals(department="研发中心"), 0)
+        self.assertEqual(totals(project_id=project["id"]), 1)
+        self.assertEqual(totals(project_id=(project["id"] or 1) + 999), 0)
+        self.assertEqual(totals(business_direction="平台建设"), 1)
+        self.assertEqual(totals(business_direction="低空经济"), 0)
+        self.assertEqual(totals(department="交付中心", business_direction="平台建设"), 1)
+        self.assertEqual(totals(department="交付中心", business_direction="低空经济"), 0)
+        # 0 = 未关联项目：two.md 入库时未选项目
+        self.assertEqual(totals(project_id=0), 1)
+        self.assertEqual({row["file_name"] for row in list_logs(page=1, page_size=20, project_id=0)["logs"]},
+                         {"two.md"})
+        result = list_logs(page=1, page_size=20)
+        self.assertIn("交付中心", result["department_options"])
+        self.assertIn({"id": project["id"], "name": "监管平台"}, result["project_options"])
+        self.assertIn("平台建设", result["direction_options"])
+
+    def test_ingest_log_options_include_history_snapshots(self):
+        """2026-11-28 审查加固：主档删除/改名后，下拉仍要能选到历史记录的快照值。
+
+        病灶：下拉只列当前主档——项目/业务领域/部门被删除后，老记录的快照值
+        （attributes 里仍有）在下拉里选不到，这部分记录永远筛不出来。
+        """
+        from src.admin_app import api_logs_ingest
+
+        item = IngestItem("legacy.md", attributes={
+            "department": "已撤销部门", "project_id": 4242, "project_name": "已归档项目",
+            "business_direction": "已停用领域", "classification": "内部",
+            "allowed_groups": ["all"],
+        }, outcome="ingested")
+        with self.env["_new_ingest_audit"]("file", [item], "learning", [], [], None, None, None):
+            pass
+        result = api_logs_ingest(admin_request(), page=1, page_size=20, department="", project_id=None,
+                                 business_direction="", keyword="", batch_id="")
+        self.assertIn("已撤销部门", result["department_options"])
+        self.assertIn({"id": 4242, "name": "已归档项目"}, result["project_options"])
+        self.assertIn("已停用领域", result["direction_options"])
+        # 历史值可筛选
+        self.assertEqual(list_logs(page=1, page_size=20, department="已撤销部门")["total"], 1)
+        self.assertEqual(list_logs(page=1, page_size=20, project_id=4242)["total"], 1)
+        self.assertEqual(list_logs(page=1, page_size=20, business_direction="已停用领域")["total"], 1)
+        # SQL 注入探测：参数化查询，恶意值不报错也不放大结果
+        self.assertEqual(list_logs(page=1, page_size=20,
+                                   business_direction="x' OR 1=1 --")["total"], 0)
+        self.assertEqual(list_logs(page=1, page_size=20,
+                                   department="' UNION SELECT 1 --")["total"], 0)
+
+    def test_ingest_log_ui_sends_new_filters(self):
+        """2026-11-28 防回归：入库列表前端必须把三个新筛选发给后端。
+
+        病灶：筛选对象与下拉都加了 department/project_id/direction，但请求参数
+        的枚举列表（qs 构造循环）还是旧的 username/entry——新下拉选了也白选，
+        列表纹丝不动。此用例锁住「枚举列表与筛选键一致」。
+        """
+        html = (Path(__file__).resolve().parent.parent / "src" / "admin_templates" / "admin.html").read_text(encoding="utf-8")
+        enum_line = next(line for line in html.splitlines() if "for (const key of" in line)
+        self.assertIn("ingestFilter[key]", html)  # 枚举循环确实在喂请求参数
+        for key in ("department", "project_id", "direction", "keyword", "outcome", "batch_id"):
+            self.assertIn(f"'{key}'", enum_line)
+        for removed in ("username", "entry"):
+            self.assertNotIn(f"'{removed}'", enum_line)
+
+    def test_token_list_filters_by_status(self):
+        """2026-11-28：MCP 令牌列表增加状态筛选（有效 / 已吊销 / 全部）。"""
+        from src.admin_app import api_tokens
+
+        user = auth_db.create_user("pat", "test-password")
+        active_plain = auth_db.create_token(user["id"], "接入A")
+        revoked_plain = auth_db.create_token(user["id"], "接入B")
+        auth_db.revoke_token(revoked_plain[:16])
+        self.assertEqual(len(api_tokens()["tokens"]), 2)
+        active = api_tokens(status="active")["tokens"]
+        self.assertEqual([t["token_prefix"] for t in active], [active_plain[:16]])
+        revoked = api_tokens(status="revoked")["tokens"]
+        self.assertEqual([t["token_prefix"] for t in revoked], [revoked_plain[:16]])
 
     def test_reveal_uses_only_logged_files_inside_the_local_knowledge_directory(self):
         from src.admin_app import api_reveal_ingest_file, app, require_admin_api

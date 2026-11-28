@@ -1,4 +1,4 @@
-"""业务方向：临时 SQLite + 真实管理员鉴权接口，不接触正式数据。"""
+"""业务领域：临时 SQLite + 真实管理员鉴权接口，不接触正式数据。"""
 from src import auth_db, business_directions, admin_audit
 from tests._helpers import TempAuthDB
 from tests.test_admin_api import ApiTestCase
@@ -60,7 +60,7 @@ class BusinessDirectionApiTests(ApiTestCase):
         logs = auth_db.list_login_logs(scope='admins')
         self.assertEqual(sum(row['action'] == 'business_direction_create' for row in logs), 2)
         html = self.client.get('/admin').text
-        self.assertIn("name: '业务方向'", html)
+        self.assertIn("name: '业务领域'", html)
         self.assertIn('businessNameChanged', html)
 
     def test_duplicate_and_invalid_api_input(self):
@@ -111,7 +111,7 @@ class BusinessDirectionEditTests(ApiTestCase):
         self.assertEqual(len(self.logs()), 1)
         row = self.logs()[0]
         self.assertEqual(row['username'], 'boss')
-        self.assertEqual(row['action_label'], '编辑业务方向')
+        self.assertEqual(row['action_label'], '编辑业务领域')
         self.assertIn('direction_id='+str(direction['id']), row['target'])
         self.assertIn('智慧园区', row['detail'])
         self.assertIn('城市运营', row['detail'])

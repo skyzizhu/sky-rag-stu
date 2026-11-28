@@ -271,7 +271,7 @@ class KnowledgeDashboardTests(IngestHarness):
         self.assertEqual((data["documents"], data["linked_documents"], data["unlinked_documents"]), (3, 2, 1))
         self.assertEqual((data["direction_count"], data["project_count"]), (1, 2))
         self.assertEqual([(group["name"], group["documents"]) for group in data["groups"]],
-                         [("低空经济", 1), ("未关联业务方向", 1)])
+                         [("低空经济", 1), ("未关联业务领域", 1)])
 
     def test_unavailable_vector_store_keeps_project_information(self):
         direction = business_directions.create_direction("低空经济")

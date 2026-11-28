@@ -173,14 +173,33 @@ class IngestAudit:
             _LOG.exception("Unable to save ingestion audit batch %s", self.batch_id)
 
 
-def list_logs(*, page: int, page_size: int, username: str = "", entry: str = "", outcome: str = "",
-              keyword: str = "", batch_id: str = "", since: datetime | None = None,
-              before: datetime | None = None) -> dict:
+def list_logs(*, page: int, page_size: int, department: str = "", project_id: int | None = None,
+              business_direction: str = "", outcome: str = "", keyword: str = "", batch_id: str = "",
+              since: datetime | None = None, before: datetime | None = None) -> dict:
+    """入库记录检索（2026-11-28 改版）。
+
+    档案条件按 attributes JSON 过滤（json_extract）：归属部门 / 项目 ID / 业务领域
+    是入库完成时归档的快照；失败的记录没有归档信息（attributes 为空），只在
+    「全部」条件下可见。筛选下拉的数据源（部门 / 项目 / 业务领域）随响应返回。
+    """
     conditions, params = [], []
-    for column, value in (("username", username), ("entry", entry), ("outcome", outcome), ("batch_id", batch_id)):
+    for column, value in (("outcome", outcome), ("batch_id", batch_id)):
         if value:
             conditions.append(f"{column} = ?")
             params.append(value)
+    if department:
+        conditions.append("json_extract(attributes, '$.department') = ?")
+        params.append(department)
+    if project_id is not None:
+        if project_id == 0:
+            # 0 = 未关联项目：attributes 里没有 project_id（含未选项目、失败的记录）
+            conditions.append("COALESCE(CAST(json_extract(attributes, '$.project_id') AS INTEGER), 0) = 0")
+        else:
+            conditions.append("CAST(json_extract(attributes, '$.project_id') AS INTEGER) = ?")
+            params.append(project_id)
+    if business_direction:
+        conditions.append("json_extract(attributes, '$.business_direction') = ?")
+        params.append(business_direction)
     if keyword:
         conditions.append("(instr(lower(file_name), lower(?)) OR instr(lower(path), lower(?)) "
                           "OR instr(lower(source_path), lower(?)))")
@@ -199,17 +218,37 @@ def list_logs(*, page: int, page_size: int, username: str = "", entry: str = "",
         page = min(page, total_pages)
         rows = conn.execute("SELECT * FROM ingest_logs" + where + " ORDER BY id DESC LIMIT ? OFFSET ?",
                             [*params, page_size, (page - 1) * page_size]).fetchall()
-        employees = conn.execute("""
-            SELECT accounts.username, COALESCE(users.real_name, '') AS real_name
-            FROM (SELECT username FROM users
-                  UNION SELECT username FROM ingest_logs WHERE username <> '') AS accounts
-            LEFT JOIN users ON users.username = accounts.username
-            ORDER BY accounts.username COLLATE NOCASE, accounts.username
+        # 筛选下拉需要覆盖历史快照：项目/业务领域/部门被删除或改名后，老记录的
+        # attributes 快照值不在当前主档里——不合并的话这部分记录在下拉里选不到。
+        history = conn.execute("""
+            SELECT DISTINCT json_extract(attributes, '$.department') AS department,
+                   json_extract(attributes, '$.project_id') AS project_id,
+                   json_extract(attributes, '$.project_name') AS project_name,
+                   json_extract(attributes, '$.business_direction') AS business_direction
+            FROM ingest_logs
+            WHERE attributes IS NOT NULL AND attributes <> '{}'
         """).fetchall()
+    # 筛选下拉数据源：当前主档优先，历史快照值追加（去重）。json_extract 无索引，
+    # 记录量大后如需优化可建表达式索引；当前量级全扫可接受。
+    from src import business_directions, projects
+
+    main_departments = [d["name"] for d in auth_db.list_departments(include_disabled=True)]
+    main_projects = sorted(projects.list_projects(), key=lambda item: item["name"])
+    main_directions = [d["name"] for d in business_directions.list_directions()]
+    history_departments = sorted({row["department"] for row in history if row["department"]})
+    history_directions = sorted({row["business_direction"] for row in history if row["business_direction"]})
+    main_project_ids = {item["id"] for item in main_projects}
+    history_projects = [{"id": row["project_id"], "name": row["project_name"]}
+                        for row in history
+                        if row["project_id"] and row["project_id"] not in main_project_ids]
     logs = [{**row, "requested": json.loads(row["requested"]), "attributes": json.loads(row["attributes"])}
             for row in rows]
-    return {"ok": True, "logs": logs, "employee_options": [dict(row) for row in employees], "total": total, "page": page,
-            "page_size": page_size, "total_pages": total_pages}
+    return {"ok": True, "logs": logs, "total": total, "page": page,
+            "page_size": page_size, "total_pages": total_pages,
+            "department_options": list(dict.fromkeys([*main_departments, *history_departments])),
+            "project_options": [{"id": item["id"], "name": item["name"]} for item in main_projects]
+                               + sorted(history_projects, key=lambda item: str(item["name"])),
+            "direction_options": list(dict.fromkeys([*main_directions, *history_directions]))}
 
 
 def get_log_path(log_id: int) -> str | None:
