@@ -1,8 +1,8 @@
 """知识库管理：目录 → 元数据（Metadata）。
 
-产品视角：这一层回答的是「这条知识是谁、从哪来、属于哪个领域」——
+产品视角：这一层回答的是「这条知识是谁、从哪来、属于哪个知识板块」——
 - 目录负责物理管理：一级目录 = domain，三级目录提示 topic
-- Front Matter 负责人工声明：Markdown 文件可以在文件头声明领域、主题等元数据
+- Front Matter 负责人工声明：Markdown 文件可以在文件头声明知识板块、主题等元数据
 - 历史 category 声明仍可读取，目录和默认值不再生成该字段
 
 合并优先级（高 → 低）：
@@ -29,7 +29,7 @@ from src.document_department import resolve_department
 from src.document_type import resolve_doc_type
 
 # ---------------- 规范常量 ----------------
-# V3.8：领域不再写死——编号由 src/domains.py 的注册表维护（前台「领域管理」页增删改），
+# V3.8：知识板块不再写死——编号由 src/domains.py 的注册表维护（前台「知识板块管理」页增删改），
 # 这里只认编号；显示名称只在界面层使用，不进任何元数据。
 
 STATUSES = ["active", "archive", "expired"]
@@ -222,9 +222,9 @@ def infer_from_path(relative_path: str) -> dict:
     domain = dirs[0].strip().lower()
     known = domain_codes()  # 注册表里的全部编号（含停用：停用只拦新上传，已有数据照常有效）
     if domain not in known:
-        # 目录名不是已登记领域时回退默认值：否则这些文档按领域筛选永远筛不出来
-        # （前台「领域管理」页会把这类目录列为「未登记目录」，可一键登记）
-        console_print(f"⚠️ 目录「{dirs[0]}」不是已登记领域（{'/'.join(known)}），按 {DEFAULTS['domain']} 处理")
+        # 目录名不是已登记知识板块时回退默认值：否则这些文档按知识板块筛选永远筛不出来
+        # （前台「知识板块管理」页会把这类目录列为「未登记目录」，可一键登记）
+        console_print(f"⚠️ 目录「{dirs[0]}」不是已登记知识板块（{'/'.join(known)}），按 {DEFAULTS['domain']} 处理")
         domain = DEFAULTS["domain"]
 
     topic = []

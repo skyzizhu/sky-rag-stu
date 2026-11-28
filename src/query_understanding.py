@@ -59,9 +59,12 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
        “盘点一下手头的资料”“项目文件清单”“看看项目底下有什么东西”“星云项目有哪些文件”属于文件盘点。
        “哪些文件提到了星云项目”“项目里程碑清单”“凤凰项目预算是多少”“列出文件并总结内容”均省略该字段。
        文件盘点时省略 enumeration_scope。还需查正文、按属性分组、比较或排除多个范围时，省略 inventory_intent。
-   "inventory_domain"：仅在 inventory_intent 为 true 且原问题明确点名知识库领域时填写，逐字抄写领域名称或编号。
+   "inventory_domain"：仅在 inventory_intent 为 true 且原问题明确点名知识库知识板块时填写，逐字抄写知识板块名称或编号。
        “项目文件清单”抄写“项目”；“星云项目的文件清单”应通过 metadata_scope 指定星云项目，省略 inventory_domain。
-       用户明确点名的领域即使不在枚举中也要照抄，由程序校验。未明确限定领域时省略，不按文件主题猜领域。
+       用户明确点名的知识板块即使不在枚举中也要照抄，由程序校验。未明确限定知识板块时省略，不按文件主题猜知识板块。
+       知识板块的说法只有「板块 / 知识板块 / 文件夹 / 目录」（如"工作板块的资料"）；
+       「领域 / 业务领域」指项目的业务领域（business_direction），不是知识板块——
+       “低空经济领域的资料”应通过 metadata_scope 输出 {"business_direction":"低空经济"}，省略 inventory_intent 与 inventory_domain。
    "sub_queries"：字符串数组。仅当用户的**一个问题里包含多个不同的信息需求**时输出
        （如"查一下我的心得，并且查工作经历有几个"→ ["用户心得笔记的要点", "工作经历的数量"]）。
        拆分规则：每个子查询必须自带完整检索语境（含主语和主题词，禁止"李强的信息"这类宽泛表述）；
@@ -72,9 +75,11 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
        "status"：只能是 active 或 archive
        "source"：用户明确点名的文件名
    "metadata_scope"：对象。用户明确限定要查哪类文件时，抄写本轮原问题里的字段值。
-       可用字段只有 project（项目名称）、business_direction（业务方向名称或编号）、
+       可用字段只有 project（项目名称）、business_direction（业务领域名称或编号）、
        department（文件归属部门）、doc_type（文档类型）。可同时输出多项，表示条件同时满足。
        “查低空监管平台项目的验收资料”输出 {"project":"低空监管平台","doc_type":"验收资料"}。
+       “云端业务领域下的资料”输出 {"business_direction":"云端业务"}——用户说「XX领域」时指的是项目的业务领域，抄写领域名称；
+       「板块 / 知识板块」是知识库分区说法，不是本对象的字段，出现在文件盘点问句里时走 inventory_domain。
        “归属研发部的技术方案”输出 {"department":"研发部","doc_type":"技术方案"}。
        “哪些文件提到了低空监管平台？”是正文主题，省略 metadata_scope。
        “研发部的预算”中的部门是要查的信息，不能当成文件归属。“按公司制度”是泛称，省略 doc_type。
@@ -88,7 +93,7 @@ QU_SYSTEM_PROMPT = """你是个人知识库的「检索查询理解器」。任�
    {"from": "YYYY-MM-DD", "to": "YYYY-MM-DD"}。预算年度、活动日期、合同生效时间等正文时间保留在检索词中。"""
 
 QU_USER_PROMPT_TEMPLATE = """【当前时间】{current_time}
-【知识库领域枚举】{domains}
+【知识库知识板块枚举】{domains}
 {history_section}【用户原始问题】{question}
 
 请按系统要求输出 JSON。"""
@@ -262,7 +267,7 @@ def understand_query(
             literal = domain.strip() if isinstance(domain, str) else ""
             qu.inventory_domain = literal if 0 < len(literal) <= 80 else None
             if qu.inventory_domain is None:
-                warnings.append("inventory_domain 不是有效的领域原文")
+                warnings.append("inventory_domain 不是有效的知识板块原文")
         tr = data.get("time_range")
         qu.time_range = _valid_time_range(tr)
         if tr is not None and not qu.time_range:

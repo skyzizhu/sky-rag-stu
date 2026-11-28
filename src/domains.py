@@ -1,4 +1,4 @@
-"""V3.8：领域注册表——编号（code）是数据身份，名称（name）只用于显示。
+"""V3.8：知识板块注册表——编号（code）是数据身份，名称（name）只用于显示。
 
 编号写进：knowledge/ 第一层文件夹名、每张卡片 payload 的 domain 字段、检索过滤条件、
 Q→A 缓存键、Front Matter、MCP 的 domain 参数、交给 LLM 的出处行——创建后永不改变。
@@ -6,7 +6,7 @@ Q→A 缓存键、Front Matter、MCP 的 domain 参数、交给 LLM 的出处行
 因此对检索零影响（tests/test_domains.py 有专门的回归测试守住这一点）。
 
 存储：storage/domains.json（前台、入库流水线、MCP、命令行入库共用）。文件不存在时
-等价于 6 个内置领域，编号与旧版写死的枚举完全一致——存量数据无需任何迁移。
+等价于 6 个内置知识板块，编号与旧版写死的枚举完全一致——存量数据无需任何迁移。
 """
 
 from __future__ import annotations
@@ -23,20 +23,20 @@ from src.project_directories import is_generated_info
 
 REGISTRY_PATH = PROJECT_ROOT / "storage" / "domains.json"
 BUILTIN_CODES = ("work", "learning", "life", "projects", "reference", "archive")
-# 系统领域：archive 承载归档 / 恢复；reference 是未知目录的兜底 + 网页入库的落盘位置
+# 系统知识板块：archive 承载归档 / 恢复；reference 是未知目录的兜底 + 网页入库的落盘位置
 RESERVED_CODES = frozenset({"archive", "reference"})
 FORBIDDEN_CODES = frozenset({"all"})  # 「全部」已被检索设置 / 知识库管理的筛选项占用
 _CODE_RE = re.compile(r"^[a-z][a-z0-9_-]{1,31}$")
 _NAME_MAX = 20
 _DESC_MAX = 120
-_JUNK_FILES = (".DS_Store", ".gitkeep")  # 删除空领域时可一并清掉的系统占位文件
+_JUNK_FILES = (".DS_Store", ".gitkeep")  # 删除空知识板块时可一并清掉的系统占位文件
 
 _lock = threading.Lock()
 _cache: dict = {"key": None, "items": None}
 
 
 class DomainError(ValueError):
-    """领域操作被拒绝（信息直接给人看）。"""
+    """知识板块操作被拒绝（信息直接给人看）。"""
 
 
 def _builtin_entry(code: str) -> dict:
@@ -46,7 +46,7 @@ def _builtin_entry(code: str) -> dict:
 
 # ---------------------------------------------------------------- 读取
 def load_domains() -> list[dict]:
-    """全部已登记领域（含停用），按登记顺序。文件不存在 / 损坏时回落到 6 个内置领域。"""
+    """全部已登记知识板块（含停用），按登记顺序。文件不存在 / 损坏时回落到 6 个内置知识板块。"""
     path = REGISTRY_PATH
     try:
         key = (str(path), path.stat().st_mtime_ns)
@@ -61,7 +61,7 @@ def load_domains() -> list[dict]:
         items = []
     if not items:
         items = [_builtin_entry(c) for c in BUILTIN_CODES]
-    # 系统领域兜底：注册表被手工改坏时，归档 / 网页入库也不能失效
+    # 系统知识板块兜底：注册表被手工改坏时，归档 / 网页入库也不能失效
     codes = {d["code"] for d in items}
     for code in BUILTIN_CODES:
         if code in RESERVED_CODES and code not in codes:
@@ -94,12 +94,12 @@ def display_name(code: str) -> str:
 
 
 def sanitize_choice(choice: str | None) -> str:
-    """检索设置里保存的领域选择：编号已不存在时回落为 all，否则过滤条件永远检索不到内容。"""
+    """检索设置里保存的知识板块选择：编号已不存在时回落为 all，否则过滤条件永远检索不到内容。"""
     return choice if choice in all_codes() else "all"
 
 
 def resolve_code(raw: str | None) -> str | None:
-    """把外部传入的领域参数解析成编号：编号（不分大小写）、显示名称、内置领域的多语言名称。
+    """把外部传入的知识板块参数解析成编号：编号（不分大小写）、显示名称、内置知识板块的多语言名称。
 
     解析不出或名称有歧义时返回 None，由调用方明确报错——直接拿去过滤只会得到空结果，
     被 Agent 误报成「知识库里没有」。只在入口处用一次，此后全链路只认编号。
@@ -130,32 +130,32 @@ def _save(items: list[dict]) -> None:
 def validate_code(code: str) -> str:
     code = (code or "").strip()
     if not _CODE_RE.match(code):
-        raise DomainError("领域编号需为 2~32 位：小写字母开头，只能包含小写字母、数字、下划线、连字符")
+        raise DomainError("知识板块编号需为 2~32 位：小写字母开头，只能包含小写字母、数字、下划线、连字符")
     if code in FORBIDDEN_CODES:
-        raise DomainError(f"「{code}」是系统保留字，不能用作领域编号")
+        raise DomainError(f"「{code}」是系统保留字，不能用作知识板块编号")
     return code
 
 
 def _clean_name(name: str | None) -> str:
     name = (name or "").strip()
     if len(name) > _NAME_MAX:
-        raise DomainError(f"领域名称最多 {_NAME_MAX} 个字")
+        raise DomainError(f"知识板块名称最多 {_NAME_MAX} 个字")
     return name
 
 
 def create_domain(code: str, name: str, description: str = "", *, store=None) -> dict:
-    """新增领域。传入 store 时顺带纠正已入库卡片的领域字段（见 reconcile_domain_cards）。
+    """新增知识板块。传入 store 时顺带纠正已入库卡片的知识板块字段（见 reconcile_domain_cards）。
 
-    纠正失败会撤销这次新增：否则领域已存在、卡片却没改对，而且没有重试的入口。
+    纠正失败会撤销这次新增：否则知识板块已存在、卡片却没改对，而且没有重试的入口。
     """
     code = validate_code(code)
     name = _clean_name(name)
     if not name:
-        raise DomainError("请填写领域名称")
+        raise DomainError("请填写知识板块名称")
     with _lock:
         items = load_domains()
         if any(d["code"] == code for d in items):
-            raise DomainError(f"领域编号「{code}」已存在")
+            raise DomainError(f"知识板块编号「{code}」已存在")
         entry = {"code": code, "name": name, "description": (description or "").strip()[:_DESC_MAX],
                  "enabled": True, "builtin": False,
                  "created_at": time.strftime("%Y-%m-%dT%H:%M:%S")}
@@ -167,7 +167,7 @@ def create_domain(code: str, name: str, description: str = "", *, store=None) ->
         except Exception as exc:
             with _lock:
                 _save([d for d in load_domains() if d["code"] != code])
-            raise DomainError(f"向量库暂不可用，领域未创建，请稍后重试：{exc}") from exc
+            raise DomainError(f"向量库暂不可用，知识板块未创建，请稍后重试：{exc}") from exc
     return dict(entry)
 
 
@@ -175,8 +175,8 @@ def reconcile_domain_cards(code: str, store) -> int:
     """把「按当前注册表本该属于 code」的已入库文档的 domain 字段就地改过来，返回文档数。
 
     这些文档入库时 code 还没登记：目录推断被兜底成 reference，文件头声明被当成非法值忽略；
-    不纠正的话，按新领域过滤永远检索不到它们。判定沿用入库时的优先级（文件头声明 > 目录），
-    所以文件头明确声明了别的领域的不会被改，归档文档（archive/…）也保持原样。
+    不纠正的话，按新知识板块过滤永远检索不到它们。判定沿用入库时的优先级（文件头声明 > 目录），
+    所以文件头明确声明了别的知识板块的不会被改，归档文档（archive/…）也保持原样。
     只改 payload，不重新向量化——路径、document_id、版本、卡片内容都不变。
     """
     from src.metadata import _valid_domain, infer_from_path, parse_front_matter
@@ -207,17 +207,17 @@ def update_domain(code: str, *, name: str | None = None, description: str | None
         items = load_domains()
         entry = next((d for d in items if d["code"] == code), None)
         if entry is None:
-            raise DomainError(f"领域「{code}」不存在")
+            raise DomainError(f"知识板块「{code}」不存在")
         if name is not None:
             name = _clean_name(name)
             if not name and not entry.get("builtin"):
-                raise DomainError("请填写领域名称")  # 内置领域可清空名称，恢复默认多语言标签
+                raise DomainError("请填写知识板块名称")  # 内置知识板块可清空名称，恢复默认多语言标签
             entry["name"] = name
         if description is not None:
             entry["description"] = description.strip()[:_DESC_MAX]
         if enabled is not None:
             if not enabled and code in RESERVED_CODES:
-                raise DomainError("系统领域（archive / reference）不能停用")
+                raise DomainError("系统知识板块（archive / reference）不能停用")
             entry["enabled"] = bool(enabled)
         _save(items)
     return dict(entry)
@@ -225,10 +225,10 @@ def update_domain(code: str, *, name: str | None = None, description: str | None
 
 # ---------------------------------------------------------------- 数据量统计 / 删除
 def _owner(rel: str) -> tuple[str, bool] | None:
-    """路径属于哪个领域：(编号, 是否为从该领域归档出去的)。根目录散落文件返回 None。
+    """路径属于哪个知识板块：(编号, 是否为从该知识板块归档出去的)。根目录散落文件返回 None。
 
-    与入库时的领域推断一致：第一层文件夹名转小写即编号；archive/<编号>/… 是从该领域
-    归档出去的文件——恢复时会回到原领域，所以也算该领域的数据。
+    与入库时的知识板块推断一致：第一层文件夹名转小写即编号；archive/<编号>/… 是从该知识板块
+    归档出去的文件——恢复时会回到原知识板块，所以也算该知识板块的数据。
     """
     parts = [p for p in rel.replace("\\", "/").split("/") if p]
     if len(parts) < 2:
@@ -245,11 +245,11 @@ def _empty_stat() -> dict:
 def usage_by_domain(knowledge_dir: Path, ledger: dict, documents: list[dict]) -> dict[str, dict]:
     """每个编号下的数据量（删除前必查）。三处来源可能不一致，任何一处有数据都不能删：
 
-    - files / archived：磁盘上的文件 / 从该领域归档出去的文件
+    - files / archived：磁盘上的文件 / 从该知识板块归档出去的文件
     - ledger：入库台账里的记录
     - documents / cards：向量库里的文档版本与卡片（含 expired 历史版本）。按卡片自身的
-      domain 字段统计——它才决定检索归属（文件头可声明与所在目录不同的领域）；从某领域
-      归档出去的文档恢复时会回到原领域，也算原领域的数据
+      domain 字段统计——它才决定检索归属（文件头可声明与所在目录不同的知识板块）；从某知识板块
+      归档出去的文档恢复时会回到原知识板块，也算原知识板块的数据
     """
     stats: dict[str, dict] = {}
 
@@ -282,19 +282,19 @@ def has_data(stat: dict | None) -> bool:
 
 
 def delete_domain(code: str, stat: dict | None, knowledge_dir: Path | None = None) -> None:
-    """删除领域：系统领域不可删；有任何数据都不可删（用户确认的规则）。
+    """删除知识板块：系统知识板块不可删；有任何数据都不可删（用户确认的规则）。
 
-    删除只移除注册表条目，并清理该领域留下的空文件夹（绝不删除任何知识文件）。
+    删除只移除注册表条目，并清理该知识板块留下的空文件夹（绝不删除任何知识文件）。
     """
     if code in RESERVED_CODES:
-        raise DomainError("系统领域（archive / reference）不能删除")
+        raise DomainError("系统知识板块（archive / reference）不能删除")
     if has_data(stat):
-        raise DomainError("领域下仍有数据，不能删除：请先在知识库管理页移除其中的文档"
-                          "（已归档的文档也算，因为恢复时会回到该领域）")
+        raise DomainError("知识板块下仍有数据，不能删除：请先在知识库管理页移除其中的文档"
+                          "（已归档的文档也算，因为恢复时会回到该知识板块）")
     with _lock:
         items = load_domains()
         if not any(d["code"] == code for d in items):
-            raise DomainError(f"领域「{code}」不存在")
+            raise DomainError(f"知识板块「{code}」不存在")
         _save([d for d in items if d["code"] != code])
     if knowledge_dir is not None:
         _remove_empty_tree(knowledge_dir / code)
@@ -320,7 +320,7 @@ def _remove_empty_tree(folder: Path) -> None:
 
 # ---------------------------------------------------------------- 未登记目录
 def unregistered_dirs(knowledge_dir: Path) -> list[dict]:
-    """knowledge/ 下有文件、却没登记为领域的第一层文件夹（入库时会被兜底归到 reference）。"""
+    """knowledge/ 下有文件、却没登记为知识板块的第一层文件夹（入库时会被兜底归到 reference）。"""
     codes = set(all_codes())
     out: list[dict] = []
     if not knowledge_dir.exists():
@@ -338,5 +338,5 @@ def unregistered_dirs(knowledge_dir: Path) -> list[dict]:
 
 
 def register_directory(folder: str, name: str, store) -> dict:
-    """把未登记目录登记为领域（已入库卡片的领域字段随之纠正，见 create_domain）。"""
+    """把未登记目录登记为知识板块（已入库卡片的知识板块字段随之纠正，见 create_domain）。"""
     return create_domain(validate_code(folder.strip().lower()), name or folder, store=store)

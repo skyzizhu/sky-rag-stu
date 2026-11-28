@@ -1,7 +1,7 @@
-"""领域管理：注册表规则 + 「改名不影响检索」回归 + 未登记目录登记 + 恢复拦截。
+"""知识板块管理：注册表规则 + 「改名不影响检索」回归 + 未登记目录登记 + 恢复拦截。
 
-重点（用户明确要求）：改领域显示名称，不得影响检索——卡片元数据、向量、过滤条件、
-检索结果、入库台账都必须原封不动。这里用真实检索流水线（向量 + BM25 混合 + 领域过滤）
+重点（用户明确要求）：改知识板块显示名称，不得影响检索——卡片元数据、向量、过滤条件、
+检索结果、入库台账都必须原封不动。这里用真实检索流水线（向量 + BM25 混合 + 知识板块过滤）
 在改名前后各跑一遍对比，并对向量库做全量快照比对。
 """
 
@@ -59,9 +59,9 @@ class RegistryRuleTests(_RegistryCase):
         domains.update_domain("finance", name="财务资料")
         self.assertEqual(domains.display_name("finance"), "财务资料")
         with self.assertRaises(DomainError):
-            domains.update_domain("finance", name="  ")  # 自定义领域名称不能清空
+            domains.update_domain("finance", name="  ")  # 自定义知识板块名称不能清空
         domains.update_domain("learning", name="学习资料")
-        domains.update_domain("learning", name="")  # 内置领域清空 = 恢复默认多语言标签
+        domains.update_domain("learning", name="")  # 内置知识板块清空 = 恢复默认多语言标签
         self.assertEqual(domains.display_name("learning"), "")
 
         domains.update_domain("finance", enabled=False)
@@ -211,7 +211,7 @@ class RenameDoesNotAffectRetrievalTests(IngestHarness):
         before = self.retrieve("finance")
         domains.update_domain("finance", enabled=False)
         self.assertEqual(self.retrieve("finance"), before)
-        # 停用后已有文件改内容重新入库：领域仍是 finance（不会被兜底成 reference）
+        # 停用后已有文件改内容重新入库：知识板块仍是 finance（不会被兜底成 reference）
         path = self.write_note("报销流程（修订版）：线上提交即可。", "reimburse.md", "finance")
         self.ingest([path])
         payloads = [json.loads(s[1]) for s in self.snapshot()]

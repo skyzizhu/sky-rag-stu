@@ -53,7 +53,7 @@ def _safe_knowledge_path(relative_path: str, cfg: AppConfig) -> Path:
 
 
 def _second_level_directory(relative_path: str, knowledge_dir: Path) -> Path | None:
-    """返回领域下的第一级子目录。领域根目录的文件不触发目录清理。"""
+    """返回知识板块下的第一级子目录。知识板块根目录的文件不触发目录清理。"""
     parts = Path(relative_path.replace("\\", "/")).parts
     if len(parts) < 3 or parts[0] in ("", ".", "..") or parts[1] in ("", ".", ".."):
         return None
@@ -159,7 +159,7 @@ def revoke_document_user(username: str) -> int:
 
 
 def _legacy_unassigned_bucket(relative_path: str) -> tuple[str, str] | None:
-    """V3.9.2：旧未关联桶 <领域>/(public|public-unassigned)/<…> → (领域, 余下层级)。
+    """V3.9.2：旧未关联桶 <知识板块>/(public|public-unassigned)/<…> → (知识板块, 余下层级)。
 
     新约定 basic_knowledge、项目目录、归档路径均返回 None（不搬迁）。"""
     parts = relative_path.split("/")
@@ -212,7 +212,7 @@ def _relocate_legacy_unassigned_file(relative_path: str, username: str) -> str:
 def reingest(relative_path: str, owner: str | None = None) -> dict:
     """重新解析并入库单个文件（文件修改后手动刷新用）。owner：操作者（审计/溯源）。
 
-    V3.9.2：旧未关联桶（<领域>/public[/…-unassigned]）的文件重新入库时，先搬迁到
+    V3.9.2：旧未关联桶（<知识板块>/public[/…-unassigned]）的文件重新入库时，先搬迁到
     basic_knowledge/<操作者>/ 再入库——移动=新文档：doc_id/版本重置，旧路径的台账
     与向量同步清除；生效权限作为人工覆盖随迁，避免搬迁后权限意外变宽。"""
     relocated_from = _legacy_unassigned_bucket(relative_path)
@@ -245,7 +245,7 @@ def _move_destination(relative_path: str, to_archive: bool, entry: dict) -> str:
 
         domain = original.split("/", 1)[0].lower()
         if domain == "archive" or domain not in all_codes():
-            raise ManageError(f"无法恢复到领域「{domain}」，原领域已不存在或不可恢复。")
+            raise ManageError(f"无法恢复到知识板块「{domain}」，原知识板块已不存在或不可恢复。")
     return original
 
 
@@ -596,7 +596,7 @@ def _remove_documents(relative_paths: list[str], delete_files: bool) -> dict:
             istate.remove_entry(state, relative_path)
         istate.save_state(state, strict=True)
 
-        # 只清理领域下的空子目录，领域目录保留。
+        # 只清理知识板块下的空子目录，知识板块目录保留。
         for directory in sorted(candidate_directories, key=lambda path: len(path.parts), reverse=True):
             if directory.is_dir() and not _has_user_files(directory):
                 try:
@@ -646,7 +646,7 @@ def ingest_web_page(url: str, domain: str = "reference",
                     audit: IngestAudit | None = None) -> dict:
     """抓取网页内容并入库为知识卡片（V3 插件：不改核心 RAG 流程）。
 
-    流程：抓取 URL → 提取正文 → 保存到所选领域（已有快照复用原路径）→ 标准入库。
+    流程：抓取 URL → 提取正文 → 保存到所选知识板块（已有快照复用原路径）→ 标准入库。
     category 仅供旧调用和历史快照兼容。
     on_progress(msg)：每个阶段开始时回调一次（界面用它显示分步进度）。
     default_groups（V3.7）：上传表单选择的可见部门，透传给入库流水线。
@@ -676,9 +676,9 @@ def ingest_web_page(url: str, domain: str = "reference",
         visibility_carry[rel] = _visibility_snapshot(state, rel, get_vector_store())
 
     # archive 的卡片必须是 archive 状态，而状态由所在目录决定：快照不在 archive/ 下就会
-    # 变成「归档领域里的生效卡片」，所以网页不能直接进归档领域（要归档走知识库管理页）
+    # 变成「归档知识板块里的生效卡片」，所以网页不能直接进归档知识板块（要归档走知识库管理页）
     if domain == "archive" or domain not in enabled_codes():
-        raise ManageError(f"网页不能入库到领域「{domain}」（领域不存在、已停用或是归档领域）。")
+        raise ManageError(f"网页不能入库到知识板块「{domain}」（知识板块不存在、已停用或是归档知识板块）。")
 
     def _report(msg: str) -> None:
         if on_progress:
@@ -752,7 +752,7 @@ def ingest_web_page(url: str, domain: str = "reference",
 def refetch_web_page(relative_path: str, owner: str | None = None) -> dict:
     """重新抓取网页：按快照文件头里的原文网址重抓并写回原快照，内容变了生成新版本、没变就跳过。
 
-    沿用快照的领域和历史文件头声明，授权从台账或已有卡片携带。
+    沿用快照的知识板块和历史文件头声明，授权从台账或已有卡片携带。
     """
     path, knowledge_dir, _ = _resolve(relative_path)
     relative_path = path.relative_to(knowledge_dir).as_posix()

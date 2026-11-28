@@ -83,6 +83,32 @@ class QueryScopeTests(IngestHarness):
         self.assertIsNone(domain_folder_scope("当前工作目录是什么？"))      # 程序语境
         self.assertIsNone(domain_folder_scope("知识库里有哪些文档？"))      # 无文件夹词
 
+    def test_section_words_map_to_domains_but_domain_word_does_not(self):
+        """2026-11-28 概念分离：知识板块（domain）与业务领域（business_direction）互不交叉。
+
+        - 知识板块只认「板块 / 知识板块」及原有的「文件夹 / 目录」；
+        - 「领域」一词专属业务领域（项目属性），不作为知识板块的别名：
+          说「XX领域」的问句不按知识板块解析，交给 Query 理解按 business_direction 处理。
+        """
+        from src.query_scope import domain_folder_scope, inventory_domain_scope
+        # 知识板块：板块 / 知识板块 / 文件夹
+        self.assertEqual(domain_folder_scope("工作板块的资料有哪些？"), "work")
+        self.assertEqual(domain_folder_scope("学习板块里有哪些文件？"), "learning")
+        self.assertEqual(domain_folder_scope("项目板块下有哪些文档？"), "projects")
+        self.assertEqual(domain_folder_scope("工作知识板块的资料有哪些？"), "work")
+        self.assertEqual(domain_folder_scope("工作文件夹里有哪些文档？"), "work")
+        # 「领域」不是知识板块：不再被解析成板块，也不再报板块范围错误
+        for question in ("工作领域的资料有哪些？", "低空经济领域的资料有哪些？",
+                         "云端业务领域的项目有哪些？", "业务领域有哪些项目？",
+                         "主业务领域是云端业务的项目有哪些？"):
+            with self.subTest(question=question):
+                self.assertIsNone(domain_folder_scope(question))
+                self.assertNotEqual(inventory_domain_scope(question, None)[1], "inventory_domain_unresolved")
+        # 裸「板块」没有限定名，泛指全部
+        self.assertIsNone(domain_folder_scope("板块里有哪些资料？"))
+        # 真未登记的板块名仍要拒绝（分离没有放宽板块自身的校验）
+        self.assertEqual(inventory_domain_scope("火星板块的文件清单", None)[1], "inventory_domain_unresolved")
+
     def test_folder_listing_question_routes_catalog_with_domain(self):
         from src.enumeration import enumeration_route
         self.assertEqual(enumeration_route("项目文件夹里有哪些文档？", True), "catalog")
@@ -615,9 +641,11 @@ class QueryScopeTests(IngestHarness):
                 self.assertTrue(retriever.return_value.retrieve.called)
 
     def test_inventory_resolves_registered_domains_and_colloquial_project(self):
+        # 2026-11-28 概念分离：知识板块只认「板块 / 知识板块 / 文件夹 / 目录」；
+        # 「领域」专属业务领域（项目属性），不再作为知识板块的口头说法（见下一个用例）。
         cases = (
             ("把学习区的文件名给我排个清单", {"inventory_domain": "学习区"}, "domain", "learning"),
-            ("工作领域的资料给我列个目录", {"inventory_domain": "work"}, "domain", "work"),
+            ("工作板块的资料给我列个目录", {"inventory_domain": "work"}, "domain", "work"),
             ("项目文件清单", {}, "domain", "projects"),
             ("麻烦整理归档区的文件名单", {"filters": {"status": "archive"}}, "domain", "archive"),
             ("给我列一份低空监管平台项目下的文件清单",
@@ -632,15 +660,31 @@ class QueryScopeTests(IngestHarness):
                 self.assertEqual(result.filters[key], expected)
                 self.assertNotIn("private.md", {row["source"] for row in result.sources})
 
+    def test_inventory_domain_words_are_not_business_domain_words(self):
+        """2026-11-28 概念分离：说「领域」的问句不属于知识板块范围解析。
+
+        病灶：「低空经济领域的资料」被当成未登记的知识板块名，报 inventory_domain_unresolved；
+        实际「低空经济」是业务领域（项目属性）。分离后这类问句不触发板块范围错误，
+        交给 Query 理解按 business_direction 处理。
+        """
+        from src.query_scope import domain_folder_scope, inventory_domain_scope
+        for question in ("低空经济领域的资料有哪些", "云端业务领域的项目有哪些",
+                         "业务领域有哪些项目", "主业务领域是云端业务的项目有哪些",
+                         "工作领域的资料有哪些", "学习领域里有哪些文件"):
+            with self.subTest(question=question):
+                self.assertIsNone(domain_folder_scope(question))  # 不按知识板块解析
+                self.assertNotEqual(inventory_domain_scope(question, None)[1], "inventory_domain_unresolved")
+
     def test_inventory_clarifies_explicit_domain_constraints(self):
+        # 规则不变，说法改为「板块」：未登记 / 排除 / 多值 / 冲突 都要给出明确提示而不是静默放宽
         cases = (
-            ("整理市场领域文件清单", {"inventory_domain": "市场"}, None, "inventory_domain_unresolved"),
-            ("火星领域的文件清单", {}, None, "inventory_domain_unresolved"),
-            ("高级项目领域的文件清单", {"inventory_domain": "项目"}, None, "inventory_domain_unresolved"),
+            ("整理市场板块文件清单", {"inventory_domain": "市场"}, None, "inventory_domain_unresolved"),
+            ("火星板块的文件清单", {}, None, "inventory_domain_unresolved"),
+            ("高级项目板块的文件清单", {"inventory_domain": "项目"}, None, "inventory_domain_unresolved"),
             ("列出火星文件夹的文档", {}, None, "inventory_domain_unresolved"),
-            ("盘点除项目领域以外的已入库资料", {}, None, "inventory_domain_negated"),
-            ("列出项目领域之外的所有文档", {"inventory_domain": "项目"}, None, "inventory_domain_negated"),
-            ("分别给出项目领域和工作领域的文件清单", {"inventory_domain": "项目"}, None,
+            ("盘点除项目板块以外的已入库资料", {}, None, "inventory_domain_negated"),
+            ("列出项目板块之外的所有文档", {"inventory_domain": "项目"}, None, "inventory_domain_negated"),
+            ("分别给出项目板块和工作板块的文件清单", {"inventory_domain": "项目"}, None,
              "inventory_domain_multiple"),
             ("工作和学习的文件清单", {}, None, "inventory_domain_multiple"),
             ("项目文件清单", {"inventory_domain": "项目"}, {"domain": "learning"}, "inventory_domain_conflict"),

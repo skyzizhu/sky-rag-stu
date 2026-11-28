@@ -160,7 +160,7 @@ class IngestHarness(unittest.TestCase):
         patcher = mock.patch.object(istate, "STATE_PATH", root / "index_state.json")
         patcher.start()
         self.addCleanup(patcher.stop)
-        # 领域注册表同样隔离到临时文件：测试结果不能依赖真实 storage/domains.json
+        # 知识板块注册表同样隔离到临时文件：测试结果不能依赖真实 storage/domains.json
         from src import domains, index_epoch, keyword_search, pipeline
         from src.retriever import get_retriever
 
@@ -201,7 +201,7 @@ class IngestHarness(unittest.TestCase):
 
     def retrieve_hits(self, query: str, domain: str | None = None,
                       user_groups: list[str] | None = None, top_k: int = 10) -> list[tuple[str, str]]:
-        """走真实检索流水线（向量 + BM25 混合，不调大模型），返回命中的 (文件名, 领域编号)。"""
+        """走真实检索流水线（向量 + BM25 混合，不调大模型），返回命中的 (文件名, 知识板块编号)。"""
         import contextlib
         import io
 

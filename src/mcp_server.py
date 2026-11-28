@@ -182,7 +182,7 @@ def _filters(domain: str | None, status: str | None, *,
 
     domain 可传编号或显示名称，这里解析成编号（此后全链路只认编号）。识别不了就抛
     ValueError，由工具层转成明确报错——拿未知值去过滤只会得到空结果，Agent 会误报
-    「知识库里没有」。"all" 表示不限领域。
+    「知识库里没有」。"all" 表示不限知识板块。
     doc_type 是独立的原始文档类型标签，去首尾空白后精确匹配，不做别名合并；
     留空 / all 表示不限，__unclassified__ 表示缺失 / null / 空字符串。
     department 是独立的归属部门名称原文，去首尾空白后精确匹配，不做别名合并；
@@ -194,7 +194,7 @@ def _filters(domain: str | None, status: str | None, *,
 
         code = resolve_code(domain)
         if code is None:
-            raise ValueError(f"无法识别领域「{domain}」。可用的领域编号：{'、'.join(all_codes())}")
+            raise ValueError(f"无法识别知识板块「{domain}」。可用的知识板块编号：{'、'.join(all_codes())}")
         filters["domain"] = code
     if status:
         status = str(status).strip().lower()
@@ -405,9 +405,9 @@ def _answer_status(result) -> str:
 
 
 def _with_domain_codes(fn):
-    """V3.8：工具说明里的领域编号从注册表生成（服务启动时取值）。
+    """V3.8：工具说明里的知识板块编号从注册表生成（服务启动时取值）。
 
-    新增领域需重启 MCP 服务才会出现在说明里；但按编号过滤是实时生效的。
+    新增知识板块需重启 MCP 服务才会出现在说明里；但按编号过滤是实时生效的。
     只放编号——显示名称不进任何检索参数。
     """
     from src.domains import all_codes
@@ -471,13 +471,13 @@ def _tool_knowledge_qa_impl(
     Args:
         question: 用户问题（不可为空）
         top_k: 召回知识卡片数量，默认 5，范围 1~10
-        domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
+        domain: 可选，限定知识板块编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active=生效 / archive=已归档 / expired=历史版本）
         history: 可选，按时间顺序的对话消息。项目指代最多看 24 条，模型最近对话最多取 6 条。
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
         department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查未指定
         project: 可选，使用完整名称、唯一简称或正整数 ID 限定项目；省略或留空表示不限
-        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
+        business_direction: 可选，用主业务领域名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
     """
     if not question or not question.strip():
         return json.dumps({"error": "问题不能为空"}, ensure_ascii=False)
@@ -541,17 +541,17 @@ def _tool_knowledge_search_impl(
     （补充资料入库、或明确要求你另找途径）。
 
     Args:
-        question: 检索问题或关键词。可明确指定项目、业务方向、归属部门和文档类型，
+        question: 检索问题或关键词。可明确指定项目、业务领域、归属部门和文档类型，
             例如「查低空监管平台项目的验收资料」；只查文件清单时可返回目录元数据。
         top_k: 普通正文检索的目标卡片数，范围 1~12。省略时从 5 开始，有明确缺证且卡片预算受限时可自动扩容。
         max_evidence_tokens: 可选，语义检索资料的估算 token 上限，范围 1000~8000。省略时普通检索约 4000，
             项目比较按项目分配，有明确缺证且预算受限时可自动扩容。语义列举和文件清单各有独立的默认预算。
-        domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
+        domain: 可选，限定知识板块编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active/archive/expired）
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
         department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查未指定
         project: 可选，使用完整名称、唯一简称或正整数 ID 限定项目；省略或留空表示不限
-        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
+        business_direction: 可选，用主业务领域名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
         history: 可选，按时间顺序传入最近会话消息。用于解析「这个项目」等追问，最多取 24 条。
     """
     if not question or not question.strip():
@@ -653,13 +653,13 @@ def _tool_knowledge_digest_impl(topic: str, domain: str | None = None,
 
     Args:
         topic: 要总结的主题（如「RAG」「智能客服」）
-        domain: 可选，限定知识领域编号（{DOMAIN_CODES}）
+        domain: 可选，限定知识板块编号（{DOMAIN_CODES}）
         status: 可选，知识状态过滤（active/archive/expired）
         top_k: 综合的资料卡片数量，默认 10，范围 1~20
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查未分类
         department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查未指定
         project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
-        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
+        business_direction: 可选，用主业务领域名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
     """
     if not topic or not topic.strip():
         return json.dumps({"error": "主题不能为空"}, ensure_ascii=False)
@@ -731,7 +731,7 @@ def _tool_get_document_impl(document_ids: list[str], page: int = 1, page_size: i
         version: 可选，匹配结果中的精确版本号。批量读取时同一版本条件适用于所有文档。
         status: 可选，active / archive / expired / all。未指定版本时默认 active，查询 expired 或 all 时需指定版本。
         project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
-        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
+        business_direction: 可选，用主业务领域名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
     """
     import math
 
@@ -900,16 +900,16 @@ def _tool_list_documents_impl(domain: str | None = None, status: str = "active",
                               project: str | int | None = None,
                               business_direction: str | int | None = None,
                               page: int = 1, page_size: int = 100) -> str:
-    """枚举知识库目录：按权限列出文档（编号/文件名/领域/文档类型/归属部门/版本/状态/卡片数）。
+    """枚举知识库目录：按权限列出文档（编号/文件名/知识板块/文档类型/归属部门/版本/状态/卡片数）。
     不调用 LLM。内部文档按令牌所属员工的部门过滤，受限文档按员工本人的授权过滤。
 
     Args:
-        domain: 可选，限定知识领域编号（{DOMAIN_CODES}）；"all" 表示不限
+        domain: 可选，限定知识板块编号（{DOMAIN_CODES}）；"all" 表示不限
         status: 知识状态过滤（active/archive/expired/all，默认 active）
         doc_type: 可选，文档类型原始标签（去首尾空白，最多 80 字符，精确匹配、不合并别名）；留空/all 不限，__unclassified__ 仅查缺失/null/空字符串
         department: 可选，归属部门名称原文（去首尾空白精确匹配，不合并别名）；留空/all 不限，__no_department__ 仅查缺失/null/空字符串
         project: 可选，用项目名称或正整数 ID 限定资料范围；省略或留空表示不限
-        business_direction: 可选，用主业务方向名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
+        business_direction: 可选，用主业务领域名称、编号或正整数 ID 限定当前关联的项目；和 project 同用时取交集
         page: 页码，从 1 开始。
         page_size: 每页文档版本数，默认 100，最多 200。
     """

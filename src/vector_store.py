@@ -366,7 +366,7 @@ class VectorStore:
 
     def reassign_domain(self, document_ids: list[str], domain: str) -> None:
         """把指定文档全部卡片（含历史版本）的 domain 字段就地改写——只改 payload，
-        不重新向量化。用于把「未登记目录」登记为领域（此前被兜底归到 reference）。"""
+        不重新向量化。用于把「未登记目录」登记为知识板块（此前被兜底归到 reference）。"""
         if not document_ids or not self.collection_exists():
             return
         self.client.set_payload(

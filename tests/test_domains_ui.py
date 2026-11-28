@@ -1,5 +1,5 @@
-"""领域管理页 UI 全流程（AppTest 真实运行 app.py）：新增 → 弹框改名 → 停用/启用 → 删除空领域；
-有数据 / 系统领域的删除与停用按钮必须禁用。V3.9.1 列表化后操作直接放行内，编辑走弹框。
+"""知识板块管理页 UI 全流程（AppTest 真实运行 app.py）：新增 → 弹框改名 → 停用/启用 → 删除空知识板块；
+有数据 / 系统知识板块的删除与停用按钮必须禁用。V3.9.1 列表化后操作直接放行内，编辑走弹框。
 隔离方式同 tests/test_upload_ui.py；Windows 上 AppTest 受网络隔离守卫限制，整类跳过。"""
 
 from __future__ import annotations
@@ -78,10 +78,10 @@ class DomainPageFlowTests(IngestHarness):
 
     def test_create_edit_in_dialog_disable_delete(self):
         at = self.open_page()
-        self.click(at, at.button(key="dom_add_open"))          # 「＋ 新增领域」弹框
+        self.click(at, at.button(key="dom_add_open"))          # 「＋ 新增知识板块」弹框
         at.text_input[0].input("finance")      # 新增弹框：编号
         at.text_input[1].input("财务")         # 新增弹框：名称
-        self.click(at, next(b for b in at.button if b.label == "创建领域"))
+        self.click(at, next(b for b in at.button if b.label == "创建知识板块"))
         self.assertEqual(domains.display_name("finance"), "财务")
         self.assertTrue(any(b.key == "dom_edit_finance" for b in at.button))
 

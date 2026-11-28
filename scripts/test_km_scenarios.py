@@ -60,7 +60,7 @@ def main() -> int:
     print("=" * 70)
     items = retriever.retrieve("RAG Metadata 是什么？", top_k=10, filters={"status": "all"})
     found = domains_of(items)
-    record("多领域均有召回机会", len(found & {"learning", "work", "reference"}) >= 2, f"实际领域：{sorted(found)}")
+    record("多知识板块均有召回机会", len(found & {"learning", "work", "reference"}) >= 2, f"实际知识板块：{sorted(found)}")
 
     print()
     print("=" * 70)
@@ -68,7 +68,7 @@ def main() -> int:
     print("预期：只返回 learning")
     print("=" * 70)
     items = retriever.retrieve("RAG Metadata", top_k=10, filters={"domain": "learning"})
-    record("结果只含 learning", domains_of(items) == {"learning"}, f"实际领域：{sorted(domains_of(items)) or '无结果'}")
+    record("结果只含 learning", domains_of(items) == {"learning"}, f"实际知识板块：{sorted(domains_of(items)) or '无结果'}")
 
     print()
     print("=" * 70)
@@ -76,7 +76,7 @@ def main() -> int:
     print("预期：只返回 work")
     print("=" * 70)
     items = retriever.retrieve("RAG", top_k=10, filters={"domain": "work"})
-    record("结果只含 work", domains_of(items) == {"work"}, f"实际领域：{sorted(domains_of(items)) or '无结果'}")
+    record("结果只含 work", domains_of(items) == {"work"}, f"实际知识板块：{sorted(domains_of(items)) or '无结果'}")
 
     print()
     print("=" * 70)

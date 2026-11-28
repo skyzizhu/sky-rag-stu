@@ -59,7 +59,7 @@ def _normalize_choices(settings: dict) -> dict:
             settings["domain_choice"] = "all"
         elif " " in dc:
             settings["domain_choice"] = dc.split(" ")[0]
-    # 文档类型是自由文本，不按领域代码或界面语言拆分/迁移；空值或 all 不过滤。
+    # 文档类型是自由文本，不按知识板块代码或界面语言拆分/迁移；空值或 all 不过滤。
     if "doc_type_choice" in settings:
         try:
             settings["doc_type_choice"] = normalize_doc_type_filter(settings["doc_type_choice"]) or ""

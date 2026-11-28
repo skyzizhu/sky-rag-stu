@@ -49,7 +49,7 @@ def _directories(conn, domain: str) -> dict[int, str]:
 
 def _basic_directory(knowledge_dir: Path, domain: str, registered: dict[int, str],
                      username: str | None = None) -> tuple[Path, Path]:
-    """未关联文件的托管目录：<领域>/basic_knowledge/<入库用户名>/。
+    """未关联文件的托管目录：<知识板块>/basic_knowledge/<入库用户名>/。
 
     basic_knowledge 为保留名（被项目历史占用时回退 -unassigned 后缀）。
     返回 (桶根, 落盘目录)——桶根放说明文件，落盘目录带用户名层；
@@ -142,7 +142,7 @@ def _write_project_info(directory: Path, project: dict) -> None:
     text = (
         f"{_PROJECT_MARKER}\n\n# {project['name']}\n\n"
         f"- 项目 ID：{project['id']}\n"
-        f"- 业务方向：{project['direction_name'] or '未设置'}\n"
+        f"- 业务领域：{project['direction_name'] or '未设置'}\n"
         f"- 牵头部门：{project['lead_department_name'] or '未设置'}\n"
         f"- 参与部门：{participants or '未设置'}\n\n"
         f"## 项目说明\n\n{project['note'] or '暂无说明'}\n"

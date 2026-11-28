@@ -27,7 +27,7 @@ class LegacyBucketDetectionTests(unittest.TestCase):
         self.assertIsNone(_legacy_unassigned_bucket("projects/fenghuangxiangmu/手册.md"))
         self.assertIsNone(_legacy_unassigned_bucket("learning/自定义目录/文件.md"))
         self.assertIsNone(_legacy_unassigned_bucket("archive/2024/public/文件.md"))
-        # 太浅（领域/桶名即文件，无文件段）不匹配
+        # 太浅（知识板块/桶名即文件，无文件段）不匹配
         self.assertIsNone(_legacy_unassigned_bucket("learning/public"))
 
 

@@ -133,7 +133,7 @@ class UploadPageFlowTests(IngestHarness):
         self.assertEqual(self.versions("a.md"), {"1.0": "active"})
 
     def test_web_tab_cannot_choose_archive_domain(self):
-        """上传文件 / 导入目录可以选归档领域（状态由目录决定）；网页不行（快照不在 archive/ 下）。"""
+        """上传文件 / 导入目录可以选归档知识板块（状态由目录决定）；网页不行（快照不在 archive/ 下）。"""
         with mock.patch("src.plugin.is_installed", return_value=True):
             at = self.open_upload_page([])
         domain_selects = [s for s in at.selectbox if any(o.startswith("learning ·") for o in s.options)]

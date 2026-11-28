@@ -4,7 +4,7 @@
   「阈值」二字不相邻甚至通篇无「阈值」措辞——锚点放宽到阈值表述词、取值并入货币。
 - 编号解读类问法：编号是解读对象而非定位锚点，缺号不再一票否决整份证据；
   定位类问法（查某个编号的属性）仍保持严格拦截。
-- 对比侧范围：「归档目录里…相比」的口头领域只绑定历史一侧（现行侧剥离），
+- 对比侧范围：「归档目录里…相比」的口头知识板块只绑定历史一侧（现行侧剥离），
   界面手动状态筛选仍完全尊重。
 """
 
@@ -70,7 +70,7 @@ class ComparisonSideScopeTests(unittest.TestCase):
         self.assertEqual(scopes["historical"], ("archive", "expired"))
 
     def test_manual_domain_keeps_old_single_side_behavior(self):
-        # 界面手动选择 archive 领域（无显式状态）：现行侧为空（旧行为，尊重手选范围）
+        # 界面手动选择 archive 知识板块（无显式状态）：现行侧为空（旧行为，尊重手选范围）
         scopes = comparison_statuses({"domain": "archive"})
         self.assertEqual(scopes["current"], ())
         self.assertEqual(scopes["historical"], ("archive",))

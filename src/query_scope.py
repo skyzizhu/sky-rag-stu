@@ -271,8 +271,8 @@ def conversation_project(question: str, history: list[dict], saved: dict | None 
     return {}
 
 
-# —— 领域文件夹（R6-M09 延伸）：「项目文件夹 / 学习目录」等 = 领域范围的口头说法——
-# 知识库一级目录即领域，问句点名文件夹时应映射为 domain 过滤并走零 LLM 目录通道，
+# —— 知识板块文件夹（R6-M09 延伸）：「项目文件夹 / 学习目录」等 = 知识板块范围的口头说法——
+# 知识库一级目录即知识板块，问句点名文件夹时应映射为 domain 过滤并走零 LLM 目录通道，
 # 而不是把「项目文件夹」当成未知实体落进 LLM 枚举。
 _FOLDER_DOMAINS = (
     ("项目", "projects"), ("工作", "work"), ("学习", "learning"),
@@ -280,8 +280,12 @@ _FOLDER_DOMAINS = (
     ("归档", "archive"),
 )
 _FOLDER_SUFFIX = re.compile(r"(?:文件夹|目录|资料夹|文件夾|目錄)")
+# 知识板块（domain）的口头后缀：文件夹 / 目录 / 板块。
+# 2026-11-28 概念分离：「领域」一词专属「业务领域」（项目的归属属性，见 business_direction），
+# 不再作为知识板块的别名——两个概念在任何解析规则里都不交叉。
+_FOLDER_SUFFIX_WITH_SECTION = re.compile(r"(?:文件夹|目录|资料夹|文件夾|目錄|知识板块|知識板塊|板块|板塊)")
 _LISTING_HINT = re.compile(r"哪些|多少|列出|列举|列舉|有什么|有什麼|都有|清单|清單")
-_FOLDER_NEGATED = re.compile(r"当前|當前|默认|默認|系统|系統|程序|切换|切換")  # 「当前工作目录」是程序概念，不是知识库领域
+_FOLDER_NEGATED = re.compile(r"当前|當前|默认|默認|系统|系統|程序|切换|切換")  # 「当前工作目录」是程序概念，不是知识库板块
 _INVENTORY_CONTENT = re.compile(
     r"关于|關於|总[结結]|摘[要錄]|概括|解[释釋]|里程碑|(?:功能|参数|參數)(?:清单|清單|有|是)"
     r"|(?:哪些|列出)(?:全部)?(?:功能|参数|參數)"
@@ -306,7 +310,7 @@ def inventory_needs_content(text: str) -> bool:
     return bool(_CONTENT_MENTION.search(text) or _INVENTORY_CONTENT.search(text))
 
 
-_DOMAIN_QUALIFIER = r"(?:知识区|知識區|领域|領域|分区|分區|文件夹|文件夾|区|區)"
+_DOMAIN_QUALIFIER = r"(?:知识板块|知識板塊|板块|板塊|知识区|知識區|分区|分區|文件夹|文件夾|区|區)"
 _DOMAIN_FOLLOW = r"文件|文档|文檔|资料|資料|清单|清單|目录|目錄|底下|下|里|裡|内|內|中|以及|或者|[、和与與及或]"
 _DOMAIN_LEAD = re.compile(
     r"(?:[\s「『“《\",，、:：和与與及或在把从從除]|(?:排除|除去|除了|剔除|不含|不包括|"
@@ -343,7 +347,7 @@ def inventory_domain_scope(text: str, hint: str | None) -> tuple[str | None, str
     remainder = text
     for match in reversed(matches):
         remainder = remainder[:match.start()] + " " + remainder[match.end():]
-    if re.search(r"[\w」』”》\"]+\s*(?:领域|領域|分区|分區|文件夹|文件夾)"
+    if re.search(r"[\w」』”》\"]+\s*(?:知识板块|知識板塊|板块|板塊|分区|分區|文件夹|文件夾)"
                  r"|[\w」』”》\"]+\s*[区區]的", remainder):
         return None, "inventory_domain_unresolved"
     code = next(iter(codes), None)
@@ -380,17 +384,18 @@ def recover_inventory_project(question: str, proposed: object) -> str | None:
 
 
 def domain_folder_scope(question: str) -> str | None:
-    """识别「<领域>文件夹/目录」的口头领域范围，返回领域枚举（projects 等）。
+    """识别「<知识板块>板块/文件夹/目录」的口头知识板块范围，返回板块枚举（projects 等）。
 
-    保守门槛：问句需含列举意图词（哪些/多少/列出…），且文件夹词前紧邻处不含
+    保守门槛：问句需含列举意图词（哪些/多少/列出…），且后缀词前紧邻处不含
     「当前/默认/系统」等程序语境词（避免把「当前工作目录」这类技术含义误判为
-    领域范围）。不匹配返回 None。
+    板块范围）。不匹配返回 None。
+    「领域」不在后缀里：该词专属业务领域（项目属性），由 Query 理解处理，两个概念不交叉。
     """
     text = unicodedata.normalize("NFKC", question or "")
     if not _LISTING_HINT.search(text):
         return None
     for prefix, domain in _FOLDER_DOMAINS:
-        for match in re.finditer(re.escape(prefix) + _FOLDER_SUFFIX.pattern, text):
+        for match in re.finditer(re.escape(prefix) + _FOLDER_SUFFIX_WITH_SECTION.pattern, text):
             start = match.start()
             if _FOLDER_NEGATED.search(text[max(0, start - 6):start]):
                 continue
@@ -436,7 +441,13 @@ def resolve_scope(question: str, scope: dict[str, str | int], filters: dict | No
 
 
 def is_scope_listing(question: str, scope: dict[str, str]) -> bool:
-    """Use the catalog only when the question contains scope and listing words alone."""
+    """Use the catalog only when the question contains scope and listing words alone.
+
+    停用词表里两个概念各占一行、互不混排：
+    - 知识板块（domain）：板块 / 知识板块，以及文件夹 / 目录等口头说法；
+    - 业务领域（business_direction）：业务领域 / 主业务领域，及历史别名业务方向。
+    裸词「领域」「方向」只属于业务领域一行——它们不是知识板块的说法（2026-11-28 概念分离）。
+    """
     if not scope or not re.search(r"查|找|列出|列举|列舉|盘点|盤點|哪些|几份|幾份|多少", question):
         return False
     text = unicodedata.normalize("NFKC", question)
@@ -444,6 +455,8 @@ def is_scope_listing(question: str, scope: dict[str, str]) -> bool:
         text = re.sub(re.escape(unicodedata.normalize("NFKC", value)), "", text, flags=re.I)
     return not re.sub(
         r"(?:请|請|帮我|幫我|查找|查询|查詢|查看|查|找|列出|列举|列舉|盘点|盤點|一下|所有|全部|有|"
-        r"哪些|几份|幾份|多少|项目|項目|專案|专案|主业务方向|主要業務方向|业务方向|業務方向|方向|"
+        r"哪些|几份|幾份|多少|项目|項目|專案|专案|"
+        r"知识板块|知識板塊|板块|板塊|文件夹|文件夾|目录|目錄|"  # 知识板块（domain）
+        r"主业务领域|主要業務領域|业务领域|業務領域|主业务方向|主要業務方向|业务方向|業務方向|领域|領域|方向|"  # 业务领域
         r"归属于?|歸屬於?|所属|所屬|文档类型|文件类型|文件類型|为|為|是|的|下|内|內|中|里|裡|"
         r"文件|文档|文檔|资料|資料|和|及|且|[「」『』“”《》\"\s:：=,，、。!?？！])+", "", text)

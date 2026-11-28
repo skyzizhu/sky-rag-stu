@@ -36,11 +36,11 @@ def estimate_tokens(text: str) -> int:
 
 
 def citation_label(item: RetrievedItem, number: int, *, show_version: bool = False) -> str:
-    """一条资料的单行出处，如：[1] 来源: xx.md | 领域: learning | 章节: 基础 | 页码: 3"""
+    """一条资料的单行出处，如：[1] 来源: xx.md | 知识板块: learning | 章节: 基础 | 页码: 3"""
     meta = item.metadata
     label = f"[{number}] 来源: {meta.get('source', '?')}"
     if meta.get("domain"):
-        label += f" | 领域: {meta['domain']}"
+        label += f" | 知识板块: {meta['domain']}"
     if show_version:
         if meta.get("document_version"):
             label += f" | 文档版本: {meta['document_version']}"

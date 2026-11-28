@@ -51,7 +51,7 @@ def effective_filters(filters: dict | None) -> dict:
     - 默认强制 status=active（归档内容不参与普通检索）；
     - 用户显式传入 status 时以用户为准；
     - 传 {"status": "all"} 或 None 值表示不加该条件；
-    - 选了归档领域时默认查 archive：归档卡片的状态都是 archive，默认 active 结果永远为空。
+    - 选了归档知识板块时默认查 archive：归档卡片的状态都是 archive，默认 active 结果永远为空。
     """
     eff: dict = {"status": "archive" if (filters or {}).get("domain") == "archive" else "active"}
     for key, value in (filters or {}).items():
@@ -116,7 +116,7 @@ class Retriever:
                 "🏷", "Metadata Filter", time_str=now_str(),
                 summary="检索前先按知识档案圈定范围，再在范围内找相似",
                 items=[
-                    ("Metadata 是什么", "每张知识卡片附带的档案信息：来源文件、路径、领域、主题、"
+                    ("Metadata 是什么", "每张知识卡片附带的档案信息：来源文件、路径、知识板块、主题、"
                      "标签、章节、页码、版本、状态（active/archive）等"),
                     ("Metadata Filter 是什么", "检索前按档案字段过滤，缩小检索范围——"
                      "本阶段默认强制 status=active，所以归档（archive）知识不参与回答"),
@@ -218,12 +218,12 @@ class Retriever:
                     "⚠️", "空结果分支", time_str=now_str(),
                     summary="本次没有召回任何知识卡片。注意：语义检索几乎总能返回「最相近」的 K 条"
                             "（哪怕都不相关），所以空结果通常不是『内容不相关』，而是过滤条件筛空了"
-                            "（比如限定了领域/状态但范围内没有数据）。系统仍会把空资料发给大模型，"
+                            "（比如限定了知识板块/状态但范围内没有数据）。系统仍会把空资料发给大模型，"
                             "预期它按提示词规则回答「知识库中没有相关内容」而不是编造",
                     items=[
                         ("触发条件", "过滤后可检索的卡片数量 = 0"),
                         ("后续走向", "继续走 Prompt → LLM → 后处理，但资料附页为空"),
-                        ("排查方向", "检查 Metadata Filter 条件是否过严，或所选领域内是否有可检索的文档"),
+                        ("排查方向", "检查 Metadata Filter 条件是否过严，或所选知识板块内是否有可检索的文档"),
                     ],
                 ))
 

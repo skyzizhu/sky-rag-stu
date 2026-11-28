@@ -1,13 +1,13 @@
-"""领域功能的检索准确性审计（每一条都对应一个真实问题，修复后作为回归测试保留）。
+"""知识板块功能的检索准确性审计（每一条都对应一个真实问题，修复后作为回归测试保留）。
 
 ① 只改元数据不改卡片数的写操作（档案编辑）后，BM25 / 问答缓存不刷新
    ——最严重的后果：收窄可见部门后，其他部门仍能经 BM25 通道检索到该文档
 ② 其他进程（前台 ↔ MCP）的写操作，本进程的 BM25 / 问答缓存感知不到
-③ 为已有文件夹创建领域后，文件夹里已入库的卡片还留在 reference，按新领域检索不到
-④ 文件头声明的领域不计入数据量 → 还有卡片引用的领域可以被删除
-⑤ MCP 传显示名称或未知领域 → 检索静默为空，Agent 会误报「知识库里没有」
-⑥ 网页入库选择的领域不生效（一律落到 reference）
-⑦ 检索领域选 archive：默认只查 active，结果永远为空
+③ 为已有文件夹创建知识板块后，文件夹里已入库的卡片还留在 reference，按新知识板块检索不到
+④ 文件头声明的知识板块不计入数据量 → 还有卡片引用的知识板块可以被删除
+⑤ MCP 传显示名称或未知知识板块 → 检索静默为空，Agent 会误报「知识库里没有」
+⑥ 网页入库选择的知识板块不生效（一律落到 reference）
+⑦ 检索知识板块选 archive：默认只查 active，结果永远为空
 ⑧ 过滤放宽重试对登录员工失效（权限域让 filters 永远非空），大模型猜错就误报「没有」
 ⑨ 相邻卡片拼接不分版本：新旧版本同时召回时拼成一段，引用与内容都错
 """
@@ -187,14 +187,14 @@ class CreateDomainReconcileTests(_RetrievalCase):
         self.assertEqual(self.retrieve_hits("报销流程"), [("a.md", "reference")])
 
     def test_new_domain_for_existing_folder_fixes_cards(self):
-        """③ 用「新增领域」和用「登记为领域」结果必须一致。"""
+        """③ 用「新增知识板块」和用「登记为知识板块」结果必须一致。"""
         self.ingest_finance_folder()
         domains.create_domain("finance", "财务", store=self.store)
         self.assertEqual(self.sources("报销流程", domain="finance"), {"a.md"})
         self.assertEqual(self.sources("报销流程", domain="reference"), set())
 
     def test_front_matter_declaration_is_respected(self):
-        """文件头明确声明别的领域的不能被改；文件头声明了新领域的要改过来。"""
+        """文件头明确声明别的知识板块的不能被改；文件头声明了新知识板块的要改过来。"""
         stays = self.knowledge / "finance" / "stays.md"
         stays.parent.mkdir(parents=True)
         stays.write_text("---\ndomain: learning\n---\n# 甲\n\n正文甲\n", encoding="utf-8")
@@ -265,11 +265,11 @@ class McpDomainParameterTests(_RetrievalCase):
     def test_unknown_domain_returns_explicit_error_not_empty_result(self):
         from src import mcp_server
 
-        out = json.loads(mcp_server._tool_knowledge_search_impl("报销流程", domain="不存在的领域"))
+        out = json.loads(mcp_server._tool_knowledge_search_impl("报销流程", domain="不存在的知识板块"))
         self.assertNotIn("matches", out)
-        self.assertIn("不存在的领域", out["error"])
+        self.assertIn("不存在的知识板块", out["error"])
         self.assertIn("finance", out["error"])  # 带上可用编号，Agent 能自行纠正
-        out = json.loads(mcp_server._tool_knowledge_qa_impl("报销流程", domain="不存在的领域"))
+        out = json.loads(mcp_server._tool_knowledge_qa_impl("报销流程", domain="不存在的知识板块"))
         self.assertIn("finance", out["error"])
 
     def test_search_by_display_name_finds_the_document(self):
@@ -316,7 +316,7 @@ class WebIngestDomainTests(_RetrievalCase):
         self.assertTrue(self.ingest_page()["skipped"])
 
     def test_switching_domain_versions_the_same_document(self):
-        """换领域重抓：同一文档的新版本，而不是两份同时生效。"""
+        """换知识板块重抓：同一文档的新版本，而不是两份同时生效。"""
         domains.create_domain("finance", "财务")
         self.ingest_page()
         self.ingest_page(domain="finance")
@@ -340,7 +340,7 @@ class WebIngestDomainTests(_RetrievalCase):
 
 
 class ArchiveDomainFilterTests(_RetrievalCase):
-    """⑦ 选了归档领域却默认只查 active：归档卡片的状态都是 archive，结果永远为空。"""
+    """⑦ 选了归档知识板块却默认只查 active：归档卡片的状态都是 archive，结果永远为空。"""
 
     def setUp(self) -> None:
         super().setUp()
@@ -361,7 +361,7 @@ class ArchiveDomainFilterTests(_RetrievalCase):
 
 
 class FilterRelaxationTests(_RetrievalCase):
-    """⑧ 大模型猜错过滤条件时的放宽重试：对登录员工（必带权限域）和手动选了领域时也要生效。"""
+    """⑧ 大模型猜错过滤条件时的放宽重试：对登录员工（必带权限域）和手动选了知识板块时也要生效。"""
 
     def setUp(self) -> None:
         super().setUp()
